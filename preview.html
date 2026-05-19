@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live Preview — HR Mobile App</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: #1e293b;
+      border-bottom: 2px solid #334155;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+
+    header h1 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #f1f5f9;
+      letter-spacing: 0.3px;
+    }
+
+    .badge {
+      background: #22c55e;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    .controls {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .controls label {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    select, button {
+      background: #334155;
+      color: #e2e8f0;
+      border: 1px solid #475569;
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      outline: none;
+    }
+
+    button:hover { background: #3b82f6; border-color: #3b82f6; }
+
+    .status-bar {
+      background: #0f172a;
+      border-bottom: 1px solid #1e293b;
+      padding: 6px 20px;
+      font-size: 11px;
+      color: #64748b;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-shrink: 0;
+    }
+
+    .status-bar span { display: flex; align-items: center; gap: 5px; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; }
+
+    main {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 260px;
+      background: #1e293b;
+      border-right: 1px solid #334155;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .sidebar-header {
+      padding: 12px 16px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #64748b;
+      border-bottom: 1px solid #334155;
+    }
+
+    .changelog {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+    }
+
+    .changelog::-webkit-scrollbar { width: 4px; }
+    .changelog::-webkit-scrollbar-track { background: transparent; }
+    .changelog::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+
+    .entry {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+      border-left: 3px solid #3b82f6;
+    }
+
+    .entry.initial { border-left-color: #a855f7; }
+
+    .entry-time {
+      font-size: 10px;
+      color: #64748b;
+      margin-bottom: 4px;
+    }
+
+    .entry-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #f1f5f9;
+      margin-bottom: 4px;
+    }
+
+    .entry-desc {
+      font-size: 11px;
+      color: #94a3b8;
+      line-height: 1.5;
+    }
+
+    .tag {
+      display: inline-block;
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      margin-top: 5px;
+      font-weight: 600;
+    }
+
+    .tag.add { background: #14532d; color: #4ade80; }
+    .tag.update { background: #1e3a5f; color: #60a5fa; }
+    .tag.fix { background: #4c1d1d; color: #f87171; }
+
+    /* Viewport selector */
+    .viewport-bar {
+      background: #1e293b;
+      border-bottom: 1px solid #334155;
+      padding: 8px 16px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .vp-btn {
+      background: #334155;
+      border: 1px solid #475569;
+      color: #94a3b8;
+      border-radius: 6px;
+      padding: 4px 12px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .vp-btn.active, .vp-btn:hover {
+      background: #3b82f6;
+      border-color: #3b82f6;
+      color: #fff;
+    }
+
+    .vp-label {
+      font-size: 11px;
+      color: #475569;
+      margin-left: auto;
+      font-style: italic;
+    }
+
+    /* Preview area */
+    .preview-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #0f172a;
+      overflow: hidden;
+    }
+
+    .frame-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      overflow: auto;
+    }
+
+    .device-frame {
+      background: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.6);
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .device-frame iframe {
+      display: block;
+      border: none;
+    }
+
+    /* sizes */
+    .device-frame.desktop { width: 100%; max-width: 1200px; height: calc(100vh - 180px); border-radius: 8px; }
+    .device-frame.tablet  { width: 768px; height: 1024px; }
+    .device-frame.mobile  { width: 390px; height: 844px; border-radius: 40px; }
+
+    /* refresh counter */
+    #counter {
+      margin-left: 8px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 11px;
+      color: #94a3b8;
+      min-width: 60px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>HR Mobile App — Live Preview</h1>
+  <span class="badge">Live</span>
+  <div class="controls">
+    <label>Auto-refresh:</label>
+    <select id="intervalSelect" onchange="setRefreshInterval()">
+      <option value="0">Off</option>
+      <option value="3000">3s</option>
+      <option value="5000" selected>5s</option>
+      <option value="10000">10s</option>
+      <option value="30000">30s</option>
+    </select>
+    <span id="counter">–</span>
+    <button onclick="refresh()">⟳ Refresh Now</button>
+  </div>
+</header>
+
+<div class="status-bar">
+  <span><span class="dot"></span> Previewing: hrmobileapp.html</span>
+  <span>Last refreshed: <span id="lastRefreshed">just now</span></span>
+  <span>Refreshes: <span id="refreshCount">0</span></span>
+</div>
+
+<main>
+
+  <aside class="sidebar">
+    <div class="sidebar-header">Change Log</div>
+    <div class="changelog" id="changelog">
+
+      <div class="entry initial">
+        <div class="entry-time">v1.0 — Initial Build</div>
+        <div class="entry-title">HR Mobile App Created</div>
+        <div class="entry-desc">Full HR mobile app HTML file built and added to repository.</div>
+        <span class="tag add">ADDED</span>
+      </div>
+
+      <!-- Add your future changes below this line -->
+      <!-- Copy and paste a new <div class="entry"> block for each update -->
+
+      <!--
+      <div class="entry">
+        <div class="entry-time">v1.1 — Your Date Here</div>
+        <div class="entry-title">What You Changed</div>
+        <div class="entry-desc">Brief description of the change.</div>
+        <span class="tag update">UPDATE</span>
+      </div>
+      -->
+
+    </div>
+  </aside>
+
+  <div class="preview-area">
+    <div class="viewport-bar">
+      <button class="vp-btn" onclick="setViewport('desktop', this)">Desktop</button>
+      <button class="vp-btn active" onclick="setViewport('mobile', this)">Mobile</button>
+      <button class="vp-btn" onclick="setViewport('tablet', this)">Tablet</button>
+      <span class="vp-label" id="vp-size">390 × 844</span>
+    </div>
+    <div class="frame-wrap">
+      <div class="device-frame mobile" id="deviceFrame">
+        <iframe id="previewFrame" src="hrmobileapp.html" width="390" height="844"></iframe>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  const sizes = {
+    desktop: { w: '100%', h: 'calc(100vh - 180px)', iw: 1200, ih: 800, label: '1200 × 800' },
+    tablet:  { w: '768px', h: '1024px', iw: 768, ih: 1024, label: '768 × 1024' },
+    mobile:  { w: '390px', h: '844px',  iw: 390, ih: 844,  label: '390 × 844' },
+  };
+
+  let currentMode = 'mobile';
+  let timer = null;
+  let countdown = null;
+  let refreshCount = 0;
+  let nextIn = 5;
+
+  function setViewport(mode, btn) {
+    currentMode = mode;
+    document.querySelectorAll('.vp-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    const frame  = document.getElementById('previewFrame');
+    const device = document.getElementById('deviceFrame');
+    const s = sizes[mode];
+
+    device.className = 'device-frame ' + mode;
+    frame.width  = s.iw;
+    frame.height = s.ih;
+    document.getElementById('vp-size').textContent = s.label;
+  }
+
+  function refresh() {
+    const frame = document.getElementById('previewFrame');
+    frame.src = 'hrmobileapp.html?' + Date.now();
+    refreshCount++;
+    document.getElementById('refreshCount').textContent = refreshCount;
+    document.getElementById('lastRefreshed').textContent = new Date().toLocaleTimeString();
+  }
+
+  function setRefreshInterval() {
+    const ms = parseInt(document.getElementById('intervalSelect').value);
+    clearInterval(timer);
+    clearInterval(countdown);
+    document.getElementById('counter').textContent = ms === 0 ? '–' : '';
+
+    if (ms === 0) return;
+
+    nextIn = ms / 1000;
+    updateCounter();
+
+    countdown = setInterval(() => {
+      nextIn--;
+      if (nextIn <= 0) nextIn = ms / 1000;
+      updateCounter();
+    }, 1000);
+
+    timer = setInterval(refresh, ms);
+  }
+
+  function updateCounter() {
+    document.getElementById('counter').textContent = nextIn + 's';
+  }
+
+  // Start with 5s auto-refresh
+  setRefreshInterval();
+</script>
+
+</body>
+</html>
