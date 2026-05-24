@@ -1644,6 +1644,140 @@ const HRMSAIAssistant = ({ nav }) => {
   );
 };
 
+const HRMSTravel = ({ nav }) => {
+  const [showForm, setShowForm] = useState(false);
+  const [tab, setTab] = useState('requests');
+  const [toast, showToast] = useToast();
+  const requests = [
+    {dest:'Mumbai',purpose:'Client onboarding - Policy review & documentation',dep:'May 28',ret:'May 29',cost:'₹22,000',status:'approved',by:'Rajesh Kumar'},
+    {dest:'Hyderabad',purpose:'HR compliance audit & vendor meeting',dep:'Jun 5',ret:'Jun 6',cost:'₹19,500',status:'pending',by:''},
+    {dest:'Pune',purpose:'Recruitment drive - Campus hiring',dep:'Jun 12',ret:'Jun 13',cost:'₹15,000',status:'draft',by:''},
+  ];
+  const expenses = [
+    {cat:'Flight',amount:'₹7,800',date:'May 28',receipt:true},
+    {cat:'Hotel',amount:'₹3,500',date:'May 28',receipt:true},
+    {cat:'Cab & Local',amount:'₹1,200',date:'May 29',receipt:false},
+    {cat:'Meals',amount:'₹850',date:'May 29',receipt:true},
+  ];
+  const statusColor = {approved:{bg:'#f0fdf4',c:'#16a34a'},pending:{bg:'#fffbeb',c:'#d97706'},draft:{bg:'#f3f4f6',c:'#6b7280'}};
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="Travel & Expense" subtitle="Trips & reimbursements" onBack={()=>nav('hrms-dashboard')} orbit="HRMS"/>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:14}}>
+          {[{l:'Active Trips',v:'3'},{l:'Approved',v:'1'},{l:'Total Claims',v:'₹13,350'}].map(s=>(
+            <div key={s.l} className="stat-card"><p style={{fontSize:16,fontWeight:800,color:'#111827'}}>{s.v}</p><p style={{fontSize:10,color:'#9ca3af',marginTop:2}}>{s.l}</p></div>
+          ))}
+        </div>
+        <div className="tab-bar">
+          {[['requests','Travel Requests'],['expenses','Expenses'],['policy','Policy']].map(([k,l])=>(
+            <button key={k} className={`tab-btn${tab===k?' active':''}`} onClick={()=>setTab(k)}>{l}</button>
+          ))}
+        </div>
+        {tab==='requests' && <>
+          {requests.map((r,i)=>(
+            <div key={i} className="card" style={{marginBottom:10}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
+                <div style={{display:'flex',alignItems:'center',gap:8}}>
+                  <div style={{width:36,height:36,background:'#eff4ff',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    <Icon name="airplane" size={18} color="#1a56db"/>
+                  </div>
+                  <div>
+                    <p style={{fontSize:14,fontWeight:700,color:'#111827'}}>→ {r.dest}</p>
+                    <p style={{fontSize:11,color:'#9ca3af'}}>{r.dep} – {r.ret}</p>
+                  </div>
+                </div>
+                <span className="tag" style={{background:statusColor[r.status].bg,color:statusColor[r.status].c}}>{r.status}</span>
+              </div>
+              <p style={{fontSize:12,color:'#6b7280',marginBottom:8,paddingLeft:44}}>{r.purpose}</p>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',paddingLeft:44}}>
+                <span style={{fontSize:12,fontWeight:600,color:'#374151'}}>Est: {r.cost}</span>
+                {r.status==='approved' && <p style={{fontSize:11,color:'#16a34a'}}>✓ Approved by {r.by}</p>}
+                {r.status==='pending' && <button className="btn-ghost" style={{padding:'4px 10px',fontSize:11}} onClick={()=>showToast('Reminder sent to approver')}>Remind</button>}
+              </div>
+            </div>
+          ))}
+          <button className="btn-primary" style={{width:'100%',marginTop:4}} onClick={()=>setShowForm(true)}>+ New Travel Request</button>
+        </>}
+        {tab==='expenses' && <>
+          {expenses.map((e,i)=>(
+            <div key={i} className="card" style={{marginBottom:8,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <div style={{display:'flex',alignItems:'center',gap:10}}>
+                <div style={{width:32,height:32,background:'#eff4ff',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  <Icon name="credit-card" size={15} color="#1a56db"/>
+                </div>
+                <div>
+                  <p style={{fontSize:13,fontWeight:600,color:'#111827'}}>{e.cat}</p>
+                  <p style={{fontSize:11,color:'#6b7280'}}>{e.date} · {e.receipt?'Receipt ✓':'No receipt'}</p>
+                </div>
+              </div>
+              <span style={{fontSize:15,fontWeight:700,color:'#111827'}}>{e.amount}</span>
+            </div>
+          ))}
+          <div className="card" style={{background:'#f0fdf4',border:'1px solid #bbf7d0',marginTop:8}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <div>
+                <p style={{fontSize:13,fontWeight:700,color:'#166534'}}>Reimbursable: ₹13,350</p>
+                <p style={{fontSize:11,color:'#16a34a',marginTop:2}}>Policy limit: ₹25,000 · Within limit ✓</p>
+              </div>
+              <Icon name="check-circle" size={22} color="#16a34a"/>
+            </div>
+          </div>
+          <button className="btn-primary" style={{width:'100%',marginTop:12}} onClick={()=>showToast('Expense claim submitted for approval!')}>Submit Claim</button>
+        </>}
+        {tab==='policy' && (
+          <div style={{display:'flex',flexDirection:'column',gap:10}}>
+            {[
+              {title:'Domestic Air Travel',rule:'Economy class for trips under 4 hrs. Business allowed if >4 hrs.',limit:'₹15,000/trip'},
+              {title:'Hotel Accommodation',rule:'Max 3-star hotels. Pre-approval required for 5-star.',limit:'₹5,000/night'},
+              {title:'Daily Allowance',rule:'₹1,000/day for metro cities, ₹700/day for tier-2.',limit:'₹1,000/day'},
+              {title:'Local Conveyance',rule:'Cab receipts mandatory. Personal vehicle at ₹8/km.',limit:'₹2,000/trip'},
+            ].map((p,i)=>(
+              <div key={i} className="card">
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+                  <p style={{fontSize:13,fontWeight:700,color:'#111827'}}>{p.title}</p>
+                  <span className="tag" style={{background:'#eff4ff',color:'#1a56db'}}>{p.limit}</span>
+                </div>
+                <p style={{fontSize:12,color:'#6b7280'}}>{p.rule}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      {showForm && (
+        <div className="modal-backdrop" onClick={()=>setShowForm(false)}>
+          <div className="modal-sheet" onClick={e=>e.stopPropagation()}>
+            <div className="drag-handle"/>
+            <div style={{padding:'0 20px 12px',borderBottom:'1px solid #e5e7eb'}}><h3 style={{fontSize:15,fontWeight:700}}>New Travel Request</h3></div>
+            <div style={{overflowY:'auto',padding:'16px 20px',display:'flex',flexDirection:'column',gap:12}}>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Trip Type</label>
+                <div style={{display:'flex',gap:8}}>{['Domestic','International'].map(t=><button key={t} style={{flex:1,padding:'8px',border:'1px solid #e5e7eb',borderRadius:8,fontSize:12,cursor:'pointer',background:'#f8f9fc'}}>{t}</button>)}</div></div>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Destination *</label><input className="input-field" placeholder="City, State"/></div>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Purpose *</label><textarea className="input-field" rows={2} style={{resize:'none'}} placeholder="Purpose of travel..."/></div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Departure</label><input className="input-field" type="date"/></div>
+                <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Return</label><input className="input-field" type="date"/></div>
+              </div>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Estimated Cost (₹)</label><input className="input-field" type="number" placeholder="0"/></div>
+              <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
+                {['Advance Needed','Hotel Required','Cab Booking','Flight Booking'].map(opt=>(
+                  <label key={opt} style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'#374151',cursor:'pointer'}}><input type="checkbox"/>{opt}</label>
+                ))}
+              </div>
+              <div style={{display:'flex',gap:10}}>
+                <button className="btn-ghost" style={{flex:1}} onClick={()=>setShowForm(false)}>Cancel</button>
+                <button className="btn-primary" style={{flex:1}} onClick={()=>{setShowForm(false);showToast('Travel request submitted!');}}>Submit Request</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      <HRMSBottomNav current="hrms-travel" nav={nav}/>
+      <Toast msg={toast}/>
+    </div>
+  );
+};
+
 const HRMSNotifications = ({ nav }) => {
   const [notifs, setNotifs] = useState([
     {id:1,title:'Salary Credited',msg:'Your March 2026 salary of ₹96,500 has been credited',type:'payroll',time:'2 days ago',read:true},
@@ -2707,6 +2841,7 @@ const HRMSBottomNav = ({ current, nav }) => {
     {s:'hrms-directory',l:'Directory',icon:'users',c:'#0891b2',bg:'#ecfeff'},
     {s:'hrms-assets',l:'Assets',icon:'monitor',c:'#16a34a',bg:'#f0fdf4'},
     {s:'hrms-ai',l:'AI Assistant',icon:'zap',c:'#7c3aed',bg:'#f5f3ff'},
+    {s:'hrms-travel',l:'Travel',icon:'airplane',c:'#0891b2',bg:'#ecfeff'},
     {s:'hrms-notifications',l:'Notifications',icon:'bell',c:'#f59e0b',bg:'#fffbeb'},
     {s:'orbit-select',l:'Switch Orbit',icon:'repeat',c:'#1a56db',bg:'#eff4ff'},
   ];
@@ -2777,6 +2912,7 @@ const App = () => {
     'hrms-profile': <HRMSProfile nav={nav}/>,
     'hrms-assets': <HRMSAssets nav={nav}/>,
     'hrms-ai': <HRMSAIAssistant nav={nav}/>,
+    'hrms-travel': <HRMSTravel nav={nav}/>,
     'hrms-notifications': <HRMSNotifications nav={nav}/>,
     // WFM
     'wfm-dashboard': <WFMDashboard nav={nav}/>,
