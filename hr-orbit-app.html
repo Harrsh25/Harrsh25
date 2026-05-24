@@ -12,7 +12,7 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:'Inter',sans-serif;background:#1a56db;display:flex;justify-content:center;align-items:center;min-height:100vh;overflow:hidden}
 #root{width:100%;max-width:430px;height:100vh;background:#f2f3f7;overflow:hidden;position:relative;display:flex;flex-direction:column;box-shadow:0 0 60px rgba(0,0,0,0.3)}
-.screen{display:flex;flex-direction:column;height:100%;overflow:hidden}
+.screen{display:flex;flex-direction:column;height:100%;overflow:hidden;position:relative}
 .scroll-area{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
 .bottom-nav{flex-shrink:0;background:#fff;border-top:1px solid #e5e7eb;display:flex;padding:6px 0 8px}
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;border:none;background:none;cursor:pointer;padding:4px 2px;position:relative;transition:color .15s}
@@ -30,12 +30,12 @@ body{font-family:'Inter',sans-serif;background:#1a56db;display:flex;justify-cont
 .select-field{width:100%;background:#f8f9fc;border:1px solid #e5e7eb;border-radius:8px;padding:11px 14px;font-size:14px;font-family:'Inter',sans-serif;color:#111827;outline:none;appearance:none}
 .tag{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600}
 .badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 4px;border-radius:9px;font-size:10px;font-weight:700}
-.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:50;display:flex;align-items:flex-end;justify-content:center}
+.modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,0.45);z-index:50;display:flex;align-items:flex-end;justify-content:center}
 .modal-sheet{background:#fff;border-radius:20px 20px 0 0;width:100%;max-height:90vh;display:flex;flex-direction:column;animation:slideUp .28s cubic-bezier(.32,1.12,.64,1)}
-.modal-center{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal-center{position:absolute;inset:0;background:rgba(0,0,0,0.45);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px}
 .modal-box{background:#fff;border-radius:20px;width:100%;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;animation:fadeIn .2s ease}
 .drag-handle{width:36px;height:4px;background:#e5e7eb;border-radius:2px;margin:12px auto 8px}
-.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 18px;border-radius:12px;font-size:13px;font-weight:500;z-index:100;white-space:nowrap;animation:fadeIn .2s ease}
+.toast{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 18px;border-radius:12px;font-size:13px;font-weight:500;z-index:100;white-space:nowrap;animation:fadeIn .2s ease}
 .section-title{font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
 .list-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #f0f1f4}
 .list-item:last-child{border-bottom:none}
@@ -2858,43 +2858,6 @@ const WFMCommunication = ({ nav }) => {
   );
 };
 
-const WFMSprintBoard = ({ nav }) => {
-  const [toast, showToast] = useToast();
-  const columns = {
-    'To-Do':[{t:'API endpoint for leave module',p:'high'},{t:'Write unit tests',p:'medium'}],
-    'In-Progress':[{t:'Foundation inspection report',p:'critical'},{t:'WBS tree UI component',p:'high'}],
-    'Done':[{t:'Attendance calendar view',p:'medium'},{t:'Payroll breakdown modal',p:'low'}],
-  };
-  const pColor = {critical:'#dc2626',high:'#d97706',medium:'#1a56db',low:'#16a34a'};
-  return (
-    <div className="screen screen-anim">
-      <ScreenHeader title="Sprint Board" subtitle="Current sprint · May 20-31" onBack={()=>nav('wfm-dashboard')}/>
-      <div className="scroll-area" style={{padding:'16px'}}>
-        <div style={{display:'flex',justifyContent:'space-between',marginBottom:12}}>
-          <span style={{fontSize:12,color:'#6b7280'}}>Sprint 12 · 4 of 6 tasks complete</span>
-          <button className="btn-secondary" style={{padding:'5px 12px',fontSize:11}} onClick={()=>showToast('Sprint completed! Incomplete tasks moved to Backlog.')}>Complete Sprint</button>
-        </div>
-        {Object.entries(columns).map(([col,tasks])=>(
-          <div key={col} style={{marginBottom:14}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-              <span style={{fontSize:12,fontWeight:700,color:'#374151'}}>{col}</span>
-              <span className="badge" style={{background:'#f3f4f6',color:'#6b7280'}}>{tasks.length}</span>
-            </div>
-            {tasks.map((t,i)=>(
-              <div key={i} style={{background:'#fff',border:'1px solid #e5e7eb',borderRadius:10,padding:'10px 12px',marginBottom:6,borderLeft:`3px solid ${pColor[t.p]}`}}>
-                <p style={{fontSize:12,fontWeight:500,color:'#111827',lineHeight:1.4}}>{t.t}</p>
-                <span className="tag" style={{color:pColor[t.p],background:pColor[t.p]+'15',fontSize:9,marginTop:4}}>{t.p}</span>
-              </div>
-            ))}
-            <button style={{width:'100%',padding:'8px',border:'1px dashed #e5e7eb',borderRadius:8,background:'#f8f9fc',fontSize:11,color:'#9ca3af',cursor:'pointer'}} onClick={()=>showToast('Task added to '+col)}>+ Add task</button>
-          </div>
-        ))}
-      </div>
-      <WFMBottomNav current="wfm-sprint" nav={nav}/>
-      <Toast msg={toast}/>
-    </div>
-  );
-};
 
 const WFMNotifications = ({ nav }) => {
   const [notifs, setNotifs] = useState([
@@ -2950,7 +2913,6 @@ const WFMBottomNav = ({ current, nav }) => {
     {s:'wfm-travel',l:'Travel',icon:'airplane',c:'#0891b2',bg:'#ecfeff'},
     {s:'wfm-safety',l:'Safety',icon:'shield',c:'#dc2626',bg:'#fef2f2'},
     {s:'wfm-analytics',l:'Analytics',icon:'bar-chart',c:'#7c3aed',bg:'#f5f3ff'},
-    {s:'wfm-sprint',l:'Sprint Board',icon:'git-branch',c:'#f59e0b',bg:'#fffbeb'},
     {s:'wfm-communication',l:'Updates',icon:'message',c:'#16a34a',bg:'#f0fdf4'},
     {s:'wfm-manager',l:'Manager Hub',icon:'users',c:'#1a56db',bg:'#eff4ff'},
   ];
@@ -3095,7 +3057,6 @@ const App = () => {
     'wfm-safety': <WFMSafety nav={nav}/>,
     'wfm-analytics': <WFMAnalytics nav={nav}/>,
     'wfm-communication': <WFMCommunication nav={nav}/>,
-    'wfm-sprint': <WFMSprintBoard nav={nav}/>,
     'wfm-notifications': <WFMNotifications nav={nav}/>,
   };
 
