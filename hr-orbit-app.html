@@ -1257,40 +1257,84 @@ const HRMSCompliance = ({ nav }) => {
 };
 
 const HRMSBenefits = ({ nav }) => {
+  const [tab, setTab] = useState('benefits');
   const [toast, showToast] = useToast();
-  const benefits = [
-    {title:'Medical Insurance',sub:'Family floater · ₹5L cover',icon:'heart',color:'#ec4899',bg:'#fdf2f8'},
-    {title:'Provident Fund',sub:'₹6,000/month · Balance ₹1,44,000',icon:'dollar-sign',color:'#16a34a',bg:'#f0fdf4'},
-    {title:'Gratuity',sub:'₹1,23,600 accrued',icon:'award',color:'#f59e0b',bg:'#fffbeb'},
-    {title:'NPS (Pension)',sub:'₹3,000/month contribution',icon:'shield',color:'#1a56db',bg:'#eff4ff'},
-    {title:'LTC (Leave Travel)',sub:'Entitled: ₹30,000 / 2 years',icon:'airplane',color:'#7c3aed',bg:'#f5f3ff'},
-    {title:'GPF',sub:'Balance: ₹2,45,000',icon:'credit-card',color:'#0891b2',bg:'#ecfeff'},
+  const benefitCards = [
+    {title:'Medical Reimbursement',balance:'₹15,000',used:3500,max:25000,label:'₹3,500 used',icon:'heart',color:'#ec4899',bg:'#fdf2f8',btn:'Claim'},
+    {title:'Medical Advance',balance:'₹0',used:0,max:50000,label:'₹0 used',icon:'activity',color:'#1a56db',bg:'#eff4ff',btn:'Apply'},
+    {title:'Leave Travel Concession',balance:'1 trip remaining',used:1,max:2,label:'1 of 2 trips used',icon:'airplane',color:'#7c3aed',bg:'#f5f3ff',btn:'Apply'},
+    {title:'General Provident Fund',balance:'₹2,85,000',used:null,max:null,label:'₹6,000/month',icon:'credit-card',color:'#0891b2',bg:'#ecfeff',btn:'View'},
+    {title:'National Pension System',balance:'₹1,42,000',used:null,max:null,label:'PRAN: PRAN-50200345',icon:'shield',color:'#16a34a',bg:'#f0fdf4',btn:'View'},
+    {title:'Employee Welfare Fund',balance:'₹8,500',used:null,max:null,label:'₹500/month contribution',icon:'dollar-sign',color:'#d97706',bg:'#fffbeb',btn:'Claim'},
+  ];
+  const dependents = [
+    {name:'Priya Sharma',rel:'Spouse',covered:true},
+    {name:'Aarav Sharma',rel:'Son',covered:true},
+    {name:'Meera Sharma',rel:'Mother',covered:false},
   ];
   return (
     <div className="screen screen-anim">
       <ScreenHeader title="Benefits" subtitle="Medical, LTC, GPF, NPS" onBack={()=>nav('hrms-services')}/>
+      <div style={{display:'flex',borderBottom:'1px solid #e5e7eb',background:'#fff',flexShrink:0}}>
+        {[['benefits','Benefits'],['claims','Claims'],['dependents','Dependents']].map(([k,l])=>(
+          <button key={k} onClick={()=>setTab(k)} style={{flex:1,padding:'10px 4px',border:'none',background:'none',cursor:'pointer',fontSize:12,fontWeight:600,color:tab===k?'#1a56db':'#9ca3af',borderBottom:tab===k?'2px solid #1a56db':'2px solid transparent'}}>{l}</button>
+        ))}
+      </div>
       <div className="scroll-area" style={{padding:'16px'}}>
-        {benefits.map((b,i)=>(
-          <div key={i} className="card" style={{marginBottom:10,display:'flex',alignItems:'center',gap:12}}>
-            <div style={{width:44,height:44,background:b.bg,borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-              <Icon name={b.icon} size={20} color={b.color}/>
+        {tab==='benefits' && <>
+          {benefitCards.map((b,i)=>(
+            <div key={i} className="card" style={{marginBottom:10}}>
+              <div style={{display:'flex',alignItems:'flex-start',gap:12,marginBottom:8}}>
+                <div style={{width:40,height:40,background:b.bg,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                  <Icon name={b.icon} size={18} color={b.color}/>
+                </div>
+                <div style={{flex:1}}>
+                  <p style={{fontSize:13,fontWeight:700,color:'#111827'}}>{b.title}</p>
+                  <p style={{fontSize:12,fontWeight:600,color:b.color,marginTop:2}}>{b.balance}</p>
+                  <p style={{fontSize:11,color:'#9ca3af'}}>{b.label}</p>
+                </div>
+                <button className="btn-secondary" style={{padding:'5px 10px',fontSize:11,flexShrink:0}} onClick={()=>showToast(`${b.btn} action for ${b.title}`)}>{b.btn}</button>
+              </div>
+              {b.max && <ProgressBar value={(b.used/b.max)*100} color={b.color}/>}
             </div>
-            <div style={{flex:1}}>
-              <p style={{fontSize:13,fontWeight:600,color:'#111827'}}>{b.title}</p>
-              <p style={{fontSize:11,color:'#6b7280',marginTop:2}}>{b.sub}</p>
-            </div>
-            <Icon name="chevron-right" size={16} color="#9ca3af"/>
+          ))}
+        </>}
+        {tab==='claims' && (
+          <div>
+            {[{id:'CLM-001',type:'Medical Reimbursement',amount:'₹3,500',status:'approved',date:'Apr 10'},{id:'CLM-002',type:'LTC Advance',amount:'₹15,000',status:'pending',date:'Apr 25'}].map((c,i)=>(
+              <div key={i} className="card" style={{marginBottom:10}}>
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                  <span style={{fontSize:11,color:'#9ca3af',fontWeight:600}}>{c.id}</span>
+                  <StatusBadge status={c.status}/>
+                </div>
+                <p style={{fontSize:13,fontWeight:600,color:'#111827'}}>{c.type}</p>
+                <div style={{display:'flex',justifyContent:'space-between',marginTop:4}}>
+                  <span style={{fontSize:12,fontWeight:700,color:'#1a56db'}}>{c.amount}</span>
+                  <span style={{fontSize:11,color:'#9ca3af'}}>{c.date}</span>
+                </div>
+              </div>
+            ))}
+            <button className="btn-primary" style={{width:'100%'}} onClick={()=>showToast('New claim form opened')}>+ Submit New Claim</button>
           </div>
-        ))}
-        <p className="section-title" style={{marginTop:8}}>Dependent Members</p>
-        {[{name:'Sunita Sharma',rel:'Spouse'},{name:'Rahul Sharma',rel:'Son'},{name:'Priya Sharma',rel:'Daughter'}].map((d,i)=>(
-          <div key={i} className="card" style={{marginBottom:8,display:'flex',alignItems:'center',gap:10}}>
-            <div style={{width:36,height:36,background:'#eff4ff',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center'}}>
-              <Icon name="user" size={16} color="#1a56db"/>
+        )}
+        {tab==='dependents' && <>
+          {dependents.map((d,i)=>(
+            <div key={i} className="card" style={{marginBottom:8,display:'flex',alignItems:'center',gap:10}}>
+              <div style={{width:38,height:38,background:'#eff4ff',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                <Icon name="user" size={16} color="#1a56db"/>
+              </div>
+              <div style={{flex:1}}>
+                <p style={{fontSize:13,fontWeight:700,color:'#111827'}}>{d.name}</p>
+                <p style={{fontSize:11,color:'#6b7280'}}>{d.rel}</p>
+                <p style={{fontSize:11,color:d.covered?'#16a34a':'#9ca3af',marginTop:2,fontWeight:500}}>
+                  {d.covered?'✓ Covered under Medical':'✗ Not covered'}
+                </p>
+              </div>
+              {!d.covered && <button className="btn-secondary" style={{padding:'5px 10px',fontSize:11}} onClick={()=>showToast('Adding to plan...')}>Add to plan</button>}
             </div>
-            <div style={{flex:1}}><p style={{fontSize:13,fontWeight:600,color:'#111827'}}>{d.name}</p><p style={{fontSize:11,color:'#6b7280'}}>{d.rel} · Covered under medical</p></div>
-          </div>
-        ))}
+          ))}
+          <button className="btn-primary" style={{width:'100%',marginTop:8}} onClick={()=>showToast('Add dependent form opened')}>+ Add Dependent</button>
+        </>}
       </div>
       <Toast msg={toast}/>
     </div>
@@ -1353,12 +1397,13 @@ const HRMSHelpdesk = ({ nav }) => {
 };
 
 const HRMSSkills = ({ nav }) => {
-  const [tab, setTab] = useState('certs');
+  const [tab, setTab] = useState('skills');
   const [toast, showToast] = useToast();
   const certs = [
-    {name:'PMP Certification',org:'PMI',issued:'Jan 2024',expires:'Jan 2027',status:'active'},
-    {name:'OSHA Safety 30-Hour',org:'OSHA',issued:'Mar 2023',expires:'Mar 2026',status:'expiring'},
-    {name:'AutoCAD Professional',org:'Autodesk',issued:'Jun 2021',expires:'Jun 2023',status:'expired'},
+    {name:'AWS Solutions Architect',org:'Amazon Web Services',issued:'Jun 15, 2025',expires:'Jun 15, 2028',status:'active',id:'AWS-SA-2025-1234'},
+    {name:'PMP Certification',org:'PMI',issued:'Sep 1, 2024',expires:'Sep 1, 2027',status:'active',id:'PMP-2024-5678'},
+    {name:'Scrum Master (CSM)',org:'Scrum Alliance',issued:'Jan 10, 2025',expires:'Jul 10, 2026',status:'expiring',id:'CSM-2025-9012',note:'Renewal required before Jul 10'},
+    {name:'Azure Fundamentals',org:'Microsoft',issued:'Mar 20, 2025',expires:'Mar 20, 2026',status:'active',id:'AZ-900-2025-3456'},
   ];
   const paths = [{name:'Project Director Readiness',progress:62,modules:8},{name:'Agile & Scrum Master',progress:35,modules:5}];
   return (
@@ -1387,27 +1432,48 @@ const HRMSSkills = ({ nav }) => {
           <p style={{fontSize:10,color:'rgba(255,255,255,0.7)',marginTop:6}}>Retention Risk: <strong style={{color:'#86efac'}}>Low</strong></p>
         </div>
         <div className="tab-bar">
-          {[['certs','Certifications'],['paths','Learning Paths'],['opps','Opportunities']].map(([k,l])=>(
-            <button key={k} className={`tab-btn${tab===k?' active':''}`} onClick={()=>setTab(k)}>{l}</button>
+          {[['skills','Skills'],['certifications','Certifications'],['paths','Learning'],['opps','Career']].map(([k,l])=>(
+            <button key={k} className={`tab-btn${tab===k?' active':''}`} onClick={()=>setTab(k)} style={{fontSize:11}}>{l}</button>
           ))}
         </div>
-        {tab==='certs' && <>
+        {tab==='skills' && (
+          <div>
+            <p className="section-title">Technical Skills</p>
+            {[{s:'Project Management',l:90},{s:'AutoCAD',l:75},{s:'Risk Management',l:85},{s:'Agile/Scrum',l:70},{s:'Budgeting',l:80}].map((sk,i)=>(
+              <div key={i} style={{marginBottom:12}}>
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                  <span style={{fontSize:12,color:'#374151',fontWeight:500}}>{sk.s}</span>
+                  <span style={{fontSize:12,fontWeight:700,color:'#1a56db'}}>{sk.l}%</span>
+                </div>
+                <ProgressBar value={sk.l} color="#1a56db"/>
+              </div>
+            ))}
+          </div>
+        )}
+        {tab==='certifications' && <>
           <div style={{display:'flex',gap:8,marginBottom:14}}>
-            {[{l:'Active',v:1,c:'#16a34a'},{l:'Expiring',v:1,c:'#d97706'},{l:'Expired',v:1,c:'#dc2626'}].map(s=>(
+            {[{l:'Active',v:3,c:'#1a56db'},{l:'Expiring Soon',v:1,c:'#d97706'},{l:'Expired',v:0,c:'#9ca3af'}].map(s=>(
               <div key={s.l} className="stat-card" style={{flex:1}}><p style={{fontSize:16,fontWeight:700,color:s.c}}>{s.v}</p><p style={{fontSize:10,color:'#9ca3af'}}>{s.l}</p></div>
             ))}
           </div>
           {certs.map((c,i)=>(
             <div key={i} className="card" style={{marginBottom:10,borderLeft:`3px solid ${c.status==='active'?'#16a34a':c.status==='expiring'?'#d97706':'#dc2626'}`}}>
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
-                <div><p style={{fontSize:13,fontWeight:600,color:'#111827'}}>{c.name}</p><p style={{fontSize:11,color:'#6b7280'}}>{c.org}</p></div>
-                <StatusBadge status={c.status==='active'?'active':c.status==='expiring'?'at-risk':'rejected'}/>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
+                <div style={{flex:1,marginRight:8}}>
+                  <p style={{fontSize:13,fontWeight:700,color:'#111827'}}>{c.name}</p>
+                  <p style={{fontSize:11,color:'#6b7280',marginTop:1}}>{c.org}</p>
+                </div>
+                <span style={{background:c.status==='active'?'#f0fdf4':c.status==='expiring'?'#fffbeb':'#fef2f2',color:c.status==='active'?'#16a34a':c.status==='expiring'?'#d97706':'#dc2626',borderRadius:20,padding:'2px 8px',fontSize:10,fontWeight:700,whiteSpace:'nowrap',flexShrink:0}}>
+                  {c.status==='active'?'Active':c.status==='expiring'?'Expiring Soon':'Expired'}
+                </span>
               </div>
-              <div style={{display:'flex',gap:16,marginTop:8}}>
+              <div style={{display:'flex',gap:10,marginBottom:4}}>
                 <span style={{fontSize:11,color:'#9ca3af'}}>Issued: {c.issued}</span>
                 <span style={{fontSize:11,color:'#9ca3af'}}>Expires: {c.expires}</span>
               </div>
-              {c.status!=='active' && <button className="btn-secondary" style={{width:'100%',marginTop:10,fontSize:12}} onClick={()=>showToast(`Renewal initiated for ${c.name}`)}>Renew Certification</button>}
+              <p style={{fontSize:10,color:'#9ca3af',fontFamily:'monospace',marginBottom:c.note?4:0}}>ID: {c.id}</p>
+              {c.note && <p style={{fontSize:11,color:'#d97706',marginBottom:6}}>⚠ {c.note}</p>}
+              {c.status==='expiring' && <button className="btn-secondary" style={{width:'100%',marginTop:4,fontSize:12}} onClick={()=>showToast(`Renewal initiated for ${c.name}`)}>Renew Certification</button>}
             </div>
           ))}
         </>}
@@ -1596,33 +1662,21 @@ const HRMSDirectory = ({ nav }) => {
 const HRMSProfile = ({ nav }) => {
   const [tab, setTab] = useState('personal');
   const [toast, showToast] = useToast();
+  const perfHistory = [
+    {period:'Q1 2026',type:'Annual Review',rating:4.2,status:'Completed'},
+    {period:'Q4 2025',type:'Quarterly',rating:4.0,status:'Completed'},
+    {period:'Q3 2025',type:'Quarterly',rating:3.8,status:'Completed'},
+    {period:'Q2 2025',type:'Quarterly',rating:4.1,status:'Completed'},
+  ];
   return (
     <div className="screen screen-anim">
       <ScreenHeader title="Digital Worker Profile" onBack={()=>nav('hrms-dashboard')}/>
+      <div style={{display:'flex',borderBottom:'1px solid #e5e7eb',background:'#fff',flexShrink:0,overflowX:'auto'}}>
+        {[['personal','Personal'],['employment','Employment'],['docs','Documents'],['performance','Performance'],['idcard','ID Card']].map(([k,l])=>(
+          <button key={k} onClick={()=>setTab(k)} style={{flexShrink:0,padding:'10px 10px',border:'none',background:'none',cursor:'pointer',fontSize:11,fontWeight:600,color:tab===k?'#1a56db':'#9ca3af',borderBottom:tab===k?'2px solid #1a56db':'2px solid transparent',whiteSpace:'nowrap'}}>{l}</button>
+        ))}
+      </div>
       <div className="scroll-area" style={{padding:'16px'}}>
-        {/* ID Card */}
-        <div style={{background:'linear-gradient(135deg,#1a56db,#1e3a8a)',borderRadius:16,padding:'16px',marginBottom:14}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:12}}>
-            <div>
-              <p style={{fontSize:9,color:'rgba(255,255,255,0.7)',fontWeight:700,letterSpacing:'.5px',textTransform:'uppercase'}}>Employee ID Card</p>
-              <p style={{fontSize:16,fontWeight:700,color:'#fff',marginTop:4}}>Arjun Sharma</p>
-              <p style={{fontSize:11,color:'rgba(255,255,255,0.75)'}}>Senior Project Manager</p>
-              <p style={{fontSize:10,color:'rgba(255,255,255,0.6)',marginTop:2}}>EMP-2024-001 · Engineering · Mumbai HQ</p>
-            </div>
-            <div style={{width:48,height:48,background:'rgba(255,255,255,0.2)',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',border:'1px solid rgba(255,255,255,0.3)'}}>
-              <Icon name="grid" size={22} color="#fff"/>
-            </div>
-          </div>
-          <div style={{display:'flex',gap:8}}>
-            <button style={{flex:1,background:'rgba(255,255,255,0.15)',border:'1px solid rgba(255,255,255,0.25)',borderRadius:8,padding:'7px',fontSize:11,fontWeight:600,color:'#fff',cursor:'pointer'}} onClick={()=>showToast('ID Card downloading...')}>Download PDF</button>
-            <button style={{flex:1,background:'rgba(255,255,255,0.15)',border:'1px solid rgba(255,255,255,0.25)',borderRadius:8,padding:'7px',fontSize:11,fontWeight:600,color:'#fff',cursor:'pointer'}} onClick={()=>showToast('Share link copied!')}>Share Card</button>
-          </div>
-        </div>
-        <div className="tab-bar">
-          {[['personal','Personal'],['employment','Employment'],['docs','Documents']].map(([k,l])=>(
-            <button key={k} className={`tab-btn${tab===k?' active':''}`} onClick={()=>setTab(k)}>{l}</button>
-          ))}
-        </div>
         {tab==='personal' && (
           <div className="card">
             {[['Full Name','Arjun Sharma'],['Date of Birth','March 15, 1990'],['PAN','ABCPS1234K'],['Aadhaar','XXXX-XXXX-4321'],['Email','arjun.sharma@inventia.com'],['Phone','+91 98765 43210'],['Address','Mumbai, Maharashtra']].map(([k,v])=>(
@@ -1654,7 +1708,127 @@ const HRMSProfile = ({ nav }) => {
             ))}
           </div>
         )}
+        {tab==='performance' && <>
+          {/* Hero */}
+          <div style={{background:'linear-gradient(135deg,#1a56db,#1e3a8a)',borderRadius:16,padding:'16px',marginBottom:14}}>
+            <p style={{fontSize:11,color:'rgba(255,255,255,0.75)',fontWeight:600,marginBottom:4}}>Performance Rating</p>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <p style={{fontSize:32,fontWeight:800,color:'#fff'}}>4.2</p>
+              <div>
+                <p style={{fontSize:13,color:'rgba(255,255,255,0.75)'}}>/ 5.0</p>
+                <div style={{display:'flex',gap:2,marginTop:2}}>
+                  {[1,2,3,4,5].map(s=><Icon key={s} name="star" size={14} color={s<=4?'#fbbf24':'rgba(255,255,255,0.3)'}/>)}
+                </div>
+              </div>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginTop:12}}>
+              {[{l:'Total Projects',v:'8'},{l:'Active',v:'4'},{l:'Completed',v:'3'}].map(s=>(
+                <div key={s.l} style={{background:'rgba(255,255,255,0.15)',borderRadius:8,padding:'6px',textAlign:'center'}}>
+                  <p style={{fontSize:16,fontWeight:800,color:'#fff'}}>{s.v}</p>
+                  <p style={{fontSize:9,color:'rgba(255,255,255,0.7)'}}>{s.l}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <p className="section-title">Performance History</p>
+          {perfHistory.map((p,i)=>(
+            <div key={i} className="card" style={{marginBottom:8}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                <div style={{flex:1}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
+                    <p style={{fontSize:13,fontWeight:700,color:'#111827'}}>{p.period}</p>
+                    <span style={{background:'#eff4ff',color:'#1a56db',borderRadius:20,padding:'2px 8px',fontSize:10,fontWeight:600}}>{p.type}</span>
+                  </div>
+                  <div style={{display:'flex',gap:2}}>
+                    {[1,2,3,4,5].map(s=>(
+                      <span key={s} style={{width:10,height:10,borderRadius:'50%',background:s<=Math.round(p.rating)?'#f59e0b':'#e5e7eb',display:'inline-block'}}/>
+                    ))}
+                  </div>
+                </div>
+                <div style={{textAlign:'right'}}>
+                  <p style={{fontSize:16,fontWeight:800,color:'#1a56db'}}>{p.rating}</p>
+                  <span style={{background:'#f0fdf4',color:'#16a34a',borderRadius:20,padding:'2px 8px',fontSize:10,fontWeight:600}}>✓ {p.status}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </>}
+        {tab==='idcard' && <>
+          {/* Digital ID Card */}
+          <div style={{background:'linear-gradient(135deg,#0d9488,#1a56db)',borderRadius:20,padding:'20px',marginBottom:16,overflow:'hidden',position:'relative'}}>
+            <div style={{position:'absolute',right:-20,top:-20,width:100,height:100,background:'rgba(255,255,255,0.07)',borderRadius:'50%'}}/>
+            <div style={{display:'inline-block',background:'rgba(255,255,255,0.2)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:20,padding:'3px 10px',fontSize:10,fontWeight:700,color:'#fff',letterSpacing:'.5px',marginBottom:10}}>INVENTIA HR</div>
+            <p style={{fontSize:12,color:'rgba(255,255,255,0.75)',marginBottom:12,fontWeight:600}}>Digital Employee ID</p>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
+              <div>
+                <p style={{fontSize:18,fontWeight:800,color:'#fff',marginBottom:2}}>Arjun Sharma</p>
+                <p style={{fontSize:12,color:'rgba(255,255,255,0.85)'}}>Senior Project Manager</p>
+                <p style={{fontSize:11,color:'rgba(255,255,255,0.7)'}}>Engineering</p>
+                <div style={{display:'flex',alignItems:'center',gap:4,marginTop:8}}>
+                  <span style={{width:7,height:7,borderRadius:'50%',background:'#4ade80'}}/>
+                  <span style={{fontSize:11,color:'rgba(255,255,255,0.8)',fontWeight:600}}>Active</span>
+                </div>
+              </div>
+              <div style={{textAlign:'center'}}>
+                <div style={{background:'#fff',borderRadius:10,padding:'6px',width:90,height:90,display:'flex',flexWrap:'wrap',gap:2,justifyContent:'center',alignItems:'center'}}>
+                  {Array.from({length:81}).map((_,idx)=>(
+                    <span key={idx} style={{width:7,height:7,background:(idx%3===0||idx%7===0||idx%11===0)?'#1a56db':'transparent',borderRadius:1,flexShrink:0}}/>
+                  ))}
+                </div>
+                <p style={{fontSize:9,fontFamily:'monospace',color:'rgba(255,255,255,0.8)',marginTop:4}}>EMP-2024-001</p>
+              </div>
+            </div>
+            <p style={{fontSize:9,color:'rgba(255,255,255,0.6)',marginTop:8,textAlign:'center'}}>Scan at biometric terminal for punch in / out</p>
+            <div style={{display:'flex',justifyContent:'space-between',marginTop:10,paddingTop:10,borderTop:'1px solid rgba(255,255,255,0.2)'}}>
+              <span style={{fontSize:9,color:'rgba(255,255,255,0.65)'}}>📍 Mumbai HQ</span>
+              <span style={{fontSize:9,color:'rgba(255,255,255,0.65)'}}>Valid Through: Dec 31, 2026</span>
+            </div>
+          </div>
+          <button className="btn-primary" style={{width:'100%'}} onClick={()=>showToast('Digital ID Card downloaded!')}>Download Digital ID</button>
+        </>}
       </div>
+      <Toast msg={toast}/>
+    </div>
+  );
+};
+
+const HRMSWallet = ({ nav }) => {
+  const [toast, showToast] = useToast();
+  const docs = [
+    {label:'Appointment Memo',count:1,icon:'file-text',color:'#1a56db',bg:'#eff4ff'},
+    {label:'Promotion Orders',count:2,icon:'award',color:'#7c3aed',bg:'#f5f3ff'},
+    {label:'Training Certificates',count:4,icon:'book',color:'#16a34a',bg:'#f0fdf4'},
+    {label:'Salary History',count:36,icon:'dollar-sign',color:'#d97706',bg:'#fffbeb'},
+    {label:'Leave Records',count:15,icon:'calendar',color:'#0891b2',bg:'#ecfeff'},
+    {label:'Disciplinary Orders',count:0,icon:'shield',color:'#9ca3af',bg:'#f3f4f6'},
+    {label:'Awards & Recognition',count:3,icon:'star',color:'#ec4899',bg:'#fdf2f8'},
+    {label:'Experience Letter',count:0,icon:'file-text',color:'#9ca3af',bg:'#f3f4f6'},
+  ];
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="My Wallet" subtitle="Documents & records" onBack={()=>nav('hrms-dashboard')}/>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        <p className="section-title">MY DOCUMENTS</p>
+        {docs.map((d,i)=>(
+          <div key={i} className="card" style={{marginBottom:8,display:'flex',alignItems:'center',gap:12,opacity:d.count===0?0.6:1}}>
+            <div style={{width:42,height:42,background:d.bg,borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+              <Icon name={d.icon} size={18} color={d.color}/>
+            </div>
+            <div style={{flex:1}}>
+              <p style={{fontSize:13,fontWeight:600,color:'#111827'}}>{d.label}</p>
+              <p style={{fontSize:11,color:'#9ca3af'}}>{d.count} document{d.count!==1?'s':''}</p>
+            </div>
+            {d.count>0 && (
+              <button style={{border:'none',background:'#eff4ff',borderRadius:8,padding:'6px 10px',cursor:'pointer',display:'flex',alignItems:'center',gap:4}} onClick={()=>showToast(`Downloading ${d.label}...`)}>
+                <Icon name="download" size={14} color="#1a56db"/>
+                <span style={{fontSize:11,fontWeight:600,color:'#1a56db'}}>Get</span>
+              </button>
+            )}
+            <Icon name="chevron-right" size={16} color="#9ca3af"/>
+          </div>
+        ))}
+      </div>
+      <HRMSBottomNav current="hrms-wallet" nav={nav}/>
       <Toast msg={toast}/>
     </div>
   );
@@ -2306,6 +2480,7 @@ const WFMAttendance = ({ nav }) => {
 };
 
 const WFMShifts = ({ nav }) => {
+  const [tab, setTab] = useState('myshift');
   const [showSwapForm, setShowSwapForm] = useState(false);
   const [toast, showToast] = useToast();
   const shifts = [
@@ -2318,32 +2493,99 @@ const WFMShifts = ({ nav }) => {
     {date:'Sun, May 26',shift:'Week Off',time:'--',type:'off'},
   ];
   const shiftColor = {morning:'#1a56db',general:'#16a34a',evening:'#7c3aed',off:'#9ca3af'};
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const roster = [
+    {name:'Arjun Sharma', shifts:['AM','AM','OFF','AM','PM','LV','OFF']},
+    {name:'Rahul Verma',  shifts:['PM','PM','AM','PM','AM','OFF','OFF']},
+    {name:'Sneha Patel',  shifts:['AM','LV','AM','AM','PM','AM','OFF']},
+    {name:'Anita Desai',  shifts:['OFF','AM','PM','AM','AM','PM','OFF']},
+    {name:'Karan Singh',  shifts:['PM','AM','AM','OFF','PM','AM','OFF']},
+  ];
+  const shiftPill = (s) => {
+    const map = {AM:{bg:'#eff4ff',c:'#1a56db'},PM:{bg:'#f5f3ff',c:'#7c3aed'},LV:{bg:'#fffbeb',c:'#f59e0b'},OFF:{bg:'#f3f4f6',c:'#9ca3af'}};
+    const m = map[s]||map['OFF'];
+    return <span style={{background:m.bg,color:m.c,borderRadius:4,padding:'2px 4px',fontSize:9,fontWeight:700,display:'block',textAlign:'center'}}>{s}</span>;
+  };
+  const swapRequests = [
+    {name:'Rahul Verma',role:'Software Engineer',from:'May 22 Morning',to:'May 23 Evening',reason:'Medical appointment',status:'pending'},
+    {name:'Sneha Patel',role:'QA Lead',from:'May 24 PM',to:'May 25 AM',reason:'Personal work',status:'pending'},
+  ];
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="My Shifts" subtitle="Next 14 Days Schedule" onBack={()=>nav('wfm-dashboard')}/>
-      <div className="scroll-area" style={{padding:'16px'}}>
-        {shifts.map((s,i)=>(
-          <div key={i} className="card" style={{marginBottom:8,display:'flex',alignItems:'center',gap:12}}>
-            <div style={{width:44,height:44,background:shiftColor[s.type]+'15',borderRadius:10,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-              <span style={{fontSize:9,fontWeight:700,color:shiftColor[s.type]}}>{s.date.split(',')[0]}</span>
-              <span style={{fontSize:14,fontWeight:800,color:shiftColor[s.type]}}>{s.date.split(' ')[1]}</span>
-            </div>
-            <div style={{flex:1}}>
-              <p style={{fontSize:13,fontWeight:600,color:'#111827'}}>{s.shift}</p>
-              <p style={{fontSize:11,color:'#6b7280'}}>{s.time}</p>
-            </div>
-            {s.type!=='off' && <button className="btn-ghost" style={{padding:'5px 10px',fontSize:11}} onClick={()=>setShowSwapForm(true)}>Swap</button>}
-          </div>
+      <ScreenHeader title="My Shifts" subtitle="Schedule & Roster" onBack={()=>nav('wfm-dashboard')}/>
+      <div className="tab-bar" style={{margin:'8px 16px 0',borderRadius:10}}>
+        {[['myshift','My Schedule'],['roster','Roster'],['swaps','Swap Requests']].map(([k,l])=>(
+          <button key={k} className={`tab-btn${tab===k?' active':''}`} onClick={()=>setTab(k)} style={{fontSize:11}}>{l}</button>
         ))}
-        <p className="section-title" style={{marginTop:8}}>Pending Swap Requests</p>
-        <div className="card" style={{marginBottom:10}}>
-          <p style={{fontSize:13,fontWeight:600,color:'#111827',marginBottom:4}}>Anita Desai → May 3 Evening ↔ May 2 Morning</p>
-          <p style={{fontSize:11,color:'#6b7280',marginBottom:10}}>Requested 2h ago</p>
-          <div style={{display:'flex',gap:8}}>
-            <button className="btn-primary" style={{flex:1,fontSize:12,background:'#16a34a'}} onClick={()=>showToast('Swap request approved!')}>Approve</button>
-            <button className="btn-ghost" style={{flex:1,fontSize:12,color:'#dc2626',border:'1px solid #fecaca'}} onClick={()=>showToast('Swap request rejected')}>Reject</button>
+      </div>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        {tab==='myshift' && <>
+          {shifts.map((s,i)=>(
+            <div key={i} className="card" style={{marginBottom:8,display:'flex',alignItems:'center',gap:12}}>
+              <div style={{width:44,height:44,background:shiftColor[s.type]+'15',borderRadius:10,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                <span style={{fontSize:9,fontWeight:700,color:shiftColor[s.type]}}>{s.date.split(',')[0]}</span>
+                <span style={{fontSize:14,fontWeight:800,color:shiftColor[s.type]}}>{s.date.split(' ')[1]}</span>
+              </div>
+              <div style={{flex:1}}>
+                <p style={{fontSize:13,fontWeight:600,color:'#111827'}}>{s.shift}</p>
+                <p style={{fontSize:11,color:'#6b7280'}}>{s.time}</p>
+              </div>
+              {s.type!=='off' && <button className="btn-ghost" style={{padding:'5px 10px',fontSize:11}} onClick={()=>setShowSwapForm(true)}>Swap</button>}
+            </div>
+          ))}
+        </>}
+        {tab==='roster' && <>
+          <div style={{overflowX:'auto'}}>
+            <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+              <thead>
+                <tr style={{background:'#f8f9fc'}}>
+                  <th style={{padding:'8px 6px',textAlign:'left',color:'#374151',fontWeight:700,borderBottom:'2px solid #e5e7eb',fontSize:11}}>Name</th>
+                  {days.map(d=><th key={d} style={{padding:'8px 4px',textAlign:'center',color:'#374151',fontWeight:700,borderBottom:'2px solid #e5e7eb',fontSize:10}}>{d}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {roster.map((r,i)=>(
+                  <tr key={i} style={{borderBottom:'1px solid #f0f1f4'}}>
+                    <td style={{padding:'8px 6px',fontWeight:600,color:'#111827',fontSize:11,whiteSpace:'nowrap'}}>{r.name.split(' ')[0]}</td>
+                    {r.shifts.map((s,j)=>(
+                      <td key={j} style={{padding:'4px 2px',textAlign:'center'}}>{shiftPill(s)}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </div>
+          <div style={{display:'flex',gap:10,marginTop:12,flexWrap:'wrap'}}>
+            {[['Morning','#1a56db'],['Evening','#7c3aed'],['Leave','#f59e0b'],['Off','#9ca3af']].map(([l,c])=>(
+              <div key={l} style={{display:'flex',alignItems:'center',gap:4}}>
+                <span style={{width:10,height:10,borderRadius:2,background:c,display:'inline-block'}}/>
+                <span style={{fontSize:10,color:'#6b7280'}}>{l}</span>
+              </div>
+            ))}
+          </div>
+          <button className="btn-primary" style={{width:'100%',marginTop:12}} onClick={()=>setShowSwapForm(true)}>Request Swap</button>
+        </>}
+        {tab==='swaps' && <>
+          {swapRequests.map((r,i)=>(
+            <div key={i} className="card" style={{marginBottom:10}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
+                <div>
+                  <p style={{fontSize:13,fontWeight:700,color:'#111827'}}>{r.name}</p>
+                  <p style={{fontSize:11,color:'#6b7280'}}>{r.role}</p>
+                </div>
+                <span style={{background:'#fffbeb',color:'#d97706',borderRadius:20,padding:'2px 8px',fontSize:10,fontWeight:700}}>Pending</span>
+              </div>
+              <div style={{background:'#f8f9fc',borderRadius:8,padding:'8px 10px',marginBottom:8}}>
+                <p style={{fontSize:11,color:'#374151'}}><strong>{r.from}</strong> → <strong>{r.to}</strong></p>
+                <p style={{fontSize:11,color:'#9ca3af',marginTop:2}}>Reason: {r.reason}</p>
+              </div>
+              <div style={{display:'flex',gap:8}}>
+                <button className="btn-primary" style={{flex:1,fontSize:12,background:'#16a34a'}} onClick={()=>showToast('Swap request approved!')}>Approve</button>
+                <button className="btn-ghost" style={{flex:1,fontSize:12,color:'#dc2626',border:'1px solid #fecaca'}} onClick={()=>showToast('Swap request rejected')}>Reject</button>
+              </div>
+            </div>
+          ))}
+        </>}
       </div>
       {showSwapForm && (
         <div className="modal-backdrop" onClick={()=>setShowSwapForm(false)}>
@@ -2597,6 +2839,8 @@ const WFMProjects = ({ nav }) => {
 const WFMApprovals = ({ nav }) => {
   const [tab, setTab] = useState('pending');
   const [toast, showToast] = useToast();
+  const [selectedApproval, setSelectedApproval] = useState(null);
+  const [detailTab, setDetailTab] = useState('chain');
   const [approvals, setApprovals] = useState([
     {id:'ap-001',type:'leave',name:'Rahul Verma',desc:'Earned Leave: May 5-9 (5 days) - Family function',date:'Apr 27',priority:'normal',status:'pending'},
     {id:'ap-002',type:'attendance',name:'Sneha Patel',desc:'Missed punch-out on April 25',date:'Apr 26',priority:'normal',status:'pending'},
@@ -2609,17 +2853,21 @@ const WFMApprovals = ({ nav }) => {
   const action = (id, status) => { setApprovals(a=>a.map(x=>x.id===id?{...x,status}:x)); showToast(status==='approved'?'Approved!':'Rejected'); };
   const pending = approvals.filter(a=>a.status==='pending');
   const done = approvals.filter(a=>a.status!=='pending');
+  const chainSteps = [
+    {num:1,label:'Submitted',actor:'Arjun Sharma (Self)',date:'Apr 28, 2026',done:true,color:'#16a34a'},
+    {num:2,label:'Under Review',actor:'Suresh Chandra (Manager)',date:'Apr 28, 2026',done:true,color:'#1a56db'},
+    {num:3,label:'Final Approval',actor:'HR Head',date:'Pending',done:false,color:'#9ca3af'},
+  ];
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="Approvals" subtitle="Pending requests" onBack={()=>nav('wfm-dashboard')}>
-      </ScreenHeader>
+      <ScreenHeader title="Approvals" subtitle="Pending requests" onBack={()=>nav('wfm-dashboard')}/>
       <div className="scroll-area" style={{padding:'16px'}}>
         <div className="tab-bar">
           <button className={`tab-btn${tab==='pending'?' active':''}`} onClick={()=>setTab('pending')}>Pending ({pending.length})</button>
           <button className={`tab-btn${tab==='done'?' active':''}`} onClick={()=>setTab('done')}>Processed ({done.length})</button>
         </div>
         {(tab==='pending'?pending:done).map(a=>(
-          <div key={a.id} className="card" style={{marginBottom:10}}>
+          <div key={a.id} className="card" style={{marginBottom:10,cursor:'pointer'}} onClick={()=>{setSelectedApproval(a);setDetailTab('chain');}}>
             <div style={{display:'flex',gap:10,alignItems:'flex-start',marginBottom:10}}>
               <div style={{width:36,height:36,background:typeColor[a.type]+'15',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
                 <Icon name={typeIcon[a.type]} size={16} color={typeColor[a.type]}/>
@@ -2634,7 +2882,7 @@ const WFMApprovals = ({ nav }) => {
               </div>
             </div>
             {a.status==='pending' ? (
-              <div style={{display:'flex',gap:8}}>
+              <div style={{display:'flex',gap:8}} onClick={e=>e.stopPropagation()}>
                 <button className="btn-primary" style={{flex:1,fontSize:12,background:'#16a34a'}} onClick={()=>action(a.id,'approved')}>✓ Approve</button>
                 <button className="btn-ghost" style={{flex:1,fontSize:12,color:'#dc2626',border:'1px solid #fecaca'}} onClick={()=>action(a.id,'rejected')}>✕ Reject</button>
               </div>
@@ -2642,6 +2890,66 @@ const WFMApprovals = ({ nav }) => {
           </div>
         ))}
       </div>
+      {selectedApproval && (
+        <div className="modal-backdrop" onClick={()=>setSelectedApproval(null)}>
+          <div className="modal-sheet" onClick={e=>e.stopPropagation()} style={{maxHeight:'80vh'}}>
+            <div className="drag-handle"/>
+            <div style={{padding:'0 20px 10px',borderBottom:'1px solid #e5e7eb'}}>
+              <p style={{fontSize:14,fontWeight:700,color:'#111827'}}>{selectedApproval.name}</p>
+              <p style={{fontSize:11,color:'#6b7280',marginTop:2}}>{selectedApproval.desc}</p>
+            </div>
+            <div style={{display:'flex',borderBottom:'1px solid #e5e7eb'}}>
+              {[['chain','Approval Chain'],['comments','Comments'],['activity','Activity']].map(([k,l])=>(
+                <button key={k} onClick={()=>setDetailTab(k)} style={{flex:1,padding:'10px 4px',border:'none',background:'none',cursor:'pointer',fontSize:11,fontWeight:600,color:detailTab===k?'#7c3aed':'#9ca3af',borderBottom:detailTab===k?'2px solid #7c3aed':'2px solid transparent'}}>{l}</button>
+              ))}
+            </div>
+            <div style={{overflowY:'auto',padding:'16px 20px'}}>
+              {detailTab==='chain' && (
+                <div>
+                  {chainSteps.map((step,i)=>(
+                    <div key={i} style={{display:'flex',gap:12,marginBottom:i<chainSteps.length-1?0:0}}>
+                      <div style={{display:'flex',flexDirection:'column',alignItems:'center'}}>
+                        <div style={{width:32,height:32,borderRadius:'50%',background:step.done?step.color:'#f3f4f6',border:`2px solid ${step.color}`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                          {step.done ? <Icon name="check" size={14} color="#fff"/> : <span style={{fontSize:12,fontWeight:700,color:step.color}}>{step.num}</span>}
+                        </div>
+                        {i<chainSteps.length-1 && <div style={{width:2,height:40,background:step.done?step.color:'#e5e7eb',marginTop:2}}/>}
+                      </div>
+                      <div style={{paddingBottom:i<chainSteps.length-1?32:0}}>
+                        <p style={{fontSize:13,fontWeight:700,color:'#111827'}}>{step.label}</p>
+                        <p style={{fontSize:12,color:'#6b7280',marginTop:1}}>{step.actor}</p>
+                        <p style={{fontSize:11,color:'#9ca3af',marginTop:1}}>{step.date}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {detailTab==='comments' && (
+                <div>
+                  <div style={{background:'#f8f9fc',borderRadius:8,padding:'10px 12px',marginBottom:10}}>
+                    <p style={{fontSize:12,color:'#374151',lineHeight:1.5}}>Please review the leave request. The employee has sufficient balance.</p>
+                    <p style={{fontSize:10,color:'#9ca3af',marginTop:4}}>Suresh Chandra · 2h ago</p>
+                  </div>
+                  <textarea className="input-field" rows={3} placeholder="Add a comment..." style={{resize:'none',marginBottom:8}}/>
+                  <button className="btn-primary" style={{width:'100%',fontSize:12}} onClick={()=>showToast('Comment added')}>Add Comment</button>
+                </div>
+              )}
+              {detailTab==='activity' && (
+                <div>
+                  {[{msg:'Request submitted by Arjun Sharma',time:'Apr 28, 9:00 AM'},{msg:'Forwarded to Suresh Chandra for review',time:'Apr 28, 9:01 AM'},{msg:'Under review by Manager',time:'Apr 28, 10:30 AM'}].map((a,i)=>(
+                    <div key={i} style={{display:'flex',gap:10,marginBottom:10,paddingBottom:10,borderBottom:'1px solid #f0f1f4'}}>
+                      <span style={{width:7,height:7,borderRadius:'50%',background:'#7c3aed',flexShrink:0,marginTop:5}}/>
+                      <div>
+                        <p style={{fontSize:12,color:'#374151'}}>{a.msg}</p>
+                        <p style={{fontSize:10,color:'#9ca3af',marginTop:2}}>{a.time}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       <WFMBottomNav current="wfm-approvals" nav={nav}/>
       <Toast msg={toast}/>
     </div>
@@ -2657,6 +2965,24 @@ const WFMManagerHub = ({ nav }) => {
     {name:'Anita Desai',role:'Safety Officer',status:'present',tasks:7,attendance:'08:50 AM'},
     {name:'Deepak Kumar',role:'Site Engineer',status:'absent',tasks:4,attendance:'--'},
   ];
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const roster = [
+    {name:'Arjun Sharma', shifts:['AM','AM','OFF','AM','PM','LV','OFF']},
+    {name:'Rahul Verma',  shifts:['PM','PM','AM','PM','AM','OFF','OFF']},
+    {name:'Sneha Patel',  shifts:['AM','LV','AM','AM','PM','AM','OFF']},
+    {name:'Anita Desai',  shifts:['OFF','AM','PM','AM','AM','PM','OFF']},
+    {name:'Karan Singh',  shifts:['PM','AM','AM','OFF','PM','AM','OFF']},
+  ];
+  const shiftPill = (s) => {
+    const map = {AM:{bg:'#eff4ff',c:'#1a56db'},PM:{bg:'#f5f3ff',c:'#7c3aed'},LV:{bg:'#fffbeb',c:'#f59e0b'},OFF:{bg:'#f3f4f6',c:'#9ca3af'}};
+    const m = map[s]||map['OFF'];
+    return <span style={{background:m.bg,color:m.c,borderRadius:4,padding:'2px 4px',fontSize:9,fontWeight:700,display:'block',textAlign:'center'}}>{s}</span>;
+  };
+  const attendance = [{d:'Mon',v:92},{d:'Tue',v:88},{d:'Wed',v:95},{d:'Thu',v:78},{d:'Fri',v:85},{d:'Sat',v:60},{d:'Sun',v:40}];
+  const barColor = v => v>=85?'#16a34a':v>=70?'#f59e0b':'#dc2626';
+  const efficiency = [
+    {name:'Arjun',pct:92,c:'#16a34a'},{name:'Rahul',pct:78,c:'#f59e0b'},{name:'Sneha',pct:85,c:'#16a34a'},{name:'Anita',pct:70,c:'#f59e0b'},{name:'Karan',pct:88,c:'#16a34a'}
+  ];
   return (
     <div className="screen screen-anim">
       <ScreenHeader title="Manager Hub" subtitle="Team management" onBack={()=>nav('wfm-dashboard')}/>
@@ -2666,11 +2992,12 @@ const WFMManagerHub = ({ nav }) => {
             <div key={s.l} className="stat-card"><p style={{fontSize:20,fontWeight:800,color:'#111827'}}>{s.v}</p><p style={{fontSize:10,color:'#9ca3af',marginTop:2}}>{s.l}</p></div>
           ))}
         </div>
-        <div className="tab-bar">
-          {[['team','Team View'],['chat','Team Chat']].map(([k,l])=>(
-            <button key={k} className={`tab-btn${tab===k?' active':''}`} onClick={()=>setTab(k)}>{l}</button>
+        <div className="tab-bar" style={{marginBottom:0}}>
+          {[['team','Team'],['schedule','Schedule'],['analytics','Analytics'],['chat','Chat']].map(([k,l])=>(
+            <button key={k} className={`tab-btn${tab===k?' active':''}`} onClick={()=>setTab(k)} style={{fontSize:11}}>{l}</button>
           ))}
         </div>
+        <div style={{marginTop:14}}>
         {tab==='team' && team.map((m,i)=>(
           <div key={i} className="card" style={{marginBottom:8}}>
             <div style={{display:'flex',alignItems:'center',gap:10}}>
@@ -2689,6 +3016,67 @@ const WFMManagerHub = ({ nav }) => {
             </div>
           </div>
         ))}
+        {tab==='schedule' && <>
+          <div style={{overflowX:'auto'}}>
+            <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+              <thead>
+                <tr style={{background:'#f8f9fc'}}>
+                  <th style={{padding:'8px 6px',textAlign:'left',color:'#374151',fontWeight:700,borderBottom:'2px solid #e5e7eb',fontSize:11}}>Name</th>
+                  {days.map(d=><th key={d} style={{padding:'8px 4px',textAlign:'center',color:'#374151',fontWeight:700,borderBottom:'2px solid #e5e7eb',fontSize:10}}>{d}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {roster.map((r,i)=>(
+                  <tr key={i} style={{borderBottom:'1px solid #f0f1f4'}}>
+                    <td style={{padding:'8px 6px',fontWeight:600,color:'#111827',fontSize:11,whiteSpace:'nowrap'}}>{r.name.split(' ')[0]}</td>
+                    {r.shifts.map((s,j)=>(<td key={j} style={{padding:'4px 2px',textAlign:'center'}}>{shiftPill(s)}</td>))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div style={{display:'flex',gap:10,marginTop:10,flexWrap:'wrap'}}>
+            {[['Morning','#1a56db'],['Evening','#7c3aed'],['Leave','#f59e0b'],['Off','#9ca3af']].map(([l,c])=>(
+              <div key={l} style={{display:'flex',alignItems:'center',gap:4}}>
+                <span style={{width:10,height:10,borderRadius:2,background:c,display:'inline-block'}}/>
+                <span style={{fontSize:10,color:'#6b7280'}}>{l}</span>
+              </div>
+            ))}
+          </div>
+        </>}
+        {tab==='analytics' && <>
+          <p className="section-title">Attendance Trend (This Week)</p>
+          <div className="card" style={{marginBottom:14}}>
+            <div style={{display:'flex',alignItems:'flex-end',gap:6,height:100,justifyContent:'space-around'}}>
+              {attendance.map((a,i)=>(
+                <div key={i} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4,flex:1}}>
+                  <span style={{fontSize:9,fontWeight:700,color:barColor(a.v)}}>{a.v}%</span>
+                  <div style={{width:'100%',background:barColor(a.v),borderRadius:'4px 4px 0 0',height:`${a.v}%`}}/>
+                  <span style={{fontSize:9,color:'#9ca3af',fontWeight:600}}>{a.d}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <p className="section-title">Team Efficiency</p>
+          {efficiency.map((e,i)=>(
+            <div key={i} style={{marginBottom:10}}>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                <span style={{fontSize:12,color:'#374151',fontWeight:500}}>{e.name}</span>
+                <span style={{fontSize:12,fontWeight:700,color:e.c}}>{e.pct}%</span>
+              </div>
+              <ProgressBar value={e.pct} color={e.c}/>
+            </div>
+          ))}
+          <p className="section-title" style={{marginTop:8}}>Approval Breakdown</p>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
+            {[{l:'Pending',v:'5',c:'#d97706',bg:'#fffbeb'},{l:'Approved',v:'12',c:'#16a34a',bg:'#f0fdf4'},{l:'Rejected',v:'2',c:'#dc2626',bg:'#fef2f2'}].map(s=>(
+              <div key={s.l} style={{background:s.bg,borderRadius:12,padding:'12px',textAlign:'center'}}>
+                <p style={{fontSize:22,fontWeight:800,color:s.c}}>{s.v}</p>
+                <p style={{fontSize:10,color:s.c,marginTop:2,fontWeight:600}}>{s.l}</p>
+              </div>
+            ))}
+          </div>
+        </>}
         {tab==='chat' && (
           <div>
             {[{name:'Suresh Chandra',msg:'Please review and approve this request at the earliest.',time:'2h ago',mine:false},{name:'You',msg:'Noted. Will review and get back to you.',time:'Yesterday',mine:true},{name:'Anita Desai',msg:'Safety audit report submitted. Please check.',time:'3h ago',mine:false}].map((m,i)=>(
@@ -2706,6 +3094,7 @@ const WFMManagerHub = ({ nav }) => {
             ))}
           </div>
         )}
+        </div>
       </div>
       <WFMBottomNav current="wfm-manager" nav={nav}/>
       <Toast msg={toast}/>
@@ -2808,11 +3197,17 @@ const WFMTravel = ({ nav }) => {
 };
 
 const WFMSafety = ({ nav }) => {
+  const [tab, setTab] = useState('incidents');
   const [toast, showToast] = useToast();
+  const risks = [
+    {title:'Scaffolding near-miss at Block B',severity:'medium',severityC:'#d97706',severityBg:'#fffbeb',status:'Under Investigation',desc:'Worker nearly struck by falling tool',location:'Metro Tower Block B',date:'Apr 20, 2026'},
+    {title:'Minor hand injury during rebar work',severity:'low',severityC:'#16a34a',severityBg:'#f0fdf4',status:'Resolved',desc:'Minor cut on hand while handling rebar',location:'Highway Bridge Pier 3',date:'Apr 15, 2026'},
+  ];
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="Safety" subtitle="Incidents & compliance" onBack={()=>nav('wfm-dashboard')}/>
+      <ScreenHeader title="Safety" subtitle="Incidents & Risk Register" onBack={()=>nav('wfm-dashboard')}/>
       <div className="scroll-area" style={{padding:'16px'}}>
+        {/* Safety Hero */}
         <div style={{background:'linear-gradient(135deg,#16a34a,#15803d)',borderRadius:16,padding:'20px',marginBottom:14,textAlign:'center'}}>
           <p style={{fontSize:11,color:'rgba(255,255,255,0.75)',fontWeight:600,marginBottom:6}}>Days Since Last Incident</p>
           <p style={{fontSize:52,fontWeight:800,color:'#fff',lineHeight:1}}>47</p>
@@ -2823,13 +3218,55 @@ const WFMSafety = ({ nav }) => {
             <div key={s.l} className="stat-card"><p style={{fontSize:22,fontWeight:800,color:s.c}}>{s.v}</p><p style={{fontSize:10,color:'#9ca3af',marginTop:2}}>{s.l}</p></div>
           ))}
         </div>
-        <p className="section-title">Open Incidents</p>
-        <div className="card" style={{marginBottom:10,borderLeft:'3px solid #dc2626'}}>
-          <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}><p style={{fontSize:13,fontWeight:600,color:'#111827'}}>Minor incident - Block C signage</p><StatusBadge status="pending"/></div>
-          <p style={{fontSize:11,color:'#6b7280',marginBottom:6}}>Apr 18, 2026 · Root cause: Inadequate signage</p>
-          <p style={{fontSize:11,color:'#dc2626',fontWeight:600}}>Corrective action in progress</p>
+        <div className="tab-bar">
+          {[['incidents','Incidents'],['risk','Risk Register'],['reports','Reports']].map(([k,l])=>(
+            <button key={k} className={`tab-btn${tab===k?' active':''}`} onClick={()=>setTab(k)}>{l}</button>
+          ))}
         </div>
-        <button className="btn-primary" style={{width:'100%',background:'#dc2626'}} onClick={()=>showToast('Safety report form opened')}>Report Safety Incident</button>
+        {tab==='incidents' && <>
+          <p className="section-title">Open Incidents</p>
+          <div className="card" style={{marginBottom:10,borderLeft:'3px solid #dc2626'}}>
+            <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}><p style={{fontSize:13,fontWeight:600,color:'#111827'}}>Minor incident - Block C signage</p><StatusBadge status="pending"/></div>
+            <p style={{fontSize:11,color:'#6b7280',marginBottom:6}}>Apr 18, 2026 · Root cause: Inadequate signage</p>
+            <p style={{fontSize:11,color:'#dc2626',fontWeight:600}}>Corrective action in progress</p>
+          </div>
+          <button className="btn-primary" style={{width:'100%',background:'#dc2626'}} onClick={()=>showToast('Safety report form opened')}>Report Safety Incident</button>
+        </>}
+        {tab==='risk' && <>
+          {risks.map((r,i)=>(
+            <div key={i} className="card" style={{marginBottom:10,borderLeft:`3px solid ${r.severityC}`}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
+                <div style={{flex:1,marginRight:8}}>
+                  <p style={{fontSize:13,fontWeight:700,color:'#111827'}}>{r.title}</p>
+                </div>
+                <span style={{background:r.severityBg,color:r.severityC,borderRadius:20,padding:'2px 8px',fontSize:10,fontWeight:700,whiteSpace:'nowrap',flexShrink:0,textTransform:'capitalize'}}>{r.severity}</span>
+              </div>
+              <p style={{fontSize:12,color:'#6b7280',marginBottom:4}}>{r.desc}</p>
+              <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:6}}>
+                <span style={{fontSize:11,color:'#9ca3af'}}>📍 {r.location}</span>
+                <span style={{fontSize:11,color:'#9ca3af'}}>📅 {r.date}</span>
+              </div>
+              <span style={{background:r.status==='Resolved'?'#f0fdf4':'#fffbeb',color:r.status==='Resolved'?'#16a34a':'#d97706',borderRadius:20,padding:'2px 8px',fontSize:10,fontWeight:600}}>{r.status}</span>
+            </div>
+          ))}
+          <button className="btn-primary" style={{width:'100%',background:'#dc2626'}} onClick={()=>showToast('Incident report form opened')}>Report Incident</button>
+        </>}
+        {tab==='reports' && (
+          <div>
+            {[{t:'Monthly Safety Report',d:'April 2026 · 12 pages'},{t:'Incident Analysis Report',d:'Q1 2026 · 8 pages'},{t:'Risk Assessment Matrix',d:'Last updated Apr 22, 2026'}].map((r,i)=>(
+              <div key={i} className="card" style={{marginBottom:8,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                <div>
+                  <p style={{fontSize:13,fontWeight:600,color:'#111827'}}>{r.t}</p>
+                  <p style={{fontSize:11,color:'#9ca3af',marginTop:2}}>{r.d}</p>
+                </div>
+                <button style={{border:'none',background:'#fef2f2',borderRadius:8,padding:'6px 10px',cursor:'pointer',display:'flex',alignItems:'center',gap:4}} onClick={()=>showToast('Downloading report...')}>
+                  <Icon name="download" size={13} color="#dc2626"/>
+                  <span style={{fontSize:11,fontWeight:600,color:'#dc2626'}}>PDF</span>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
       <WFMBottomNav current="wfm-safety" nav={nav}/>
       <Toast msg={toast}/>
@@ -2907,12 +3344,17 @@ const WFMAnalytics = ({ nav }) => {
 const WFMCommunication = ({ nav }) => {
   const [tab, setTab] = useState('news');
   const [toast, showToast] = useToast();
+  const surveys = [
+    {title:'Employee Pulse Survey',desc:'Share your experience at work this quarter',status:'active',responses:45,total:120,due:'May 10, 2026'},
+    {title:'Work From Home Preferences',desc:'Help us plan the WFH policy',status:'completed',responses:98,total:120,due:'Apr 20, 2026'},
+    {title:'Training Needs Assessment',desc:'Tell us what skills you want to develop',status:'active',responses:32,total:120,due:'May 15, 2026'},
+  ];
   return (
     <div className="screen screen-anim">
       <ScreenHeader title="Communication" subtitle="News & team updates" onBack={()=>nav('wfm-dashboard')}/>
       <div className="scroll-area" style={{padding:'16px'}}>
         <div className="tab-bar">
-          {[['news','News & Updates'],['forums','Forums']].map(([k,l])=>(
+          {[['news','News'],['forums','Forums'],['surveys','Surveys']].map(([k,l])=>(
             <button key={k} className={`tab-btn${tab===k?' active':''}`} onClick={()=>setTab(k)}>{l}</button>
           ))}
         </div>
@@ -2943,6 +3385,31 @@ const WFMCommunication = ({ nav }) => {
             <div style={{display:'flex',justifyContent:'space-between'}}>
               <span style={{fontSize:11,color:'#9ca3af'}}>{f.replies} replies</span>
               <span style={{fontSize:11,color:'#9ca3af'}}>Active {f.active}</span>
+            </div>
+          </div>
+        ))}
+        {tab==='surveys' && surveys.map((s,i)=>(
+          <div key={i} className="card" style={{marginBottom:12}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
+              <div style={{flex:1,marginRight:8}}>
+                <p style={{fontSize:13,fontWeight:700,color:'#111827'}}>{s.title}</p>
+                <p style={{fontSize:11,color:'#6b7280',marginTop:2}}>{s.desc}</p>
+              </div>
+              <span style={{background:s.status==='active'?'#f0fdf4':'#f3f4f6',color:s.status==='active'?'#16a34a':'#9ca3af',borderRadius:20,padding:'2px 8px',fontSize:10,fontWeight:700,whiteSpace:'nowrap',flexShrink:0}}>
+                {s.status==='active'?'Active':'Completed'}
+              </span>
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
+              <span style={{fontSize:11,color:'#6b7280'}}>{s.responses}/{s.total} responses</span>
+              <span style={{fontSize:11,color:'#9ca3af'}}>Due: {s.due}</span>
+            </div>
+            <ProgressBar value={(s.responses/s.total)*100} color={s.status==='active'?'#1a56db':'#9ca3af'}/>
+            <div style={{marginTop:10}}>
+              {s.status==='active' ? (
+                <button className="btn-primary" style={{width:'100%',fontSize:12}} onClick={()=>showToast(`Opening survey: ${s.title}`)}>Take Survey</button>
+              ) : (
+                <button className="btn-ghost" style={{width:'100%',fontSize:12}} onClick={()=>showToast('Viewing survey results')}>View Results</button>
+              )}
             </div>
           </div>
         ))}
@@ -3068,6 +3535,7 @@ const HRMSBottomNav = ({ current, nav }) => {
     {s:'hrms-assets',l:'Assets',icon:'monitor',c:'#16a34a',bg:'#f0fdf4'},
     {s:'hrms-ai',l:'AI Assistant',icon:'zap',c:'#7c3aed',bg:'#f5f3ff'},
     {s:'hrms-travel',l:'Travel',icon:'airplane',c:'#0891b2',bg:'#ecfeff'},
+    {s:'hrms-wallet',l:'My Wallet',icon:'book',c:'#d97706',bg:'#fffbeb'},
   ];
   return (
     <>
@@ -3139,6 +3607,7 @@ const App = () => {
     'hrms-travel': <HRMSTravel nav={nav}/>,
     'hrms-attendance': <HRMSAttendance nav={nav}/>,
     'hrms-notifications': <HRMSNotifications nav={nav}/>,
+    'hrms-wallet': <HRMSWallet nav={nav}/>,
     // WFM
     'wfm-dashboard': <WFMDashboard nav={nav}/>,
     'wfm-attendance': <WFMAttendance nav={nav}/>,
