@@ -574,7 +574,7 @@ const HRMSPayroll = ({ nav }) => {
       <ScreenHeader title="Payroll" subtitle="Salary & compensation" onBack={()=>nav('hrms-dashboard')}>
       </ScreenHeader>
       <div style={{display:'flex',borderBottom:'1px solid #e5e7eb',background:'#fff',flexShrink:0}}>
-        {[['payslip','Payslip'],['tax','Tax & IT'],['ctc','CTC & Forms']].map(([k,l])=>(
+        {[['payslip','Payslip'],['tax','Tax & IT'],['ctc','Salary Structure']].map(([k,l])=>(
           <button key={k} onClick={()=>setTab(k)} style={{flex:1,padding:'10px 4px',border:'none',background:'none',cursor:'pointer',fontSize:12,fontWeight:600,color:tab===k?'#1a56db':'#9ca3af',borderBottom:tab===k?'2px solid #1a56db':'2px solid transparent'}}>
             {l}
           </button>
@@ -615,38 +615,133 @@ const HRMSPayroll = ({ nav }) => {
             </div>
           ))}
         </>}
-        {tab==='tax' && <>
+          {tab==='tax' && <>
+          {/* Hero card */}
+          <div style={{background:'linear-gradient(135deg,#1a56db,#1e40af)',borderRadius:16,padding:'16px',marginBottom:14}}>
+            <p style={{fontSize:11,color:'rgba(255,255,255,0.75)',fontWeight:600,marginBottom:4}}>Total Tax Saving Declarations</p>
+            <p style={{fontSize:26,fontWeight:800,color:'#fff'}}>₹4,35,000</p>
+            <div style={{display:'flex',gap:16,marginTop:8}}>
+              <div style={{background:'rgba(255,255,255,0.15)',borderRadius:8,padding:'6px 12px'}}>
+                <p style={{fontSize:10,color:'rgba(255,255,255,0.7)'}}>Sections Used</p>
+                <p style={{fontSize:14,fontWeight:700,color:'#fff'}}>5 / 6</p>
+              </div>
+              <div style={{background:'rgba(255,255,255,0.15)',borderRadius:8,padding:'6px 12px'}}>
+                <p style={{fontSize:10,color:'rgba(255,255,255,0.7)'}}>Proofs Pending</p>
+                <p style={{fontSize:14,fontWeight:700,color:'#fcd34d'}}>2</p>
+              </div>
+            </div>
+          </div>
+          {/* Declaration cards */}
+          {[
+            {sec:'80C',desc:'PPF, LIC, ELSS, Home Loan Principal',declared:'₹1,50,000',max:'₹1,50,000',pct:100,proof:'submitted'},
+            {sec:'80D',desc:'Medical Insurance Premium',declared:'₹25,000',max:'₹25,000',pct:100,proof:'submitted'},
+            {sec:'80CCD',desc:'NPS Contribution',declared:'₹50,000',max:'₹50,000',pct:100,proof:'submitted'},
+            {sec:'24(b)',desc:'Home Loan Interest',declared:'₹2,00,000',max:'₹2,00,000',pct:100,proof:'pending'},
+            {sec:'80E',desc:'Education Loan Interest',declared:'₹0',max:'N/A',pct:0,proof:'na'},
+            {sec:'80G',desc:'Donations',declared:'₹10,000',max:'—',pct:null,proof:'pending'},
+          ].map((d,i)=>(
+            <div key={i} className="card" style={{marginBottom:10}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
+                <div style={{display:'flex',alignItems:'center',gap:8}}>
+                  <span style={{background:'#eff4ff',color:'#1a56db',borderRadius:20,padding:'2px 8px',fontSize:11,fontWeight:700}}>{d.sec}</span>
+                  <div>
+                    <p style={{fontSize:13,fontWeight:600,color:'#111827'}}>{d.sec} — {d.desc.slice(0,22)}{d.desc.length>22?'…':''}</p>
+                    <p style={{fontSize:10,color:'#6b7280'}}>{d.desc}</p>
+                  </div>
+                </div>
+                <span style={{background:d.proof==='submitted'?'#f0fdf4':d.proof==='pending'?'#fffbeb':'#f3f4f6',color:d.proof==='submitted'?'#16a34a':d.proof==='pending'?'#d97706':'#9ca3af',borderRadius:20,padding:'2px 8px',fontSize:10,fontWeight:600,whiteSpace:'nowrap',flexShrink:0}}>
+                  {d.proof==='submitted'?'✓ Submitted':d.proof==='pending'?'⏳ Pending':'N/A'}
+                </span>
+              </div>
+              <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:'#6b7280',marginBottom:6}}>
+                <span>Declared: <strong style={{color:'#111827'}}>{d.declared}</strong></span>
+                {d.max!=='—'&&d.max!=='N/A'&&<span>Max: {d.max}</span>}
+              </div>
+              {d.pct!==null&&<ProgressBar value={d.pct} color={d.proof==='submitted'?'#16a34a':'#d97706'}/>}
+              {d.proof==='pending'&&<button className="btn-secondary" style={{width:'100%',marginTop:8,fontSize:12}} onClick={()=>showToast(`Proof upload for ${d.sec} opened`)}>Upload Proof</button>}
+            </div>
+          ))}
+          {/* Income Tax Slab */}
+          <p className="section-title" style={{marginTop:8}}>Income Tax Slabs (New Regime)</p>
           <div className="card" style={{marginBottom:14}}>
-            <p style={{fontSize:13,fontWeight:700,color:'#111827',marginBottom:10}}>IT Declarations (Old Regime)</p>
-            {[['80C - Investments','₹1,50,000','₹1,50,000'],['80D - Medical Insurance','₹25,000','₹18,000'],['HRA Exemption','₹1,50,000','₹1,50,000']].map(([s,max,dec])=>(
-              <div key={s} style={{display:'flex',justifyContent:'space-between',padding:'10px 0',borderBottom:'1px solid #f0f1f4'}}>
-                <div><p style={{fontSize:12,fontWeight:600,color:'#374151'}}>{s}</p><p style={{fontSize:11,color:'#9ca3af'}}>Declared: {dec}</p></div>
-                <span style={{fontSize:11,fontWeight:600,color:'#1a56db'}}>Max: {max}</span>
+            {[['₹0 – ₹2.5L','0%'],['₹2.5L – ₹5L','5%'],['₹5L – ₹10L','20%'],['> ₹10L','30%']].map(([slab,rate])=>(
+              <div key={slab} style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid #f0f1f4'}}>
+                <span style={{fontSize:12,color:'#374151'}}>{slab}</span>
+                <span style={{fontSize:12,fontWeight:700,color:'#1a56db'}}>{rate}</span>
               </div>
             ))}
-            <button className="btn-secondary" style={{width:'100%',marginTop:12}} onClick={()=>showToast('Upload proof feature coming soon')}>Upload Proof Documents</button>
           </div>
+          {/* TDS Summary */}
+          <p className="section-title">TDS Summary FY 2025-26</p>
           <div className="card" style={{marginBottom:14}}>
-            <p style={{fontSize:13,fontWeight:700,color:'#111827',marginBottom:10}}>TDS Summary FY 2025-26</p>
-            {[['Total TDS Deducted','₹2,16,000'],['Tax Liability','₹2,10,000'],['Refund Due','₹6,000'],['PAN','ABCPS1234K']].map(([k,v])=>(
+            {[['Total TDS Deducted','₹2,16,000','#111827'],['Tax Liability','₹2,10,000','#111827'],['Refund Due','₹6,000','#16a34a'],['PAN','ABCPS1234K','#6b7280']].map(([k,v,c])=>(
               <div key={k} style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid #f0f1f4'}}>
                 <span style={{fontSize:12,color:'#6b7280'}}>{k}</span>
-                <span style={{fontSize:12,fontWeight:600,color:'#111827'}}>{v}</span>
+                <span style={{fontSize:12,fontWeight:600,color:c}}>{v}</span>
               </div>
             ))}
           </div>
         </>}
         {tab==='ctc' && <>
+          {/* Hero */}
+          <div style={{background:'linear-gradient(135deg,#059669,#047857)',borderRadius:16,padding:'16px',marginBottom:14}}>
+            <p style={{fontSize:11,color:'rgba(255,255,255,0.75)',fontWeight:600}}>Annual CTC</p>
+            <p style={{fontSize:26,fontWeight:800,color:'#fff'}}>₹15,00,000 <span style={{fontSize:13,fontWeight:400,color:'rgba(255,255,255,0.7)'}}>Per Annum</span></p>
+            <p style={{fontSize:11,color:'rgba(255,255,255,0.7)',marginTop:4}}>Effective since Jan 2026</p>
+          </div>
+          {/* Earnings/Deductions */}
           <div className="card" style={{marginBottom:14}}>
-            <p style={{fontSize:13,fontWeight:700,color:'#111827',marginBottom:10}}>CTC Breakdown</p>
-            {[['Annual CTC','₹18,00,000'],['Monthly Gross','₹1,25,000'],['Monthly Net','₹96,500'],['Effective Since','Jan 2026']].map(([k,v])=>(
-              <div key={k} style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid #f0f1f4'}}>
-                <span style={{fontSize:12,color:'#6b7280'}}>{k}</span><span style={{fontSize:12,fontWeight:700,color:'#111827'}}>{v}</span>
+            <p style={{fontSize:13,fontWeight:700,color:'#111827',marginBottom:10}}>Monthly Breakdown</p>
+            {[
+              {label:'Basic Salary',amount:'+₹50,000',type:'earn'},
+              {label:'HRA',amount:'+₹20,000',type:'earn'},
+              {label:'Special Allowance',amount:'+₹15,000',type:'earn'},
+              {label:'Transport',amount:'+₹3,200',type:'earn'},
+              {label:'Medical',amount:'+₹1,250',type:'earn'},
+              {label:'Performance Bonus',amount:'+₹25,000',type:'variable'},
+              {label:'PF Employer',amount:'+₹6,000',type:'earn'},
+              {label:'PF Employee',amount:'−₹6,000',type:'ded'},
+              {label:'Professional Tax',amount:'−₹200',type:'ded'},
+              {label:'TDS',amount:'−₹18,000',type:'ded'},
+            ].map((r,i)=>(
+              <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid #f0f1f4'}}>
+                <div style={{display:'flex',alignItems:'center',gap:8}}>
+                  <span style={{width:8,height:8,borderRadius:'50%',background:r.type==='ded'?'#dc2626':'#16a34a',flexShrink:0}}/>
+                  <span style={{fontSize:12,color:'#374151'}}>{r.label}</span>
+                  {r.type==='variable'&&<span style={{background:'#fffbeb',color:'#d97706',fontSize:9,fontWeight:700,padding:'1px 5px',borderRadius:10}}>Variable</span>}
+                </div>
+                <span style={{fontSize:12,fontWeight:600,color:r.type==='ded'?'#dc2626':'#16a34a'}}>{r.amount}</span>
+              </div>
+            ))}
+            <div style={{display:'flex',justifyContent:'space-between',padding:'10px 0',borderTop:'2px solid #e5e7eb',marginTop:4}}>
+              <span style={{fontSize:13,fontWeight:700,color:'#111827'}}>Monthly Gross</span>
+              <span style={{fontSize:13,fontWeight:800,color:'#16a34a'}}>₹1,25,000</span>
+            </div>
+          </div>
+          {/* Salary Revision History */}
+          <p className="section-title">Salary Revision History</p>
+          <div className="card" style={{marginBottom:14}}>
+            {[
+              {period:'Jan 2026',reason:'Annual Increment',ctc:'₹15,00,000',hike:'+15%'},
+              {period:'Jan 2025',reason:'Promotion',ctc:'₹13,00,000',hike:'+8%'},
+              {period:'Jan 2024',reason:'Annual Increment',ctc:'₹12,00,000',hike:'+10%'},
+              {period:'Jun 2022',reason:'Joining',ctc:'₹10,80,000',hike:null},
+            ].map((r,i)=>(
+              <div key={i} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 0',borderBottom:i<3?'1px solid #f0f1f4':'none'}}>
+                <div style={{width:10,height:10,borderRadius:'50%',background:'#1a56db',flexShrink:0}}/>
+                <div style={{flex:1}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <p style={{fontSize:12,fontWeight:700,color:'#111827'}}>{r.period} — {r.reason}</p>
+                    {r.hike&&<span style={{fontSize:11,fontWeight:700,color:'#16a34a',background:'#f0fdf4',borderRadius:10,padding:'2px 6px'}}>{r.hike}</span>}
+                  </div>
+                  <p style={{fontSize:11,color:'#6b7280'}}>{r.ctc}</p>
+                </div>
               </div>
             ))}
           </div>
+          {/* Forms */}
+          <p className="section-title">Available Forms</p>
           <div className="card" style={{marginBottom:14}}>
-            <p style={{fontSize:13,fontWeight:700,color:'#111827',marginBottom:10}}>Available Forms</p>
             {[['Form 16','TDS Certificate FY 2025-26'],['Form 12BB','Investment Declaration'],['Pay Structure Letter','Current CTC Breakdown']].map(([f,d])=>(
               <div key={f} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 0',borderBottom:'1px solid #f0f1f4'}}>
                 <div><p style={{fontSize:12,fontWeight:600,color:'#374151'}}>{f}</p><p style={{fontSize:11,color:'#9ca3af'}}>{d}</p></div>
