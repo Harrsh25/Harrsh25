@@ -304,8 +304,6 @@ const LoginScreen = ({ nav }) => {
 
 // ─── ORBIT SELECTION SCREEN ───────────────────────────────────
 const OrbitSelectScreen = ({ nav }) => {
-  const hrmsModules = ['Payroll','Performance','Recruitment','Onboarding','Offboarding','Benefits','Compliance','Grievances','Helpdesk','Skills & Talent','Wellness','Directory','Assets','AI Assistant','360° Feedback'];
-  const wfmModules = ['Attendance','Shifts','Timesheet','Tasks','Projects & WBS','Approvals','Manager Hub','Travel & Expense','Safety','Analytics','Sprint Board','Documents','Communication'];
 
   return (
     <div style={{flex:1,overflowY:'auto',background:'#f2f3f7'}}>
@@ -339,17 +337,6 @@ const OrbitSelectScreen = ({ nav }) => {
               <Icon name="arrow-right" size={18} color="#fff"/>
             </div>
           </div>
-          <div style={{display:'flex',flexWrap:'wrap',gap:6,position:'relative'}}>
-            {hrmsModules.map(m => (
-              <span key={m} style={{background:'rgba(255,255,255,0.15)',border:'1px solid rgba(255,255,255,0.2)',borderRadius:20,padding:'3px 8px',fontSize:10,fontWeight:600,color:'rgba(255,255,255,0.9)'}}>
-                {m}
-              </span>
-            ))}
-          </div>
-          <div style={{marginTop:16,display:'flex',alignItems:'center',gap:6,position:'relative'}}>
-            <div style={{flex:1,height:1,background:'rgba(255,255,255,0.2)'}}/>
-            <span style={{fontSize:11,color:'rgba(255,255,255,0.7)',fontWeight:600}}>{hrmsModules.length} modules</span>
-          </div>
         </div>
 
         {/* WFM Card */}
@@ -367,17 +354,6 @@ const OrbitSelectScreen = ({ nav }) => {
             <div style={{width:36,height:36,background:'rgba(255,255,255,0.15)',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',border:'1px solid rgba(255,255,255,0.2)'}}>
               <Icon name="arrow-right" size={18} color="#fff"/>
             </div>
-          </div>
-          <div style={{display:'flex',flexWrap:'wrap',gap:6,position:'relative'}}>
-            {wfmModules.map(m => (
-              <span key={m} style={{background:'rgba(255,255,255,0.15)',border:'1px solid rgba(255,255,255,0.2)',borderRadius:20,padding:'3px 8px',fontSize:10,fontWeight:600,color:'rgba(255,255,255,0.9)'}}>
-                {m}
-              </span>
-            ))}
-          </div>
-          <div style={{marginTop:16,display:'flex',alignItems:'center',gap:6,position:'relative'}}>
-            <div style={{flex:1,height:1,background:'rgba(255,255,255,0.2)'}}/>
-            <span style={{fontSize:11,color:'rgba(255,255,255,0.7)',fontWeight:600}}>{wfmModules.length} modules</span>
           </div>
         </div>
 
