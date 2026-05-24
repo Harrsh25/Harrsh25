@@ -535,9 +535,6 @@ const HRMSPayroll = ({ nav }) => {
   return (
     <div className="screen screen-anim">
       <ScreenHeader title="Payroll" subtitle="Salary & compensation" onBack={()=>nav('hrms-dashboard')} orbit="HRMS">
-        <button onClick={()=>nav('orbit-select')} style={{display:'flex',alignItems:'center',gap:4,background:'#f8f9fc',border:'1px solid #e5e7eb',borderRadius:20,padding:'5px 8px',cursor:'pointer',marginRight:4}}>
-          <Icon name="repeat" size={11} color="#6b7280"/><span style={{fontSize:10,color:'#6b7280',fontWeight:600}}>Switch</span>
-        </button>
       </ScreenHeader>
       <div style={{display:'flex',borderBottom:'1px solid #e5e7eb',background:'#fff',flexShrink:0}}>
         {[['payslip','Payslip'],['tax','Tax & IT'],['ctc','CTC & Forms']].map(([k,l])=>(
@@ -682,9 +679,6 @@ const HRMSPerformance = ({ nav }) => {
   return (
     <div className="screen screen-anim">
       <ScreenHeader title="Performance" subtitle="OKRs & Reviews" onBack={()=>nav('hrms-dashboard')} orbit="HRMS">
-        <button onClick={()=>nav('orbit-select')} style={{display:'flex',alignItems:'center',gap:4,background:'#f8f9fc',border:'1px solid #e5e7eb',borderRadius:20,padding:'5px 8px',cursor:'pointer',marginRight:4}}>
-          <Icon name="repeat" size={11} color="#6b7280"/><span style={{fontSize:10,color:'#6b7280',fontWeight:600}}>Switch</span>
-        </button>
       </ScreenHeader>
       <div style={{display:'flex',borderBottom:'1px solid #e5e7eb',background:'#fff',flexShrink:0}}>
         {[['okr','OKR Goals'],['review','Reviews'],['feedback','360° Feedback']].map(([k,l])=>(
@@ -813,9 +807,6 @@ const HRMSServices = ({ nav }) => {
   return (
     <div className="screen screen-anim">
       <ScreenHeader title="HR Services" subtitle="All HR modules" orbit="HRMS">
-        <button onClick={()=>nav('orbit-select')} style={{display:'flex',alignItems:'center',gap:4,background:'#f8f9fc',border:'1px solid #e5e7eb',borderRadius:20,padding:'5px 8px',cursor:'pointer',marginRight:4}}>
-          <Icon name="repeat" size={11} color="#6b7280"/><span style={{fontSize:10,color:'#6b7280',fontWeight:600}}>Switch</span>
-        </button>
       </ScreenHeader>
       <div className="scroll-area" style={{padding:'16px'}}>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
@@ -1817,6 +1808,143 @@ const HRMSNotifications = ({ nav }) => {
   );
 };
 
+const HRMSAttendance = ({ nav }) => {
+  const [selectedDay, setSelectedDay] = useState(null);
+  const [showRegForm, setShowRegForm] = useState(false);
+  const [tab, setTab] = useState('history');
+  const [toast, showToast] = useToast();
+  const days = Array.from({length:30},(_,i)=>{
+    const d = new Date(); d.setDate(d.getDate()-(29-i));
+    const dow = d.getDay();
+    const isWeekend = dow===0||dow===6;
+    const statuses = ['present','present','present','present','late','present','absent','half-day'];
+    return { date:d, status:isWeekend?'week-off':i<27?statuses[i%statuses.length]:'present', label:d.getDate() };
+  });
+  const statusColor = {present:'#16a34a','week-off':'#9ca3af',late:'#d97706',absent:'#dc2626','half-day':'#7c3aed'};
+  const summary = [{l:'Present',v:'21',c:'#16a34a',bg:'#f0fdf4'},{l:'Late',v:'3',c:'#d97706',bg:'#fffbeb'},{l:'Absent',v:'1',c:'#dc2626',bg:'#fef2f2'},{l:'Leave',v:'2',c:'#1a56db',bg:'#eff4ff'}];
+  const leaveBalance = [{l:'Annual Leave',used:8,total:20,c:'#1a56db'},{l:'Sick Leave',used:2,total:12,c:'#dc2626'},{l:'Casual Leave',used:3,total:8,c:'#d97706'},{l:'Comp Off',used:0,total:3,c:'#7c3aed'}];
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="Attendance" subtitle="Track your daily attendance" onBack={()=>nav('hrms-dashboard')} orbit="HRMS"/>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:8,marginBottom:14}}>
+          {summary.map(s=>(
+            <div key={s.l} style={{background:s.bg,borderRadius:10,padding:'10px 8px',textAlign:'center'}}>
+              <p style={{fontSize:18,fontWeight:800,color:s.c}}>{s.v}</p>
+              <p style={{fontSize:9,color:'#6b7280',marginTop:2,fontWeight:600}}>{s.l}</p>
+            </div>
+          ))}
+        </div>
+        <div className="tab-bar">
+          {[['history','Calendar'],['leave','Leave Balance'],['apply','Apply Leave']].map(([k,l])=>(
+            <button key={k} className={`tab-btn${tab===k?' active':''}`} onClick={()=>setTab(k)}>{l}</button>
+          ))}
+        </div>
+        {tab==='history' && <>
+          <p className="section-title">Attendance History (Last 30 Days)</p>
+          <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:16}}>
+            {days.map((d,i)=>(
+              <button key={i} onClick={()=>setSelectedDay(d)}
+                style={{width:38,height:42,borderRadius:8,border:`2px solid ${selectedDay===d?statusColor[d.status]:'#e5e7eb'}`,background:selectedDay===d?statusColor[d.status]+'15':'#f8f9fc',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2}}>
+                <span style={{fontSize:12,fontWeight:700,color:statusColor[d.status]||'#9ca3af'}}>{d.label}</span>
+                <span style={{width:5,height:5,borderRadius:'50%',background:statusColor[d.status]||'#9ca3af'}}/>
+              </button>
+            ))}
+          </div>
+          <div style={{display:'flex',flexWrap:'wrap',gap:10,marginBottom:14}}>
+            {Object.entries({Present:'#16a34a','Week Off':'#9ca3af',Late:'#d97706',Absent:'#dc2626','Half Day':'#7c3aed'}).map(([l,c])=>(
+              <div key={l} style={{display:'flex',alignItems:'center',gap:4}}>
+                <span style={{width:8,height:8,borderRadius:'50%',background:c}}/>
+                <span style={{fontSize:10,color:'#6b7280'}}>{l}</span>
+              </div>
+            ))}
+          </div>
+          {selectedDay && (
+            <div className="card" style={{marginBottom:14}}>
+              <p style={{fontSize:13,fontWeight:700,color:'#111827',marginBottom:10}}>{selectedDay.date.toDateString()}</p>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}}>
+                {[{l:'Punch In',v:'09:02 AM'},{l:'Punch Out',v:'06:45 PM'},{l:'Working Hours',v:'9h 43m'},{l:'Status',v:selectedDay.status}].map(f=>(
+                  <div key={f.l} style={{background:'#f8f9fc',borderRadius:8,padding:'8px 10px'}}>
+                    <p style={{fontSize:10,color:'#9ca3af',marginBottom:2}}>{f.l}</p>
+                    <p style={{fontSize:13,fontWeight:600,color:'#111827',textTransform:'capitalize'}}>{f.v}</p>
+                  </div>
+                ))}
+              </div>
+              <div style={{display:'flex',gap:8}}>
+                <button className="btn-secondary" style={{flex:1,fontSize:12}} onClick={()=>setShowRegForm(true)}>Request Regularisation</button>
+                <button className="btn-primary" style={{flex:1,fontSize:12}} onClick={()=>setTab('apply')}>Apply Leave</button>
+              </div>
+            </div>
+          )}
+          <div className="card">
+            <p style={{fontSize:13,fontWeight:700,color:'#111827',marginBottom:10}}>Team On Leave Today</p>
+            {['Rahul Verma','Sneha Patel','Anita Desai'].map((n,i)=>(
+              <div key={n} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:i<2?'1px solid #f0f1f4':'none'}}>
+                <div style={{width:32,height:32,background:'#eff4ff',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  <span style={{fontSize:13,fontWeight:700,color:'#1a56db'}}>{n[0]}</span>
+                </div>
+                <span style={{fontSize:13,color:'#374151',fontWeight:500}}>{n}</span>
+                <span className="tag" style={{background:'#fffbeb',color:'#d97706',marginLeft:'auto',fontSize:10}}>On Leave</span>
+              </div>
+            ))}
+          </div>
+        </>}
+        {tab==='leave' && (
+          <div style={{display:'flex',flexDirection:'column',gap:10}}>
+            {leaveBalance.map(lb=>(
+              <div key={lb.l} className="card">
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+                  <p style={{fontSize:13,fontWeight:700,color:'#111827'}}>{lb.l}</p>
+                  <span style={{fontSize:13,fontWeight:700,color:lb.c}}>{lb.total-lb.used} <span style={{fontSize:11,fontWeight:400,color:'#9ca3af'}}>remaining</span></span>
+                </div>
+                <ProgressBar value={(lb.used/lb.total)*100} color={lb.c}/>
+                <div style={{display:'flex',justifyContent:'space-between',marginTop:6}}>
+                  <span style={{fontSize:11,color:'#9ca3af'}}>Used: {lb.used} days</span>
+                  <span style={{fontSize:11,color:'#9ca3af'}}>Total: {lb.total} days</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {tab==='apply' && (
+          <div className="card" style={{display:'flex',flexDirection:'column',gap:14}}>
+            <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Leave Type</label>
+              <select className="select-field"><option>Annual Leave</option><option>Sick Leave</option><option>Casual Leave</option><option>Comp Off</option></select></div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>From Date</label><input className="input-field" type="date"/></div>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>To Date</label><input className="input-field" type="date"/></div>
+            </div>
+            <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Reason *</label>
+              <textarea className="input-field" rows={3} placeholder="Reason for leave..." style={{resize:'none'}}/></div>
+            <button className="btn-primary" style={{width:'100%'}} onClick={()=>showToast('Leave application submitted for approval!')}>Submit Leave Request</button>
+          </div>
+        )}
+      </div>
+      {showRegForm && (
+        <div className="modal-backdrop" onClick={()=>setShowRegForm(false)}>
+          <div className="modal-sheet" onClick={e=>e.stopPropagation()}>
+            <div className="drag-handle"/>
+            <div style={{padding:'0 20px 12px',borderBottom:'1px solid #e5e7eb'}}><h3 style={{fontSize:15,fontWeight:700}}>Request Regularisation</h3></div>
+            <div style={{padding:'16px 20px',display:'flex',flexDirection:'column',gap:12}}>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Date *</label><input className="input-field" type="date"/></div>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Correction Type</label>
+                <select className="select-field"><option>Missed Punch In</option><option>Missed Punch Out</option><option>Wrong Timing</option></select></div>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Reason *</label>
+                <textarea className="input-field" rows={3} placeholder="Explain why regularisation is needed..." style={{resize:'none'}}/></div>
+              <div style={{display:'flex',gap:10}}>
+                <button className="btn-ghost" style={{flex:1}} onClick={()=>setShowRegForm(false)}>Cancel</button>
+                <button className="btn-primary" style={{flex:1}} onClick={()=>{setShowRegForm(false);showToast('Regularisation request submitted!');}}>Submit Request</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      <HRMSBottomNav current="hrms-attendance" nav={nav}/>
+      <Toast msg={toast}/>
+    </div>
+  );
+};
+
 // ══════════════════════════════════════════════════════════════
 // WFM SCREENS
 // ══════════════════════════════════════════════════════════════
@@ -1953,9 +2081,6 @@ const WFMAttendance = ({ nav }) => {
   return (
     <div className="screen screen-anim">
       <ScreenHeader title="Attendance" subtitle="Track your daily attendance" onBack={()=>nav('wfm-dashboard')} orbit="WFM">
-        <button onClick={()=>nav('orbit-select')} style={{display:'flex',alignItems:'center',gap:4,background:'#f8f9fc',border:'1px solid #e5e7eb',borderRadius:20,padding:'5px 8px',cursor:'pointer',marginRight:4}}>
-          <Icon name="repeat" size={11} color="#6b7280"/><span style={{fontSize:10,color:'#6b7280',fontWeight:600}}>Switch</span>
-        </button>
       </ScreenHeader>
       <div className="scroll-area" style={{padding:'16px'}}>
         {/* Calendar strip */}
@@ -2199,9 +2324,6 @@ const WFMTasks = ({ nav }) => {
   return (
     <div className="screen screen-anim">
       <ScreenHeader title="My Assignments" subtitle="Tasks & work items" onBack={()=>nav('wfm-dashboard')} orbit="WFM">
-        <button onClick={()=>nav('orbit-select')} style={{display:'flex',alignItems:'center',gap:4,background:'#f8f9fc',border:'1px solid #e5e7eb',borderRadius:20,padding:'5px 8px',cursor:'pointer',marginRight:4}}>
-          <Icon name="repeat" size={11} color="#6b7280"/><span style={{fontSize:10,color:'#6b7280',fontWeight:600}}>Switch</span>
-        </button>
       </ScreenHeader>
       <div style={{padding:'10px 16px',background:'#fff',borderBottom:'1px solid #e5e7eb',flexShrink:0}}>
         <div style={{display:'flex',gap:6,overflowX:'auto'}}>
@@ -2344,9 +2466,6 @@ const WFMApprovals = ({ nav }) => {
   return (
     <div className="screen screen-anim">
       <ScreenHeader title="Approvals" subtitle="Pending requests" onBack={()=>nav('wfm-dashboard')} orbit="WFM">
-        <button onClick={()=>nav('orbit-select')} style={{display:'flex',alignItems:'center',gap:4,background:'#f8f9fc',border:'1px solid #e5e7eb',borderRadius:20,padding:'5px 8px',cursor:'pointer',marginRight:4}}>
-          <Icon name="repeat" size={11} color="#6b7280"/><span style={{fontSize:10,color:'#6b7280',fontWeight:600}}>Switch</span>
-        </button>
       </ScreenHeader>
       <div className="scroll-area" style={{padding:'16px'}}>
         <div className="tab-bar">
@@ -2784,7 +2903,6 @@ const WFMBottomNav = ({ current, nav }) => {
     {s:'wfm-communication',l:'Updates',icon:'message',c:'#16a34a',bg:'#f0fdf4'},
     {s:'wfm-manager',l:'Manager Hub',icon:'users',c:'#1a56db',bg:'#eff4ff'},
     {s:'wfm-notifications',l:'Notifications',icon:'bell',c:'#f59e0b',bg:'#fffbeb'},
-    {s:'orbit-select',l:'Switch Orbit',icon:'repeat',c:'#7c3aed',bg:'#f5f3ff'},
   ];
   return (
     <>
@@ -2835,6 +2953,7 @@ const HRMSBottomNav = ({ current, nav }) => {
     {s:'__more__',l:'More',icon:'grid'},
   ];
   const moreItems = [
+    {s:'hrms-attendance',l:'Attendance',icon:'clock',c:'#1a56db',bg:'#eff4ff'},
     {s:'hrms-profile',l:'Profile',icon:'user',c:'#6b7280',bg:'#f3f4f6'},
     {s:'hrms-skills',l:'Skills',icon:'award',c:'#16a34a',bg:'#f0fdf4'},
     {s:'hrms-wellness',l:'Wellness',icon:'heart',c:'#ec4899',bg:'#fdf2f8'},
@@ -2843,7 +2962,6 @@ const HRMSBottomNav = ({ current, nav }) => {
     {s:'hrms-ai',l:'AI Assistant',icon:'zap',c:'#7c3aed',bg:'#f5f3ff'},
     {s:'hrms-travel',l:'Travel',icon:'airplane',c:'#0891b2',bg:'#ecfeff'},
     {s:'hrms-notifications',l:'Notifications',icon:'bell',c:'#f59e0b',bg:'#fffbeb'},
-    {s:'orbit-select',l:'Switch Orbit',icon:'repeat',c:'#1a56db',bg:'#eff4ff'},
   ];
   return (
     <>
@@ -2913,6 +3031,7 @@ const App = () => {
     'hrms-assets': <HRMSAssets nav={nav}/>,
     'hrms-ai': <HRMSAIAssistant nav={nav}/>,
     'hrms-travel': <HRMSTravel nav={nav}/>,
+    'hrms-attendance': <HRMSAttendance nav={nav}/>,
     'hrms-notifications': <HRMSNotifications nav={nav}/>,
     // WFM
     'wfm-dashboard': <WFMDashboard nav={nav}/>,
