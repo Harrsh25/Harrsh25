@@ -1,0 +1,2804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HR Orbit</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Inter',sans-serif;background:#1a56db;display:flex;justify-content:center;align-items:center;min-height:100vh;overflow:hidden}
+#root{width:100%;max-width:430px;height:100vh;background:#f2f3f7;overflow:hidden;position:relative;display:flex;flex-direction:column;box-shadow:0 0 60px rgba(0,0,0,0.3)}
+.screen{display:flex;flex-direction:column;height:100%;overflow:hidden}
+.scroll-area{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+.bottom-nav{flex-shrink:0;background:#fff;border-top:1px solid #e5e7eb;display:flex;padding:6px 0 8px}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;border:none;background:none;cursor:pointer;padding:4px 2px;position:relative;transition:color .15s}
+.nav-btn.active{color:#1a56db}
+.nav-btn:not(.active){color:#9ca3af}
+.nav-indicator{position:absolute;top:0;left:50%;transform:translateX(-50%);width:24px;height:2px;background:#1a56db;border-radius:0 0 2px 2px;transition:opacity .2s}
+.nav-label{font-size:10px;font-weight:500;line-height:1}
+.card{background:#fff;border-radius:16px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.06);border:1px solid #e5e7eb}
+.btn-primary{background:#1a56db;color:#fff;border:none;border-radius:8px;padding:12px 20px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:opacity .15s}
+.btn-primary:active{opacity:.85}
+.btn-secondary{background:#eff4ff;color:#1a56db;border:1px solid #c3d9ff;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif}
+.btn-ghost{background:none;border:1px solid #e5e7eb;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:500;cursor:pointer;color:#6b7280;font-family:'Inter',sans-serif}
+.input-field{width:100%;background:#f8f9fc;border:1px solid #e5e7eb;border-radius:8px;padding:11px 14px;font-size:14px;font-family:'Inter',sans-serif;color:#111827;outline:none;transition:border .15s}
+.input-field:focus{border-color:#1a56db;background:#fff}
+.select-field{width:100%;background:#f8f9fc;border:1px solid #e5e7eb;border-radius:8px;padding:11px 14px;font-size:14px;font-family:'Inter',sans-serif;color:#111827;outline:none;appearance:none}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 4px;border-radius:9px;font-size:10px;font-weight:700}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:50;display:flex;align-items:flex-end;justify-content:center}
+.modal-sheet{background:#fff;border-radius:20px 20px 0 0;width:100%;max-height:90vh;display:flex;flex-direction:column;animation:slideUp .28s cubic-bezier(.32,1.12,.64,1)}
+.modal-center{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal-box{background:#fff;border-radius:20px;width:100%;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;animation:fadeIn .2s ease}
+.drag-handle{width:36px;height:4px;background:#e5e7eb;border-radius:2px;margin:12px auto 8px}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 18px;border-radius:12px;font-size:13px;font-weight:500;z-index:100;white-space:nowrap;animation:fadeIn .2s ease}
+.section-title{font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
+.list-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #f0f1f4}
+.list-item:last-child{border-bottom:none}
+.avatar{border-radius:50%;object-fit:cover;flex-shrink:0}
+.progress-bar{height:6px;background:#f0f1f4;border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;transition:width .4s ease}
+.chip{display:inline-flex;align-items:center;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;gap:4px}
+.stat-card{background:#f8f9fc;border-radius:12px;padding:12px;text-align:center;border:1px solid #f0f1f4}
+.orbit-badge{position:absolute;top:12px;right:12px;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:600;color:#fff;cursor:pointer;backdrop-filter:blur(4px)}
+.tab-bar{display:flex;background:#f8f9fc;border-radius:10px;padding:3px;gap:2px;margin-bottom:16px}
+.tab-btn{flex:1;padding:7px 4px;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s}
+.tab-btn.active{background:#fff;color:#1a56db;box-shadow:0 1px 3px rgba(0,0,0,0.1)}
+.tab-btn:not(.active){background:none;color:#6b7280}
+.search-bar{display:flex;align-items:center;gap:8px;background:#f8f9fc;border:1px solid #e5e7eb;border-radius:10px;padding:8px 12px}
+.search-bar input{flex:1;border:none;background:none;outline:none;font-size:13px;font-family:'Inter',sans-serif;color:#111827}
+.hrms-gradient{background:linear-gradient(135deg,#1a56db 0%,#1e40af 100%)}
+.wfm-gradient{background:linear-gradient(135deg,#7c3aed 0%,#5b21b6 100%)}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+@keyframes fadeInScreen{from{opacity:0}to{opacity:1}}
+.screen-anim{animation:fadeInScreen .14s ease}
+
+/* Scrollbar hide */
+::-webkit-scrollbar{display:none}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ─── DESIGN TOKENS ───────────────────────────────────────────
+const C = {
+  primary:'#1a56db', bg:'#f2f3f7', surface:'#fff',
+  border:'#e5e7eb', txt1:'#111827', txt2:'#6b7280', txt3:'#9ca3af',
+  success:'#16a34a', error:'#dc2626', warn:'#d97706',
+  accentBg:'#eff4ff', successBg:'#f0fdf4', errorBg:'#fef2f2',
+};
+
+// ─── INLINE SVG ICONS ─────────────────────────────────────────
+const Icon = ({ name, size=20, color='currentColor', style={} }) => {
+  const paths = {
+    home: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10',
+    user: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+    bell: 'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 0 1-3.46 0',
+    settings: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z',
+    check: 'M20 6L9 17l-5-5',
+    'check-circle': 'M22 11.08V12a10 10 0 1 1-5.93-9.14 M22 4L12 14.01l-3-3',
+    'x': 'M18 6L6 18 M6 6l12 12',
+    'x-circle': 'M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10z M15 9l-6 6 M9 9l6 6',
+    plus: 'M12 5v14 M5 12h14',
+    'arrow-left': 'M19 12H5 M12 19l-7-7 7-7',
+    'arrow-right': 'M5 12h14 M12 5l7 7-7 7',
+    'chevron-right': 'M9 18l6-6-6-6',
+    'chevron-down': 'M6 9l6 6 6-6',
+    'chevron-up': 'M18 15l-6-6-6 6',
+    edit: 'M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7 M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z',
+    trash: 'M3 6h18 M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6 M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2',
+    download: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3',
+    upload: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M17 8l-5-5-5 5 M12 3v12',
+    search: 'M21 21l-4.35-4.35 M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z',
+    filter: 'M22 3H2l8 9.46V19l4 2V12.46L22 3z',
+    'dollar-sign': 'M12 1v22 M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6',
+    'trending-up': 'M23 6l-9.5 9.5-5-5L1 18 M17 6h6v6',
+    calendar: 'M3 4h18v18H3z M16 2v4 M8 2v4 M3 10h18',
+    clock: 'M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10z M12 6v6l4 2',
+    map: 'M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z M8 2v16 M16 6v16',
+    'map-pin': 'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z M12 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
+    briefcase: 'M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2',
+    target: 'M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10z M12 18c3.31 0 6-2.69 6-6s-2.69-6-6-6-6 2.69-6 6 2.69 6 6 6z M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
+    award: 'M12 15a7 7 0 1 0 0-14 7 7 0 0 0 0 14z M8.21 13.89L7 23l5-3 5 3-1.21-9.12',
+    'file-text': 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8',
+    'file-plus': 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M12 18v-6 M9 15h6',
+    users: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M23 21v-2a4 4 0 0 0-3-3.87 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M16 3.13a4 4 0 0 1 0 7.75',
+    'user-plus': 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M20 8v6 M23 11h-6',
+    'user-check': 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M17 11l2 2 4-4',
+    'user-x': 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M18 8l4 4 M22 8l-4 4',
+    zap: 'M13 2L3 14h9l-1 8 10-12h-9l1-8z',
+    shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
+    heart: 'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z',
+    activity: 'M22 12h-4l-3 9L9 3l-3 9H2',
+    cpu: 'M18 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z M9 9h6v6H9z M9 1v3 M15 1v3 M9 20v3 M15 20v3 M20 9h3 M20 14h3 M1 9h3 M1 14h3',
+    'bar-chart': 'M12 20V10 M18 20V4 M6 20v-4',
+    'pie-chart': 'M21.21 15.89A10 10 0 1 1 8 2.83 M22 12A10 10 0 0 0 12 2v10z',
+    send: 'M22 2L11 13 M22 2l-7 20-4-9-9-4 20-7z',
+    message: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z',
+    phone: 'M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z',
+    mail: 'M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z M22 6l-10 7L2 6',
+    lock: 'M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2z M7 11V7a5 5 0 0 1 10 0v4',
+    eye: 'M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z',
+    'eye-off': 'M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94 M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19 M1 1l22 22',
+    layers: 'M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5',
+    package: 'M16.5 9.4l-9-5.19 M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z M3.27 6.96L12 12.01l8.73-5.05 M12 22.08V12',
+    'git-branch': 'M6 3v12 M18 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M18 9a9 9 0 0 1-9 9',
+    clipboard: 'M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2 M15 2H9a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1z',
+    'alert-circle': 'M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10z M12 8v4 M12 16h.01',
+    info: 'M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10z M12 16v-4 M12 8h.01',
+    repeat: 'M17 1l4 4-4 4 M3 11V9a4 4 0 0 1 4-4h14 M7 23l-4-4 4-4 M21 13v2a4 4 0 0 1-4 4H3',
+    'log-out': 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9',
+    star: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
+    'more-horizontal': 'M12 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z M19 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z M5 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z',
+    grid: 'M3 3h7v7H3z M14 3h7v7h-7z M14 14h7v7h-7z M3 14h7v7H3z',
+    book: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20 M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z',
+    'help-circle': 'M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10z M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3 M12 17h.01',
+    'credit-card': 'M21 4H3a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z M1 10h22',
+    airplane: 'M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z',
+    truck: 'M1 3h15v13H1z M16 8h4l3 3v5h-7V8z M5.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z M18.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z',
+    'sun': 'M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10z M12 1v2 M12 21v2 M4.22 4.22l1.42 1.42 M18.36 18.36l1.42 1.42 M1 12h2 M21 12h2 M4.22 19.78l1.42-1.42 M18.36 5.64l1.42-1.42',
+    'alert-triangle': 'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z M12 9v4 M12 17h.01',
+    'wifi': 'M5 12.55a11 11 0 0 1 14.08 0 M1.42 9a16 16 0 0 1 21.16 0 M8.53 16.11a6 6 0 0 1 6.95 0 M12 20h.01',
+    'book-open': 'M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z',
+    'sliders': 'M4 21v-7 M4 10V3 M12 21v-9 M12 8V3 M20 21v-5 M20 12V3 M1 14h6 M9 8h6 M17 16h6',
+    'code': 'M16 18l6-6-6-6 M8 6l-6 6 6 6',
+    'monitor': 'M20 3H4a1 1 0 0 0-1 1v13a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1z M8 21h8 M12 17v4',
+  };
+  const d = paths[name] || paths['help-circle'];
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      style={style}>
+      {d.split(' M').map((seg, i) => (
+        <path key={i} d={i===0 ? seg : 'M'+seg} />
+      ))}
+    </svg>
+  );
+};
+
+// ─── SHARED COMPONENTS ────────────────────────────────────────
+const Toast = ({ msg }) => msg ? <div className="toast">{msg}</div> : null;
+
+const useToast = () => {
+  const [msg, setMsg] = useState('');
+  const show = useCallback((m) => {
+    setMsg(m);
+    setTimeout(() => setMsg(''), 2500);
+  }, []);
+  return [msg, show];
+};
+
+const ScreenHeader = ({ title, subtitle, onBack, children, orbit }) => (
+  <div style={{background:'#fff',borderBottom:'1px solid #e5e7eb',padding:'32px 16px 10px',flexShrink:0}}>
+    <div style={{display:'flex',alignItems:'center',gap:10}}>
+      {onBack && (
+        <button onClick={onBack} style={{width:32,height:32,borderRadius:8,background:'#f8f9fc',border:'1px solid #e5e7eb',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0}}>
+          <Icon name="arrow-left" size={16} color="#374151"/>
+        </button>
+      )}
+      <div style={{flex:1,minWidth:0}}>
+        <p style={{fontSize:17,fontWeight:700,color:'#111827',lineHeight:1.2}}>{title}</p>
+        {subtitle && <p style={{fontSize:11,color:'#6b7280',marginTop:2}}>{subtitle}</p>}
+      </div>
+      {children}
+      {orbit && (
+        <span style={{fontSize:9,fontWeight:700,padding:'3px 8px',borderRadius:20,background:orbit==='HRMS'?'#eff4ff':'#f5f3ff',color:orbit==='HRMS'?'#1a56db':'#7c3aed',border:`1px solid ${orbit==='HRMS'?'#c3d9ff':'#ddd6fe'}`}}>
+          {orbit}
+        </span>
+      )}
+    </div>
+  </div>
+);
+
+const StatusBadge = ({ status }) => {
+  const map = {
+    'active':['#16a34a','#f0fdf4'],'approved':['#16a34a','#f0fdf4'],
+    'completed':['#16a34a','#f0fdf4'],'done':['#16a34a','#f0fdf4'],
+    'on-track':['#16a34a','#f0fdf4'],'present':['#16a34a','#f0fdf4'],
+    'pending':['#d97706','#fffbeb'],'in-progress':['#d97706','#fffbeb'],
+    'at-risk':['#d97706','#fffbeb'],'late':['#d97706','#fffbeb'],
+    'rejected':['#dc2626','#fef2f2'],'behind':['#dc2626','#fef2f2'],
+    'absent':['#dc2626','#fef2f2'],'overdue':['#dc2626','#fef2f2'],
+    'open':['#1a56db','#eff4ff'],'planning':['#6b7280','#f3f4f6'],
+  };
+  const [c,bg] = map[status] || ['#6b7280','#f3f4f6'];
+  return <span className="tag" style={{color:c,background:bg}}>{status}</span>;
+};
+
+const ProgressBar = ({ value, color='#1a56db' }) => (
+  <div className="progress-bar">
+    <div className="progress-fill" style={{width:`${Math.min(100,value)}%`,background:color}}/>
+  </div>
+);
+
+const SwitchOrbitBtn = ({ nav }) => (
+  <button onClick={() => nav('orbit-select')} style={{display:'flex',alignItems:'center',gap:4,background:'#f8f9fc',border:'1px solid #e5e7eb',borderRadius:20,padding:'5px 10px',cursor:'pointer',fontSize:11,fontWeight:600,color:'#6b7280'}}>
+    <Icon name="repeat" size={11} color="#6b7280"/>Switch
+  </button>
+);
+
+// ─── LOGIN SCREEN ─────────────────────────────────────────────
+const LoginScreen = ({ nav }) => {
+  const [email, setEmail] = useState('arjun.sharma@inventia.com');
+  const [password, setPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState('');
+
+  const submit = () => {
+    if (!email.trim()) { setErr('Please enter your email'); return; }
+    if (!password.trim()) { setErr('Please enter your password'); return; }
+    setErr(''); setLoading(true);
+    setTimeout(() => { setLoading(false); nav('orbit-select'); }, 1200);
+  };
+
+  return (
+    <div style={{flex:1,background:'linear-gradient(160deg,#1a56db 0%,#1e3a8a 100%)',display:'flex',flexDirection:'column',justifyContent:'space-between',padding:'40px 0 0',overflowY:'auto'}}>
+      {/* Logo */}
+      <div style={{textAlign:'center',padding:'0 24px 32px'}}>
+        <div style={{width:72,height:72,background:'rgba(255,255,255,0.15)',borderRadius:20,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',border:'1px solid rgba(255,255,255,0.25)'}}>
+          <Icon name="layers" size={36} color="#fff"/>
+        </div>
+        <h1 style={{fontSize:28,fontWeight:800,color:'#fff',letterSpacing:'-0.5px'}}>HR Orbit</h1>
+        <p style={{fontSize:13,color:'rgba(255,255,255,0.7)',marginTop:4}}>Powered by Inventia</p>
+      </div>
+
+      {/* Card */}
+      <div style={{background:'#fff',borderRadius:'24px 24px 0 0',padding:'28px 24px 40px',flex:1}}>
+        <h2 style={{fontSize:20,fontWeight:700,color:'#111827',marginBottom:6}}>Welcome back</h2>
+        <p style={{fontSize:13,color:'#6b7280',marginBottom:24}}>Sign in to your workspace</p>
+
+        {err && (
+          <div style={{background:'#fef2f2',border:'1px solid #fecaca',borderRadius:8,padding:'10px 12px',marginBottom:16,display:'flex',gap:8,alignItems:'center'}}>
+            <Icon name="alert-circle" size={14} color="#dc2626"/>
+            <span style={{fontSize:13,color:'#dc2626'}}>{err}</span>
+          </div>
+        )}
+
+        <div style={{marginBottom:14}}>
+          <label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:6}}>Work Email</label>
+          <div style={{position:'relative'}}>
+            <Icon name="mail" size={16} color="#9ca3af" style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)'}}/>
+            <input className="input-field" style={{paddingLeft:38}} type="email" value={email}
+              onChange={e=>setEmail(e.target.value)} placeholder="you@company.com"/>
+          </div>
+        </div>
+
+        <div style={{marginBottom:20}}>
+          <label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:6}}>Password</label>
+          <div style={{position:'relative'}}>
+            <Icon name="lock" size={16} color="#9ca3af" style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)'}}/>
+            <input className="input-field" style={{paddingLeft:38,paddingRight:42}} type={showPw?'text':'password'}
+              value={password} onChange={e=>setPassword(e.target.value)} placeholder="Enter password"/>
+            <button onClick={()=>setShowPw(!showPw)} style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',border:'none',background:'none',cursor:'pointer',padding:0}}>
+              <Icon name={showPw?'eye-off':'eye'} size={16} color="#9ca3af"/>
+            </button>
+          </div>
+        </div>
+
+        <div style={{textAlign:'right',marginBottom:24}}>
+          <button style={{border:'none',background:'none',fontSize:13,color:'#1a56db',fontWeight:500,cursor:'pointer'}}>Forgot Password?</button>
+        </div>
+
+        <button className="btn-primary" onClick={submit} style={{width:'100%',padding:14,fontSize:15}}
+          disabled={loading}>
+          {loading ? 'Signing in…' : 'Sign In'}
+        </button>
+
+        <div style={{marginTop:20,padding:'12px',background:'#f8f9fc',borderRadius:10,border:'1px solid #e5e7eb'}}>
+          <p style={{fontSize:11,color:'#9ca3af',fontWeight:500,marginBottom:4}}>Demo Credentials</p>
+          <p style={{fontSize:12,color:'#6b7280'}}>📧 arjun.sharma@inventia.com</p>
+          <p style={{fontSize:12,color:'#6b7280'}}>🔑 any password</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── ORBIT SELECTION SCREEN ───────────────────────────────────
+const OrbitSelectScreen = ({ nav }) => {
+  const hrmsModules = ['Payroll','Performance','Recruitment','Onboarding','Offboarding','Benefits','Compliance','Grievances','Helpdesk','Skills & Talent','Wellness','Directory','Assets','AI Assistant','360° Feedback'];
+  const wfmModules = ['Attendance','Shifts','Timesheet','Tasks','Projects & WBS','Approvals','Manager Hub','Travel & Expense','Safety','Analytics','Sprint Board','Documents','Communication'];
+
+  return (
+    <div style={{flex:1,overflowY:'auto',background:'#f2f3f7'}}>
+      {/* Header */}
+      <div style={{background:'#fff',borderBottom:'1px solid #e5e7eb',padding:'40px 20px 16px',display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
+        <div>
+          <p style={{fontSize:13,color:'#6b7280'}}>Welcome back,</p>
+          <h1 style={{fontSize:22,fontWeight:800,color:'#111827',letterSpacing:'-0.4px'}}>Arjun Sharma 👋</h1>
+          <p style={{fontSize:12,color:'#9ca3af',marginTop:2}}>Select your workspace to continue</p>
+        </div>
+        <button onClick={()=>nav('login')} style={{display:'flex',alignItems:'center',gap:4,background:'#f8f9fc',border:'1px solid #e5e7eb',borderRadius:8,padding:'7px 10px',cursor:'pointer'}}>
+          <Icon name="log-out" size={14} color="#6b7280"/>
+          <span style={{fontSize:12,color:'#6b7280',fontWeight:500}}>Logout</span>
+        </button>
+      </div>
+
+      <div style={{padding:'20px 16px',display:'flex',flexDirection:'column',gap:16}}>
+        {/* HRMS Card */}
+        <div onClick={()=>nav('hrms-dashboard')} style={{background:'linear-gradient(135deg,#1a56db 0%,#1e3a8a 100%)',borderRadius:20,padding:'22px 20px',cursor:'pointer',position:'relative',overflow:'hidden',boxShadow:'0 8px 24px rgba(26,86,219,0.3)'}}>
+          <div style={{position:'absolute',right:-20,top:-20,width:120,height:120,background:'rgba(255,255,255,0.08)',borderRadius:'50%'}}/>
+          <div style={{position:'absolute',right:20,bottom:-30,width:80,height:80,background:'rgba(255,255,255,0.06)',borderRadius:'50%'}}/>
+          <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:14,position:'relative'}}>
+            <div>
+              <div style={{width:44,height:44,background:'rgba(255,255,255,0.2)',borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:10,border:'1px solid rgba(255,255,255,0.25)'}}>
+                <Icon name="briefcase" size={22} color="#fff"/>
+              </div>
+              <h2 style={{fontSize:20,fontWeight:800,color:'#fff',letterSpacing:'-0.3px'}}>HRMS Orbit</h2>
+              <p style={{fontSize:12,color:'rgba(255,255,255,0.7)',marginTop:2}}>Human Resource Management</p>
+            </div>
+            <div style={{width:36,height:36,background:'rgba(255,255,255,0.15)',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',border:'1px solid rgba(255,255,255,0.2)'}}>
+              <Icon name="arrow-right" size={18} color="#fff"/>
+            </div>
+          </div>
+          <div style={{display:'flex',flexWrap:'wrap',gap:6,position:'relative'}}>
+            {hrmsModules.map(m => (
+              <span key={m} style={{background:'rgba(255,255,255,0.15)',border:'1px solid rgba(255,255,255,0.2)',borderRadius:20,padding:'3px 8px',fontSize:10,fontWeight:600,color:'rgba(255,255,255,0.9)'}}>
+                {m}
+              </span>
+            ))}
+          </div>
+          <div style={{marginTop:16,display:'flex',alignItems:'center',gap:6,position:'relative'}}>
+            <div style={{flex:1,height:1,background:'rgba(255,255,255,0.2)'}}/>
+            <span style={{fontSize:11,color:'rgba(255,255,255,0.7)',fontWeight:600}}>{hrmsModules.length} modules</span>
+          </div>
+        </div>
+
+        {/* WFM Card */}
+        <div onClick={()=>nav('wfm-dashboard')} style={{background:'linear-gradient(135deg,#7c3aed 0%,#4c1d95 100%)',borderRadius:20,padding:'22px 20px',cursor:'pointer',position:'relative',overflow:'hidden',boxShadow:'0 8px 24px rgba(124,58,237,0.3)'}}>
+          <div style={{position:'absolute',right:-20,top:-20,width:120,height:120,background:'rgba(255,255,255,0.08)',borderRadius:'50%'}}/>
+          <div style={{position:'absolute',right:20,bottom:-30,width:80,height:80,background:'rgba(255,255,255,0.06)',borderRadius:'50%'}}/>
+          <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:14,position:'relative'}}>
+            <div>
+              <div style={{width:44,height:44,background:'rgba(255,255,255,0.2)',borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:10,border:'1px solid rgba(255,255,255,0.25)'}}>
+                <Icon name="activity" size={22} color="#fff"/>
+              </div>
+              <h2 style={{fontSize:20,fontWeight:800,color:'#fff',letterSpacing:'-0.3px'}}>WFM Orbit</h2>
+              <p style={{fontSize:12,color:'rgba(255,255,255,0.7)',marginTop:2}}>Workforce Management</p>
+            </div>
+            <div style={{width:36,height:36,background:'rgba(255,255,255,0.15)',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',border:'1px solid rgba(255,255,255,0.2)'}}>
+              <Icon name="arrow-right" size={18} color="#fff"/>
+            </div>
+          </div>
+          <div style={{display:'flex',flexWrap:'wrap',gap:6,position:'relative'}}>
+            {wfmModules.map(m => (
+              <span key={m} style={{background:'rgba(255,255,255,0.15)',border:'1px solid rgba(255,255,255,0.2)',borderRadius:20,padding:'3px 8px',fontSize:10,fontWeight:600,color:'rgba(255,255,255,0.9)'}}>
+                {m}
+              </span>
+            ))}
+          </div>
+          <div style={{marginTop:16,display:'flex',alignItems:'center',gap:6,position:'relative'}}>
+            <div style={{flex:1,height:1,background:'rgba(255,255,255,0.2)'}}/>
+            <span style={{fontSize:11,color:'rgba(255,255,255,0.7)',fontWeight:600}}>{wfmModules.length} modules</span>
+          </div>
+        </div>
+
+        {/* Info note */}
+        <div style={{background:'#fff',borderRadius:12,padding:'12px 14px',border:'1px solid #e5e7eb',display:'flex',gap:10,alignItems:'flex-start'}}>
+          <Icon name="info" size={16} color="#1a56db" style={{flexShrink:0,marginTop:1}}/>
+          <p style={{fontSize:12,color:'#6b7280',lineHeight:1.5}}>You can switch between orbits at any time using the <strong style={{color:'#374151'}}>Switch</strong> button in the top-right corner of each orbit.</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ──────────────────────────────────────────────────────────────
+// PLACEHOLDER — HRMS & WFM screens will be inserted below
+// ──────────────────────────────────────────────────────────────
+
+// ══════════════════════════════════════════════════════════════
+// HRMS SCREENS
+// ══════════════════════════════════════════════════════════════
+
+const HRMSDashboard = ({ nav }) => {
+  const [toast, showToast] = useToast();
+  const goals = [
+    { title:'Metro Tower Phase 1', progress:34, status:'on-track' },
+    { title:'Reduce project costs 8%', progress:42, status:'at-risk' },
+    { title:'PMP Certification', progress:40, status:'on-track' },
+  ];
+  return (
+    <div className="screen screen-anim">
+      <div style={{background:'#fff',borderBottom:'1px solid #e5e7eb',padding:'32px 16px 10px',flexShrink:0}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <div>
+            <span style={{fontSize:11,fontWeight:700,padding:'3px 8px',borderRadius:20,background:'#eff4ff',color:'#1a56db',border:'1px solid #c3d9ff'}}>HRMS Orbit</span>
+            <h1 style={{fontSize:20,fontWeight:800,color:'#111827',marginTop:6,letterSpacing:'-0.3px'}}>Good Morning, Arjun 👋</h1>
+            <p style={{fontSize:12,color:'#6b7280',marginTop:2}}>Senior Project Manager · Mumbai HQ</p>
+          </div>
+          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+            <button onClick={()=>nav('hrms-notifications')} style={{width:34,height:34,background:'#f8f9fc',border:'1px solid #e5e7eb',borderRadius:9,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',position:'relative'}}>
+              <Icon name="bell" size={16} color="#6b7280"/>
+              <span style={{position:'absolute',top:-3,right:-3,width:14,height:14,background:'#dc2626',borderRadius:'50%',border:'2px solid #fff',fontSize:7,fontWeight:700,color:'#fff',display:'flex',alignItems:'center',justifyContent:'center'}}>3</span>
+            </button>
+            <button onClick={()=>nav('orbit-select')} style={{display:'flex',alignItems:'center',gap:4,background:'#f8f9fc',border:'1px solid #e5e7eb',borderRadius:20,padding:'6px 10px',cursor:'pointer'}}>
+              <Icon name="repeat" size={12} color="#6b7280"/>
+              <span style={{fontSize:11,fontWeight:600,color:'#6b7280'}}>Switch</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        {/* Quick Stats */}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:16}}>
+          {[
+            {label:'Net Pay',value:'₹96,500',sub:'March 2026',icon:'dollar-sign',color:'#16a34a',bg:'#f0fdf4'},
+            {label:'Performance',value:'4.2/5.0',sub:'Annual Review',icon:'star',color:'#f59e0b',bg:'#fffbeb'},
+            {label:'Open Goals',value:'4',sub:'2 on track',icon:'target',color:'#1a56db',bg:'#eff4ff'},
+            {label:'Pending HR',value:'3',sub:'Action needed',icon:'alert-circle',color:'#dc2626',bg:'#fef2f2'},
+          ].map(s=>(
+            <div key={s.label} className="card" style={{padding:12}} onClick={()=>{}}>
+              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                <div style={{width:28,height:28,background:s.bg,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  <Icon name={s.icon} size={14} color={s.color}/>
+                </div>
+                <span style={{fontSize:11,color:'#6b7280',fontWeight:500}}>{s.label}</span>
+              </div>
+              <p style={{fontSize:18,fontWeight:700,color:'#111827'}}>{s.value}</p>
+              <p style={{fontSize:11,color:'#9ca3af',marginTop:2}}>{s.sub}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Latest Payslip */}
+        <div className="card" style={{marginBottom:14}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+            <p style={{fontSize:13,fontWeight:700,color:'#111827'}}>Latest Payslip</p>
+            <span style={{fontSize:11,color:'#6b7280'}}>March 2026</span>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:12}}>
+            {[{l:'Gross',v:'₹1,25,000',c:'#111827'},{l:'Deductions',v:'₹28,500',c:'#dc2626'},{l:'Net Pay',v:'₹96,500',c:'#16a34a'}].map(i=>(
+              <div key={i.l} style={{textAlign:'center',padding:'8px 4px',background:'#f8f9fc',borderRadius:8}}>
+                <p style={{fontSize:10,color:'#9ca3af',marginBottom:4,fontWeight:500}}>{i.l}</p>
+                <p style={{fontSize:13,fontWeight:700,color:i.c}}>{i.v}</p>
+              </div>
+            ))}
+          </div>
+          <button className="btn-secondary" style={{width:'100%'}} onClick={()=>nav('hrms-payroll')}>View Full Payslip →</button>
+        </div>
+
+        {/* Leave Balance */}
+        <div className="card" style={{marginBottom:14}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+            <p style={{fontSize:13,fontWeight:700,color:'#111827'}}>Leave Balance</p>
+            <span style={{fontSize:11,color:'#1a56db',cursor:'pointer',fontWeight:600}} onClick={()=>nav('hrms-compliance')}>View All</span>
+          </div>
+          <div style={{display:'flex',gap:8}}>
+            {[{t:'Earned',v:18,c:'#16a34a'},{t:'Casual',v:5,c:'#1a56db'},{t:'Sick',v:12,c:'#f59e0b'},{t:'Comp-Off',v:2,c:'#7c3aed'}].map(l=>(
+              <div key={l.t} style={{flex:1,background:'#f8f9fc',borderRadius:10,padding:'10px 6px',textAlign:'center',border:'1px solid #f0f1f4'}}>
+                <p style={{fontSize:18,fontWeight:800,color:l.c}}>{l.v}</p>
+                <p style={{fontSize:9,color:'#9ca3af',fontWeight:600,marginTop:2}}>{l.t}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Goals */}
+        <div className="card" style={{marginBottom:14}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+            <p style={{fontSize:13,fontWeight:700,color:'#111827'}}>My Goals</p>
+            <span style={{fontSize:11,color:'#1a56db',cursor:'pointer',fontWeight:600}} onClick={()=>nav('hrms-performance')}>View All</span>
+          </div>
+          {goals.map((g,i)=>(
+            <div key={i} style={{marginBottom:i<goals.length-1?12:0}}>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                <span style={{fontSize:12,color:'#374151',fontWeight:500}}>{g.title}</span>
+                <span style={{fontSize:11,fontWeight:700,color:g.status==='on-track'?'#16a34a':'#d97706'}}>{g.progress}%</span>
+              </div>
+              <ProgressBar value={g.progress} color={g.status==='on-track'?'#16a34a':'#d97706'}/>
+            </div>
+          ))}
+        </div>
+
+        {/* Quick Actions */}
+        <p className="section-title">Quick Actions</p>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginBottom:16}}>
+          {[
+            {l:'Payroll',icon:'dollar-sign',s:'hrms-payroll',c:'#1a56db',bg:'#eff4ff'},
+            {l:'Performance',icon:'target',s:'hrms-performance',c:'#7c3aed',bg:'#f5f3ff'},
+            {l:'HR Services',icon:'briefcase',s:'hrms-services',c:'#dc2626',bg:'#fef2f2'},
+            {l:'Skills',icon:'award',s:'hrms-skills',c:'#16a34a',bg:'#f0fdf4'},
+            {l:'Wellness',icon:'heart',s:'hrms-wellness',c:'#ec4899',bg:'#fdf2f8'},
+            {l:'Directory',icon:'users',s:'hrms-directory',c:'#0891b2',bg:'#ecfeff'},
+          ].map(a=>(
+            <button key={a.l} onClick={()=>nav(a.s)} style={{background:'#fff',border:'1px solid #e5e7eb',borderRadius:12,padding:'12px 8px',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:6}}>
+              <div style={{width:36,height:36,background:a.bg,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                <Icon name={a.icon} size={18} color={a.c}/>
+              </div>
+              <span style={{fontSize:11,fontWeight:600,color:'#374151'}}>{a.l}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+      <HRMSBottomNav current="hrms-dashboard" nav={nav}/>
+      <Toast msg={toast}/>
+    </div>
+  );
+};
+
+const HRMSPayroll = ({ nav }) => {
+  const [tab, setTab] = useState('payslip');
+  const [showModal, setShowModal] = useState(false);
+  const [toast, showToast] = useToast();
+  const earnings = [{n:'Basic Salary',a:50000},{n:'HRA',a:25000},{n:'DA',a:12500},{n:'Special Allowance',a:15000},{n:'Transport',a:5000},{n:'Medical',a:5000},{n:'Overtime',a:7500},{n:'Project Allowance',a:5000}];
+  const deductions = [{n:'Provident Fund',a:6000},{n:'Professional Tax',a:200},{n:'Income Tax (TDS)',a:18000},{n:'ESI',a:875},{n:'Labour Welfare Fund',a:25},{n:'Salary Advance EMI',a:3400}];
+  const fmt = n => '₹'+n.toLocaleString('en-IN');
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="Payroll" subtitle="Salary & compensation" onBack={()=>nav('hrms-dashboard')} orbit="HRMS">
+        <button onClick={()=>nav('orbit-select')} style={{display:'flex',alignItems:'center',gap:4,background:'#f8f9fc',border:'1px solid #e5e7eb',borderRadius:20,padding:'5px 8px',cursor:'pointer',marginRight:4}}>
+          <Icon name="repeat" size={11} color="#6b7280"/><span style={{fontSize:10,color:'#6b7280',fontWeight:600}}>Switch</span>
+        </button>
+      </ScreenHeader>
+      <div style={{display:'flex',borderBottom:'1px solid #e5e7eb',background:'#fff',flexShrink:0}}>
+        {[['payslip','Payslip'],['tax','Tax & IT'],['ctc','CTC & Forms']].map(([k,l])=>(
+          <button key={k} onClick={()=>setTab(k)} style={{flex:1,padding:'10px 4px',border:'none',background:'none',cursor:'pointer',fontSize:12,fontWeight:600,color:tab===k?'#1a56db':'#9ca3af',borderBottom:tab===k?'2px solid #1a56db':'2px solid transparent'}}>
+            {l}
+          </button>
+        ))}
+      </div>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        {tab==='payslip' && <>
+          {/* Payslip Summary */}
+          <div className="card" style={{marginBottom:14,background:'linear-gradient(135deg,#1a56db,#1e3a8a)'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:12}}>
+              <div><p style={{fontSize:11,color:'rgba(255,255,255,0.7)',fontWeight:600}}>March 2026</p>
+                <p style={{fontSize:22,fontWeight:800,color:'#fff',marginTop:2}}>₹96,500</p>
+                <p style={{fontSize:11,color:'rgba(255,255,255,0.7)'}}>Net Pay · Paid on 31 Mar</p>
+              </div>
+              <span style={{background:'rgba(255,255,255,0.2)',padding:'4px 10px',borderRadius:20,fontSize:11,color:'#fff',fontWeight:600}}>✓ Paid</span>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+              <div style={{background:'rgba(255,255,255,0.12)',borderRadius:8,padding:'8px 10px'}}>
+                <p style={{fontSize:10,color:'rgba(255,255,255,0.7)'}}>Gross Earnings</p>
+                <p style={{fontSize:16,fontWeight:700,color:'#fff'}}>₹1,25,000</p>
+              </div>
+              <div style={{background:'rgba(255,255,255,0.12)',borderRadius:8,padding:'8px 10px'}}>
+                <p style={{fontSize:10,color:'rgba(255,255,255,0.7)'}}>Total Deductions</p>
+                <p style={{fontSize:16,fontWeight:700,color:'#fca5a5'}}>₹28,500</p>
+              </div>
+            </div>
+          </div>
+          <button className="btn-primary" style={{width:'100%',marginBottom:16}} onClick={()=>setShowModal(true)}>View Full Payslip Breakdown</button>
+          {/* History */}
+          <p className="section-title">Payslip History</p>
+          {[['March 2026','₹96,500','Paid'],['February 2026','₹94,200','Paid'],['January 2026','₹94,200','Paid']].map(([m,a,s])=>(
+            <div key={m} className="card" style={{marginBottom:10,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <div><p style={{fontSize:13,fontWeight:600,color:'#111827'}}>{m}</p><p style={{fontSize:11,color:'#6b7280'}}>{a}</p></div>
+              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                <span style={{fontSize:11,color:'#16a34a',fontWeight:600,background:'#f0fdf4',padding:'3px 8px',borderRadius:20}}>✓ {s}</span>
+                <button style={{border:'none',background:'#f8f9fc',borderRadius:8,padding:'6px',cursor:'pointer'}}><Icon name="download" size={14} color="#6b7280"/></button>
+              </div>
+            </div>
+          ))}
+        </>}
+        {tab==='tax' && <>
+          <div className="card" style={{marginBottom:14}}>
+            <p style={{fontSize:13,fontWeight:700,color:'#111827',marginBottom:10}}>IT Declarations (Old Regime)</p>
+            {[['80C - Investments','₹1,50,000','₹1,50,000'],['80D - Medical Insurance','₹25,000','₹18,000'],['HRA Exemption','₹1,50,000','₹1,50,000']].map(([s,max,dec])=>(
+              <div key={s} style={{display:'flex',justifyContent:'space-between',padding:'10px 0',borderBottom:'1px solid #f0f1f4'}}>
+                <div><p style={{fontSize:12,fontWeight:600,color:'#374151'}}>{s}</p><p style={{fontSize:11,color:'#9ca3af'}}>Declared: {dec}</p></div>
+                <span style={{fontSize:11,fontWeight:600,color:'#1a56db'}}>Max: {max}</span>
+              </div>
+            ))}
+            <button className="btn-secondary" style={{width:'100%',marginTop:12}} onClick={()=>showToast('Upload proof feature coming soon')}>Upload Proof Documents</button>
+          </div>
+          <div className="card" style={{marginBottom:14}}>
+            <p style={{fontSize:13,fontWeight:700,color:'#111827',marginBottom:10}}>TDS Summary FY 2025-26</p>
+            {[['Total TDS Deducted','₹2,16,000'],['Tax Liability','₹2,10,000'],['Refund Due','₹6,000'],['PAN','ABCPS1234K']].map(([k,v])=>(
+              <div key={k} style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid #f0f1f4'}}>
+                <span style={{fontSize:12,color:'#6b7280'}}>{k}</span>
+                <span style={{fontSize:12,fontWeight:600,color:'#111827'}}>{v}</span>
+              </div>
+            ))}
+          </div>
+        </>}
+        {tab==='ctc' && <>
+          <div className="card" style={{marginBottom:14}}>
+            <p style={{fontSize:13,fontWeight:700,color:'#111827',marginBottom:10}}>CTC Breakdown</p>
+            {[['Annual CTC','₹18,00,000'],['Monthly Gross','₹1,25,000'],['Monthly Net','₹96,500'],['Effective Since','Jan 2026']].map(([k,v])=>(
+              <div key={k} style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid #f0f1f4'}}>
+                <span style={{fontSize:12,color:'#6b7280'}}>{k}</span><span style={{fontSize:12,fontWeight:700,color:'#111827'}}>{v}</span>
+              </div>
+            ))}
+          </div>
+          <div className="card" style={{marginBottom:14}}>
+            <p style={{fontSize:13,fontWeight:700,color:'#111827',marginBottom:10}}>Available Forms</p>
+            {[['Form 16','TDS Certificate FY 2025-26'],['Form 12BB','Investment Declaration'],['Pay Structure Letter','Current CTC Breakdown']].map(([f,d])=>(
+              <div key={f} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 0',borderBottom:'1px solid #f0f1f4'}}>
+                <div><p style={{fontSize:12,fontWeight:600,color:'#374151'}}>{f}</p><p style={{fontSize:11,color:'#9ca3af'}}>{d}</p></div>
+                <button style={{border:'none',background:'#eff4ff',borderRadius:8,padding:'6px 10px',cursor:'pointer',display:'flex',alignItems:'center',gap:4}} onClick={()=>showToast(`${f} downloaded`)}>
+                  <Icon name="download" size={13} color="#1a56db"/><span style={{fontSize:11,fontWeight:600,color:'#1a56db'}}>Download</span>
+                </button>
+              </div>
+            ))}
+          </div>
+        </>}
+      </div>
+      <HRMSBottomNav current="hrms-payroll" nav={nav}/>
+      {showModal && (
+        <div className="modal-backdrop" onClick={()=>setShowModal(false)}>
+          <div className="modal-sheet" onClick={e=>e.stopPropagation()} style={{maxHeight:'85vh'}}>
+            <div className="drag-handle"/>
+            <div style={{padding:'0 20px 12px',borderBottom:'1px solid #e5e7eb',flexShrink:0}}>
+              <h3 style={{fontSize:15,fontWeight:700,color:'#111827'}}>March 2026 Payslip</h3>
+              <p style={{fontSize:11,color:'#6b7280'}}>Arjun Sharma · EMP-2024-001</p>
+            </div>
+            <div style={{overflowY:'auto',padding:'16px 20px'}}>
+              <p style={{fontSize:12,fontWeight:700,color:'#16a34a',marginBottom:8,textTransform:'uppercase',letterSpacing:'.5px'}}>Earnings</p>
+              {earnings.map(e=>(
+                <div key={e.n} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:'1px solid #f8f9fc'}}>
+                  <span style={{fontSize:12,color:'#374151'}}>{e.n}</span>
+                  <span style={{fontSize:12,fontWeight:600,color:'#111827'}}>{fmt(e.a)}</span>
+                </div>
+              ))}
+              <div style={{display:'flex',justifyContent:'space-between',padding:'10px 0',borderTop:'2px solid #e5e7eb',marginTop:4}}>
+                <span style={{fontSize:13,fontWeight:700,color:'#111827'}}>Gross Total</span>
+                <span style={{fontSize:13,fontWeight:700,color:'#16a34a'}}>₹1,25,000</span>
+              </div>
+              <p style={{fontSize:12,fontWeight:700,color:'#dc2626',margin:'12px 0 8px',textTransform:'uppercase',letterSpacing:'.5px'}}>Deductions</p>
+              {deductions.map(d=>(
+                <div key={d.n} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:'1px solid #f8f9fc'}}>
+                  <span style={{fontSize:12,color:'#374151'}}>{d.n}</span>
+                  <span style={{fontSize:12,fontWeight:600,color:'#dc2626'}}>{fmt(d.a)}</span>
+                </div>
+              ))}
+              <div style={{display:'flex',justifyContent:'space-between',padding:'10px 0',borderTop:'2px solid #e5e7eb',marginTop:4,marginBottom:12}}>
+                <span style={{fontSize:13,fontWeight:700,color:'#111827'}}>Net Pay</span>
+                <span style={{fontSize:15,fontWeight:800,color:'#16a34a'}}>₹96,500</span>
+              </div>
+              <button className="btn-primary" style={{width:'100%'}} onClick={()=>showToast('Payslip downloaded')}>Download PDF</button>
+            </div>
+          </div>
+        </div>
+      )}
+      <Toast msg={toast}/>
+    </div>
+  );
+};
+
+const HRMSPerformance = ({ nav }) => {
+  const [tab, setTab] = useState('okr');
+  const [showGoalForm, setShowGoalForm] = useState(false);
+  const [toast, showToast] = useToast();
+  const goals = [
+    {title:'Complete Metro Tower Phase 1',type:'Project',cat:'Delivery',progress:34,status:'on-track',krs:3,confidence:80},
+    {title:'Reduce project costs by 8%',type:'Team',cat:'Financial',progress:42,status:'behind',krs:3,confidence:50},
+    {title:'Zero safety incidents Q2',type:'Team',cat:'Safety',progress:0,status:'behind',krs:3,confidence:30},
+    {title:'Complete PMP Certification',type:'Individual',cat:'Development',progress:40,status:'on-track',krs:3,confidence:85},
+  ];
+  const statusColor = s => ({
+    'on-track':'#16a34a','behind':'#dc2626','at-risk':'#d97706'
+  }[s]||'#6b7280');
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="Performance" subtitle="OKRs & Reviews" onBack={()=>nav('hrms-dashboard')} orbit="HRMS">
+        <button onClick={()=>nav('orbit-select')} style={{display:'flex',alignItems:'center',gap:4,background:'#f8f9fc',border:'1px solid #e5e7eb',borderRadius:20,padding:'5px 8px',cursor:'pointer',marginRight:4}}>
+          <Icon name="repeat" size={11} color="#6b7280"/><span style={{fontSize:10,color:'#6b7280',fontWeight:600}}>Switch</span>
+        </button>
+      </ScreenHeader>
+      <div style={{display:'flex',borderBottom:'1px solid #e5e7eb',background:'#fff',flexShrink:0}}>
+        {[['okr','OKR Goals'],['review','Reviews'],['feedback','360° Feedback']].map(([k,l])=>(
+          <button key={k} onClick={()=>setTab(k)} style={{flex:1,padding:'10px 4px',border:'none',background:'none',cursor:'pointer',fontSize:12,fontWeight:600,color:tab===k?'#1a56db':'#9ca3af',borderBottom:tab===k?'2px solid #1a56db':'2px solid transparent'}}>{l}</button>
+        ))}
+      </div>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        {tab==='okr' && <>
+          {/* Stats */}
+          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:14}}>
+            {[{l:'Objectives',v:'4'},{l:'Avg Progress',v:'29%'},{l:'On Track',v:'2'}].map(s=>(
+              <div key={s.l} className="stat-card"><p style={{fontSize:18,fontWeight:800,color:'#111827'}}>{s.v}</p><p style={{fontSize:10,color:'#9ca3af',marginTop:2}}>{s.l}</p></div>
+            ))}
+          </div>
+          {/* Review Banner */}
+          <div style={{background:'linear-gradient(135deg,#1a56db,#7c3aed)',borderRadius:14,padding:'14px 16px',marginBottom:14}}>
+            <p style={{fontSize:11,color:'rgba(255,255,255,0.75)',fontWeight:600}}>Annual Review 2026</p>
+            <p style={{fontSize:14,fontWeight:700,color:'#fff',marginTop:2}}>Self-Assessment Phase Active</p>
+            <p style={{fontSize:11,color:'rgba(255,255,255,0.75)',marginTop:2}}>14 days remaining · Apr 1 – Apr 30</p>
+            <button style={{marginTop:10,background:'rgba(255,255,255,0.2)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:8,padding:'7px 14px',color:'#fff',fontSize:12,fontWeight:600,cursor:'pointer'}} onClick={()=>showToast('Self-assessment opened')}>Start Self-Assessment →</button>
+          </div>
+          {/* Goals */}
+          {goals.map((g,i)=>(
+            <div key={i} className="card" style={{marginBottom:10}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
+                <div style={{flex:1,marginRight:8}}>
+                  <p style={{fontSize:13,fontWeight:600,color:'#111827',lineHeight:1.3}}>{g.title}</p>
+                  <div style={{display:'flex',gap:6,marginTop:4}}>
+                    <span className="chip" style={{background:'#f3f4f6',color:'#6b7280',fontSize:10}}>{g.type}</span>
+                    <span className="chip" style={{background:'#f3f4f6',color:'#6b7280',fontSize:10}}>{g.cat}</span>
+                  </div>
+                </div>
+                <span style={{fontSize:13,fontWeight:700,color:statusColor(g.status)}}>{g.progress}%</span>
+              </div>
+              <ProgressBar value={g.progress} color={statusColor(g.status)}/>
+              <div style={{display:'flex',justifyContent:'space-between',marginTop:8}}>
+                <span style={{fontSize:11,color:'#9ca3af'}}>{g.krs} Key Results · Confidence: {g.confidence}%</span>
+                <StatusBadge status={g.status}/>
+              </div>
+            </div>
+          ))}
+          <button className="btn-primary" style={{width:'100%'}} onClick={()=>setShowGoalForm(true)}>+ Create New Goal</button>
+        </>}
+        {tab==='review' && (
+          <div>
+            {[{y:'2025',r:'4.2',s:'Completed'},{y:'2024',r:'3.9',s:'Completed'},{y:'2023',r:'4.1',s:'Completed'}].map(r=>(
+              <div key={r.y} className="card" style={{marginBottom:10,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                <div><p style={{fontSize:13,fontWeight:600,color:'#111827'}}>Annual Review {r.y}</p><p style={{fontSize:11,color:'#6b7280'}}>Final Rating: {r.r}/5.0</p></div>
+                <div style={{display:'flex',alignItems:'center',gap:8}}>
+                  <div style={{display:'flex',gap:1}}>{[1,2,3,4,5].map(s=><Icon key={s} name="star" size={12} color={s<=Math.round(parseFloat(r.r))?'#f59e0b':'#e5e7eb'}/>)}</div>
+                  <StatusBadge status="completed"/>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {tab==='feedback' && (
+          <div>
+            <div className="card" style={{marginBottom:14,textAlign:'center'}}>
+              <p style={{fontSize:13,color:'#6b7280',marginBottom:4}}>Overall 360° Score</p>
+              <p style={{fontSize:40,fontWeight:800,color:'#1a56db'}}>4.3<span style={{fontSize:18,color:'#9ca3af'}}>/5.0</span></p>
+              <div style={{display:'flex',justifyContent:'center',gap:4,marginTop:4}}>
+                {[1,2,3,4,5].map(s=><Icon key={s} name="star" size={16} color={s<=4?'#f59e0b':'#e5e7eb'}/>)}
+              </div>
+              <p style={{fontSize:11,color:'#9ca3af',marginTop:6}}>Based on 8 reviews</p>
+            </div>
+            {[{comp:'Communication',score:4.5},{comp:'Leadership',score:4.2},{comp:'Technical Skills',score:4.6},{comp:'Teamwork',score:4.1}].map(c=>(
+              <div key={c.comp} style={{marginBottom:12}}>
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                  <span style={{fontSize:12,color:'#374151',fontWeight:500}}>{c.comp}</span>
+                  <span style={{fontSize:12,fontWeight:700,color:'#111827'}}>{c.score}/5.0</span>
+                </div>
+                <ProgressBar value={c.score/5*100} color="#1a56db"/>
+              </div>
+            ))}
+            <button className="btn-primary" style={{width:'100%',marginTop:8}} onClick={()=>showToast('Feedback form opened')}>Provide Feedback to Peers</button>
+          </div>
+        )}
+      </div>
+      <HRMSBottomNav current="hrms-performance" nav={nav}/>
+      {showGoalForm && (
+        <div className="modal-backdrop" onClick={()=>setShowGoalForm(false)}>
+          <div className="modal-sheet" onClick={e=>e.stopPropagation()}>
+            <div className="drag-handle"/>
+            <div style={{padding:'0 20px 12px',borderBottom:'1px solid #e5e7eb'}}>
+              <h3 style={{fontSize:15,fontWeight:700}}>Create New Goal</h3>
+            </div>
+            <div style={{overflowY:'auto',padding:'16px 20px',display:'flex',flexDirection:'column',gap:12}}>
+              {[['Goal Title','text','e.g. Complete project milestone'],['Metric','text','e.g. Completion %'],['Target Value','number','100']].map(([l,t,p])=>(
+                <div key={l}><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>{l} *</label>
+                  <input className="input-field" type={t} placeholder={p}/></div>
+              ))}
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Type *</label>
+                <select className="select-field"><option>Individual</option><option>Team</option><option>Project</option></select></div>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Category</label>
+                <select className="select-field"><option>Delivery</option><option>Financial</option><option>Safety</option><option>Development</option></select></div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Start Date</label><input className="input-field" type="date"/></div>
+                <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>End Date</label><input className="input-field" type="date"/></div>
+              </div>
+              <div style={{display:'flex',gap:10,paddingTop:4}}>
+                <button className="btn-ghost" style={{flex:1}} onClick={()=>setShowGoalForm(false)}>Cancel</button>
+                <button className="btn-primary" style={{flex:1}} onClick={()=>{setShowGoalForm(false);showToast('Goal created successfully!');}}>Create Goal</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      <Toast msg={toast}/>
+    </div>
+  );
+};
+
+const HRMSServices = ({ nav }) => {
+  const services = [
+    {s:'hrms-recruitment',l:'Recruitment',d:'Open positions & referrals',ic:'#ef4444',ib:'#fff1f2',icon:'user-plus'},
+    {s:'hrms-onboarding',l:'Onboarding',d:'Joining tasks & documents',ic:'#3b82f6',ib:'#eff6ff',icon:'user-check'},
+    {s:'hrms-offboarding',l:'Offboarding',d:'Exit process & clearance',ic:'#f59e0b',ib:'#fffbeb',icon:'log-out'},
+    {s:'hrms-grievances',l:'Grievances',d:'Raise & track issues',ic:'#ef4444',ib:'#fff1f2',icon:'alert-circle'},
+    {s:'hrms-compliance',l:'Compliance',d:'Policies & regulations',ic:'#3b82f6',ib:'#eff6ff',icon:'shield'},
+    {s:'hrms-benefits',l:'Benefits',d:'Medical, LTC, GPF, NPS',ic:'#10b981',ib:'#ecfdf5',icon:'heart'},
+    {s:'hrms-helpdesk',l:'HR Helpdesk',d:'Support tickets',ic:'#3b82f6',ib:'#eff6ff',icon:'help-circle'},
+    {s:'hrms-assets',l:'Asset Management',d:'Equipment & assets',ic:'#10b981',ib:'#ecfdf5',icon:'monitor'},
+    {s:'hrms-ai',l:'AI Assistant',d:'Smart HR help',ic:'#8b5cf6',ib:'#f5f3ff',icon:'zap'},
+  ];
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="HR Services" subtitle="All HR modules" orbit="HRMS">
+        <button onClick={()=>nav('orbit-select')} style={{display:'flex',alignItems:'center',gap:4,background:'#f8f9fc',border:'1px solid #e5e7eb',borderRadius:20,padding:'5px 8px',cursor:'pointer',marginRight:4}}>
+          <Icon name="repeat" size={11} color="#6b7280"/><span style={{fontSize:10,color:'#6b7280',fontWeight:600}}>Switch</span>
+        </button>
+      </ScreenHeader>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
+          {services.map(s=>(
+            <button key={s.s} onClick={()=>nav(s.s)} style={{background:'#fff',border:'1px solid #e5e7eb',borderRadius:14,padding:'16px 12px',cursor:'pointer',textAlign:'left',display:'flex',flexDirection:'column',gap:8,boxShadow:'0 1px 3px rgba(0,0,0,0.05)'}}>
+              <div style={{width:40,height:40,background:s.ib,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                <Icon name={s.icon} size={20} color={s.ic}/>
+              </div>
+              <div>
+                <p style={{fontSize:13,fontWeight:700,color:'#111827'}}>{s.l}</p>
+                <p style={{fontSize:11,color:'#9ca3af',marginTop:2,lineHeight:1.3}}>{s.d}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+      <HRMSBottomNav current="hrms-services" nav={nav}/>
+    </div>
+  );
+};
+
+const HRMSRecruitment = ({ nav }) => {
+  const [toast, showToast] = useToast();
+  const [showForm, setShowForm] = useState(false);
+  const jobs = [
+    {title:'Senior Site Engineer',dept:'Engineering',loc:'Mumbai',type:'Full-time',applicants:12,urgent:true},
+    {title:'Project Manager',dept:'PMO',loc:'Delhi',type:'Full-time',applicants:8,urgent:false},
+    {title:'Safety Officer',dept:'EHS',loc:'Pune',type:'Full-time',applicants:5,urgent:true},
+  ];
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="Recruitment" subtitle="Open positions & referrals" onBack={()=>nav('hrms-services')} orbit="HRMS"/>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+          <p className="section-title" style={{marginBottom:0}}>Open Positions ({jobs.length})</p>
+          <button className="btn-primary" style={{padding:'7px 12px',fontSize:12}} onClick={()=>setShowForm(true)}>+ New Opening</button>
+        </div>
+        {jobs.map((j,i)=>(
+          <div key={i} className="card" style={{marginBottom:10}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
+              <div>
+                <div style={{display:'flex',alignItems:'center',gap:6'}}>
+                  <p style={{fontSize:14,fontWeight:700,color:'#111827'}}>{j.title}</p>
+                  {j.urgent && <span className="tag" style={{background:'#fef2f2',color:'#dc2626',fontSize:9,marginLeft:6}}>Urgent</span>}
+                </div>
+                <p style={{fontSize:12,color:'#6b7280',marginTop:2}}>{j.dept} · {j.loc} · {j.type}</p>
+              </div>
+            </div>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <span style={{fontSize:12,color:'#6b7280'}}>{j.applicants} applicants</span>
+              <div style={{display:'flex',gap:8}}>
+                <button className="btn-ghost" style={{padding:'6px 10px',fontSize:12}} onClick={()=>showToast('Referral link copied!')}>Refer</button>
+                <button className="btn-secondary" style={{padding:'6px 10px',fontSize:12}} onClick={()=>showToast('Job details opened')}>View</button>
+              </div>
+            </div>
+          </div>
+        ))}
+        <div className="card" style={{marginBottom:14,background:'#fffbeb',border:'1px solid #fde68a'}}>
+          <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <div style={{width:40,height:40,background:'#fef3c7',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+              <Icon name="dollar-sign" size={18} color="#f59e0b"/>
+            </div>
+            <div>
+              <p style={{fontSize:13,fontWeight:700,color:'#92400e'}}>Referral Bonus Program</p>
+              <p style={{fontSize:11,color:'#b45309'}}>Earn ₹25,000 per successful hire</p>
+              <p style={{fontSize:10,color:'#d97706'}}>Payable after 90 days of joining</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      {showForm && (
+        <div className="modal-backdrop" onClick={()=>setShowForm(false)}>
+          <div className="modal-sheet" onClick={e=>e.stopPropagation()}>
+            <div className="drag-handle"/>
+            <div style={{padding:'0 20px 12px',borderBottom:'1px solid #e5e7eb'}}><h3 style={{fontSize:15,fontWeight:700}}>Create Job Opening</h3></div>
+            <div style={{overflowY:'auto',padding:'16px 20px',display:'flex',flexDirection:'column',gap:12}}>
+              {[['Job Title','text','e.g. Senior Engineer'],['Department','text','e.g. Engineering'],['Location','text','e.g. Mumbai']].map(([l,t,p])=>(
+                <div key={l}><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>{l}</label><input className="input-field" type={t} placeholder={p}/></div>
+              ))}
+              <div style={{display:'flex',gap:12}}>
+                <label style={{display:'flex',alignItems:'center',gap:6,fontSize:12,color:'#374151',cursor:'pointer'}}><input type="checkbox"/><span>Remote Allowed</span></label>
+                <label style={{display:'flex',alignItems:'center',gap:6,fontSize:12,color:'#374151',cursor:'pointer'}}><input type="checkbox"/><span>Urgent Hiring</span></label>
+              </div>
+              <div style={{display:'flex',gap:10}}>
+                <button className="btn-ghost" style={{flex:1}} onClick={()=>setShowForm(false)}>Cancel</button>
+                <button className="btn-primary" style={{flex:1}} onClick={()=>{setShowForm(false);showToast('Job opening published!');}}>Publish</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      <Toast msg={toast}/>
+    </div>
+  );
+};
+
+const HRMSOnboarding = ({ nav }) => {
+  const [step, setStep] = useState(0);
+  const [toast, showToast] = useToast();
+  const [done, setDone] = useState(false);
+  const steps = ['Personal Details','Contact','Job Details','Bank Account','Statutory'];
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="Onboarding" subtitle="Add new joinee" onBack={()=>nav('hrms-services')} orbit="HRMS"/>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        {!done ? <>
+          {/* Step indicator */}
+          <div style={{display:'flex',alignItems:'center',marginBottom:20}}>
+            {steps.map((s,i)=>(
+              <React.Fragment key={i}>
+                <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                  <div style={{width:28,height:28,borderRadius:'50%',background:i<step?'#16a34a':i===step?'#1a56db':'#e5e7eb',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    {i<step ? <Icon name="check" size={14} color="#fff"/> : <span style={{fontSize:11,fontWeight:700,color:i===step?'#fff':'#9ca3af'}}>{i+1}</span>}
+                  </div>
+                  <span style={{fontSize:9,color:i===step?'#1a56db':'#9ca3af',fontWeight:i===step?600:400,whiteSpace:'nowrap'}}>{s}</span>
+                </div>
+                {i<steps.length-1 && <div style={{flex:1,height:2,background:i<step?'#16a34a':'#e5e7eb',margin:'0 4px',marginBottom:16}}/>}
+              </React.Fragment>
+            ))}
+          </div>
+          <div className="card" style={{marginBottom:16}}>
+            <p style={{fontSize:13,fontWeight:700,color:'#111827',marginBottom:14}}>Step {step+1}: {steps[step]}</p>
+            {step===0 && ['First Name *','Last Name *','Date of Birth *','Aadhaar Number *','PAN Number *'].map(f=>(
+              <div key={f} style={{marginBottom:10}}><label style={{fontSize:12,fontWeight:500,color:'#374151',display:'block',marginBottom:4}}>{f}</label><input className="input-field" placeholder={`Enter ${f.replace(' *','').toLowerCase()}`}/></div>
+            ))}
+            {step===1 && ['Personal Email *','Mobile Number *','Emergency Contact Name','Emergency Contact Phone','Current Address *'].map(f=>(
+              <div key={f} style={{marginBottom:10}}><label style={{fontSize:12,fontWeight:500,color:'#374151',display:'block',marginBottom:4}}>{f}</label><input className="input-field" placeholder={`Enter ${f.replace(' *','').toLowerCase()}`}/></div>
+            ))}
+            {step===2 && ['Designation *','Department *','Reporting Manager *','Date of Joining *','Employment Type'].map(f=>(
+              <div key={f} style={{marginBottom:10}}><label style={{fontSize:12,fontWeight:500,color:'#374151',display:'block',marginBottom:4}}>{f}</label><input className="input-field" placeholder={`Enter ${f.replace(' *','').toLowerCase()}`}/></div>
+            ))}
+            {step===3 && ['Account Number *','IFSC Code *','Bank Name *','Account Type'].map(f=>(
+              <div key={f} style={{marginBottom:10}}><label style={{fontSize:12,fontWeight:500,color:'#374151',display:'block',marginBottom:4}}>{f}</label><input className="input-field" placeholder={`Enter ${f.replace(' *','').toLowerCase()}`}/></div>
+            ))}
+            {step===4 && ['UAN (EPF) Number','ESI Number','Gratuity Eligible','Notice Period (days)'].map(f=>(
+              <div key={f} style={{marginBottom:10}}><label style={{fontSize:12,fontWeight:500,color:'#374151',display:'block',marginBottom:4}}>{f}</label><input className="input-field" placeholder={`Enter ${f.toLowerCase()}`}/></div>
+            ))}
+          </div>
+          <div style={{display:'flex',gap:10}}>
+            {step>0 && <button className="btn-ghost" style={{flex:1}} onClick={()=>setStep(s=>s-1)}>← Back</button>}
+            <button className="btn-primary" style={{flex:1}} onClick={()=>{ if(step<steps.length-1) setStep(s=>s+1); else setDone(true); }}>
+              {step===steps.length-1 ? 'Submit Onboarding' : 'Next →'}
+            </button>
+          </div>
+        </> : (
+          <div style={{textAlign:'center',padding:'40px 20px'}}>
+            <div style={{width:72,height:72,background:'#f0fdf4',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px'}}>
+              <Icon name="check-circle" size={36} color="#16a34a"/>
+            </div>
+            <h3 style={{fontSize:18,fontWeight:700,color:'#111827',marginBottom:8}}>Joinee Added!</h3>
+            <p style={{fontSize:13,color:'#6b7280',lineHeight:1.5,marginBottom:20}}>Onboarding initiated. The joinee will receive a welcome email with credentials and checklist.</p>
+            <button className="btn-primary" onClick={()=>{setDone(false);setStep(0);}}>Add Another Joinee</button>
+          </div>
+        )}
+      </div>
+      <Toast msg={toast}/>
+    </div>
+  );
+};
+
+const HRMSOffboarding = ({ nav }) => {
+  const [toast, showToast] = useToast();
+  const nocs = [{dept:'IT',status:'cleared'},{dept:'Finance',status:'pending'},{dept:'Admin',status:'cleared'},{dept:'HR',status:'pending'}];
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="Offboarding" subtitle="Exit process & clearance" onBack={()=>nav('hrms-services')} orbit="HRMS"/>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        <div className="card" style={{marginBottom:14,background:'linear-gradient(135deg,#f59e0b,#d97706)'}}>
+          <p style={{fontSize:11,color:'rgba(255,255,255,0.8)',fontWeight:600}}>Exit Notice</p>
+          <p style={{fontSize:17,fontWeight:800,color:'#fff',marginTop:2}}>Last Working Day: May 15, 2026</p>
+          <p style={{fontSize:11,color:'rgba(255,255,255,0.8)',marginTop:2}}>Resignation Submitted: Apr 15, 2026</p>
+          <div style={{marginTop:12}}>
+            <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+              <span style={{fontSize:11,color:'rgba(255,255,255,0.8)'}}>Exit Progress</span>
+              <span style={{fontSize:11,color:'#fff',fontWeight:700}}>50%</span>
+            </div>
+            <div style={{height:6,background:'rgba(255,255,255,0.3)',borderRadius:3}}>
+              <div style={{width:'50%',height:'100%',background:'#fff',borderRadius:3}}/>
+            </div>
+          </div>
+        </div>
+        <p className="section-title">No Objection Certificates</p>
+        {nocs.map(n=>(
+          <div key={n.dept} className="card" style={{marginBottom:8,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <div style={{width:32,height:32,background:n.status==='cleared'?'#f0fdf4':'#fef2f2',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                <Icon name={n.status==='cleared'?'check-circle':'alert-circle'} size={16} color={n.status==='cleared'?'#16a34a':'#dc2626'}/>
+              </div>
+              <div>
+                <p style={{fontSize:13,fontWeight:600,color:'#111827'}}>{n.dept} Department</p>
+                <p style={{fontSize:11,color:n.status==='cleared'?'#16a34a':'#d97706',fontWeight:600,textTransform:'capitalize'}}>{n.status}</p>
+              </div>
+            </div>
+            {n.status==='pending' && <button className="btn-secondary" style={{padding:'5px 10px',fontSize:11}} onClick={()=>showToast(`${n.dept} NOC marked cleared`)}>Mark Cleared</button>}
+          </div>
+        ))}
+        <p className="section-title" style={{marginTop:16}}>Settlement Breakdown</p>
+        <div className="card" style={{marginBottom:14}}>
+          {[['Pending Salary (15 days)','₹48,250',true],['Gratuity','₹1,23,600',true],['Earned Leave Encashment (18 days)','₹29,077',true],['Notice Period Shortfall','₹48,250',false],['Tax Deduction','₹15,000',false]].map(([l,v,credit])=>(
+            <div key={l} style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid #f0f1f4'}}>
+              <span style={{fontSize:12,color:'#374151'}}>{l}</span>
+              <span style={{fontSize:12,fontWeight:600,color:credit?'#16a34a':'#dc2626'}}>{credit?'+':'-'}{v}</span>
+            </div>
+          ))}
+          <div style={{display:'flex',justifyContent:'space-between',padding:'10px 0',borderTop:'2px solid #e5e7eb',marginTop:4}}>
+            <span style={{fontSize:13,fontWeight:700,color:'#111827'}}>Net Settlement</span>
+            <span style={{fontSize:14,fontWeight:800,color:'#16a34a'}}>+₹1,37,677</span>
+          </div>
+        </div>
+        <button className="btn-primary" style={{width:'100%'}} onClick={()=>showToast('Exit feedback submitted!')}>Submit Exit Interview Feedback</button>
+      </div>
+      <Toast msg={toast}/>
+    </div>
+  );
+};
+
+const HRMSGrievances = ({ nav }) => {
+  const [toast, showToast] = useToast();
+  const [showForm, setShowForm] = useState(false);
+  const [anon, setAnon] = useState(false);
+  const [cat, setCat] = useState('Workplace');
+  const grievances = [
+    {id:'GR-001',subject:'Workspace safety concern - Block C',cat:'Safety',status:'under-review',date:'Apr 20'},
+    {id:'GR-002',subject:'Overtime compensation discrepancy',cat:'Compensation',status:'resolved',date:'Mar 15'},
+  ];
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="Grievances" subtitle="Raise & track issues" onBack={()=>nav('hrms-services')} orbit="HRMS"/>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        <button className="btn-primary" style={{width:'100%',marginBottom:16}} onClick={()=>setShowForm(true)}>+ Raise a Grievance</button>
+        <p className="section-title">My Grievances</p>
+        {grievances.map(g=>(
+          <div key={g.id} className="card" style={{marginBottom:10}}>
+            <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
+              <span style={{fontSize:11,color:'#9ca3af',fontWeight:600}}>{g.id}</span>
+              <StatusBadge status={g.status==='under-review'?'pending':'completed'}/>
+            </div>
+            <p style={{fontSize:13,fontWeight:600,color:'#111827',marginBottom:4}}>{g.subject}</p>
+            <div style={{display:'flex',gap:8}}>
+              <span className="chip" style={{background:'#f3f4f6',color:'#6b7280',fontSize:10}}>{g.cat}</span>
+              <span style={{fontSize:11,color:'#9ca3af'}}>{g.date}</span>
+            </div>
+            <div style={{display:'flex',gap:8,marginTop:10}}>
+              <button className="btn-ghost" style={{flex:1,padding:'6px',fontSize:12}} onClick={()=>showToast('Grievance escalated')}>Escalate</button>
+              {g.status!=='resolved' && <button className="btn-ghost" style={{flex:1,padding:'6px',fontSize:12}} onClick={()=>showToast('Grievance withdrawn')}>Withdraw</button>}
+            </div>
+          </div>
+        ))}
+      </div>
+      {showForm && (
+        <div className="modal-backdrop" onClick={()=>setShowForm(false)}>
+          <div className="modal-sheet" onClick={e=>e.stopPropagation()}>
+            <div className="drag-handle"/>
+            <div style={{padding:'0 20px 12px',borderBottom:'1px solid #e5e7eb'}}><h3 style={{fontSize:15,fontWeight:700}}>Raise a Grievance</h3></div>
+            <div style={{overflowY:'auto',padding:'16px 20px',display:'flex',flexDirection:'column',gap:12}}>
+              <div>
+                <label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:6}}>Category *</label>
+                <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                  {['Workplace','HR Policy','Compensation','Safety','Other'].map(c=>(
+                    <button key={c} onClick={()=>setCat(c)} style={{padding:'5px 12px',borderRadius:20,border:`1px solid ${cat===c?'#1a56db':'#e5e7eb'}`,background:cat===c?'#eff4ff':'#fff',fontSize:12,fontWeight:cat===c?600:400,color:cat===c?'#1a56db':'#6b7280',cursor:'pointer'}}>{c}</button>
+                  ))}
+                </div>
+              </div>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Subject *</label><input className="input-field" placeholder="Brief description of the issue"/></div>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Details *</label><textarea className="input-field" rows={4} placeholder="Describe the issue in detail..." style={{resize:'none'}}/></div>
+              <label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}>
+                <input type="checkbox" checked={anon} onChange={e=>setAnon(e.target.checked)}/>
+                <div><p style={{fontSize:13,fontWeight:500,color:'#374151'}}>Submit Anonymously</p>
+                  <p style={{fontSize:11,color:'#9ca3af'}}>Your identity will not be disclosed</p></div>
+              </label>
+              <div style={{display:'flex',gap:10}}>
+                <button className="btn-ghost" style={{flex:1}} onClick={()=>setShowForm(false)}>Cancel</button>
+                <button className="btn-primary" style={{flex:1}} onClick={()=>{setShowForm(false);showToast('Grievance submitted successfully');}}>Submit</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      <Toast msg={toast}/>
+    </div>
+  );
+};
+
+const HRMSCompliance = ({ nav }) => {
+  const [toast, showToast] = useToast();
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="Compliance" subtitle="Policies & regulations" onBack={()=>nav('hrms-services')} orbit="HRMS"/>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        <p className="section-title">Pending Actions (3)</p>
+        {[{t:'Code of Conduct 2026',d:'Annual policy acknowledgement required',urgent:true},{t:'Data Privacy Policy',d:'Review updated policy and acknowledge',urgent:false},{t:'IT Security Policy',d:'Complete mandatory training by May 31',urgent:true}].map((p,i)=>(
+          <div key={i} className="card" style={{marginBottom:10,borderLeft:`3px solid ${p.urgent?'#dc2626':'#d97706'}`}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+              <div style={{flex:1,marginRight:10}}><p style={{fontSize:13,fontWeight:600,color:'#111827'}}>{p.t}</p><p style={{fontSize:11,color:'#6b7280',marginTop:3}}>{p.d}</p></div>
+              <button className="btn-primary" style={{padding:'6px 12px',fontSize:11,flexShrink:0}} onClick={()=>showToast(`${p.t} acknowledged`)}>Acknowledge</button>
+            </div>
+          </div>
+        ))}
+        <p className="section-title" style={{marginTop:16}}>Active Bonds</p>
+        <div className="card" style={{marginBottom:14}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <div><p style={{fontSize:13,fontWeight:600,color:'#111827'}}>Service Bond - 2 Years</p><p style={{fontSize:11,color:'#6b7280',marginTop:2}}>Valid until: March 2026</p></div>
+            <span className="tag" style={{background:'#f0fdf4',color:'#16a34a'}}>Active</span>
+          </div>
+        </div>
+        <p className="section-title">Pension</p>
+        <div className="card" style={{background:'#eff4ff',border:'1px solid #c3d9ff'}}>
+          <p style={{fontSize:13,fontWeight:700,color:'#1a56db',marginBottom:4}}>Apply for Pension (Form 2A)</p>
+          <p style={{fontSize:11,color:'#3b82f6',marginBottom:10}}>Apply minimum 1 year before retirement</p>
+          <button className="btn-primary" style={{width:'100%',fontSize:12}} onClick={()=>showToast('Pension application opened')}>Apply Now</button>
+        </div>
+      </div>
+      <Toast msg={toast}/>
+    </div>
+  );
+};
+
+const HRMSBenefits = ({ nav }) => {
+  const [toast, showToast] = useToast();
+  const benefits = [
+    {title:'Medical Insurance',sub:'Family floater · ₹5L cover',icon:'heart',color:'#ec4899',bg:'#fdf2f8'},
+    {title:'Provident Fund',sub:'₹6,000/month · Balance ₹1,44,000',icon:'dollar-sign',color:'#16a34a',bg:'#f0fdf4'},
+    {title:'Gratuity',sub:'₹1,23,600 accrued',icon:'award',color:'#f59e0b',bg:'#fffbeb'},
+    {title:'NPS (Pension)',sub:'₹3,000/month contribution',icon:'shield',color:'#1a56db',bg:'#eff4ff'},
+    {title:'LTC (Leave Travel)',sub:'Entitled: ₹30,000 / 2 years',icon:'airplane',color:'#7c3aed',bg:'#f5f3ff'},
+    {title:'GPF',sub:'Balance: ₹2,45,000',icon:'credit-card',color:'#0891b2',bg:'#ecfeff'},
+  ];
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="Benefits" subtitle="Medical, LTC, GPF, NPS" onBack={()=>nav('hrms-services')} orbit="HRMS"/>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        {benefits.map((b,i)=>(
+          <div key={i} className="card" style={{marginBottom:10,display:'flex',alignItems:'center',gap:12}}>
+            <div style={{width:44,height:44,background:b.bg,borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+              <Icon name={b.icon} size={20} color={b.color}/>
+            </div>
+            <div style={{flex:1}}>
+              <p style={{fontSize:13,fontWeight:600,color:'#111827'}}>{b.title}</p>
+              <p style={{fontSize:11,color:'#6b7280',marginTop:2}}>{b.sub}</p>
+            </div>
+            <Icon name="chevron-right" size={16} color="#9ca3af"/>
+          </div>
+        ))}
+        <p className="section-title" style={{marginTop:8}}>Dependent Members</p>
+        {[{name:'Sunita Sharma',rel:'Spouse'},{name:'Rahul Sharma',rel:'Son'},{name:'Priya Sharma',rel:'Daughter'}].map((d,i)=>(
+          <div key={i} className="card" style={{marginBottom:8,display:'flex',alignItems:'center',gap:10}}>
+            <div style={{width:36,height:36,background:'#eff4ff',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center'}}>
+              <Icon name="user" size={16} color="#1a56db"/>
+            </div>
+            <div style={{flex:1}}><p style={{fontSize:13,fontWeight:600,color:'#111827'}}>{d.name}</p><p style={{fontSize:11,color:'#6b7280'}}>{d.rel} · Covered under medical</p></div>
+          </div>
+        ))}
+      </div>
+      <Toast msg={toast}/>
+    </div>
+  );
+};
+
+const HRMSHelpdesk = ({ nav }) => {
+  const [tab, setTab] = useState('open');
+  const [showForm, setShowForm] = useState(false);
+  const [toast, showToast] = useToast();
+  const tickets = {
+    open:[{id:'TK-001',cat:'Payroll',sub:'March payslip discrepancy',sla:'2 days',assigned:'Priya Mehta'},{id:'TK-002',cat:'Attendance',sub:'Regularisation not reflecting',sla:'1 day',assigned:'Rahul HR'}],
+    resolved:[{id:'TK-003',cat:'ID Card',sub:'New ID card request',sla:'Resolved',assigned:'Admin Team'},{id:'TK-004',cat:'Policy Query',sub:'WFH policy clarification',sla:'Resolved',assigned:'Priya Mehta'}]
+  };
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="HR Helpdesk" subtitle="Support tickets" onBack={()=>nav('hrms-services')} orbit="HRMS"/>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        <button className="btn-primary" style={{width:'100%',marginBottom:16}} onClick={()=>setShowForm(true)}>+ Raise a Ticket</button>
+        <div className="tab-bar">
+          {['open','resolved'].map(t=>(
+            <button key={t} className={`tab-btn${tab===t?' active':''}`} onClick={()=>setTab(t)}>{t==='open'?'Open (2)':'Resolved (2)'}</button>
+          ))}
+        </div>
+        {(tickets[tab]||[]).map(t=>(
+          <div key={t.id} className="card" style={{marginBottom:10}}>
+            <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
+              <span style={{fontSize:11,color:'#9ca3af',fontWeight:600}}>{t.id}</span>
+              <span className="tag" style={{background:'#f3f4f6',color:'#6b7280',fontSize:10}}>{t.cat}</span>
+            </div>
+            <p style={{fontSize:13,fontWeight:600,color:'#111827',marginBottom:4}}>{t.sub}</p>
+            <div style={{display:'flex',justifyContent:'space-between'}}>
+              <span style={{fontSize:11,color:'#6b7280'}}>Assigned: {t.assigned}</span>
+              <span style={{fontSize:11,color:tab==='open'?'#dc2626':'#16a34a',fontWeight:600}}>SLA: {t.sla}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+      {showForm && (
+        <div className="modal-backdrop" onClick={()=>setShowForm(false)}>
+          <div className="modal-sheet" onClick={e=>e.stopPropagation()}>
+            <div className="drag-handle"/>
+            <div style={{padding:'0 20px 12px',borderBottom:'1px solid #e5e7eb'}}><h3 style={{fontSize:15,fontWeight:700}}>Raise a Ticket</h3></div>
+            <div style={{overflowY:'auto',padding:'16px 20px',display:'flex',flexDirection:'column',gap:12}}>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Category *</label>
+                <select className="select-field"><option>Payroll</option><option>Leave</option><option>Attendance</option><option>ID Card</option><option>Policy Query</option><option>Benefits</option><option>Other</option></select></div>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Subject *</label><input className="input-field" placeholder="Brief subject"/></div>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Description *</label><textarea className="input-field" rows={4} placeholder="Describe your issue..." style={{resize:'none'}}/></div>
+              <div style={{display:'flex',gap:10}}>
+                <button className="btn-ghost" style={{flex:1}} onClick={()=>setShowForm(false)}>Cancel</button>
+                <button className="btn-primary" style={{flex:1}} onClick={()=>{setShowForm(false);showToast('Ticket TK-005 created!');}}>Submit Ticket</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      <Toast msg={toast}/>
+    </div>
+  );
+};
+
+const HRMSSkills = ({ nav }) => {
+  const [tab, setTab] = useState('certs');
+  const [toast, showToast] = useToast();
+  const certs = [
+    {name:'PMP Certification',org:'PMI',issued:'Jan 2024',expires:'Jan 2027',status:'active'},
+    {name:'OSHA Safety 30-Hour',org:'OSHA',issued:'Mar 2023',expires:'Mar 2026',status:'expiring'},
+    {name:'AutoCAD Professional',org:'Autodesk',issued:'Jun 2021',expires:'Jun 2023',status:'expired'},
+  ];
+  const paths = [{name:'Project Director Readiness',progress:62,modules:8},{name:'Agile & Scrum Master',progress:35,modules:5}];
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="Skills & Talent" subtitle="Certifications & career growth" onBack={()=>nav('hrms-dashboard')} orbit="HRMS"/>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        {/* Career card */}
+        <div className="card" style={{marginBottom:14,background:'linear-gradient(135deg,#1a56db,#7c3aed)'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+            <div>
+              <p style={{fontSize:11,color:'rgba(255,255,255,0.75)'}}>Current Role</p>
+              <p style={{fontSize:15,fontWeight:700,color:'#fff',marginTop:2}}>Senior Project Manager</p>
+              <p style={{fontSize:11,color:'rgba(255,255,255,0.7)'}}>Engineering · Since Jan 2024</p>
+            </div>
+            <div style={{textAlign:'right'}}>
+              <p style={{fontSize:11,color:'rgba(255,255,255,0.75)'}}>Next Role Readiness</p>
+              <p style={{fontSize:22,fontWeight:800,color:'#fff'}}>62%</p>
+              <p style={{fontSize:10,color:'rgba(255,255,255,0.7)'}}>Project Director</p>
+            </div>
+          </div>
+          <div style={{marginTop:12}}>
+            <div style={{height:6,background:'rgba(255,255,255,0.3)',borderRadius:3}}>
+              <div style={{width:'62%',height:'100%',background:'#fff',borderRadius:3}}/>
+            </div>
+          </div>
+          <p style={{fontSize:10,color:'rgba(255,255,255,0.7)',marginTop:6}}>Retention Risk: <strong style={{color:'#86efac'}}>Low</strong></p>
+        </div>
+        <div className="tab-bar">
+          {[['certs','Certifications'],['paths','Learning Paths'],['opps','Opportunities']].map(([k,l])=>(
+            <button key={k} className={`tab-btn${tab===k?' active':''}`} onClick={()=>setTab(k)}>{l}</button>
+          ))}
+        </div>
+        {tab==='certs' && <>
+          <div style={{display:'flex',gap:8,marginBottom:14}}>
+            {[{l:'Active',v:1,c:'#16a34a'},{l:'Expiring',v:1,c:'#d97706'},{l:'Expired',v:1,c:'#dc2626'}].map(s=>(
+              <div key={s.l} className="stat-card" style={{flex:1}}><p style={{fontSize:16,fontWeight:700,color:s.c}}>{s.v}</p><p style={{fontSize:10,color:'#9ca3af'}}>{s.l}</p></div>
+            ))}
+          </div>
+          {certs.map((c,i)=>(
+            <div key={i} className="card" style={{marginBottom:10,borderLeft:`3px solid ${c.status==='active'?'#16a34a':c.status==='expiring'?'#d97706':'#dc2626'}`}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+                <div><p style={{fontSize:13,fontWeight:600,color:'#111827'}}>{c.name}</p><p style={{fontSize:11,color:'#6b7280'}}>{c.org}</p></div>
+                <StatusBadge status={c.status==='active'?'active':c.status==='expiring'?'at-risk':'rejected'}/>
+              </div>
+              <div style={{display:'flex',gap:16,marginTop:8}}>
+                <span style={{fontSize:11,color:'#9ca3af'}}>Issued: {c.issued}</span>
+                <span style={{fontSize:11,color:'#9ca3af'}}>Expires: {c.expires}</span>
+              </div>
+              {c.status!=='active' && <button className="btn-secondary" style={{width:'100%',marginTop:10,fontSize:12}} onClick={()=>showToast(`Renewal initiated for ${c.name}`)}>Renew Certification</button>}
+            </div>
+          ))}
+        </>}
+        {tab==='paths' && paths.map((p,i)=>(
+          <div key={i} className="card" style={{marginBottom:10}}>
+            <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}>
+              <p style={{fontSize:13,fontWeight:600,color:'#111827'}}>{p.name}</p>
+              <span style={{fontSize:12,fontWeight:700,color:'#1a56db'}}>{p.progress}%</span>
+            </div>
+            <ProgressBar value={p.progress} color="#1a56db"/>
+            <div style={{display:'flex',justifyContent:'space-between',marginTop:8}}>
+              <span style={{fontSize:11,color:'#9ca3af'}}>{p.modules} modules</span>
+              <button style={{border:'none',background:'none',fontSize:12,color:'#1a56db',fontWeight:600,cursor:'pointer'}} onClick={()=>showToast('Learning path opened')}>Continue Learning →</button>
+            </div>
+          </div>
+        ))}
+        {tab==='opps' && [{title:'Project Director - Mumbai Metro',type:'Internal Transfer',effort:'Full-time',deadline:'May 30'},{title:'EHS Lead - Solar Farm Project',type:'Internal',effort:'Full-time',deadline:'Jun 15'}].map((o,i)=>(
+          <div key={i} className="card" style={{marginBottom:10}}>
+            <p style={{fontSize:13,fontWeight:600,color:'#111827',marginBottom:4}}>{o.title}</p>
+            <div style={{display:'flex',gap:8,marginBottom:10}}>
+              <span className="chip" style={{background:'#eff4ff',color:'#1a56db',fontSize:10}}>{o.type}</span>
+              <span style={{fontSize:11,color:'#9ca3af'}}>Deadline: {o.deadline}</span>
+            </div>
+            <button className="btn-primary" style={{width:'100%',fontSize:12}} onClick={()=>showToast('Application submitted!')}>Apply for This Opportunity</button>
+          </div>
+        ))}
+      </div>
+      <Toast msg={toast}/>
+    </div>
+  );
+};
+
+const HRMSWellness = ({ nav }) => {
+  const [showCheckin, setShowCheckin] = useState(false);
+  const [energy, setEnergy] = useState(3);
+  const [stress, setStress] = useState(2);
+  const [toast, showToast] = useToast();
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="Employee Wellness" subtitle="Holistic health & engagement" onBack={()=>nav('hrms-dashboard')} orbit="HRMS"/>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        {/* Wellness Index */}
+        <div className="card" style={{marginBottom:14,textAlign:'center'}}>
+          <p style={{fontSize:11,fontWeight:700,color:'#9ca3af',textTransform:'uppercase',letterSpacing:'.5px',marginBottom:8}}>Wellness Index</p>
+          <div style={{position:'relative',width:110,height:110,margin:'0 auto 12px'}}>
+            <svg width="110" height="110" viewBox="0 0 110 110">
+              <circle cx="55" cy="55" r="44" fill="none" stroke="#f0f1f4" strokeWidth="10"/>
+              <circle cx="55" cy="55" r="44" fill="none" stroke="#ec4899" strokeWidth="10"
+                strokeDasharray={`${74/100*276.5} 276.5`} strokeLinecap="round" transform="rotate(-90 55 55)"/>
+            </svg>
+            <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
+              <span style={{fontSize:26,fontWeight:800,color:'#111827'}}>74</span>
+              <span style={{fontSize:10,color:'#9ca3af'}}>/100</span>
+            </div>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+            <div style={{background:'#f8f9fc',borderRadius:8,padding:'8px'}}>
+              <p style={{fontSize:10,color:'#9ca3af'}}>Avg Energy</p><p style={{fontSize:16,fontWeight:700,color:'#16a34a'}}>7.2/10</p>
+            </div>
+            <div style={{background:'#f8f9fc',borderRadius:8,padding:'8px'}}>
+              <p style={{fontSize:10,color:'#9ca3af'}}>Avg Stress</p><p style={{fontSize:16,fontWeight:700,color:'#d97706'}}>4.1/10</p>
+            </div>
+          </div>
+        </div>
+        <button className="btn-primary" style={{width:'100%',marginBottom:14}} onClick={()=>setShowCheckin(true)}>Log Today's Wellness →</button>
+        <div className="card" style={{marginBottom:14}}>
+          <p style={{fontSize:13,fontWeight:700,color:'#111827',marginBottom:10}}>Mental Health Score</p>
+          <p style={{fontSize:28,fontWeight:800,color:'#1a56db'}}>74<span style={{fontSize:14,color:'#9ca3af'}}>/100</span></p>
+          <p style={{fontSize:11,color:'#6b7280',marginTop:2}}>Based on 12 daily check-ins this month</p>
+          <div style={{marginTop:10}}>
+            <p style={{fontSize:11,fontWeight:600,color:'#374151',marginBottom:6}}>Stress Triggers This Month</p>
+            {[{t:'Deadline pressure',pct:45},{t:'Workload',pct:30},{t:'Communication',pct:25}].map(s=>(
+              <div key={s.t} style={{marginBottom:6}}>
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:2}}><span style={{fontSize:11,color:'#6b7280'}}>{s.t}</span><span style={{fontSize:11,fontWeight:600,color:'#374151'}}>{s.pct}%</span></div>
+                <ProgressBar value={s.pct} color="#ec4899"/>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="card" style={{marginBottom:14}}>
+          <p style={{fontSize:13,fontWeight:700,color:'#111827',marginBottom:10}}>Daily Steps</p>
+          <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
+            <span style={{fontSize:22,fontWeight:800,color:'#111827'}}>7,842</span>
+            <span style={{fontSize:11,color:'#9ca3af'}}>Goal: 10,000</span>
+          </div>
+          <ProgressBar value={78} color="#16a34a"/>
+          <p style={{fontSize:11,color:'#6b7280',marginTop:6}}>78% of daily goal · 2,158 steps remaining</p>
+        </div>
+      </div>
+      {showCheckin && (
+        <div className="modal-backdrop" onClick={()=>setShowCheckin(false)}>
+          <div className="modal-sheet" onClick={e=>e.stopPropagation()}>
+            <div className="drag-handle"/>
+            <div style={{padding:'0 20px 12px',borderBottom:'1px solid #e5e7eb'}}><h3 style={{fontSize:15,fontWeight:700}}>Today's Wellness Check-in</h3></div>
+            <div style={{padding:'16px 20px',display:'flex',flexDirection:'column',gap:16}}>
+              {[{l:'Energy Level',v:energy,set:setEnergy,c:'#16a34a'},{l:'Stress Level',v:stress,set:setStress,c:'#d97706'}].map(s=>(
+                <div key={s.l}>
+                  <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}><label style={{fontSize:13,fontWeight:600,color:'#374151'}}>{s.l}</label><span style={{fontSize:14,fontWeight:700,color:s.c}}>{s.v}/5</span></div>
+                  <div style={{display:'flex',gap:8}}>{[1,2,3,4,5].map(n=>(
+                    <button key={n} onClick={()=>s.set(n)} style={{flex:1,height:36,borderRadius:8,border:`2px solid ${s.v>=n?s.c:'#e5e7eb'}`,background:s.v>=n?s.c+'20':'#fff',cursor:'pointer'}}>
+                      <span style={{fontSize:16}}>{'⭐'.slice(0,n>=s.v?1:0)||n<=s.v?'★':'☆'}</span>
+                    </button>
+                  ))}</div>
+                </div>
+              ))}
+              <div><label style={{fontSize:13,fontWeight:600,color:'#374151',display:'block',marginBottom:6}}>Mood Today</label>
+                <div style={{display:'flex',gap:8,justifyContent:'center'}}>
+                  {['😊','😐','😔','😤','😴'].map(m=>(
+                    <button key={m} style={{fontSize:28,border:'2px solid #e5e7eb',borderRadius:10,padding:'6px 10px',cursor:'pointer',background:'#f8f9fc'}}>{m}</button>
+                  ))}
+                </div>
+              </div>
+              <button className="btn-primary" onClick={()=>{setShowCheckin(false);showToast('Wellness logged successfully!');}}>Submit Check-in</button>
+            </div>
+          </div>
+        </div>
+      )}
+      <Toast msg={toast}/>
+    </div>
+  );
+};
+
+const HRMSDirectory = ({ nav }) => {
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState(null);
+  const employees = [
+    {name:'Arjun Sharma',role:'Senior Project Manager',dept:'Engineering',loc:'Mumbai',phone:'+91 98765 43210',email:'arjun.sharma@inventia.com',manager:'Priya Mehta',joined:'Mar 2021'},
+    {name:'Priya Mehta',role:'Engineering Manager',dept:'Engineering',loc:'Mumbai',phone:'+91 98765 43211',email:'priya.mehta@inventia.com',manager:'Vikram Singh',joined:'Jan 2019'},
+    {name:'Rahul Verma',role:'Civil Engineer',dept:'Engineering',loc:'Delhi',phone:'+91 98765 43212',email:'rahul.verma@inventia.com',manager:'Arjun Sharma',joined:'Jun 2022'},
+    {name:'Sneha Patel',role:'HR Executive',dept:'HR',loc:'Mumbai',phone:'+91 98765 43213',email:'sneha.patel@inventia.com',manager:'Kavita Nair',joined:'Sep 2021'},
+    {name:'Marcus Rivera',role:'Project Director',dept:'PMO',loc:'Bangalore',phone:'+91 98765 43214',email:'marcus.rivera@inventia.com',manager:'CEO',joined:'Aug 2018'},
+  ];
+  const filtered = employees.filter(e=>e.name.toLowerCase().includes(search.toLowerCase())||e.dept.toLowerCase().includes(search.toLowerCase()));
+  const colors = ['#1a56db','#7c3aed','#16a34a','#f59e0b','#ec4899'];
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="Directory" subtitle="Employee directory" onBack={()=>nav('hrms-dashboard')} orbit="HRMS"/>
+      <div style={{padding:'12px 16px',background:'#fff',borderBottom:'1px solid #e5e7eb',flexShrink:0}}>
+        <div className="search-bar"><Icon name="search" size={16} color="#9ca3af"/>
+          <input placeholder="Search by name or department..." value={search} onChange={e=>setSearch(e.target.value)}/>
+        </div>
+      </div>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        {filtered.map((emp,i)=>(
+          <div key={i} className="card" style={{marginBottom:10,cursor:'pointer'}} onClick={()=>setSelected(emp)}>
+            <div style={{display:'flex',alignItems:'center',gap:12}}>
+              <div style={{width:44,height:44,background:colors[i%colors.length]+'20',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,border:`2px solid ${colors[i%colors.length]}30`}}>
+                <span style={{fontSize:16,fontWeight:700,color:colors[i%colors.length]}}>{emp.name[0]}</span>
+              </div>
+              <div style={{flex:1}}>
+                <p style={{fontSize:13,fontWeight:600,color:'#111827'}}>{emp.name}</p>
+                <p style={{fontSize:11,color:'#6b7280'}}>{emp.role}</p>
+                <p style={{fontSize:11,color:'#9ca3af'}}>{emp.dept} · {emp.loc}</p>
+              </div>
+              <Icon name="chevron-right" size={16} color="#9ca3af"/>
+            </div>
+          </div>
+        ))}
+      </div>
+      {selected && (
+        <div className="modal-backdrop" onClick={()=>setSelected(null)}>
+          <div className="modal-sheet" onClick={e=>e.stopPropagation()}>
+            <div className="drag-handle"/>
+            <div style={{padding:'0 20px 16px',textAlign:'center'}}>
+              <div style={{width:64,height:64,background:'#eff4ff',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 10px',border:'2px solid #c3d9ff'}}>
+                <span style={{fontSize:24,fontWeight:700,color:'#1a56db'}}>{selected.name[0]}</span>
+              </div>
+              <h3 style={{fontSize:16,fontWeight:700,color:'#111827'}}>{selected.name}</h3>
+              <p style={{fontSize:12,color:'#6b7280'}}>{selected.role}</p>
+            </div>
+            <div style={{padding:'0 20px 24px',display:'flex',flexDirection:'column',gap:0}}>
+              {[['Department',selected.dept],['Location',selected.loc],['Email',selected.email],['Phone',selected.phone],['Manager',selected.manager],['Date of Joining',selected.joined]].map(([k,v])=>(
+                <div key={k} style={{display:'flex',justifyContent:'space-between',padding:'10px 0',borderBottom:'1px solid #f0f1f4'}}>
+                  <span style={{fontSize:12,color:'#9ca3af',fontWeight:500}}>{k}</span>
+                  <span style={{fontSize:12,color:'#111827',fontWeight:600}}>{v}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const HRMSProfile = ({ nav }) => {
+  const [tab, setTab] = useState('personal');
+  const [toast, showToast] = useToast();
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="Digital Worker Profile" onBack={()=>nav('hrms-dashboard')} orbit="HRMS"/>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        {/* ID Card */}
+        <div style={{background:'linear-gradient(135deg,#1a56db,#1e3a8a)',borderRadius:16,padding:'16px',marginBottom:14}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:12}}>
+            <div>
+              <p style={{fontSize:9,color:'rgba(255,255,255,0.7)',fontWeight:700,letterSpacing:'.5px',textTransform:'uppercase'}}>Employee ID Card</p>
+              <p style={{fontSize:16,fontWeight:700,color:'#fff',marginTop:4}}>Arjun Sharma</p>
+              <p style={{fontSize:11,color:'rgba(255,255,255,0.75)'}}>Senior Project Manager</p>
+              <p style={{fontSize:10,color:'rgba(255,255,255,0.6)',marginTop:2}}>EMP-2024-001 · Engineering · Mumbai HQ</p>
+            </div>
+            <div style={{width:48,height:48,background:'rgba(255,255,255,0.2)',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',border:'1px solid rgba(255,255,255,0.3)'}}>
+              <Icon name="grid" size={22} color="#fff"/>
+            </div>
+          </div>
+          <div style={{display:'flex',gap:8}}>
+            <button style={{flex:1,background:'rgba(255,255,255,0.15)',border:'1px solid rgba(255,255,255,0.25)',borderRadius:8,padding:'7px',fontSize:11,fontWeight:600,color:'#fff',cursor:'pointer'}} onClick={()=>showToast('ID Card downloading...')}>Download PDF</button>
+            <button style={{flex:1,background:'rgba(255,255,255,0.15)',border:'1px solid rgba(255,255,255,0.25)',borderRadius:8,padding:'7px',fontSize:11,fontWeight:600,color:'#fff',cursor:'pointer'}} onClick={()=>showToast('Share link copied!')}>Share Card</button>
+          </div>
+        </div>
+        <div className="tab-bar">
+          {[['personal','Personal'],['employment','Employment'],['docs','Documents']].map(([k,l])=>(
+            <button key={k} className={`tab-btn${tab===k?' active':''}`} onClick={()=>setTab(k)}>{l}</button>
+          ))}
+        </div>
+        {tab==='personal' && (
+          <div className="card">
+            {[['Full Name','Arjun Sharma'],['Date of Birth','March 15, 1990'],['PAN','ABCPS1234K'],['Aadhaar','XXXX-XXXX-4321'],['Email','arjun.sharma@inventia.com'],['Phone','+91 98765 43210'],['Address','Mumbai, Maharashtra']].map(([k,v])=>(
+              <div key={k} style={{display:'flex',justifyContent:'space-between',padding:'10px 0',borderBottom:'1px solid #f0f1f4'}}>
+                <span style={{fontSize:12,color:'#9ca3af'}}>{k}</span><span style={{fontSize:12,fontWeight:600,color:'#111827'}}>{v}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {tab==='employment' && (
+          <div className="card">
+            {[['Employee Code','EMP-2024-001'],['Designation','Senior Project Manager'],['Department','Engineering'],['Location','Mumbai HQ'],['Date of Joining','Mar 15, 2021'],['Employment Type','Full-time'],['Reporting Manager','Priya Mehta'],['Status','Active']].map(([k,v])=>(
+              <div key={k} style={{display:'flex',justifyContent:'space-between',padding:'10px 0',borderBottom:'1px solid #f0f1f4'}}>
+                <span style={{fontSize:12,color:'#9ca3af'}}>{k}</span><span style={{fontSize:12,fontWeight:600,color:'#111827'}}>{v}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {tab==='docs' && (
+          <div>
+            {[{n:'Offer Letter',d:'Mar 2021',icon:'file-text'},{n:'Appointment Letter',d:'Mar 2021',icon:'file-text'},{n:'Last Appraisal Letter',d:'Jan 2026',icon:'file-text'},{n:'PF Statement FY25-26',d:'Apr 2026',icon:'file-text'}].map((d,i)=>(
+              <div key={i} className="card" style={{marginBottom:8,display:'flex',alignItems:'center',gap:10}}>
+                <div style={{width:36,height:36,background:'#eff4ff',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  <Icon name={d.icon} size={16} color="#1a56db"/>
+                </div>
+                <div style={{flex:1}}><p style={{fontSize:13,fontWeight:600,color:'#111827'}}>{d.n}</p><p style={{fontSize:11,color:'#9ca3af'}}>{d.d}</p></div>
+                <button style={{border:'none',background:'#f8f9fc',borderRadius:8,padding:'6px',cursor:'pointer'}} onClick={()=>showToast(`${d.n} downloaded`)}><Icon name="download" size={14} color="#6b7280"/></button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      <Toast msg={toast}/>
+    </div>
+  );
+};
+
+const HRMSAssets = ({ nav }) => {
+  const [showForm, setShowForm] = useState(false);
+  const [toast, showToast] = useToast();
+  const assets = [
+    {name:'Dell Laptop XPS 15',type:'Laptop',serial:'DL-2024-789',condition:'Good',value:'₹85,000'},
+    {name:'iPhone 13 Pro',type:'Phone',serial:'IP-2024-123',condition:'Good',value:'₹95,000'},
+    {name:'Dell Monitor 27"',type:'Monitor',serial:'DM-2023-456',condition:'Good',value:'₹25,000'},
+  ];
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="Asset Management" subtitle="Equipment & assets" onBack={()=>nav('hrms-services')} orbit="HRMS"/>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:14}}>
+          <div className="stat-card"><p style={{fontSize:18,fontWeight:800,color:'#111827'}}>3</p><p style={{fontSize:10,color:'#9ca3af',marginTop:2}}>Total Assets</p></div>
+          <div className="stat-card"><p style={{fontSize:18,fontWeight:800,color:'#16a34a'}}>₹2,05,000</p><p style={{fontSize:10,color:'#9ca3af',marginTop:2}}>Total Value</p></div>
+        </div>
+        <div style={{background:'#f0fdf4',border:'1px solid #bbf7d0',borderRadius:10,padding:'10px 12px',marginBottom:14,display:'flex',gap:8,alignItems:'center'}}>
+          <Icon name="check-circle" size={16} color="#16a34a"/>
+          <span style={{fontSize:12,color:'#166534',fontWeight:500}}>All assets in good condition</span>
+        </div>
+        <p className="section-title">Assigned Assets</p>
+        {assets.map((a,i)=>(
+          <div key={i} className="card" style={{marginBottom:10}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+              <div><p style={{fontSize:13,fontWeight:600,color:'#111827'}}>{a.name}</p>
+                <p style={{fontSize:11,color:'#6b7280',marginTop:2}}>S/N: {a.serial}</p>
+                <div style={{display:'flex',gap:6,marginTop:6}}>
+                  <span className="chip" style={{background:'#f3f4f6',color:'#6b7280',fontSize:10}}>{a.type}</span>
+                  <span className="chip" style={{background:'#f0fdf4',color:'#16a34a',fontSize:10}}>{a.condition}</span>
+                </div>
+              </div>
+              <span style={{fontSize:13,fontWeight:700,color:'#111827'}}>{a.value}</span>
+            </div>
+          </div>
+        ))}
+        <button className="btn-primary" style={{width:'100%',marginTop:8}} onClick={()=>setShowForm(true)}>+ Request New Asset</button>
+      </div>
+      {showForm && (
+        <div className="modal-backdrop" onClick={()=>setShowForm(false)}>
+          <div className="modal-sheet" onClick={e=>e.stopPropagation()}>
+            <div className="drag-handle"/>
+            <div style={{padding:'0 20px 12px',borderBottom:'1px solid #e5e7eb'}}><h3 style={{fontSize:15,fontWeight:700}}>Request New Asset</h3></div>
+            <div style={{overflowY:'auto',padding:'16px 20px',display:'flex',flexDirection:'column',gap:12}}>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Asset Type *</label>
+                <select className="select-field"><option>Laptop</option><option>Phone</option><option>Monitor</option><option>Keyboard/Mouse</option><option>Headset</option><option>Other</option></select></div>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Justification *</label><textarea className="input-field" rows={3} placeholder="Why do you need this asset?" style={{resize:'none'}}/></div>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Priority</label>
+                <div style={{display:'flex',gap:8}}>
+                  {['Normal','Urgent'].map(p=><button key={p} style={{flex:1,padding:'8px',border:'1px solid #e5e7eb',borderRadius:8,fontSize:13,cursor:'pointer',background:'#f8f9fc'}}>{p}</button>)}
+                </div>
+              </div>
+              <div style={{display:'flex',gap:10}}>
+                <button className="btn-ghost" style={{flex:1}} onClick={()=>setShowForm(false)}>Cancel</button>
+                <button className="btn-primary" style={{flex:1}} onClick={()=>{setShowForm(false);showToast('Asset request submitted!');}}>Submit Request</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      <Toast msg={toast}/>
+    </div>
+  );
+};
+
+const HRMSAIAssistant = ({ nav }) => {
+  const [msgs, setMsgs] = useState([{role:'bot',text:'Hi Arjun! 👋 I\'m your AI HR Assistant. I can help with payroll queries, leave policies, compliance questions, and more. What can I help you with today?'}]);
+  const [input, setInput] = useState('');
+  const [toast, showToast] = useToast();
+  const quickActions = ['Check leave balance','Payroll breakdown','HR policies','Raise a ticket','Upcoming holidays'];
+  const sendMsg = (text) => {
+    const q = text||input;
+    if(!q.trim()) return;
+    setInput('');
+    const newMsgs = [...msgs,{role:'user',text:q}];
+    setMsgs(newMsgs);
+    setTimeout(()=>setMsgs(m=>[...m,{role:'bot',text:`I'm looking into "${q}" for you. Based on your profile, here's what I found: Your current leave balance shows 18 Earned Leave days available. For detailed information, please check the relevant module or raise a helpdesk ticket.`}]),1000);
+  };
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="AI HR Assistant" subtitle="Powered by AI" onBack={()=>nav('hrms-services')} orbit="HRMS"/>
+      <div style={{flex:1,overflowY:'auto',padding:'16px',display:'flex',flexDirection:'column',gap:10}}>
+        {msgs.map((m,i)=>(
+          <div key={i} style={{display:'flex',justifyContent:m.role==='user'?'flex-end':'flex-start'}}>
+            <div style={{maxWidth:'82%',background:m.role==='user'?'#1a56db':'#fff',borderRadius:m.role==='user'?'16px 16px 4px 16px':'16px 16px 16px 4px',padding:'10px 14px',boxShadow:'0 1px 3px rgba(0,0,0,0.08)',border:m.role==='bot'?'1px solid #e5e7eb':'none'}}>
+              <p style={{fontSize:13,color:m.role==='user'?'#fff':'#111827',lineHeight:1.5}}>{m.text}</p>
+            </div>
+          </div>
+        ))}
+        <div>
+          <p style={{fontSize:11,color:'#9ca3af',fontWeight:600,marginBottom:8}}>Quick Actions</p>
+          <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+            {quickActions.map(a=>(
+              <button key={a} onClick={()=>sendMsg(a)} style={{padding:'6px 12px',border:'1px solid #e5e7eb',borderRadius:20,background:'#fff',fontSize:12,cursor:'pointer',color:'#374151'}}>{a}</button>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div style={{padding:'12px 16px',background:'#fff',borderTop:'1px solid #e5e7eb',display:'flex',gap:8,flexShrink:0}}>
+        <input className="input-field" style={{flex:1}} value={input} onChange={e=>setInput(e.target.value)} placeholder="Ask anything about HR..."
+          onKeyDown={e=>e.key==='Enter'&&sendMsg()}/>
+        <button className="btn-primary" style={{padding:'0 16px'}} onClick={()=>sendMsg()}><Icon name="send" size={16} color="#fff"/></button>
+      </div>
+      <Toast msg={toast}/>
+    </div>
+  );
+};
+
+const HRMSNotifications = ({ nav }) => {
+  const [notifs, setNotifs] = useState([
+    {id:1,title:'Salary Credited',msg:'Your March 2026 salary of ₹96,500 has been credited',type:'payroll',time:'2 days ago',read:true},
+    {id:2,title:'Comp-Off Expiring',msg:'2 comp-off days will expire on May 5, 2026. Apply now!',type:'leave',time:'3h ago',read:false},
+    {id:3,title:'Training Reminder',msg:'Advanced PM training starts tomorrow at 10 AM',type:'training',time:'5h ago',read:false},
+    {id:4,title:'Policy Acknowledgement',msg:'Code of Conduct 2026 requires your acknowledgement',type:'compliance',time:'1 day ago',read:false},
+    {id:5,title:'Goal Check-in Due',msg:'Monthly goal check-in for Metro Tower Phase 1 is due',type:'performance',time:'2 days ago',read:true},
+  ]);
+  const typeIcon = {payroll:'dollar-sign',leave:'calendar',training:'book',compliance:'shield',performance:'target'};
+  const typeColor = {payroll:'#16a34a',leave:'#d97706',training:'#7c3aed',compliance:'#1a56db',performance:'#ec4899'};
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="Notifications" onBack={()=>nav('hrms-dashboard')} orbit="HRMS">
+        <button onClick={()=>setNotifs(n=>n.map(x=>({...x,read:true})))} style={{fontSize:12,color:'#1a56db',fontWeight:600,border:'none',background:'none',cursor:'pointer'}}>Mark all read</button>
+      </ScreenHeader>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        {notifs.map(n=>(
+          <div key={n.id} onClick={()=>setNotifs(ns=>ns.map(x=>x.id===n.id?{...x,read:true}:x))}
+            className="card" style={{marginBottom:8,opacity:n.read?.8:1,cursor:'pointer',borderLeft:`3px solid ${n.read?'#e5e7eb':typeColor[n.type]}`}}>
+            <div style={{display:'flex',gap:10,alignItems:'flex-start'}}>
+              <div style={{width:36,height:36,background:typeColor[n.type]+'15',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                <Icon name={typeIcon[n.type]} size={16} color={typeColor[n.type]}/>
+              </div>
+              <div style={{flex:1}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+                  <p style={{fontSize:13,fontWeight:n.read?500:700,color:'#111827'}}>{n.title}</p>
+                  {!n.read && <span style={{width:8,height:8,background:'#dc2626',borderRadius:'50%',flexShrink:0,marginTop:4}}/>}
+                </div>
+                <p style={{fontSize:12,color:'#6b7280',marginTop:2,lineHeight:1.4}}>{n.msg}</p>
+                <p style={{fontSize:10,color:'#9ca3af',marginTop:4}}>{n.time}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ══════════════════════════════════════════════════════════════
+// WFM SCREENS
+// ══════════════════════════════════════════════════════════════
+
+const WFMDashboard = ({ nav }) => {
+  const [checkedIn, setCheckedIn] = useState(false);
+  const [onBreak, setOnBreak] = useState(false);
+  const [checkInTime, setCheckInTime] = useState(null);
+  const [toast, showToast] = useToast();
+  const fmt = d => d ? d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true}) : '--:--';
+  const punch = () => {
+    if (!checkedIn) { setCheckInTime(new Date()); setCheckedIn(true); showToast('Punched in successfully'); }
+    else if (!onBreak) { setOnBreak(true); showToast('Break started'); }
+    else { setOnBreak(false); showToast('Break ended'); }
+  };
+  return (
+    <div className="screen screen-anim">
+      <div style={{background:'#fff',borderBottom:'1px solid #e5e7eb',padding:'32px 16px 10px',flexShrink:0}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <div>
+            <span style={{fontSize:11,fontWeight:700,padding:'3px 8px',borderRadius:20,background:'#f5f3ff',color:'#7c3aed',border:'1px solid #ddd6fe'}}>WFM Orbit</span>
+            <h1 style={{fontSize:20,fontWeight:800,color:'#111827',marginTop:6,letterSpacing:'-0.3px'}}>Good Morning, Arjun 👋</h1>
+            <p style={{fontSize:12,color:'#6b7280',marginTop:2}}>Today · {new Date().toDateString()}</p>
+          </div>
+          <div style={{display:'flex',gap:8}}>
+            <button onClick={()=>nav('wfm-notifications')} style={{width:34,height:34,background:'#f8f9fc',border:'1px solid #e5e7eb',borderRadius:9,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',position:'relative'}}>
+              <Icon name="bell" size={16} color="#6b7280"/>
+              <span style={{position:'absolute',top:-3,right:-3,width:14,height:14,background:'#dc2626',borderRadius:'50%',border:'2px solid #fff',fontSize:7,fontWeight:700,color:'#fff',display:'flex',alignItems:'center',justifyContent:'center'}}>2</span>
+            </button>
+            <button onClick={()=>nav('orbit-select')} style={{display:'flex',alignItems:'center',gap:4,background:'#f8f9fc',border:'1px solid #e5e7eb',borderRadius:20,padding:'6px 10px',cursor:'pointer'}}>
+              <Icon name="repeat" size={12} color="#6b7280"/>
+              <span style={{fontSize:11,fontWeight:600,color:'#6b7280'}}>Switch</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        {/* Attendance Card */}
+        <div className="card" style={{marginBottom:14}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+            <div style={{display:'flex',alignItems:'center',gap:6}}>
+              <span style={{width:8,height:8,borderRadius:'50%',background:checkedIn&&!onBreak?'#16a34a':onBreak?'#d97706':'#9ca3af',boxShadow:checkedIn&&!onBreak?'0 0 0 3px rgba(22,163,74,0.2)':'none'}}/>
+              <span style={{fontSize:12,fontWeight:600,color:checkedIn&&!onBreak?'#16a34a':onBreak?'#d97706':'#6b7280'}}>
+                {checkedIn ? onBreak ? 'On Break' : 'Checked In' : 'Not Checked In'}
+              </span>
+            </div>
+            <div style={{display:'flex',alignItems:'center',gap:4}}>
+              <Icon name="map-pin" size={11} color="#9ca3af"/>
+              <span style={{fontSize:10,color:'#9ca3af'}}>Mumbai HQ</span>
+              <span style={{fontSize:9,fontWeight:700,color:'#16a34a',background:'#f0fdf4',borderRadius:20,padding:'1px 6px',marginLeft:4}}>Geofenced</span>
+            </div>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr auto 1fr',alignItems:'center',gap:8,marginBottom:12}}>
+            <div>
+              <p style={{fontSize:9,color:'#9ca3af',fontWeight:600,textTransform:'uppercase',letterSpacing:'.4px'}}>Check In</p>
+              <p style={{fontSize:22,fontWeight:700,color:'#111827',marginTop:2}}>{fmt(checkInTime)}</p>
+            </div>
+            <div style={{textAlign:'center'}}>
+              <div style={{width:52,height:52,borderRadius:'50%',background:'#f8f9fc',border:'3px solid #e5e7eb',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                <Icon name="clock" size={20} color={checkedIn?'#7c3aed':'#9ca3af'}/>
+              </div>
+              <p style={{fontSize:9,color:'#9ca3af',marginTop:3}}>{checkedIn?onBreak?'On Break':'Working':'Not started'}</p>
+            </div>
+            <div style={{textAlign:'right'}}>
+              <p style={{fontSize:9,color:'#9ca3af',fontWeight:600,textTransform:'uppercase',letterSpacing:'.4px'}}>Check Out</p>
+              <p style={{fontSize:22,fontWeight:700,color:'#9ca3af',marginTop:2}}>--:--</p>
+            </div>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'2fr 1fr',gap:8}}>
+            <button className="btn-primary" style={{background:checkedIn?onBreak?'#7c3aed':'#d97706':'#1a56db'}} onClick={punch}>
+              {checkedIn ? onBreak ? 'End Break' : 'Start Break' : 'Check In'}
+            </button>
+            {checkedIn && !onBreak && <button className="btn-ghost" style={{background:'#fef2f2',color:'#dc2626',border:'1px solid #fecaca'}} onClick={()=>{setCheckedIn(false);showToast('Checked out successfully');}}>Check Out</button>}
+          </div>
+        </div>
+        {/* Quick Stats */}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:14}}>
+          {[
+            {l:'Tasks Due',v:'3',sub:'2 high priority',icon:'clipboard',c:'#dc2626',bg:'#fef2f2'},
+            {l:'Pending Approvals',v:'5',sub:'Action needed',icon:'check-circle',c:'#d97706',bg:'#fffbeb'},
+            {l:'Projects Active',v:'4',sub:'2 milestones due',icon:'layers',c:'#7c3aed',bg:'#f5f3ff'},
+            {l:'Hours This Week',v:'32h',sub:'8h today',icon:'clock',c:'#1a56db',bg:'#eff4ff'},
+          ].map(s=>(
+            <div key={s.l} className="card" style={{padding:12}}>
+              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                <div style={{width:28,height:28,background:s.bg,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  <Icon name={s.icon} size={14} color={s.c}/>
+                </div>
+                <span style={{fontSize:11,color:'#6b7280',fontWeight:500}}>{s.l}</span>
+              </div>
+              <p style={{fontSize:18,fontWeight:700,color:'#111827'}}>{s.v}</p>
+              <p style={{fontSize:11,color:'#9ca3af',marginTop:2}}>{s.sub}</p>
+            </div>
+          ))}
+        </div>
+        {/* Quick Actions */}
+        <p className="section-title">Quick Access</p>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginBottom:16}}>
+          {[
+            {l:'Attendance',icon:'clock',s:'wfm-attendance',c:'#1a56db',bg:'#eff4ff'},
+            {l:'Shifts',icon:'repeat',s:'wfm-shifts',c:'#7c3aed',bg:'#f5f3ff'},
+            {l:'Timesheet',icon:'file-text',s:'wfm-timesheet',c:'#16a34a',bg:'#f0fdf4'},
+            {l:'Approvals',icon:'check-circle',s:'wfm-approvals',c:'#d97706',bg:'#fffbeb'},
+            {l:'Travel',icon:'airplane',s:'wfm-travel',c:'#0891b2',bg:'#ecfeff'},
+            {l:'Safety',icon:'shield',s:'wfm-safety',c:'#dc2626',bg:'#fef2f2'},
+          ].map(a=>(
+            <button key={a.l} onClick={()=>nav(a.s)} style={{background:'#fff',border:'1px solid #e5e7eb',borderRadius:12,padding:'12px 8px',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:6}}>
+              <div style={{width:36,height:36,background:a.bg,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                <Icon name={a.icon} size={18} color={a.c}/>
+              </div>
+              <span style={{fontSize:11,fontWeight:600,color:'#374151'}}>{a.l}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+      <WFMBottomNav current="wfm-dashboard" nav={nav}/>
+      <Toast msg={toast}/>
+    </div>
+  );
+};
+
+const WFMAttendance = ({ nav }) => {
+  const [selectedDay, setSelectedDay] = useState(null);
+  const [showRegForm, setShowRegForm] = useState(false);
+  const [toast, showToast] = useToast();
+  const days = Array.from({length:30},(_,i)=>{
+    const d = new Date(); d.setDate(d.getDate()-(29-i));
+    const dow = d.getDay();
+    const isWeekend = dow===0||dow===6;
+    const statuses = ['present','present','present','present','late','present','absent','half-day'];
+    return { date:d, status:isWeekend?'week-off':i<27?statuses[i%statuses.length]:'present', label:d.getDate() };
+  });
+  const statusColor = {present:'#16a34a','week-off':'#9ca3af',late:'#d97706',absent:'#dc2626','half-day':'#7c3aed'};
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="Attendance" subtitle="Track your daily attendance" onBack={()=>nav('wfm-dashboard')} orbit="WFM">
+        <button onClick={()=>nav('orbit-select')} style={{display:'flex',alignItems:'center',gap:4,background:'#f8f9fc',border:'1px solid #e5e7eb',borderRadius:20,padding:'5px 8px',cursor:'pointer',marginRight:4}}>
+          <Icon name="repeat" size={11} color="#6b7280"/><span style={{fontSize:10,color:'#6b7280',fontWeight:600}}>Switch</span>
+        </button>
+      </ScreenHeader>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        {/* Calendar strip */}
+        <p className="section-title">Attendance History (Last 30 Days)</p>
+        <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:16}}>
+          {days.map((d,i)=>(
+            <button key={i} onClick={()=>setSelectedDay(d)}
+              style={{width:38,height:42,borderRadius:8,border:`2px solid ${selectedDay===d?statusColor[d.status]:'#e5e7eb'}`,background:selectedDay===d?statusColor[d.status]+'15':'#f8f9fc',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2}}>
+              <span style={{fontSize:12,fontWeight:700,color:statusColor[d.status]||'#9ca3af'}}>{d.label}</span>
+              <span style={{width:5,height:5,borderRadius:'50%',background:statusColor[d.status]||'#9ca3af'}}/>
+            </button>
+          ))}
+        </div>
+        {/* Legend */}
+        <div style={{display:'flex',flexWrap:'wrap',gap:10,marginBottom:14}}>
+          {Object.entries({Present:'#16a34a','Week Off':'#9ca3af',Late:'#d97706',Absent:'#dc2626','Half Day':'#7c3aed'}).map(([l,c])=>(
+            <div key={l} style={{display:'flex',alignItems:'center',gap:4}}>
+              <span style={{width:8,height:8,borderRadius:'50%',background:c}}/>
+              <span style={{fontSize:10,color:'#6b7280'}}>{l}</span>
+            </div>
+          ))}
+        </div>
+        {selectedDay && (
+          <div className="card" style={{marginBottom:14}}>
+            <p style={{fontSize:13,fontWeight:700,color:'#111827',marginBottom:10}}>
+              {selectedDay.date.toDateString()}
+            </p>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}}>
+              {[{l:'Punch In',v:'09:02 AM'},{l:'Punch Out',v:'06:45 PM'},{l:'Working Hours',v:'9h 43m'},{l:'Status',v:selectedDay.status}].map(f=>(
+                <div key={f.l} style={{background:'#f8f9fc',borderRadius:8,padding:'8px 10px'}}>
+                  <p style={{fontSize:10,color:'#9ca3af',marginBottom:2}}>{f.l}</p>
+                  <p style={{fontSize:13,fontWeight:600,color:'#111827',textTransform:'capitalize'}}>{f.v}</p>
+                </div>
+              ))}
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <button className="btn-secondary" style={{flex:1,fontSize:12}} onClick={()=>setShowRegForm(true)}>Request Regularisation</button>
+              <button className="btn-primary" style={{flex:1,fontSize:12}} onClick={()=>showToast('Leave applied for this date')}>Apply Leave</button>
+            </div>
+          </div>
+        )}
+        <div className="card" style={{marginBottom:14}}>
+          <p style={{fontSize:13,fontWeight:700,color:'#111827',marginBottom:10}}>Team On Leave Today</p>
+          {['Rahul Verma','Sneha Patel','Anita Desai'].map((n,i)=>(
+            <div key={n} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:i<2?'1px solid #f0f1f4':'none'}}>
+              <div style={{width:32,height:32,background:'#eff4ff',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                <span style={{fontSize:13,fontWeight:700,color:'#1a56db'}}>{n[0]}</span>
+              </div>
+              <span style={{fontSize:13,color:'#374151',fontWeight:500}}>{n}</span>
+              <span className="tag" style={{background:'#fffbeb',color:'#d97706',marginLeft:'auto',fontSize:10}}>On Leave</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      {showRegForm && (
+        <div className="modal-backdrop" onClick={()=>setShowRegForm(false)}>
+          <div className="modal-sheet" onClick={e=>e.stopPropagation()}>
+            <div className="drag-handle"/>
+            <div style={{padding:'0 20px 12px',borderBottom:'1px solid #e5e7eb'}}><h3 style={{fontSize:15,fontWeight:700}}>Request Regularisation</h3></div>
+            <div style={{padding:'16px 20px',display:'flex',flexDirection:'column',gap:12}}>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Date *</label><input className="input-field" type="date"/></div>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Correction Type</label>
+                <select className="select-field"><option>Missed Punch In</option><option>Missed Punch Out</option><option>Wrong Timing</option></select></div>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Reason *</label><textarea className="input-field" rows={3} placeholder="Explain why regularisation is needed..." style={{resize:'none'}}/></div>
+              <div style={{display:'flex',gap:10}}>
+                <button className="btn-ghost" style={{flex:1}} onClick={()=>setShowRegForm(false)}>Cancel</button>
+                <button className="btn-primary" style={{flex:1}} onClick={()=>{setShowRegForm(false);showToast('Regularisation request submitted!');}}>Submit Request</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      <WFMBottomNav current="wfm-attendance" nav={nav}/>
+      <Toast msg={toast}/>
+    </div>
+  );
+};
+
+const WFMShifts = ({ nav }) => {
+  const [showSwapForm, setShowSwapForm] = useState(false);
+  const [toast, showToast] = useToast();
+  const shifts = [
+    {date:'Mon, May 20',shift:'Morning',time:'08:00 - 17:00',type:'morning'},
+    {date:'Tue, May 21',shift:'General',time:'09:00 - 18:00',type:'general'},
+    {date:'Wed, May 22',shift:'Day Off',time:'--',type:'off'},
+    {date:'Thu, May 23',shift:'General',time:'09:00 - 18:00',type:'general'},
+    {date:'Fri, May 24',shift:'Evening',time:'17:00 - 22:00',type:'evening'},
+    {date:'Sat, May 25',shift:'Week Off',time:'--',type:'off'},
+    {date:'Sun, May 26',shift:'Week Off',time:'--',type:'off'},
+  ];
+  const shiftColor = {morning:'#1a56db',general:'#16a34a',evening:'#7c3aed',off:'#9ca3af'};
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="My Shifts" subtitle="Next 14 Days Schedule" onBack={()=>nav('wfm-dashboard')} orbit="WFM"/>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        {shifts.map((s,i)=>(
+          <div key={i} className="card" style={{marginBottom:8,display:'flex',alignItems:'center',gap:12}}>
+            <div style={{width:44,height:44,background:shiftColor[s.type]+'15',borderRadius:10,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+              <span style={{fontSize:9,fontWeight:700,color:shiftColor[s.type]}}>{s.date.split(',')[0]}</span>
+              <span style={{fontSize:14,fontWeight:800,color:shiftColor[s.type]}}>{s.date.split(' ')[1]}</span>
+            </div>
+            <div style={{flex:1}}>
+              <p style={{fontSize:13,fontWeight:600,color:'#111827'}}>{s.shift}</p>
+              <p style={{fontSize:11,color:'#6b7280'}}>{s.time}</p>
+            </div>
+            {s.type!=='off' && <button className="btn-ghost" style={{padding:'5px 10px',fontSize:11}} onClick={()=>setShowSwapForm(true)}>Swap</button>}
+          </div>
+        ))}
+        <p className="section-title" style={{marginTop:8}}>Pending Swap Requests</p>
+        <div className="card" style={{marginBottom:10}}>
+          <p style={{fontSize:13,fontWeight:600,color:'#111827',marginBottom:4}}>Anita Desai → May 3 Evening ↔ May 2 Morning</p>
+          <p style={{fontSize:11,color:'#6b7280',marginBottom:10}}>Requested 2h ago</p>
+          <div style={{display:'flex',gap:8}}>
+            <button className="btn-primary" style={{flex:1,fontSize:12,background:'#16a34a'}} onClick={()=>showToast('Swap request approved!')}>Approve</button>
+            <button className="btn-ghost" style={{flex:1,fontSize:12,color:'#dc2626',border:'1px solid #fecaca'}} onClick={()=>showToast('Swap request rejected')}>Reject</button>
+          </div>
+        </div>
+      </div>
+      {showSwapForm && (
+        <div className="modal-backdrop" onClick={()=>setShowSwapForm(false)}>
+          <div className="modal-sheet" onClick={e=>e.stopPropagation()}>
+            <div className="drag-handle"/>
+            <div style={{padding:'0 20px 12px',borderBottom:'1px solid #e5e7eb'}}><h3 style={{fontSize:15,fontWeight:700}}>Request Shift Swap</h3></div>
+            <div style={{padding:'16px 20px',display:'flex',flexDirection:'column',gap:12}}>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Your Shift Date</label><input className="input-field" type="date"/></div>
+                <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Desired Date</label><input className="input-field" type="date"/></div>
+              </div>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Desired Shift</label>
+                <select className="select-field"><option>Morning (08:00-17:00)</option><option>General (09:00-18:00)</option><option>Evening (17:00-22:00)</option></select></div>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Reason</label><textarea className="input-field" rows={2} style={{resize:'none'}} placeholder="Reason for swap..."/></div>
+              <div style={{display:'flex',gap:10}}>
+                <button className="btn-ghost" style={{flex:1}} onClick={()=>setShowSwapForm(false)}>Cancel</button>
+                <button className="btn-primary" style={{flex:1}} onClick={()=>{setShowSwapForm(false);showToast('Swap request submitted!');}}>Submit Request</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      <WFMBottomNav current="wfm-shifts" nav={nav}/>
+      <Toast msg={toast}/>
+    </div>
+  );
+};
+
+const WFMTimesheet = ({ nav }) => {
+  const [showCreate, setShowCreate] = useState(false);
+  const [showLogTime, setShowLogTime] = useState(false);
+  const [toast, showToast] = useToast();
+  const timesheets = [
+    {project:'Metro Tower Phase 1',period:'May 13-19',logged:'38h',status:'submitted'},
+    {project:'Highway Bridge Q2',period:'May 6-12',logged:'40h',status:'approved'},
+    {project:'Solar Farm Inspection',period:'Apr 29-May 5',logged:'35h',status:'approved'},
+  ];
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="Timesheets" subtitle="Log & track your hours" onBack={()=>nav('wfm-dashboard')} orbit="WFM"/>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        <div style={{display:'flex',gap:10,marginBottom:14}}>
+          <button className="btn-primary" style={{flex:1}} onClick={()=>setShowCreate(true)}>+ Create Timesheet</button>
+          <button className="btn-secondary" style={{flex:1}} onClick={()=>setShowLogTime(true)}>Log Time</button>
+        </div>
+        <p className="section-title">Recent Timesheets</p>
+        {timesheets.map((t,i)=>(
+          <div key={i} className="card" style={{marginBottom:10}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
+              <div><p style={{fontSize:13,fontWeight:600,color:'#111827'}}>{t.project}</p><p style={{fontSize:11,color:'#6b7280'}}>{t.period}</p></div>
+              <StatusBadge status={t.status}/>
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <span style={{fontSize:14,fontWeight:700,color:'#7c3aed'}}>⏱ {t.logged}</span>
+              <button style={{border:'none',background:'#f8f9fc',borderRadius:8,padding:'5px 10px',cursor:'pointer',fontSize:11,color:'#6b7280',fontWeight:500}} onClick={()=>showToast('Timesheet downloaded')}>View</button>
+            </div>
+          </div>
+        ))}
+      </div>
+      {showCreate && (
+        <div className="modal-backdrop" onClick={()=>setShowCreate(false)}>
+          <div className="modal-sheet" onClick={e=>e.stopPropagation()}>
+            <div className="drag-handle"/>
+            <div style={{padding:'0 20px 12px',borderBottom:'1px solid #e5e7eb'}}><h3 style={{fontSize:15,fontWeight:700}}>Create Timesheet</h3></div>
+            <div style={{overflowY:'auto',padding:'16px 20px',display:'flex',flexDirection:'column',gap:12}}>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Project *</label>
+                <select className="select-field"><option>Metro Tower Phase 1</option><option>Highway Bridge Q2</option><option>Solar Farm Inspection</option></select></div>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Entity Type</label>
+                <select className="select-field"><option>Activity</option><option>Task</option><option>Sub-Task</option></select></div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>From Date</label><input className="input-field" type="date"/></div>
+                <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>To Date</label><input className="input-field" type="date"/></div>
+              </div>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Remarks</label><textarea className="input-field" rows={2} style={{resize:'none'}} placeholder="Add remarks..."/></div>
+              <div style={{display:'flex',gap:10}}>
+                <button className="btn-ghost" style={{flex:1}} onClick={()=>setShowCreate(false)}>Cancel</button>
+                <button className="btn-primary" style={{flex:1}} onClick={()=>{setShowCreate(false);showToast('Timesheet created!');}}>Create</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {showLogTime && (
+        <div className="modal-backdrop" onClick={()=>setShowLogTime(false)}>
+          <div className="modal-sheet" onClick={e=>e.stopPropagation()}>
+            <div className="drag-handle"/>
+            <div style={{padding:'0 20px 12px',borderBottom:'1px solid #e5e7eb'}}><h3 style={{fontSize:15,fontWeight:700}}>Log Time</h3></div>
+            <div style={{padding:'16px 20px',display:'flex',flexDirection:'column',gap:12}}>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Project</label>
+                <select className="select-field"><option>Metro Tower Phase 1</option><option>Highway Bridge Q2</option></select></div>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Task Name</label><input className="input-field" placeholder="Task name"/></div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Date</label><input className="input-field" type="date" defaultValue={new Date().toISOString().split('T')[0]}/></div>
+                <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Hours</label><input className="input-field" type="number" placeholder="0.0" step="0.5" min="0" max="24"/></div>
+              </div>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Description</label><textarea className="input-field" rows={2} style={{resize:'none'}} placeholder="What did you work on?"/></div>
+              <label style={{display:'flex',alignItems:'center',gap:6,fontSize:12,color:'#374151',cursor:'pointer'}}><input type="checkbox" defaultChecked/> Billable hours</label>
+              <div style={{display:'flex',gap:10}}>
+                <button className="btn-ghost" style={{flex:1}} onClick={()=>setShowLogTime(false)}>Cancel</button>
+                <button className="btn-primary" style={{flex:1}} onClick={()=>{setShowLogTime(false);showToast('Time logged successfully!');}}>Log Time</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      <WFMBottomNav current="wfm-timesheet" nav={nav}/>
+      <Toast msg={toast}/>
+    </div>
+  );
+};
+
+const WFMTasks = ({ nav }) => {
+  const [filter, setFilter] = useState('all');
+  const [selected, setSelected] = useState(null);
+  const [toast, showToast] = useToast();
+  const tasks = [
+    {id:'t-001',title:'Complete foundation inspection report',project:'Tower Schedule Manager',priority:'high',status:'in-progress',due:'Apr 28',progress:65,tags:['Backend','Critical']},
+    {id:'t-002',title:'Review vendor quotations for Phase 2',project:'Metro Tower Phase 1',priority:'medium',status:'overdue',due:'Apr 25',progress:30,tags:['Finance']},
+    {id:'t-003',title:'Update site safety checklist',project:'EHS',priority:'critical',status:'in-progress',due:'Apr 30',progress:80,tags:['Safety']},
+    {id:'t-004',title:'Prepare milestone presentation',project:'Highway Bridge Q2',priority:'high',status:'todo',due:'May 5',progress:0,tags:['PMO']},
+  ];
+  const filtered = filter==='all'?tasks:tasks.filter(t=>t.status===filter||t.priority===filter);
+  const pColor = {critical:'#dc2626',high:'#d97706',medium:'#1a56db',low:'#16a34a'};
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="My Assignments" subtitle="Tasks & work items" onBack={()=>nav('wfm-dashboard')} orbit="WFM">
+        <button onClick={()=>nav('orbit-select')} style={{display:'flex',alignItems:'center',gap:4,background:'#f8f9fc',border:'1px solid #e5e7eb',borderRadius:20,padding:'5px 8px',cursor:'pointer',marginRight:4}}>
+          <Icon name="repeat" size={11} color="#6b7280"/><span style={{fontSize:10,color:'#6b7280',fontWeight:600}}>Switch</span>
+        </button>
+      </ScreenHeader>
+      <div style={{padding:'10px 16px',background:'#fff',borderBottom:'1px solid #e5e7eb',flexShrink:0}}>
+        <div style={{display:'flex',gap:6,overflowX:'auto'}}>
+          {['all','in-progress','overdue','high','critical'].map(f=>(
+            <button key={f} onClick={()=>setFilter(f)} style={{padding:'5px 12px',borderRadius:20,border:`1px solid ${filter===f?'#7c3aed':'#e5e7eb'}`,background:filter===f?'#7c3aed':'#fff',fontSize:11,fontWeight:600,color:filter===f?'#fff':'#6b7280',cursor:'pointer',whiteSpace:'nowrap',flexShrink:0,textTransform:'capitalize'}}>
+              {f==='all'?'All Tasks':f}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        {filtered.map((t,i)=>(
+          <div key={t.id} className="card" style={{marginBottom:10,cursor:'pointer',borderLeft:`3px solid ${pColor[t.priority]}`}} onClick={()=>setSelected(t)}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
+              <p style={{fontSize:13,fontWeight:600,color:'#111827',flex:1,marginRight:8,lineHeight:1.3}}>{t.title}</p>
+              <StatusBadge status={t.status==='todo'?'pending':t.status}/>
+            </div>
+            <p style={{fontSize:11,color:'#6b7280',marginBottom:8}}>{t.project}</p>
+            <ProgressBar value={t.progress} color={pColor[t.priority]}/>
+            <div style={{display:'flex',justifyContent:'space-between',marginTop:8,alignItems:'center'}}>
+              <div style={{display:'flex',gap:4}}>
+                {t.tags.map(tag=><span key={tag} className="chip" style={{background:'#f3f4f6',color:'#6b7280',fontSize:9}}>{tag}</span>)}
+              </div>
+              <span style={{fontSize:11,color:t.status==='overdue'?'#dc2626':'#9ca3af'}}>Due: {t.due}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+      {selected && (
+        <div className="modal-backdrop" onClick={()=>setSelected(null)}>
+          <div className="modal-sheet" onClick={e=>e.stopPropagation()}>
+            <div className="drag-handle"/>
+            <div style={{padding:'0 20px 12px',borderBottom:'1px solid #e5e7eb'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+                <div style={{flex:1,marginRight:10}}>
+                  <p style={{fontSize:14,fontWeight:700,color:'#111827'}}>{selected.title}</p>
+                  <p style={{fontSize:11,color:'#6b7280',marginTop:2}}>{selected.project}</p>
+                </div>
+                <StatusBadge status={selected.status==='todo'?'pending':selected.status}/>
+              </div>
+            </div>
+            <div style={{overflowY:'auto',padding:'16px 20px',display:'flex',flexDirection:'column',gap:12}}>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                {[{l:'Priority',v:selected.priority},{l:'Due Date',v:selected.due},{l:'Progress',v:selected.progress+'%'},{l:'ID',v:selected.id}].map(f=>(
+                  <div key={f.l} style={{background:'#f8f9fc',borderRadius:8,padding:'8px 10px'}}>
+                    <p style={{fontSize:10,color:'#9ca3af'}}>{f.l}</p>
+                    <p style={{fontSize:13,fontWeight:600,color:'#111827',textTransform:'capitalize'}}>{f.v}</p>
+                  </div>
+                ))}
+              </div>
+              <div><p style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:8}}>Progress</p><ProgressBar value={selected.progress} color={pColor[selected.priority]}/></div>
+              <div style={{display:'flex',gap:10}}>
+                <button className="btn-secondary" style={{flex:1}} onClick={()=>{setSelected(null);showToast('Progress saved!');}}>Update Progress</button>
+                <button className="btn-primary" style={{flex:1}} onClick={()=>{setSelected(null);showToast('Marked complete!');}}>Mark Complete</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      <WFMBottomNav current="wfm-tasks" nav={nav}/>
+      <Toast msg={toast}/>
+    </div>
+  );
+};
+
+const WFMProjects = ({ nav }) => {
+  const [tab, setTab] = useState('list');
+  const [toast, showToast] = useToast();
+  const projects = [
+    {name:'Metro Tower Phase 1',code:'MTP-001',status:'active',progress:34,tasks:24,due:'Dec 2027',pm:'Arjun Sharma'},
+    {name:'Highway Bridge Q2',code:'HBQ-002',status:'active',progress:68,tasks:18,due:'Sep 2026',pm:'Marcus Rivera'},
+    {name:'Solar Farm Inspection',code:'SFI-003',status:'in-progress',progress:85,tasks:12,due:'Jun 2026',pm:'Priya Mehta'},
+    {name:'HR Orbit Development',code:'HOD-004',status:'completed',progress:100,tasks:30,due:'May 2026',pm:'Arjun Sharma'},
+  ];
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="Projects" subtitle="Project & WBS management" onBack={()=>nav('wfm-dashboard')} orbit="WFM"/>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        <div className="tab-bar">
+          {[['list','Project List'],['wbs','WBS View']].map(([k,l])=>(
+            <button key={k} className={`tab-btn${tab===k?' active':''}`} onClick={()=>setTab(k)}>{l}</button>
+          ))}
+        </div>
+        {tab==='list' && <>
+          <button className="btn-primary" style={{width:'100%',marginBottom:14}} onClick={()=>showToast('Create project form opened')}>+ Create Project</button>
+          {projects.map((p,i)=>(
+            <div key={i} className="card" style={{marginBottom:10}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
+                <div><p style={{fontSize:13,fontWeight:700,color:'#111827'}}>{p.name}</p><p style={{fontSize:11,color:'#6b7280'}}>{p.code} · PM: {p.pm}</p></div>
+                <StatusBadge status={p.status}/>
+              </div>
+              <ProgressBar value={p.progress} color={p.status==='completed'?'#16a34a':'#7c3aed'}/>
+              <div style={{display:'flex',justifyContent:'space-between',marginTop:8}}>
+                <span style={{fontSize:11,color:'#9ca3af'}}>{p.tasks} tasks · Due {p.due}</span>
+                <span style={{fontSize:12,fontWeight:700,color:p.status==='completed'?'#16a34a':'#7c3aed'}}>{p.progress}%</span>
+              </div>
+            </div>
+          ))}
+        </>}
+        {tab==='wbs' && (
+          <div>
+            {[{name:'HR Orbit Development',type:'Activity',level:0},{name:'HR Orbit',type:'Task',level:1,a:'Shweta',p:40},{name:'Leave and Absence',type:'Sub-Task',level:2,a:'Vaibhav',p:60},{name:'Final Submission',type:'Sub-Task',level:2,a:'Shruti',p:100},{name:'Productivity Orbit',type:'Task',level:1,a:'Vaibhav',p:0},{name:'Attendance Module',type:'Sub-Task',level:2,a:'Shweta',p:100}].map((w,i)=>(
+              <div key={i} className="card" style={{marginBottom:6,marginLeft:w.level*12,borderLeft:`3px solid ${w.level===0?'#7c3aed':w.level===1?'#1a56db':'#16a34a'}`}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                  <div><p style={{fontSize:12,fontWeight:w.level===0?700:600,color:'#111827'}}>{w.name}</p>
+                    <div style={{display:'flex',gap:6,marginTop:2}}>
+                      <span className="chip" style={{background:'#f3f4f6',color:'#6b7280',fontSize:9}}>{w.type}</span>
+                      {w.a && <span style={{fontSize:10,color:'#9ca3af'}}>→ {w.a}</span>}
+                    </div>
+                  </div>
+                  {w.p!==undefined && <span style={{fontSize:12,fontWeight:700,color:'#7c3aed'}}>{w.p}%</span>}
+                </div>
+                {w.p!==undefined && <div style={{marginTop:6}}><ProgressBar value={w.p} color={w.p===100?'#16a34a':'#7c3aed'}/></div>}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      <WFMBottomNav current="wfm-projects" nav={nav}/>
+      <Toast msg={toast}/>
+    </div>
+  );
+};
+
+const WFMApprovals = ({ nav }) => {
+  const [tab, setTab] = useState('pending');
+  const [toast, showToast] = useToast();
+  const [approvals, setApprovals] = useState([
+    {id:'ap-001',type:'leave',name:'Rahul Verma',desc:'Earned Leave: May 5-9 (5 days) - Family function',date:'Apr 27',priority:'normal',status:'pending'},
+    {id:'ap-002',type:'attendance',name:'Sneha Patel',desc:'Missed punch-out on April 25',date:'Apr 26',priority:'normal',status:'pending'},
+    {id:'ap-003',type:'expense',name:'Vikram Singh',desc:'Travel expense: ₹15,200 for Delhi site visit',date:'Apr 25',priority:'normal',status:'pending'},
+    {id:'ap-004',type:'shift-swap',name:'Anita Desai',desc:'Shift swap: May 2 Morning ↔ May 3 Evening',date:'Apr 27',priority:'low',status:'pending'},
+    {id:'ap-005',type:'overtime',name:'Deepak Kumar',desc:'Overtime pre-approval: 3h on Apr 28',date:'Apr 27',priority:'high',status:'pending'},
+  ]);
+  const typeIcon = {leave:'calendar','attendance':'clock',expense:'dollar-sign','shift-swap':'repeat',overtime:'zap',timesheet:'file-text'};
+  const typeColor = {leave:'#1a56db','attendance':'#16a34a',expense:'#f59e0b','shift-swap':'#7c3aed',overtime:'#dc2626',timesheet:'#0891b2'};
+  const action = (id, status) => { setApprovals(a=>a.map(x=>x.id===id?{...x,status}:x)); showToast(status==='approved'?'Approved!':'Rejected'); };
+  const pending = approvals.filter(a=>a.status==='pending');
+  const done = approvals.filter(a=>a.status!=='pending');
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="Approvals" subtitle="Pending requests" onBack={()=>nav('wfm-dashboard')} orbit="WFM">
+        <button onClick={()=>nav('orbit-select')} style={{display:'flex',alignItems:'center',gap:4,background:'#f8f9fc',border:'1px solid #e5e7eb',borderRadius:20,padding:'5px 8px',cursor:'pointer',marginRight:4}}>
+          <Icon name="repeat" size={11} color="#6b7280"/><span style={{fontSize:10,color:'#6b7280',fontWeight:600}}>Switch</span>
+        </button>
+      </ScreenHeader>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        <div className="tab-bar">
+          <button className={`tab-btn${tab==='pending'?' active':''}`} onClick={()=>setTab('pending')}>Pending ({pending.length})</button>
+          <button className={`tab-btn${tab==='done'?' active':''}`} onClick={()=>setTab('done')}>Processed ({done.length})</button>
+        </div>
+        {(tab==='pending'?pending:done).map(a=>(
+          <div key={a.id} className="card" style={{marginBottom:10}}>
+            <div style={{display:'flex',gap:10,alignItems:'flex-start',marginBottom:10}}>
+              <div style={{width:36,height:36,background:typeColor[a.type]+'15',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                <Icon name={typeIcon[a.type]} size={16} color={typeColor[a.type]}/>
+              </div>
+              <div style={{flex:1}}>
+                <div style={{display:'flex',justifyContent:'space-between'}}>
+                  <p style={{fontSize:13,fontWeight:600,color:'#111827'}}>{a.name}</p>
+                  <span style={{fontSize:10,color:'#9ca3af'}}>{a.date}</span>
+                </div>
+                <p style={{fontSize:12,color:'#6b7280',marginTop:2,lineHeight:1.4}}>{a.desc}</p>
+                <span className="chip" style={{background:'#f3f4f6',color:'#6b7280',fontSize:10,marginTop:6,textTransform:'capitalize'}}>{a.type.replace('-',' ')}</span>
+              </div>
+            </div>
+            {a.status==='pending' ? (
+              <div style={{display:'flex',gap:8}}>
+                <button className="btn-primary" style={{flex:1,fontSize:12,background:'#16a34a'}} onClick={()=>action(a.id,'approved')}>✓ Approve</button>
+                <button className="btn-ghost" style={{flex:1,fontSize:12,color:'#dc2626',border:'1px solid #fecaca'}} onClick={()=>action(a.id,'rejected')}>✕ Reject</button>
+              </div>
+            ) : <StatusBadge status={a.status}/>}
+          </div>
+        ))}
+      </div>
+      <WFMBottomNav current="wfm-approvals" nav={nav}/>
+      <Toast msg={toast}/>
+    </div>
+  );
+};
+
+const WFMManagerHub = ({ nav }) => {
+  const [tab, setTab] = useState('team');
+  const [toast, showToast] = useToast();
+  const team = [
+    {name:'Rahul Verma',role:'Civil Engineer',status:'present',tasks:5,attendance:'09:05 AM'},
+    {name:'Sneha Patel',role:'HR Executive',status:'late',tasks:3,attendance:'10:15 AM'},
+    {name:'Anita Desai',role:'Safety Officer',status:'present',tasks:7,attendance:'08:50 AM'},
+    {name:'Deepak Kumar',role:'Site Engineer',status:'absent',tasks:4,attendance:'--'},
+  ];
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="Manager Hub" subtitle="Team management" onBack={()=>nav('wfm-dashboard')} orbit="WFM"/>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:14}}>
+          {[{l:'Team Size',v:'8'},{l:'Present Today',v:'6'},{l:'Pending',v:'5'}].map(s=>(
+            <div key={s.l} className="stat-card"><p style={{fontSize:20,fontWeight:800,color:'#111827'}}>{s.v}</p><p style={{fontSize:10,color:'#9ca3af',marginTop:2}}>{s.l}</p></div>
+          ))}
+        </div>
+        <div className="tab-bar">
+          {[['team','Team View'],['chat','Team Chat']].map(([k,l])=>(
+            <button key={k} className={`tab-btn${tab===k?' active':''}`} onClick={()=>setTab(k)}>{l}</button>
+          ))}
+        </div>
+        {tab==='team' && team.map((m,i)=>(
+          <div key={i} className="card" style={{marginBottom:8}}>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <div style={{width:40,height:40,background:'#eff4ff',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                <span style={{fontSize:16,fontWeight:700,color:'#1a56db'}}>{m.name[0]}</span>
+              </div>
+              <div style={{flex:1}}>
+                <p style={{fontSize:13,fontWeight:600,color:'#111827'}}>{m.name}</p>
+                <p style={{fontSize:11,color:'#6b7280'}}>{m.role}</p>
+                <div style={{display:'flex',gap:6,marginTop:4}}>
+                  <StatusBadge status={m.status}/>
+                  <span style={{fontSize:11,color:'#9ca3af'}}>In: {m.attendance}</span>
+                  <span style={{fontSize:11,color:'#9ca3af'}}>{m.tasks} tasks</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+        {tab==='chat' && (
+          <div>
+            {[{name:'Suresh Chandra',msg:'Please review and approve this request at the earliest.',time:'2h ago',mine:false},{name:'You',msg:'Noted. Will review and get back to you.',time:'Yesterday',mine:true},{name:'Anita Desai',msg:'Safety audit report submitted. Please check.',time:'3h ago',mine:false}].map((m,i)=>(
+              <div key={i} style={{display:'flex',justifyContent:m.mine?'flex-end':'flex-start',marginBottom:10}}>
+                {!m.mine && <div style={{width:32,height:32,background:'#eff4ff',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',marginRight:8,flexShrink:0}}>
+                  <span style={{fontSize:12,fontWeight:700,color:'#1a56db'}}>{m.name[0]}</span></div>}
+                <div style={{maxWidth:'75%'}}>
+                  {!m.mine && <p style={{fontSize:10,color:'#9ca3af',marginBottom:3}}>{m.name}</p>}
+                  <div style={{background:m.mine?'#7c3aed':'#fff',borderRadius:m.mine?'12px 12px 2px 12px':'12px 12px 12px 2px',padding:'10px 12px',border:m.mine?'none':'1px solid #e5e7eb'}}>
+                    <p style={{fontSize:12,color:m.mine?'#fff':'#111827'}}>{m.msg}</p>
+                  </div>
+                  <p style={{fontSize:10,color:'#9ca3af',marginTop:3,textAlign:m.mine?'right':'left'}}>{m.time}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      <WFMBottomNav current="wfm-manager" nav={nav}/>
+      <Toast msg={toast}/>
+    </div>
+  );
+};
+
+const WFMTravel = ({ nav }) => {
+  const [showForm, setShowForm] = useState(false);
+  const [tab, setTab] = useState('requests');
+  const [toast, showToast] = useToast();
+  const requests = [
+    {dest:'Delhi',purpose:'Client meeting - Highway Bridge milestone review',dep:'Apr 30',ret:'May 1',cost:'₹25,000',status:'approved',by:'Priya Mehta'},
+    {dest:'Bangalore',purpose:'Solar Farm site inspection',dep:'May 15',ret:'May 16',cost:'₹18,000',status:'pending',by:''},
+  ];
+  const expenses = [
+    {cat:'Flight',amount:'₹8,500',date:'Apr 30',receipt:true},
+    {cat:'Hotel',amount:'₹4,000',date:'Apr 30',receipt:true},
+    {cat:'Cab',amount:'₹850',date:'May 1',receipt:false},
+  ];
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="Travel & Expense" subtitle="Trips & reimbursements" onBack={()=>nav('wfm-dashboard')} orbit="WFM"/>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:14}}>
+          {[{l:'Active Trips',v:'2'},{l:'Approved',v:'1'},{l:'Total Claims',v:'₹13,350'}].map(s=>(
+            <div key={s.l} className="stat-card"><p style={{fontSize:16,fontWeight:800,color:'#111827'}}>{s.v}</p><p style={{fontSize:10,color:'#9ca3af',marginTop:2}}>{s.l}</p></div>
+          ))}
+        </div>
+        <div className="tab-bar">
+          {[['requests','Travel Requests'],['expenses','Expenses']].map(([k,l])=>(
+            <button key={k} className={`tab-btn${tab===k?' active':''}`} onClick={()=>setTab(k)}>{l}</button>
+          ))}
+        </div>
+        {tab==='requests' && <>
+          {requests.map((r,i)=>(
+            <div key={i} className="card" style={{marginBottom:10}}>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
+                <p style={{fontSize:14,fontWeight:700,color:'#111827'}}>→ {r.dest}</p>
+                <StatusBadge status={r.status}/>
+              </div>
+              <p style={{fontSize:12,color:'#6b7280',marginBottom:8}}>{r.purpose}</p>
+              <div style={{display:'flex',gap:16,marginBottom:8}}>
+                <span style={{fontSize:11,color:'#9ca3af'}}>📅 {r.dep} – {r.ret}</span>
+                <span style={{fontSize:11,color:'#374151',fontWeight:600}}>Est: {r.cost}</span>
+              </div>
+              {r.status==='approved' && <p style={{fontSize:11,color:'#16a34a'}}>✓ Approved by {r.by}</p>}
+            </div>
+          ))}
+          <button className="btn-primary" style={{width:'100%',marginTop:4}} onClick={()=>setShowForm(true)}>+ New Travel Request</button>
+        </>}
+        {tab==='expenses' && <>
+          {expenses.map((e,i)=>(
+            <div key={i} className="card" style={{marginBottom:8,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <div>
+                <p style={{fontSize:13,fontWeight:600,color:'#111827'}}>{e.cat}</p>
+                <p style={{fontSize:11,color:'#6b7280'}}>{e.date} · {e.receipt?'Receipt attached':'No receipt'}</p>
+              </div>
+              <span style={{fontSize:15,fontWeight:700,color:'#111827'}}>{e.amount}</span>
+            </div>
+          ))}
+          <div className="card" style={{background:'#f0fdf4',border:'1px solid #bbf7d0',marginTop:8}}>
+            <p style={{fontSize:13,fontWeight:700,color:'#166534'}}>Reimbursable: ₹12,500</p>
+            <p style={{fontSize:11,color:'#16a34a',marginTop:2}}>Policy limit: ₹20,000 · Within limit ✓</p>
+          </div>
+          <button className="btn-primary" style={{width:'100%',marginTop:12}} onClick={()=>showToast('Expense claim submitted!')}>Submit Claim</button>
+        </>}
+      </div>
+      {showForm && (
+        <div className="modal-backdrop" onClick={()=>setShowForm(false)}>
+          <div className="modal-sheet" onClick={e=>e.stopPropagation()}>
+            <div className="drag-handle"/>
+            <div style={{padding:'0 20px 12px',borderBottom:'1px solid #e5e7eb'}}><h3 style={{fontSize:15,fontWeight:700}}>New Travel Request</h3></div>
+            <div style={{overflowY:'auto',padding:'16px 20px',display:'flex',flexDirection:'column',gap:12}}>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Trip Type</label>
+                <div style={{display:'flex',gap:8}}>{['Inhouse','External'].map(t=><button key={t} style={{flex:1,padding:'8px',border:'1px solid #e5e7eb',borderRadius:8,fontSize:12,cursor:'pointer',background:'#f8f9fc'}}>{t}</button>)}</div></div>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Destination *</label><input className="input-field" placeholder="City, State"/></div>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Purpose *</label><textarea className="input-field" rows={2} style={{resize:'none'}} placeholder="Purpose of travel..."/></div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Departure</label><input className="input-field" type="date"/></div>
+                <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Return</label><input className="input-field" type="date"/></div>
+              </div>
+              <div style={{display:'flex',gap:12}}>
+                {['Advance Needed','Hotel Required','Booking Needed'].map(opt=>(
+                  <label key={opt} style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'#374151',cursor:'pointer'}}><input type="checkbox"/>{opt}</label>
+                ))}
+              </div>
+              <div style={{display:'flex',gap:10}}>
+                <button className="btn-ghost" style={{flex:1}} onClick={()=>setShowForm(false)}>Cancel</button>
+                <button className="btn-primary" style={{flex:1}} onClick={()=>{setShowForm(false);showToast('Travel request submitted!');}}>Submit Request</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      <WFMBottomNav current="wfm-travel" nav={nav}/>
+      <Toast msg={toast}/>
+    </div>
+  );
+};
+
+const WFMSafety = ({ nav }) => {
+  const [toast, showToast] = useToast();
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="Safety" subtitle="Incidents & compliance" onBack={()=>nav('wfm-dashboard')} orbit="WFM"/>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        <div style={{background:'linear-gradient(135deg,#16a34a,#15803d)',borderRadius:16,padding:'20px',marginBottom:14,textAlign:'center'}}>
+          <p style={{fontSize:11,color:'rgba(255,255,255,0.75)',fontWeight:600,marginBottom:6}}>Days Since Last Incident</p>
+          <p style={{fontSize:52,fontWeight:800,color:'#fff',lineHeight:1}}>47</p>
+          <p style={{fontSize:12,color:'rgba(255,255,255,0.75)',marginTop:4}}>Last incident: March 18, 2026</p>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:14}}>
+          {[{l:'Open Incidents',v:'1',c:'#dc2626'},{l:'Near Misses',v:'3',c:'#d97706'},{l:'Safety Audits',v:'3/12',c:'#1a56db'},{l:'Training Done',v:'85%',c:'#16a34a'}].map(s=>(
+            <div key={s.l} className="stat-card"><p style={{fontSize:22,fontWeight:800,color:s.c}}>{s.v}</p><p style={{fontSize:10,color:'#9ca3af',marginTop:2}}>{s.l}</p></div>
+          ))}
+        </div>
+        <p className="section-title">Open Incidents</p>
+        <div className="card" style={{marginBottom:10,borderLeft:'3px solid #dc2626'}}>
+          <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}><p style={{fontSize:13,fontWeight:600,color:'#111827'}}>Minor incident - Block C signage</p><StatusBadge status="pending"/></div>
+          <p style={{fontSize:11,color:'#6b7280',marginBottom:6}}>Apr 18, 2026 · Root cause: Inadequate signage</p>
+          <p style={{fontSize:11,color:'#dc2626',fontWeight:600}}>Corrective action in progress</p>
+        </div>
+        <button className="btn-primary" style={{width:'100%',background:'#dc2626'}} onClick={()=>showToast('Safety report form opened')}>Report Safety Incident</button>
+      </div>
+      <WFMBottomNav current="wfm-safety" nav={nav}/>
+      <Toast msg={toast}/>
+    </div>
+  );
+};
+
+const WFMAnalytics = ({ nav }) => {
+  const [toast, showToast] = useToast();
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="Analytics" subtitle="Productivity & workforce insights" onBack={()=>nav('wfm-dashboard')} orbit="WFM"/>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        {/* Productivity Score */}
+        <div className="card" style={{marginBottom:14,textAlign:'center'}}>
+          <p style={{fontSize:11,fontWeight:700,color:'#9ca3af',textTransform:'uppercase',letterSpacing:'.5px',marginBottom:8}}>My Productivity Score</p>
+          <div style={{position:'relative',width:110,height:110,margin:'0 auto 12px'}}>
+            <svg width="110" height="110" viewBox="0 0 110 110">
+              <circle cx="55" cy="55" r="44" fill="none" stroke="#f0f1f4" strokeWidth="10"/>
+              <circle cx="55" cy="55" r="44" fill="none" stroke="#7c3aed" strokeWidth="10"
+                strokeDasharray={`${82/100*276.5} 276.5`} strokeLinecap="round" transform="rotate(-90 55 55)"/>
+            </svg>
+            <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
+              <span style={{fontSize:26,fontWeight:800,color:'#111827'}}>82</span>
+              <span style={{fontSize:10,color:'#9ca3af'}}>/100</span>
+            </div>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
+            {[{l:'Tasks/Day Avg',v:'4.2'},{l:'Sprint Velocity',v:'38 pts'},{l:'Focus Score',v:'High'}].map(s=>(
+              <div key={s.l} style={{background:'#f8f9fc',borderRadius:8,padding:'8px 4px',textAlign:'center'}}>
+                <p style={{fontSize:13,fontWeight:700,color:'#7c3aed'}}>{s.v}</p><p style={{fontSize:9,color:'#9ca3af',marginTop:2}}>{s.l}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Attendance */}
+        <div className="card" style={{marginBottom:14}}>
+          <p style={{fontSize:13,fontWeight:700,color:'#111827',marginBottom:10}}>Attendance (This Month)</p>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
+            {[{l:'Days Present',v:'22',c:'#16a34a'},{l:'Late Arrivals',v:'2',c:'#d97706'},{l:'Days Absent',v:'1',c:'#dc2626'}].map(s=>(
+              <div key={s.l} className="stat-card"><p style={{fontSize:20,fontWeight:800,color:s.c}}>{s.v}</p><p style={{fontSize:9,color:'#9ca3af',marginTop:2}}>{s.l}</p></div>
+            ))}
+          </div>
+          <div style={{marginTop:12}}>
+            <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+              <span style={{fontSize:12,color:'#374151'}}>Attendance Rate</span><span style={{fontSize:12,fontWeight:700,color:'#16a34a'}}>92%</span>
+            </div>
+            <ProgressBar value={92} color="#16a34a"/>
+          </div>
+        </div>
+        {/* Smart Nudges */}
+        <p className="section-title">AI Smart Nudges</p>
+        {[{msg:'You have 3 overdue tasks. Consider blocking time this afternoon.',icon:'alert-triangle',c:'#d97706'},{msg:'Your sprint velocity is above team average. Great work!',icon:'trending-up',c:'#16a34a'},{msg:'Lunch break attendance is low this week. Take proper breaks!',icon:'sun',c:'#1a56db'}].map((n,i)=>(
+          <div key={i} className="card" style={{marginBottom:8,display:'flex',gap:10,alignItems:'flex-start',borderLeft:`3px solid ${n.c}`}}>
+            <Icon name={n.icon} size={16} color={n.c} style={{flexShrink:0,marginTop:1}}/>
+            <p style={{fontSize:12,color:'#374151',lineHeight:1.5}}>{n.msg}</p>
+          </div>
+        ))}
+        <p className="section-title" style={{marginTop:8}}>Report Center</p>
+        {[['Attendance Report','Monthly attendance summary'],['Timesheet Report','Hours logged by project'],['Task Completion Report','Tasks completed vs assigned']].map(([t,d])=>(
+          <div key={t} className="card" style={{marginBottom:8,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+            <div><p style={{fontSize:13,fontWeight:600,color:'#111827'}}>{t}</p><p style={{fontSize:11,color:'#9ca3af'}}>{d}</p></div>
+            <button style={{border:'none',background:'#eff4ff',borderRadius:8,padding:'6px 10px',cursor:'pointer',display:'flex',alignItems:'center',gap:4}} onClick={()=>showToast(`${t} exported`)}>
+              <Icon name="download" size={13} color="#1a56db"/><span style={{fontSize:11,fontWeight:600,color:'#1a56db'}}>Export</span>
+            </button>
+          </div>
+        ))}
+      </div>
+      <WFMBottomNav current="wfm-analytics" nav={nav}/>
+      <Toast msg={toast}/>
+    </div>
+  );
+};
+
+const WFMCommunication = ({ nav }) => {
+  const [tab, setTab] = useState('news');
+  const [toast, showToast] = useToast();
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="Communication" subtitle="News & team updates" onBack={()=>nav('wfm-dashboard')} orbit="WFM"/>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        <div className="tab-bar">
+          {[['news','News & Updates'],['forums','Forums']].map(([k,l])=>(
+            <button key={k} className={`tab-btn${tab===k?' active':''}`} onClick={()=>setTab(k)}>{l}</button>
+          ))}
+        </div>
+        {tab==='news' && [
+          {title:'Q1 Safety Achievement Award',cat:'Recognition',time:'2h ago',urgent:false,body:'Team achieved zero safety incidents in Q1 2026. Special recognition ceremony on May 30.'},
+          {title:'System Maintenance - May 28',cat:'IT',time:'1 day ago',urgent:true,body:'HR systems will be offline for maintenance from 11 PM to 2 AM on May 28.'},
+          {title:'New WFH Policy Update',cat:'Policy',time:'3 days ago',urgent:false,body:'Work from home policy updated to allow 2 days per week for eligible roles.'},
+        ].map((n,i)=>(
+          <div key={i} className="card" style={{marginBottom:10}}>
+            <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
+              <span className="chip" style={{background:'#f3f4f6',color:'#6b7280',fontSize:10}}>{n.cat}</span>
+              <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                {n.urgent && <span className="tag" style={{background:'#fef2f2',color:'#dc2626',fontSize:9}}>Urgent</span>}
+                <span style={{fontSize:10,color:'#9ca3af'}}>{n.time}</span>
+              </div>
+            </div>
+            <p style={{fontSize:13,fontWeight:700,color:'#111827',marginBottom:4}}>{n.title}</p>
+            <p style={{fontSize:12,color:'#6b7280',lineHeight:1.5}}>{n.body}</p>
+          </div>
+        ))}
+        {tab==='forums' && [
+          {title:'Site Safety Discussion - Block C',replies:12,active:'30m ago'},
+          {title:'Project deadline concerns - May sprint',replies:8,active:'2h ago'},
+          {title:'WFH policy feedback thread',replies:24,active:'1 day ago'},
+        ].map((f,i)=>(
+          <div key={i} className="card" style={{marginBottom:10,cursor:'pointer'}} onClick={()=>showToast('Forum opened')}>
+            <p style={{fontSize:13,fontWeight:600,color:'#111827',marginBottom:6}}>{f.title}</p>
+            <div style={{display:'flex',justifyContent:'space-between'}}>
+              <span style={{fontSize:11,color:'#9ca3af'}}>{f.replies} replies</span>
+              <span style={{fontSize:11,color:'#9ca3af'}}>Active {f.active}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+      <WFMBottomNav current="wfm-communication" nav={nav}/>
+      <Toast msg={toast}/>
+    </div>
+  );
+};
+
+const WFMSprintBoard = ({ nav }) => {
+  const [toast, showToast] = useToast();
+  const columns = {
+    'To-Do':[{t:'API endpoint for leave module',p:'high'},{t:'Write unit tests',p:'medium'}],
+    'In-Progress':[{t:'Foundation inspection report',p:'critical'},{t:'WBS tree UI component',p:'high'}],
+    'Done':[{t:'Attendance calendar view',p:'medium'},{t:'Payroll breakdown modal',p:'low'}],
+  };
+  const pColor = {critical:'#dc2626',high:'#d97706',medium:'#1a56db',low:'#16a34a'};
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="Sprint Board" subtitle="Current sprint · May 20-31" onBack={()=>nav('wfm-dashboard')} orbit="WFM"/>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        <div style={{display:'flex',justifyContent:'space-between',marginBottom:12}}>
+          <span style={{fontSize:12,color:'#6b7280'}}>Sprint 12 · 4 of 6 tasks complete</span>
+          <button className="btn-secondary" style={{padding:'5px 12px',fontSize:11}} onClick={()=>showToast('Sprint completed! Incomplete tasks moved to Backlog.')}>Complete Sprint</button>
+        </div>
+        {Object.entries(columns).map(([col,tasks])=>(
+          <div key={col} style={{marginBottom:14}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+              <span style={{fontSize:12,fontWeight:700,color:'#374151'}}>{col}</span>
+              <span className="badge" style={{background:'#f3f4f6',color:'#6b7280'}}>{tasks.length}</span>
+            </div>
+            {tasks.map((t,i)=>(
+              <div key={i} style={{background:'#fff',border:'1px solid #e5e7eb',borderRadius:10,padding:'10px 12px',marginBottom:6,borderLeft:`3px solid ${pColor[t.p]}`}}>
+                <p style={{fontSize:12,fontWeight:500,color:'#111827',lineHeight:1.4}}>{t.t}</p>
+                <span className="tag" style={{color:pColor[t.p],background:pColor[t.p]+'15',fontSize:9,marginTop:4}}>{t.p}</span>
+              </div>
+            ))}
+            <button style={{width:'100%',padding:'8px',border:'1px dashed #e5e7eb',borderRadius:8,background:'#f8f9fc',fontSize:11,color:'#9ca3af',cursor:'pointer'}} onClick={()=>showToast('Task added to '+col)}>+ Add task</button>
+          </div>
+        ))}
+      </div>
+      <WFMBottomNav current="wfm-sprint" nav={nav}/>
+      <Toast msg={toast}/>
+    </div>
+  );
+};
+
+const WFMNotifications = ({ nav }) => {
+  const [notifs, setNotifs] = useState([
+    {id:1,title:'Leave Request Pending',msg:'Rahul Verma requested 5 days leave. Approve or reject.',type:'leave',time:'2h ago',read:false},
+    {id:2,title:'Task Overdue',msg:'Foundation inspection report is 2 days overdue.',type:'task',time:'5h ago',read:false},
+    {id:3,title:'Timesheet Reminder',msg:'Please submit your timesheet for the week ending May 19.',type:'timesheet',time:'1 day ago',read:true},
+  ]);
+  const typeIcon = {leave:'calendar',task:'clipboard',timesheet:'file-text',shift:'repeat'};
+  const typeColor = {leave:'#1a56db',task:'#dc2626',timesheet:'#7c3aed',shift:'#16a34a'};
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="Notifications" onBack={()=>nav('wfm-dashboard')} orbit="WFM">
+        <button onClick={()=>setNotifs(n=>n.map(x=>({...x,read:true})))} style={{fontSize:12,color:'#7c3aed',fontWeight:600,border:'none',background:'none',cursor:'pointer'}}>Mark all read</button>
+      </ScreenHeader>
+      <div className="scroll-area" style={{padding:'16px'}}>
+        {notifs.map(n=>(
+          <div key={n.id} onClick={()=>setNotifs(ns=>ns.map(x=>x.id===n.id?{...x,read:true}:x))}
+            className="card" style={{marginBottom:8,cursor:'pointer',borderLeft:`3px solid ${n.read?'#e5e7eb':typeColor[n.type]}`}}>
+            <div style={{display:'flex',gap:10,alignItems:'flex-start'}}>
+              <div style={{width:36,height:36,background:typeColor[n.type]+'15',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                <Icon name={typeIcon[n.type]} size={16} color={typeColor[n.type]}/>
+              </div>
+              <div style={{flex:1}}>
+                <div style={{display:'flex',justifyContent:'space-between'}}>
+                  <p style={{fontSize:13,fontWeight:n.read?500:700,color:'#111827'}}>{n.title}</p>
+                  {!n.read && <span style={{width:8,height:8,background:'#7c3aed',borderRadius:'50%',flexShrink:0,marginTop:4}}/>}
+                </div>
+                <p style={{fontSize:12,color:'#6b7280',marginTop:2,lineHeight:1.4}}>{n.msg}</p>
+                <p style={{fontSize:10,color:'#9ca3af',marginTop:4}}>{n.time}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// WFM Bottom Navigation
+const WFMBottomNav = ({ current, nav }) => {
+  const [showMore, setShowMore] = useState(false);
+  const tabs = [
+    {s:'wfm-dashboard',l:'Home',icon:'home'},
+    {s:'wfm-attendance',l:'Attendance',icon:'clock'},
+    {s:'wfm-tasks',l:'Tasks',icon:'clipboard'},
+    {s:'wfm-approvals',l:'Approvals',icon:'check-circle'},
+    {s:'__more__',l:'More',icon:'grid'},
+  ];
+  const moreItems = [
+    {s:'wfm-shifts',l:'Shifts',icon:'repeat',c:'#7c3aed',bg:'#f5f3ff'},
+    {s:'wfm-timesheet',l:'Timesheet',icon:'file-text',c:'#16a34a',bg:'#f0fdf4'},
+    {s:'wfm-projects',l:'Projects',icon:'layers',c:'#1a56db',bg:'#eff4ff'},
+    {s:'wfm-travel',l:'Travel',icon:'airplane',c:'#0891b2',bg:'#ecfeff'},
+    {s:'wfm-safety',l:'Safety',icon:'shield',c:'#dc2626',bg:'#fef2f2'},
+    {s:'wfm-analytics',l:'Analytics',icon:'bar-chart',c:'#7c3aed',bg:'#f5f3ff'},
+    {s:'wfm-sprint',l:'Sprint Board',icon:'git-branch',c:'#f59e0b',bg:'#fffbeb'},
+    {s:'wfm-communication',l:'Updates',icon:'message',c:'#16a34a',bg:'#f0fdf4'},
+    {s:'wfm-manager',l:'Manager Hub',icon:'users',c:'#1a56db',bg:'#eff4ff'},
+    {s:'wfm-notifications',l:'Notifications',icon:'bell',c:'#f59e0b',bg:'#fffbeb'},
+    {s:'orbit-select',l:'Switch Orbit',icon:'repeat',c:'#7c3aed',bg:'#f5f3ff'},
+  ];
+  return (
+    <>
+      {showMore && (
+        <div className="modal-backdrop" onClick={()=>setShowMore(false)}>
+          <div className="modal-sheet" onClick={e=>e.stopPropagation()} style={{paddingBottom:16}}>
+            <div className="drag-handle"/>
+            <div style={{padding:'0 16px 12px',borderBottom:'1px solid #e5e7eb'}}><h3 style={{fontSize:14,fontWeight:700,color:'#111827'}}>More WFM Modules</h3></div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:12,padding:'16px'}}>
+              {moreItems.map(m=>(
+                <button key={m.s} onClick={()=>{setShowMore(false);nav(m.s);}} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:6,border:'none',background:'none',cursor:'pointer'}}>
+                  <div style={{width:44,height:44,background:m.bg,borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    <Icon name={m.icon} size={20} color={m.c}/>
+                  </div>
+                  <span style={{fontSize:10,fontWeight:600,color:'#374151',textAlign:'center'}}>{m.l}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+      <div className="bottom-nav" style={{borderTop:'1px solid #ddd6fe'}}>
+        {tabs.map(t=>{
+          const active = t.s===current;
+          return (
+            <button key={t.s} className={`nav-btn${active?' active':''}`}
+              style={active?{color:'#7c3aed'}:{}}
+              onClick={()=>t.s==='__more__'?setShowMore(true):nav(t.s)}>
+              {active && <span className="nav-indicator" style={{background:'#7c3aed'}}/>}
+              <Icon name={t.icon} size={22}/>
+              <span className="nav-label">{t.l}</span>
+            </button>
+          );
+        })}
+      </div>
+    </>
+  );
+};
+
+// HRMS Bottom Navigation
+const HRMSBottomNav = ({ current, nav }) => {
+  const [showMore, setShowMore] = useState(false);
+  const tabs = [
+    {s:'hrms-dashboard',l:'Home',icon:'home'},
+    {s:'hrms-payroll',l:'Payroll',icon:'dollar-sign'},
+    {s:'hrms-performance',l:'Performance',icon:'target'},
+    {s:'hrms-services',l:'HR',icon:'briefcase'},
+    {s:'__more__',l:'More',icon:'grid'},
+  ];
+  const moreItems = [
+    {s:'hrms-profile',l:'Profile',icon:'user',c:'#6b7280',bg:'#f3f4f6'},
+    {s:'hrms-skills',l:'Skills',icon:'award',c:'#16a34a',bg:'#f0fdf4'},
+    {s:'hrms-wellness',l:'Wellness',icon:'heart',c:'#ec4899',bg:'#fdf2f8'},
+    {s:'hrms-directory',l:'Directory',icon:'users',c:'#0891b2',bg:'#ecfeff'},
+    {s:'hrms-assets',l:'Assets',icon:'monitor',c:'#16a34a',bg:'#f0fdf4'},
+    {s:'hrms-ai',l:'AI Assistant',icon:'zap',c:'#7c3aed',bg:'#f5f3ff'},
+    {s:'hrms-notifications',l:'Notifications',icon:'bell',c:'#f59e0b',bg:'#fffbeb'},
+    {s:'orbit-select',l:'Switch Orbit',icon:'repeat',c:'#1a56db',bg:'#eff4ff'},
+  ];
+  return (
+    <>
+      {showMore && (
+        <div className="modal-backdrop" onClick={()=>setShowMore(false)}>
+          <div className="modal-sheet" onClick={e=>e.stopPropagation()} style={{paddingBottom:16}}>
+            <div className="drag-handle"/>
+            <div style={{padding:'0 16px 12px',borderBottom:'1px solid #e5e7eb'}}><h3 style={{fontSize:14,fontWeight:700,color:'#111827'}}>More HRMS Modules</h3></div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:12,padding:'16px'}}>
+              {moreItems.map(m=>(
+                <button key={m.s} onClick={()=>{setShowMore(false);nav(m.s);}} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:6,border:'none',background:'none',cursor:'pointer'}}>
+                  <div style={{width:44,height:44,background:m.bg,borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    <Icon name={m.icon} size={20} color={m.c}/>
+                  </div>
+                  <span style={{fontSize:10,fontWeight:600,color:'#374151',textAlign:'center'}}>{m.l}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+      <div className="bottom-nav">
+        {tabs.map(t=>{
+          const active = t.s===current;
+          return (
+            <button key={t.s} className={`nav-btn${active?' active':''}`}
+              onClick={()=>t.s==='__more__'?setShowMore(true):nav(t.s)}>
+              {active && <span className="nav-indicator"/>}
+              <Icon name={t.icon} size={22}/>
+              <span className="nav-label">{t.l}</span>
+            </button>
+          );
+        })}
+      </div>
+    </>
+  );
+};
+
+
+
+// ══════════════════════════════════════════════════════════════
+// MAIN APP ROUTER
+// ══════════════════════════════════════════════════════════════
+const App = () => {
+  const [screen, setScreen] = useState('login');
+  const nav = (s) => setScreen(s);
+
+  const screens = {
+    'login': <LoginScreen nav={nav}/>,
+    'orbit-select': <OrbitSelectScreen nav={nav}/>,
+    // HRMS
+    'hrms-dashboard': <HRMSDashboard nav={nav}/>,
+    'hrms-payroll': <HRMSPayroll nav={nav}/>,
+    'hrms-performance': <HRMSPerformance nav={nav}/>,
+    'hrms-services': <HRMSServices nav={nav}/>,
+    'hrms-recruitment': <HRMSRecruitment nav={nav}/>,
+    'hrms-onboarding': <HRMSOnboarding nav={nav}/>,
+    'hrms-offboarding': <HRMSOffboarding nav={nav}/>,
+    'hrms-grievances': <HRMSGrievances nav={nav}/>,
+    'hrms-compliance': <HRMSCompliance nav={nav}/>,
+    'hrms-benefits': <HRMSBenefits nav={nav}/>,
+    'hrms-helpdesk': <HRMSHelpdesk nav={nav}/>,
+    'hrms-skills': <HRMSSkills nav={nav}/>,
+    'hrms-wellness': <HRMSWellness nav={nav}/>,
+    'hrms-directory': <HRMSDirectory nav={nav}/>,
+    'hrms-profile': <HRMSProfile nav={nav}/>,
+    'hrms-assets': <HRMSAssets nav={nav}/>,
+    'hrms-ai': <HRMSAIAssistant nav={nav}/>,
+    'hrms-notifications': <HRMSNotifications nav={nav}/>,
+    // WFM
+    'wfm-dashboard': <WFMDashboard nav={nav}/>,
+    'wfm-attendance': <WFMAttendance nav={nav}/>,
+    'wfm-shifts': <WFMShifts nav={nav}/>,
+    'wfm-timesheet': <WFMTimesheet nav={nav}/>,
+    'wfm-tasks': <WFMTasks nav={nav}/>,
+    'wfm-projects': <WFMProjects nav={nav}/>,
+    'wfm-approvals': <WFMApprovals nav={nav}/>,
+    'wfm-manager': <WFMManagerHub nav={nav}/>,
+    'wfm-travel': <WFMTravel nav={nav}/>,
+    'wfm-safety': <WFMSafety nav={nav}/>,
+    'wfm-analytics': <WFMAnalytics nav={nav}/>,
+    'wfm-communication': <WFMCommunication nav={nav}/>,
+    'wfm-sprint': <WFMSprintBoard nav={nav}/>,
+    'wfm-notifications': <WFMNotifications nav={nav}/>,
+  };
+
+  return screens[screen] || screens['login'];
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
