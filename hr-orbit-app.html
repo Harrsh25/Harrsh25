@@ -401,6 +401,15 @@ const OrbitSelectScreen = ({ nav }) => {
 
 const HRMSDashboard = ({ nav }) => {
   const [toast, showToast] = useToast();
+  const [checkedIn, setCheckedIn] = useState(false);
+  const [onBreak, setOnBreak] = useState(false);
+  const [checkInTime, setCheckInTime] = useState(null);
+  const fmtTime = d => d ? d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true}) : '--:--';
+  const punch = () => {
+    if (!checkedIn) { setCheckInTime(new Date()); setCheckedIn(true); showToast('Punched in successfully'); }
+    else if (!onBreak) { setOnBreak(true); showToast('Break started'); }
+    else { setOnBreak(false); showToast('Break ended'); }
+  };
   const goals = [
     { title:'Metro Tower Phase 1', progress:34, status:'on-track' },
     { title:'Reduce project costs 8%', progress:42, status:'at-risk' },
@@ -428,6 +437,44 @@ const HRMSDashboard = ({ nav }) => {
         </div>
       </div>
       <div className="scroll-area" style={{padding:'16px'}}>
+        {/* Punch In / Punch Out Card */}
+        <div className="card" style={{marginBottom:14}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+            <div style={{display:'flex',alignItems:'center',gap:6}}>
+              <span style={{width:8,height:8,borderRadius:'50%',background:checkedIn&&!onBreak?'#16a34a':onBreak?'#d97706':'#9ca3af',boxShadow:checkedIn&&!onBreak?'0 0 0 3px rgba(22,163,74,0.2)':'none'}}/>
+              <span style={{fontSize:12,fontWeight:600,color:checkedIn&&!onBreak?'#16a34a':onBreak?'#d97706':'#6b7280'}}>
+                {checkedIn ? onBreak ? 'On Break' : 'Checked In' : 'Not Checked In'}
+              </span>
+            </div>
+            <div style={{display:'flex',alignItems:'center',gap:4}}>
+              <Icon name="map-pin" size={11} color="#9ca3af"/>
+              <span style={{fontSize:10,color:'#9ca3af'}}>Mumbai HQ</span>
+              <span style={{fontSize:9,fontWeight:700,color:'#16a34a',background:'#f0fdf4',borderRadius:20,padding:'1px 6px',marginLeft:4}}>Geofenced</span>
+            </div>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr auto 1fr',alignItems:'center',gap:8,marginBottom:12}}>
+            <div>
+              <p style={{fontSize:9,color:'#9ca3af',fontWeight:600,textTransform:'uppercase',letterSpacing:'.4px'}}>Check In</p>
+              <p style={{fontSize:22,fontWeight:700,color:'#111827',marginTop:2}}>{fmtTime(checkInTime)}</p>
+            </div>
+            <div style={{textAlign:'center'}}>
+              <div style={{width:52,height:52,borderRadius:'50%',background:'#f8f9fc',border:'3px solid #e5e7eb',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                <Icon name="clock" size={20} color={checkedIn?'#1a56db':'#9ca3af'}/>
+              </div>
+              <p style={{fontSize:9,color:'#9ca3af',marginTop:3}}>{checkedIn?onBreak?'On Break':'Working':'Not started'}</p>
+            </div>
+            <div style={{textAlign:'right'}}>
+              <p style={{fontSize:9,color:'#9ca3af',fontWeight:600,textTransform:'uppercase',letterSpacing:'.4px'}}>Check Out</p>
+              <p style={{fontSize:22,fontWeight:700,color:'#9ca3af',marginTop:2}}>--:--</p>
+            </div>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'2fr 1fr',gap:8}}>
+            <button className="btn-primary" style={{background:checkedIn?onBreak?'#7c3aed':'#d97706':'#1a56db'}} onClick={punch}>
+              {checkedIn ? onBreak ? 'End Break' : 'Start Break' : 'Check In'}
+            </button>
+            {checkedIn && !onBreak && <button className="btn-ghost" style={{background:'#fef2f2',color:'#dc2626',border:'1px solid #fecaca'}} onClick={()=>{setCheckedIn(false);showToast('Checked out successfully');}}>Check Out</button>}
+          </div>
+        </div>
         {/* Quick Stats */}
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:16}}>
           {[
@@ -534,7 +581,7 @@ const HRMSPayroll = ({ nav }) => {
   const fmt = n => '₹'+n.toLocaleString('en-IN');
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="Payroll" subtitle="Salary & compensation" onBack={()=>nav('hrms-dashboard')} orbit="HRMS">
+      <ScreenHeader title="Payroll" subtitle="Salary & compensation" onBack={()=>nav('hrms-dashboard')}>
       </ScreenHeader>
       <div style={{display:'flex',borderBottom:'1px solid #e5e7eb',background:'#fff',flexShrink:0}}>
         {[['payslip','Payslip'],['tax','Tax & IT'],['ctc','CTC & Forms']].map(([k,l])=>(
@@ -678,7 +725,7 @@ const HRMSPerformance = ({ nav }) => {
   }[s]||'#6b7280');
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="Performance" subtitle="OKRs & Reviews" onBack={()=>nav('hrms-dashboard')} orbit="HRMS">
+      <ScreenHeader title="Performance" subtitle="OKRs & Reviews" onBack={()=>nav('hrms-dashboard')}>
       </ScreenHeader>
       <div style={{display:'flex',borderBottom:'1px solid #e5e7eb',background:'#fff',flexShrink:0}}>
         {[['okr','OKR Goals'],['review','Reviews'],['feedback','360° Feedback']].map(([k,l])=>(
@@ -806,7 +853,7 @@ const HRMSServices = ({ nav }) => {
   ];
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="HR Services" subtitle="All HR modules" orbit="HRMS">
+      <ScreenHeader title="HR Services" subtitle="All HR modules">
       </ScreenHeader>
       <div className="scroll-area" style={{padding:'16px'}}>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
@@ -838,7 +885,7 @@ const HRMSRecruitment = ({ nav }) => {
   ];
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="Recruitment" subtitle="Open positions & referrals" onBack={()=>nav('hrms-services')} orbit="HRMS"/>
+      <ScreenHeader title="Recruitment" subtitle="Open positions & referrals" onBack={()=>nav('hrms-services')}/>
       <div className="scroll-area" style={{padding:'16px'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
           <p className="section-title" style={{marginBottom:0}}>Open Positions ({jobs.length})</p>
@@ -910,7 +957,7 @@ const HRMSOnboarding = ({ nav }) => {
   const steps = ['Personal Details','Contact','Job Details','Bank Account','Statutory'];
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="Onboarding" subtitle="Add new joinee" onBack={()=>nav('hrms-services')} orbit="HRMS"/>
+      <ScreenHeader title="Onboarding" subtitle="Add new joinee" onBack={()=>nav('hrms-services')}/>
       <div className="scroll-area" style={{padding:'16px'}}>
         {!done ? <>
           {/* Step indicator */}
@@ -972,7 +1019,7 @@ const HRMSOffboarding = ({ nav }) => {
   const nocs = [{dept:'IT',status:'cleared'},{dept:'Finance',status:'pending'},{dept:'Admin',status:'cleared'},{dept:'HR',status:'pending'}];
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="Offboarding" subtitle="Exit process & clearance" onBack={()=>nav('hrms-services')} orbit="HRMS"/>
+      <ScreenHeader title="Offboarding" subtitle="Exit process & clearance" onBack={()=>nav('hrms-services')}/>
       <div className="scroll-area" style={{padding:'16px'}}>
         <div className="card" style={{marginBottom:14,background:'linear-gradient(135deg,#f59e0b,#d97706)'}}>
           <p style={{fontSize:11,color:'rgba(255,255,255,0.8)',fontWeight:600}}>Exit Notice</p>
@@ -1034,7 +1081,7 @@ const HRMSGrievances = ({ nav }) => {
   ];
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="Grievances" subtitle="Raise & track issues" onBack={()=>nav('hrms-services')} orbit="HRMS"/>
+      <ScreenHeader title="Grievances" subtitle="Raise & track issues" onBack={()=>nav('hrms-services')}/>
       <div className="scroll-area" style={{padding:'16px'}}>
         <button className="btn-primary" style={{width:'100%',marginBottom:16}} onClick={()=>setShowForm(true)}>+ Raise a Grievance</button>
         <p className="section-title">My Grievances</p>
@@ -1094,7 +1141,7 @@ const HRMSCompliance = ({ nav }) => {
   const [toast, showToast] = useToast();
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="Compliance" subtitle="Policies & regulations" onBack={()=>nav('hrms-services')} orbit="HRMS"/>
+      <ScreenHeader title="Compliance" subtitle="Policies & regulations" onBack={()=>nav('hrms-services')}/>
       <div className="scroll-area" style={{padding:'16px'}}>
         <p className="section-title">Pending Actions (3)</p>
         {[{t:'Code of Conduct 2026',d:'Annual policy acknowledgement required',urgent:true},{t:'Data Privacy Policy',d:'Review updated policy and acknowledge',urgent:false},{t:'IT Security Policy',d:'Complete mandatory training by May 31',urgent:true}].map((p,i)=>(
@@ -1136,7 +1183,7 @@ const HRMSBenefits = ({ nav }) => {
   ];
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="Benefits" subtitle="Medical, LTC, GPF, NPS" onBack={()=>nav('hrms-services')} orbit="HRMS"/>
+      <ScreenHeader title="Benefits" subtitle="Medical, LTC, GPF, NPS" onBack={()=>nav('hrms-services')}/>
       <div className="scroll-area" style={{padding:'16px'}}>
         {benefits.map((b,i)=>(
           <div key={i} className="card" style={{marginBottom:10,display:'flex',alignItems:'center',gap:12}}>
@@ -1175,7 +1222,7 @@ const HRMSHelpdesk = ({ nav }) => {
   };
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="HR Helpdesk" subtitle="Support tickets" onBack={()=>nav('hrms-services')} orbit="HRMS"/>
+      <ScreenHeader title="HR Helpdesk" subtitle="Support tickets" onBack={()=>nav('hrms-services')}/>
       <div className="scroll-area" style={{padding:'16px'}}>
         <button className="btn-primary" style={{width:'100%',marginBottom:16}} onClick={()=>setShowForm(true)}>+ Raise a Ticket</button>
         <div className="tab-bar">
@@ -1231,7 +1278,7 @@ const HRMSSkills = ({ nav }) => {
   const paths = [{name:'Project Director Readiness',progress:62,modules:8},{name:'Agile & Scrum Master',progress:35,modules:5}];
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="Skills & Talent" subtitle="Certifications & career growth" onBack={()=>nav('hrms-dashboard')} orbit="HRMS"/>
+      <ScreenHeader title="Skills & Talent" subtitle="Certifications & career growth" onBack={()=>nav('hrms-dashboard')}/>
       <div className="scroll-area" style={{padding:'16px'}}>
         {/* Career card */}
         <div className="card" style={{marginBottom:14,background:'linear-gradient(135deg,#1a56db,#7c3aed)'}}>
@@ -1315,7 +1362,7 @@ const HRMSWellness = ({ nav }) => {
   const [toast, showToast] = useToast();
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="Employee Wellness" subtitle="Holistic health & engagement" onBack={()=>nav('hrms-dashboard')} orbit="HRMS"/>
+      <ScreenHeader title="Employee Wellness" subtitle="Holistic health & engagement" onBack={()=>nav('hrms-dashboard')}/>
       <div className="scroll-area" style={{padding:'16px'}}>
         {/* Wellness Index */}
         <div className="card" style={{marginBottom:14,textAlign:'center'}}>
@@ -1412,7 +1459,7 @@ const HRMSDirectory = ({ nav }) => {
   const colors = ['#1a56db','#7c3aed','#16a34a','#f59e0b','#ec4899'];
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="Directory" subtitle="Employee directory" onBack={()=>nav('hrms-dashboard')} orbit="HRMS"/>
+      <ScreenHeader title="Directory" subtitle="Employee directory" onBack={()=>nav('hrms-dashboard')}/>
       <div style={{padding:'12px 16px',background:'#fff',borderBottom:'1px solid #e5e7eb',flexShrink:0}}>
         <div className="search-bar"><Icon name="search" size={16} color="#9ca3af"/>
           <input placeholder="Search by name or department..." value={search} onChange={e=>setSearch(e.target.value)}/>
@@ -1466,7 +1513,7 @@ const HRMSProfile = ({ nav }) => {
   const [toast, showToast] = useToast();
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="Digital Worker Profile" onBack={()=>nav('hrms-dashboard')} orbit="HRMS"/>
+      <ScreenHeader title="Digital Worker Profile" onBack={()=>nav('hrms-dashboard')}/>
       <div className="scroll-area" style={{padding:'16px'}}>
         {/* ID Card */}
         <div style={{background:'linear-gradient(135deg,#1a56db,#1e3a8a)',borderRadius:16,padding:'16px',marginBottom:14}}>
@@ -1538,7 +1585,7 @@ const HRMSAssets = ({ nav }) => {
   ];
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="Asset Management" subtitle="Equipment & assets" onBack={()=>nav('hrms-services')} orbit="HRMS"/>
+      <ScreenHeader title="Asset Management" subtitle="Equipment & assets" onBack={()=>nav('hrms-services')}/>
       <div className="scroll-area" style={{padding:'16px'}}>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:14}}>
           <div className="stat-card"><p style={{fontSize:18,fontWeight:800,color:'#111827'}}>3</p><p style={{fontSize:10,color:'#9ca3af',marginTop:2}}>Total Assets</p></div>
@@ -1607,7 +1654,7 @@ const HRMSAIAssistant = ({ nav }) => {
   };
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="AI HR Assistant" subtitle="Powered by AI" onBack={()=>nav('hrms-services')} orbit="HRMS"/>
+      <ScreenHeader title="AI HR Assistant" subtitle="Powered by AI" onBack={()=>nav('hrms-services')}/>
       <div style={{flex:1,overflowY:'auto',padding:'16px',display:'flex',flexDirection:'column',gap:10}}>
         {msgs.map((m,i)=>(
           <div key={i} style={{display:'flex',justifyContent:m.role==='user'?'flex-end':'flex-start'}}>
@@ -1653,7 +1700,7 @@ const HRMSTravel = ({ nav }) => {
   const statusColor = {approved:{bg:'#f0fdf4',c:'#16a34a'},pending:{bg:'#fffbeb',c:'#d97706'},draft:{bg:'#f3f4f6',c:'#6b7280'}};
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="Travel & Expense" subtitle="Trips & reimbursements" onBack={()=>nav('hrms-dashboard')} orbit="HRMS"/>
+      <ScreenHeader title="Travel & Expense" subtitle="Trips & reimbursements" onBack={()=>nav('hrms-dashboard')}/>
       <div className="scroll-area" style={{padding:'16px'}}>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:14}}>
           {[{l:'Active Trips',v:'3'},{l:'Approved',v:'1'},{l:'Total Claims',v:'₹13,350'}].map(s=>(
@@ -1781,7 +1828,7 @@ const HRMSNotifications = ({ nav }) => {
   const typeColor = {payroll:'#16a34a',leave:'#d97706',training:'#7c3aed',compliance:'#1a56db',performance:'#ec4899'};
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="Notifications" onBack={()=>nav('hrms-dashboard')} orbit="HRMS">
+      <ScreenHeader title="Notifications" onBack={()=>nav('hrms-dashboard')}>
         <button onClick={()=>setNotifs(n=>n.map(x=>({...x,read:true})))} style={{fontSize:12,color:'#1a56db',fontWeight:600,border:'none',background:'none',cursor:'pointer'}}>Mark all read</button>
       </ScreenHeader>
       <div className="scroll-area" style={{padding:'16px'}}>
@@ -1825,7 +1872,7 @@ const HRMSAttendance = ({ nav }) => {
   const leaveBalance = [{l:'Annual Leave',used:8,total:20,c:'#1a56db'},{l:'Sick Leave',used:2,total:12,c:'#dc2626'},{l:'Casual Leave',used:3,total:8,c:'#d97706'},{l:'Comp Off',used:0,total:3,c:'#7c3aed'}];
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="Attendance" subtitle="Track your daily attendance" onBack={()=>nav('hrms-dashboard')} orbit="HRMS"/>
+      <ScreenHeader title="Attendance" subtitle="Track your daily attendance" onBack={()=>nav('hrms-dashboard')}/>
       <div className="scroll-area" style={{padding:'16px'}}>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:8,marginBottom:14}}>
           {summary.map(s=>(
@@ -2080,7 +2127,7 @@ const WFMAttendance = ({ nav }) => {
   const statusColor = {present:'#16a34a','week-off':'#9ca3af',late:'#d97706',absent:'#dc2626','half-day':'#7c3aed'};
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="Attendance" subtitle="Track your daily attendance" onBack={()=>nav('wfm-dashboard')} orbit="WFM">
+      <ScreenHeader title="Attendance" subtitle="Track your daily attendance" onBack={()=>nav('wfm-dashboard')}>
       </ScreenHeader>
       <div className="scroll-area" style={{padding:'16px'}}>
         {/* Calendar strip */}
@@ -2174,7 +2221,7 @@ const WFMShifts = ({ nav }) => {
   const shiftColor = {morning:'#1a56db',general:'#16a34a',evening:'#7c3aed',off:'#9ca3af'};
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="My Shifts" subtitle="Next 14 Days Schedule" onBack={()=>nav('wfm-dashboard')} orbit="WFM"/>
+      <ScreenHeader title="My Shifts" subtitle="Next 14 Days Schedule" onBack={()=>nav('wfm-dashboard')}/>
       <div className="scroll-area" style={{padding:'16px'}}>
         {shifts.map((s,i)=>(
           <div key={i} className="card" style={{marginBottom:8,display:'flex',alignItems:'center',gap:12}}>
@@ -2237,7 +2284,7 @@ const WFMTimesheet = ({ nav }) => {
   ];
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="Timesheets" subtitle="Log & track your hours" onBack={()=>nav('wfm-dashboard')} orbit="WFM"/>
+      <ScreenHeader title="Timesheets" subtitle="Log & track your hours" onBack={()=>nav('wfm-dashboard')}/>
       <div className="scroll-area" style={{padding:'16px'}}>
         <div style={{display:'flex',gap:10,marginBottom:14}}>
           <button className="btn-primary" style={{flex:1}} onClick={()=>setShowCreate(true)}>+ Create Timesheet</button>
@@ -2323,7 +2370,7 @@ const WFMTasks = ({ nav }) => {
   const pColor = {critical:'#dc2626',high:'#d97706',medium:'#1a56db',low:'#16a34a'};
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="My Assignments" subtitle="Tasks & work items" onBack={()=>nav('wfm-dashboard')} orbit="WFM">
+      <ScreenHeader title="My Assignments" subtitle="Tasks & work items" onBack={()=>nav('wfm-dashboard')}>
       </ScreenHeader>
       <div style={{padding:'10px 16px',background:'#fff',borderBottom:'1px solid #e5e7eb',flexShrink:0}}>
         <div style={{display:'flex',gap:6,overflowX:'auto'}}>
@@ -2400,7 +2447,7 @@ const WFMProjects = ({ nav }) => {
   ];
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="Projects" subtitle="Project & WBS management" onBack={()=>nav('wfm-dashboard')} orbit="WFM"/>
+      <ScreenHeader title="Projects" subtitle="Project & WBS management" onBack={()=>nav('wfm-dashboard')}/>
       <div className="scroll-area" style={{padding:'16px'}}>
         <div className="tab-bar">
           {[['list','Project List'],['wbs','WBS View']].map(([k,l])=>(
@@ -2465,7 +2512,7 @@ const WFMApprovals = ({ nav }) => {
   const done = approvals.filter(a=>a.status!=='pending');
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="Approvals" subtitle="Pending requests" onBack={()=>nav('wfm-dashboard')} orbit="WFM">
+      <ScreenHeader title="Approvals" subtitle="Pending requests" onBack={()=>nav('wfm-dashboard')}>
       </ScreenHeader>
       <div className="scroll-area" style={{padding:'16px'}}>
         <div className="tab-bar">
@@ -2513,7 +2560,7 @@ const WFMManagerHub = ({ nav }) => {
   ];
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="Manager Hub" subtitle="Team management" onBack={()=>nav('wfm-dashboard')} orbit="WFM"/>
+      <ScreenHeader title="Manager Hub" subtitle="Team management" onBack={()=>nav('wfm-dashboard')}/>
       <div className="scroll-area" style={{padding:'16px'}}>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:14}}>
           {[{l:'Team Size',v:'8'},{l:'Present Today',v:'6'},{l:'Pending',v:'5'}].map(s=>(
@@ -2582,7 +2629,7 @@ const WFMTravel = ({ nav }) => {
   ];
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="Travel & Expense" subtitle="Trips & reimbursements" onBack={()=>nav('wfm-dashboard')} orbit="WFM"/>
+      <ScreenHeader title="Travel & Expense" subtitle="Trips & reimbursements" onBack={()=>nav('wfm-dashboard')}/>
       <div className="scroll-area" style={{padding:'16px'}}>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:14}}>
           {[{l:'Active Trips',v:'2'},{l:'Approved',v:'1'},{l:'Total Claims',v:'₹13,350'}].map(s=>(
@@ -2665,7 +2712,7 @@ const WFMSafety = ({ nav }) => {
   const [toast, showToast] = useToast();
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="Safety" subtitle="Incidents & compliance" onBack={()=>nav('wfm-dashboard')} orbit="WFM"/>
+      <ScreenHeader title="Safety" subtitle="Incidents & compliance" onBack={()=>nav('wfm-dashboard')}/>
       <div className="scroll-area" style={{padding:'16px'}}>
         <div style={{background:'linear-gradient(135deg,#16a34a,#15803d)',borderRadius:16,padding:'20px',marginBottom:14,textAlign:'center'}}>
           <p style={{fontSize:11,color:'rgba(255,255,255,0.75)',fontWeight:600,marginBottom:6}}>Days Since Last Incident</p>
@@ -2695,7 +2742,7 @@ const WFMAnalytics = ({ nav }) => {
   const [toast, showToast] = useToast();
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="Analytics" subtitle="Productivity & workforce insights" onBack={()=>nav('wfm-dashboard')} orbit="WFM"/>
+      <ScreenHeader title="Analytics" subtitle="Productivity & workforce insights" onBack={()=>nav('wfm-dashboard')}/>
       <div className="scroll-area" style={{padding:'16px'}}>
         {/* Productivity Score */}
         <div className="card" style={{marginBottom:14,textAlign:'center'}}>
@@ -2763,7 +2810,7 @@ const WFMCommunication = ({ nav }) => {
   const [toast, showToast] = useToast();
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="Communication" subtitle="News & team updates" onBack={()=>nav('wfm-dashboard')} orbit="WFM"/>
+      <ScreenHeader title="Communication" subtitle="News & team updates" onBack={()=>nav('wfm-dashboard')}/>
       <div className="scroll-area" style={{padding:'16px'}}>
         <div className="tab-bar">
           {[['news','News & Updates'],['forums','Forums']].map(([k,l])=>(
@@ -2817,7 +2864,7 @@ const WFMSprintBoard = ({ nav }) => {
   const pColor = {critical:'#dc2626',high:'#d97706',medium:'#1a56db',low:'#16a34a'};
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="Sprint Board" subtitle="Current sprint · May 20-31" onBack={()=>nav('wfm-dashboard')} orbit="WFM"/>
+      <ScreenHeader title="Sprint Board" subtitle="Current sprint · May 20-31" onBack={()=>nav('wfm-dashboard')}/>
       <div className="scroll-area" style={{padding:'16px'}}>
         <div style={{display:'flex',justifyContent:'space-between',marginBottom:12}}>
           <span style={{fontSize:12,color:'#6b7280'}}>Sprint 12 · 4 of 6 tasks complete</span>
@@ -2855,7 +2902,7 @@ const WFMNotifications = ({ nav }) => {
   const typeColor = {leave:'#1a56db',task:'#dc2626',timesheet:'#7c3aed',shift:'#16a34a'};
   return (
     <div className="screen screen-anim">
-      <ScreenHeader title="Notifications" onBack={()=>nav('wfm-dashboard')} orbit="WFM">
+      <ScreenHeader title="Notifications" onBack={()=>nav('wfm-dashboard')}>
         <button onClick={()=>setNotifs(n=>n.map(x=>({...x,read:true})))} style={{fontSize:12,color:'#7c3aed',fontWeight:600,border:'none',background:'none',cursor:'pointer'}}>Mark all read</button>
       </ScreenHeader>
       <div className="scroll-area" style={{padding:'16px'}}>
