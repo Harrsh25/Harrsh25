@@ -1,403 +1,377 @@
 #!/usr/bin/env python3
 """
 Add Gantt sub-views: Gantt | Baseline | Critical Path
-All three accessible via tabs inside the Gantt view.
+All variables carefully named to avoid shadowing IIFE vars:
+  W=projStart, pe=projEnd, be=months, _e=weekCols, Ae=weekW,
+  Ue=leftW, ze=gridStart, wt=todayX, qs=barFn, ne=topItems, z=childFn
 """
 
 with open('/home/user/Harrsh25/hrmobileapp.html', 'r', encoding='utf-8') as f:
     content = f.read()
 
-patches = []
-errors = []
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 1. Add ganttSubView state
-# ─────────────────────────────────────────────────────────────────────────────
-patches.append(('Add ganttSub state',
-    '[_ganttSub,_setGanttSub]=b.useState("gantt"),',  # will fail if already added
-    '[_ganttSub,_setGanttSub]=b.useState("gantt"),'
-))
-# Use safe add: only insert if not present
-STATE_ANCHOR = '[_depBdOpen,_setDepBdOpen]=b.useState(!1),'
-STATE_NEW = '[_depBdOpen,_setDepBdOpen]=b.useState(!1),[_ganttSub,_setGanttSub]=b.useState("gantt"),'
-patches.clear()
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Helper: brace-balanced string builder
-# ─────────────────────────────────────────────────────────────────────────────
-
-def verify(s, label):
+# ── helpers ────────────────────────────────────────────────────────────────
+def chk(s, label):
     ob = s.count('{') - s.count('}')
     op = s.count('(') - s.count(')')
-    if ob != 0 or op != 0:
-        print(f'  WARN {label}: {{delta={ob} (delta={op}')
+    status = 'OK' if ob == 0 and op == 0 else f'WARN ob={ob} op={op}'
+    print(f'  {label}: {status}')
     return ob, op
 
+HDR = (
+    'e.jsxs("div",{style:{display:"flex",borderBottom:"1px solid #e5e7eb",'
+    'background:"#f9fafb",position:"sticky",top:0,zIndex:5},children:['
+    'e.jsx("div",{style:{width:Ue,minWidth:Ue,flexShrink:0,padding:"8px 10px",'
+    'borderRight:"1px solid #e5e7eb",position:"sticky",left:0,zIndex:4,'
+    'background:"#f9fafb"},children:e.jsx("span",{style:{fontSize:10,fontWeight:700,'
+    'color:"#6b7280",letterSpacing:"0.5px",textTransform:"uppercase",'
+    'fontFamily:"Inter,sans-serif"},children:"STRUCTURE"})}),'
+    'be.map((mo,mi)=>e.jsxs("div",{style:{flexShrink:0,width:mo.weeks.length*Ae},children:['
+    'e.jsx("div",{style:{padding:"4px 6px",fontSize:9,fontWeight:700,'
+    'color:"#9ca3af",textTransform:"uppercase",fontFamily:"Inter,sans-serif",'
+    'borderBottom:"1px solid #e5e7eb"},children:mo.label}),'
+    'e.jsxs("div",{style:{display:"flex"},children:['
+    'mo.weeks.map((wk,wi)=>e.jsx("div",{style:{width:Ae,fontSize:8,color:"#9ca3af",'
+    'textAlign:"center",borderRight:"1px solid #f3f4f6",'
+    'fontFamily:"Inter,sans-serif"},children:"W"+(wi+1)},wi))'
+    ']})]},mi))'
+    ']})'
+)
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 2. Sub-tab bar HTML  (3 tabs: Gantt / Baseline / Critical Path)
-# ─────────────────────────────────────────────────────────────────────────────
+GRID_COLS = (
+    'be.map((mo,mi)=>mo.weeks.map((_wk,wi)=>'
+    'e.jsx("div",{style:{position:"absolute",'
+    'left:(be.slice(0,mi).reduce((s,m)=>s+m.weeks.length,0)+wi)*Ae,'
+    'top:0,width:Ae,height:"100%",'
+    'borderRight:"1px solid #f3f4f6"}},{key:mi+"-"+wi})))'
+)
+
+TODAY_LINE = (
+    'e.jsx("div",{style:{position:"absolute",top:0,bottom:0,'
+    'left:wt,width:2,background:"#ef4444",zIndex:4,pointerEvents:"none"}})'
+)
+
+# ── flat-row walker (uses ne + z, avoids all IIFE var names) ───────────────
+WALK = (
+    '(()=>{const rws=[];'
+    'const walk=(items,dp)=>items.forEach(itm=>{'
+    'rws.push({itm,dp});'
+    'const ch=z(itm.id);if(ch.length>0)walk(ch,dp+1);'
+    '});walk(ne,0);return rws;})()'
+)
+
+# ── baseline bar calc (uses pe as projEnd Date – no shadowing) ────────────
+def BS_BAR():
+    return (
+        '(()=>{'
+        'if(!itm.startDate||!itm.endDate)return null;'
+        'const bsS=new Date(new Date(itm.startDate).getTime()-14*864e5);'
+        'const bsE=new Date(new Date(itm.endDate).getTime()-14*864e5);'
+        'const pS=new Date(W.getFullYear(),W.getMonth(),1);'
+        'const span=(pe.getTime()-pS.getTime())/864e5;'  # pe = projEnd Date
+        'const tot=_e*Ae;'
+        'const lft=Math.max(0,(bsS.getTime()-pS.getTime())/864e5/span)*tot;'
+        'const rgt=Math.min(1,(bsE.getTime()-pS.getTime())/864e5/span)*tot;'
+        'return{left:lft,width:Math.max(4,rgt-lft)};'
+        '})()'
+    )
+
+# ── 1. Sub-tabs ────────────────────────────────────────────────────────────
 SUB_TABS = (
-    'e.jsxs("div",{style:{display:"flex",alignItems:"center",'
-    'padding:"0 16px",borderBottom:"1px solid #e5e7eb",'
-    'background:"#fff",gap:0},children:['
+    'e.jsxs("div",{style:{display:"flex",borderBottom:"1px solid #e5e7eb",'
+    'background:"#fff",padding:"0 16px",gap:0,flexShrink:0},children:['
     + ','.join(
         'e.jsx("button",{onClick:()=>_setGanttSub("' + mode + '"),'
-        'style:{padding:"10px 14px",fontSize:11,fontWeight:_ganttSub==="' + mode + '"?700:500,'
+        'style:{padding:"10px 14px",fontSize:11,background:"none",border:"none",'
+        'cursor:"pointer",fontFamily:"Inter,sans-serif",'
+        'fontWeight:_ganttSub==="' + mode + '"?700:500,'
         'color:_ganttSub==="' + mode + '"?"#1a56db":"#6b7280",'
-        'background:"none",border:"none",cursor:"pointer",'
         'borderBottom:_ganttSub==="' + mode + '"?"2px solid #1a56db":"2px solid transparent",'
-        'fontFamily:"Inter,sans-serif",whiteSpace:"nowrap"},'
-        'children:"' + label + '"})'
+        'whiteSpace:"nowrap"},children:"' + label + '"})'
         for mode, label in [('gantt','Gantt'),('baseline','Baseline'),('critical','Critical Path')]
     )
-    + ']}),'
-)
-verify(SUB_TABS, 'SUB_TABS')
+    + ']}),')
+chk(SUB_TABS, 'SUB_TABS')
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 3. Baseline view content
-# ─────────────────────────────────────────────────────────────────────────────
-# Baseline bar: same position calc as main but offset by ~10-20% earlier start
-# We reuse qs() for current bar, define qsB() for baseline bar
-# Baseline = task.startDate minus 14 days, same duration → earlier start
-
-BASELINE_CONTENT = (
-    '_ganttSub==="baseline"&&e.jsxs("div",{style:{background:"#fff",overflow:"hidden"},children:['
-    # Comparing header
-    'e.jsxs("div",{style:{display:"flex",alignItems:"center",gap:10,'
-    'padding:"8px 16px",borderBottom:"1px solid #f0f1f4",background:"#f8faff"},children:['
+# ── 2. Baseline view ───────────────────────────────────────────────────────
+BASELINE = (
+    '_ganttSub==="baseline"&&e.jsxs("div",{style:{display:"flex",flexDirection:"column",'
+    'background:"#fff",overflow:"hidden"},children:['
+    # comparing header
+    'e.jsxs("div",{style:{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",'
+    'borderBottom:"1px solid #f0f1f4",background:"#f8faff",flexShrink:0},children:['
     'e.jsx("span",{style:{fontSize:11,fontWeight:600,color:"#6b7280",'
     'fontFamily:"Inter,sans-serif"},children:"COMPARING"}),'
     'e.jsxs("span",{style:{display:"flex",alignItems:"center",gap:4,'
-    'fontSize:11,fontWeight:600,fontFamily:"Inter,sans-serif",color:"#111827"},children:['
+    'fontSize:11,fontWeight:600,fontFamily:"Inter,sans-serif"},children:['
     'e.jsx("span",{style:{width:8,height:8,borderRadius:"50%",'
-    'background:"#1a56db",display:"inline-block"}}),'
-    '"Current"]}),'
+    'background:"#1a56db",display:"inline-block"}}),"Current"]}),'
     'e.jsx("span",{style:{color:"#9ca3af",fontSize:11},children:"vs"}),'
     'e.jsxs("span",{style:{display:"flex",alignItems:"center",gap:4,'
-    'fontSize:11,fontWeight:600,fontFamily:"Inter,sans-serif",color:"#111827"},children:['
+    'fontSize:11,fontWeight:600,fontFamily:"Inter,sans-serif"},children:['
     'e.jsx("span",{style:{width:8,height:8,borderRadius:"50%",'
-    'background:"#e11d48",display:"inline-block"}}),'
-    '"V1 Baseline"]})'
+    'background:"#e11d48",display:"inline-block"}}),"V1 Baseline"]})'
     ']}),'
-    # Scroll container reusing gantt grid vars
+    # scroll
     'e.jsx("div",{style:{overflowX:"auto",WebkitOverflowScrolling:"touch"},children:'
     'e.jsxs("div",{style:{minWidth:Ue+_e*Ae},children:['
-    # Header row
-    'e.jsxs("div",{style:{display:"flex",borderBottom:"1px solid #e5e7eb",'
-    'background:"#ffffff",position:"sticky",top:0,zIndex:5},children:['
-    'e.jsx("div",{style:{width:Ue,minWidth:Ue,flexShrink:0,padding:"8px 12px",'
-    'borderRight:"1px solid #e5e7eb",position:"sticky",left:0,zIndex:4,background:"#ffffff"},'
-    'children:e.jsx("span",{style:{fontSize:10,fontWeight:700,color:"#6b7280",'
-    'letterSpacing:"0.5px",textTransform:"uppercase",fontFamily:"Inter,sans-serif"},'
-    'children:"STRUCTURE"})}),'
-    'be.map((me,Ne)=>e.jsxs("div",{style:{flexShrink:0,width:me.weeks.length*Ae},children:['
-    'e.jsx("div",{style:{padding:"4px 6px",fontSize:9,fontWeight:700,color:"#9ca3af",'
-    'letterSpacing:"0.5px",textTransform:"uppercase",fontFamily:"Inter,sans-serif",'
-    'borderBottom:"1px solid #e5e7eb"},children:me.label}),'
-    'e.jsxs("div",{style:{display:"flex"},children:['
-    'me.weeks.map((He,yt)=>e.jsx("div",{style:{width:Ae,fontSize:8,color:"#9ca3af",'
-    'padding:"2px 0",textAlign:"center",borderRight:"1px solid #f3f4f6",'
-    'fontFamily:"Inter,sans-serif"},children:"W"+(yt+1)},yt))'
-    ']})]},Ne))'
-    ']}),'
-    # Today line + rows
+    + HDR + ','
     'e.jsx("div",{style:{position:"relative"},children:['
-    'e.jsx("div",{id:"bl-today-line",style:{position:"absolute",top:0,bottom:0,'
-    'left:Ue+wt,width:2,background:"#ef4444",zIndex:4,pointerEvents:"none"}}),'
-    # rows via flatMap on top-level items + their visible children
-    '...(()=>{const rows=[];const addRows=(items,depth)=>items.forEach(me=>{'
-    'const Te=Q[me.id]!==!1;rows.push({item:me,depth});'
-    'if(Te&&me.children&&me.children.length>0)addRows(me.children,depth+1);});'
-    'addRows(i.wbsItems&&i.wbsItems.length?i.wbsItems:rl,0);return rows;})().map(({item:me,depth:pe},Ne)=>{'
-    'const it=qs(me);'
-    # baseline bar: shift start 14 days earlier, same duration
-    'const bsS=me.startDate?new Date(new Date(me.startDate).getTime()-14*864e5):null;'
-    'const bsE=me.endDate?new Date(new Date(me.endDate).getTime()-14*864e5):null;'
-    'const bsBar=(()=>{if(!bsS||!bsE)return null;'
-    'const Pe=new Date(W.getFullYear(),W.getMonth(),1),'
-    'it2=(pe2.getTime()-Pe.getTime())/864e5,'
-    'Ye=_e*Ae,'
-    'He2=Math.max(0,(bsS.getTime()-Pe.getTime())/864e5/it2),'
-    'yt2=Math.min(1,(bsE.getTime()-Pe.getTime())/864e5/it2);'
-    'return{left:He2*Ye,width:Math.max(4,(yt2-He2)*Ye)};})();'
+    + TODAY_LINE + ','
+    + WALK + '.map(({itm,dp},ri)=>{'
+    'const bar=qs(itm);'
+    'const bsBar=' + BS_BAR() + ';'
     'return e.jsxs("div",{style:{display:"flex",alignItems:"center",'
-    'borderBottom:"1px solid #f0f1f4",minHeight:pe===0?40:34,background:"#fff"},children:['
-    'e.jsx("div",{style:{width:Ue,minWidth:Ue,flexShrink:0,display:"flex",'
-    'alignItems:"center",gap:3,padding:"0 8px 0 "+(8+pe*12)+"px",'
-    'borderRight:"1px solid #e5e7eb",position:"sticky",left:0,zIndex:3,background:"#fff"},'
-    'children:e.jsx("span",{style:{fontSize:pe===0?12:11,'
-    'fontWeight:pe===0?700:400,color:"#111827",fontFamily:"Inter,sans-serif",'
-    'overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"},children:me.name})}),'
-    'e.jsxs("div",{style:{flex:1,position:"relative",height:pe===0?40:34},children:['
-    'be.map((He,yt)=>He.weeks.map((bt,Zt)=>e.jsx("div",{style:{position:"absolute",'
-    'left:(be.slice(0,yt).reduce((zs,Zs)=>zs+Zs.weeks.length,0)+Zt)*Ae,top:0,'
-    'width:Ae,height:"100%",borderRight:"1px solid #f3f4f6"}},`${yt}-${Zt}`))),'
-    # baseline bar (pink, behind)
-    'bsBar&&e.jsx("div",{style:{position:"absolute",left:bsBar.left,width:bsBar.width,'
-    'height:10,top:"50%",marginTop:2,borderRadius:3,background:"#fda4af",zIndex:1,opacity:0.85}}),'
-    # current bar (blue, front)
-    'it&&e.jsx("div",{style:{position:"absolute",left:it.left,width:it.width,'
-    'height:10,top:"50%",marginTop:-8,borderRadius:3,background:"#1a56db",zIndex:2}})'
-    ']})'
-    ']},Ne)'
-    '})'
-    ']})'
-    ']})'  # close minWidth div
-    '})'   # close overflowX div
-    ']}),')  # close baseline outer div + comma
+    'borderBottom:"1px solid #f0f1f4",minHeight:dp===0?40:34,'
+    'background:"#fff"},children:['
+    'e.jsx("div",{style:{width:Ue,minWidth:Ue,flexShrink:0,'
+    'display:"flex",alignItems:"center",'
+    'padding:"0 8px 0 "+(8+dp*12)+"px",'
+    'borderRight:"1px solid #e5e7eb",position:"sticky",'
+    'left:0,zIndex:3,background:"#fff"},'
+    'children:e.jsx("span",{style:{fontSize:dp===0?12:11,'
+    'fontWeight:dp===0?700:400,color:"#111827",'
+    'fontFamily:"Inter,sans-serif",overflow:"hidden",'
+    'textOverflow:"ellipsis",whiteSpace:"nowrap"},'
+    'children:itm.name})}),'
+    'e.jsxs("div",{style:{flex:1,position:"relative",'
+    'height:dp===0?40:34},children:['
+    + GRID_COLS + ','
+    'bsBar&&e.jsx("div",{style:{position:"absolute",'
+    'left:bsBar.left,width:bsBar.width,'
+    'height:8,top:"50%",marginTop:4,'
+    'borderRadius:3,background:"#fda4af",zIndex:1}}),'
+    'bar&&e.jsx("div",{style:{position:"absolute",'
+    'left:bar.left,width:bar.width,'
+    'height:8,top:"50%",marginTop:-10,'
+    'borderRadius:3,background:"#1a56db",zIndex:2}})'
+    ']})'   # close bar cell
+    ']},ri)'  # close row
+    '})'    # close map
+    ']}'    # close relative div children
+    ')'     # close relative div
+    ']}'    # close minWidth div children
+    ')'     # close minWidth div
+    '}'     # close overflowX children (arrow shorthand - no, it's an object value)
+    ')'     # close overflowX div
+    ']}'    # close outer baseline div children
+    '),'    # close baseline outer div
+)
+ob_bl, op_bl = chk(BASELINE, 'BASELINE')
 
+# ── 3. Critical Path view ─────────────────────────────────────────────────
+SEL = 'Object.keys(_colDraft).filter(function(k){return _colDraft[k];}).length'
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 4. Critical Path view
-# ─────────────────────────────────────────────────────────────────────────────
-# Float calc: (project_end - task_end) in days
-# Critical = float <= 5 days
-# TYPE: Activity = ACT (purple badge), Task/Sub-Task = TASK (blue badge)
-
-CRITICAL_CONTENT = (
+CRITICAL = (
     '_ganttSub==="critical"&&(()=>{'
-    # compute all rows flat
-    'const cpRows=(()=>{const rows=[];'
-    'const addR=(items,depth)=>items.forEach(me=>{'
-    'rows.push({item:me,depth});'
-    'if(me.children&&me.children.length>0)addR(me.children,depth+1);});'
-    'addR(i.wbsItems&&i.wbsItems.length?i.wbsItems:rl,0);return rows;})();'
-    # project end = max endDate across all rows
-    'const projEnd=cpRows.reduce((mx,{item:me})=>{'
-    'if(!me.endDate)return mx;const d=new Date(me.endDate);return d>mx?d:mx;'
+    'const cRows=' + WALK + ';'
+    'const projEnd=cRows.reduce((mx,{itm})=>{'
+    'if(!itm.endDate)return mx;'
+    'const d=new Date(itm.endDate);return d>mx?d:mx;'
     '},new Date(0));'
-    # float helper
-    'const getFloat=me=>{'
-    'if(!me.endDate)return 999;'
-    'return Math.round((projEnd.getTime()-new Date(me.endDate).getTime())/864e5);};'
-    # stat calcs
-    'const critItems=cpRows.filter(({item:me})=>getFloat(me)<=0);'
-    'const nonCritItems=cpRows.filter(({item:me})=>getFloat(me)>0&&me.endDate);'
-    'const allFloats=nonCritItems.map(({item:me})=>getFloat(me));'
-    'const avgFloat=allFloats.length?Math.round(allFloats.reduce((a,b)=>a+b,0)/allFloats.length):0;'
-    'const minFloat=allFloats.length?Math.min(...allFloats):0;'
-    'const totalFloat=allFloats.reduce((a,b)=>a+b,0);'
+    'const gFloat=itm2=>itm2.endDate?'
+    'Math.round((projEnd.getTime()-new Date(itm2.endDate).getTime())/864e5):999;'
+    'const critN=cRows.filter(({itm})=>gFloat(itm)<=0).length;'
+    'const ncFlts=cRows.filter(({itm})=>itm.endDate&&gFloat(itm)>0)'
+    '.map(({itm})=>gFloat(itm));'
+    'const avgFl=ncFlts.length?Math.round(ncFlts.reduce((a,b)=>a+b,0)/ncFlts.length):0;'
+    'const minFl=ncFlts.length?Math.min(...ncFlts):0;'
+    'const totFl=ncFlts.reduce((a,b)=>a+b,0);'
     'const projDays=Math.round((projEnd.getTime()-ze.getTime())/864e5);'
     'return e.jsxs("div",{style:{display:"flex",flexDirection:"column",'
-    'height:"100%",background:"#fff",overflow:"hidden"},children:['
+    'background:"#fff",overflow:"hidden"},children:['
     # toolbar
     'e.jsxs("div",{style:{display:"flex",alignItems:"center",gap:8,'
-    'padding:"8px 16px",borderBottom:"1px solid #e5e7eb",background:"#fff",'
-    'overflowX:"auto"},children:['
-    'e.jsx("button",{style:{padding:"6px 12px",borderRadius:8,border:"none",'
-    'background:"#1a56db",color:"#fff",fontSize:11,fontWeight:600,'
-    'fontFamily:"Inter,sans-serif",cursor:"pointer",flexShrink:0},'
-    'children:"Run Critical Path Analysis"}),'
+    'padding:"8px 16px",borderBottom:"1px solid #e5e7eb",'
+    'background:"#fff",overflowX:"auto",flexShrink:0},children:['
+    'e.jsx("span",{style:{fontSize:11,fontWeight:700,color:"#7c3aed",'
+    'background:"#f3e8ff",padding:"4px 10px",borderRadius:6,'
+    'fontFamily:"Inter,sans-serif"},children:"Critical Path Analysis"}),'
     'e.jsxs("span",{style:{display:"flex",alignItems:"center",gap:4,'
-    'fontSize:11,color:"#059669",fontFamily:"Inter,sans-serif",flexShrink:0},children:['
-    'e.jsx("span",{style:{width:8,height:8,borderRadius:"50%",'
+    'fontSize:11,color:"#059669",fontFamily:"Inter,sans-serif"},children:['
+    'e.jsx("span",{style:{width:7,height:7,borderRadius:"50%",'
     'background:"#059669",display:"inline-block"}}),'
-    '"Dependencies Valid"]}),'
-    'e.jsx("span",{style:{fontSize:10,color:"#9ca3af",'
-    'fontFamily:"Inter,sans-serif"},children:"Last analysed: just now"})'
+    '"Dependencies Valid"]})'
     ']}),'
-    # main area: left table + right bars
-    'e.jsx("div",{style:{flex:1,overflowY:"auto"},children:'
-    'e.jsx("div",{style:{overflowX:"auto"},children:'
-    'e.jsxs("div",{style:{minWidth:Ue+_e*Ae+200,display:"flex"},children:['
-    # Left panel: STRUCTURE + TYPE + FLOAT + STATUS
-    'e.jsxs("div",{style:{width:Ue+200,flexShrink:0,borderRight:"1px solid #e5e7eb"},children:['
-    # Left header
-    'e.jsxs("div",{style:{display:"flex",alignItems:"center",'
-    'borderBottom:"1px solid #e5e7eb",background:"#f9fafb",'
-    'position:"sticky",top:0,zIndex:5},children:['
+    # main scroll area
+    'e.jsx("div",{style:{flex:1,overflowX:"auto",overflowY:"auto"},children:'
+    'e.jsxs("div",{style:{minWidth:Ue+200+_e*Ae,display:"flex"},children:['
+    # left panel
+    'e.jsxs("div",{style:{width:Ue+200,flexShrink:0,'
+    'borderRight:"1px solid #e5e7eb"},children:['
+    'e.jsxs("div",{style:{display:"flex",borderBottom:"1px solid #e5e7eb",'
+    'background:"#f9fafb",position:"sticky",top:0,zIndex:5},children:['
     'e.jsx("div",{style:{flex:1,padding:"8px 10px",fontSize:10,fontWeight:700,'
-    'color:"#6b7280",letterSpacing:"0.5px",textTransform:"uppercase",'
+    'color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.5px",'
     'fontFamily:"Inter,sans-serif"},children:"Structure"}),'
-    'e.jsx("div",{style:{width:50,padding:"8px 4px",fontSize:10,fontWeight:700,'
-    'color:"#6b7280",letterSpacing:"0.5px",textTransform:"uppercase",'
-    'fontFamily:"Inter,sans-serif",textAlign:"center"},children:"Type"}),'
-    'e.jsx("div",{style:{width:55,padding:"8px 4px",fontSize:10,fontWeight:700,'
-    'color:"#6b7280",letterSpacing:"0.5px",textTransform:"uppercase",'
-    'fontFamily:"Inter,sans-serif",textAlign:"center"},children:"Float"}),'
-    'e.jsx("div",{style:{width:70,padding:"8px 4px",fontSize:10,fontWeight:700,'
-    'color:"#6b7280",letterSpacing:"0.5px",textTransform:"uppercase",'
-    'fontFamily:"Inter,sans-serif",textAlign:"center"},children:"Status"})'
+    'e.jsx("div",{style:{width:48,padding:"8px 4px",fontSize:10,fontWeight:700,'
+    'color:"#6b7280",textTransform:"uppercase",fontFamily:"Inter,sans-serif",'
+    'textAlign:"center"},children:"Type"}),'
+    'e.jsx("div",{style:{width:52,padding:"8px 4px",fontSize:10,fontWeight:700,'
+    'color:"#6b7280",textTransform:"uppercase",fontFamily:"Inter,sans-serif",'
+    'textAlign:"center"},children:"Float"}),'
+    'e.jsx("div",{style:{width:68,padding:"8px 4px",fontSize:10,fontWeight:700,'
+    'color:"#6b7280",textTransform:"uppercase",fontFamily:"Inter,sans-serif",'
+    'textAlign:"center"},children:"Status"})'
     ']}),'
-    # Left rows
-    'cpRows.map(({item:me,depth:pe},Ne)=>{'
-    'const fl=getFloat(me);const isCrit=fl<=0;'
-    'const typeLabel=me.type==="Activity"?"ACT":"TASK";'
-    'const typeBg=me.type==="Activity"?"#f3e8ff":"#EFF4FF";'
-    'const typeClr=me.type==="Activity"?"#7c3aed":"#1a56db";'
+    'cRows.map(({itm,dp},ri)=>{'
+    'const fl=gFloat(itm);const ic=fl<=0;'
+    'const tl=itm.type==="Activity"?"ACT":"TASK";'
+    'const tb=itm.type==="Activity"?"#f3e8ff":"#EFF4FF";'
+    'const tc2=itm.type==="Activity"?"#7c3aed":"#1a56db";'
     'return e.jsxs("div",{style:{display:"flex",alignItems:"center",'
     'borderBottom:"1px solid #f0f1f4",minHeight:36,'
-    'background:isCrit?"#fff7f7":"#fff"},children:['
-    'e.jsx("div",{style:{flex:1,padding:"6px 8px 6px "+(8+pe*12)+"px",'
-    'fontSize:pe===0?12:11,fontWeight:pe===0?700:400,'
+    'background:ic?"#fff7f7":"#fff"},children:['
+    'e.jsx("div",{style:{flex:1,padding:"6px 8px 6px "+(8+dp*12)+"px",'
+    'fontSize:dp===0?12:11,fontWeight:dp===0?700:400,'
     'color:"#111827",fontFamily:"Inter,sans-serif",'
     'overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"},'
-    'children:me.name}),'
-    'e.jsx("div",{style:{width:50,display:"flex",justifyContent:"center",'
-    'alignItems:"center",padding:"4px"},children:'
-    'e.jsx("span",{style:{fontSize:9,fontWeight:700,color:typeClr,'
-    'background:typeBg,padding:"2px 5px",borderRadius:4,'
-    'fontFamily:"Inter,sans-serif"},children:typeLabel})}),'
-    'e.jsx("div",{style:{width:55,textAlign:"center",fontSize:11,'
-    'color:isCrit?"#dc2626":fl<30?"#d97706":"#374151",'
-    'fontFamily:"Inter,sans-serif",fontWeight:600},'
-    'children:me.endDate?(isCrit?"0d":fl+"d"):"—"}),'
-    'e.jsx("div",{style:{width:70,display:"flex",justifyContent:"center",'
-    'alignItems:"center",padding:"4px"},children:'
-    'isCrit?e.jsx("span",{style:{fontSize:9,fontWeight:700,color:"#dc2626",'
+    'children:itm.name}),'
+    'e.jsx("div",{style:{width:48,display:"flex",justifyContent:"center",'
+    'alignItems:"center"},children:'
+    'e.jsx("span",{style:{fontSize:9,fontWeight:700,color:tc2,'
+    'background:tb,padding:"2px 5px",borderRadius:4,'
+    'fontFamily:"Inter,sans-serif"},children:tl})}),'
+    'e.jsx("div",{style:{width:52,textAlign:"center",fontSize:11,'
+    'fontWeight:600,fontFamily:"Inter,sans-serif",'
+    'color:ic?"#dc2626":fl<30?"#d97706":"#374151"},'
+    'children:itm.endDate?(ic?"0d":fl+"d"):"—"}),'
+    'e.jsx("div",{style:{width:68,display:"flex",justifyContent:"center",'
+    'alignItems:"center"},children:'
+    'ic?e.jsx("span",{style:{fontSize:9,fontWeight:700,color:"#dc2626",'
     'background:"#fee2e2",padding:"2px 6px",borderRadius:4,'
     'fontFamily:"Inter,sans-serif"},children:"Critical"}):'
     'e.jsx("span",{style:{fontSize:11,color:"#9ca3af"},children:"—"})})'
-    ']},Ne)'
-    '})'
-    ']}),'  # close left panel
-    # Right panel: gantt-style bars
+    ']},ri)'  # close row div
+    '})'    # close cRows.map
+    ']}),'  # close left panel children + div
+    # right panel
     'e.jsxs("div",{style:{flex:1,position:"relative"},children:['
-    # date header
-    'e.jsxs("div",{style:{display:"flex",borderBottom:"1px solid #e5e7eb",'
-    'background:"#f9fafb",position:"sticky",top:0,zIndex:5},children:['
-    'be.map((me,Ne)=>e.jsxs("div",{style:{flexShrink:0,width:me.weeks.length*Ae},children:['
-    'e.jsx("div",{style:{padding:"4px 6px",fontSize:9,fontWeight:700,'
-    'color:"#9ca3af",letterSpacing:"0.5px",textTransform:"uppercase",'
-    'fontFamily:"Inter,sans-serif",borderBottom:"1px solid #e5e7eb"},'
-    'children:me.label})]},Ne))'
-    ']}),'
-    # rows
-    'e.jsx("div",{style:{position:"relative"},children:['
-    'e.jsx("div",{style:{position:"absolute",top:0,bottom:0,'
-    'left:wt,width:2,background:"#ef4444",zIndex:4,pointerEvents:"none"}}),'
-    'cpRows.map(({item:me,depth:pe},Ne)=>{'
-    'const it=qs(me);const fl=getFloat(me);const isCrit=fl<=0;'
-    # float bar width = fl days
-    'const floatW=me.endDate?Math.min(fl*Ae/7,(_e*Ae-( it?it.left+it.width:0))):0;'
-    'return e.jsxs("div",{style:{display:"flex",alignItems:"center",'
-    'borderBottom:"1px solid #f0f1f4",minHeight:36,'
-    'position:"relative"},children:['
-    'be.map((He,yt)=>He.weeks.map((bt,Zt)=>e.jsx("div",{style:{position:"absolute",'
-    'left:(be.slice(0,yt).reduce((zs,Zs)=>zs+Zs.weeks.length,0)+Zt)*Ae,'
-    'top:0,width:Ae,height:"100%",'
-    'borderRight:"1px solid #f3f4f6"}},`c${yt}-${Zt}`))),'
-    # task bar
-    'it&&e.jsx("div",{style:{position:"absolute",left:it.left,width:it.width,'
-    'height:12,top:"50%",marginTop:-6,borderRadius:4,'
-    'background:isCrit?"#7c3aed":"#93c5fd",zIndex:2}}),'
-    # float dotted line
-    'it&&!isCrit&&fl>0&&fl<500&&e.jsx("div",{style:{position:"absolute",'
-    'left:it.left+it.width,width:Math.min(floatW,(_e*Ae-it.left-it.width)),'
-    'height:2,top:"50%",marginTop:-1,'
-    'background:"repeating-linear-gradient(90deg,#9ca3af 0,#9ca3af 4px,transparent 4px,transparent 8px)",'
-    'zIndex:1}})'
-    ']},Ne)'
-    '})'
-    ']})'   # close rows relative div
-    ']})'   # close right flex
+    + HDR + ','
+    'e.jsxs("div",{style:{position:"relative"},children:['
+    + TODAY_LINE + ','
+    'cRows.map(({itm,dp:_dp},ri)=>{'
+    'const bar=qs(itm);const fl2=gFloat(itm);const ic2=fl2<=0;'
+    'const fw=bar&&!ic2&&fl2<500?Math.min(fl2*Ae/7,_e*Ae-bar.left-bar.width):0;'
+    'return e.jsxs("div",{style:{position:"relative",display:"flex",'
+    'alignItems:"center",borderBottom:"1px solid #f0f1f4",'
+    'minHeight:36},children:['
+    + GRID_COLS + ','
+    'bar&&e.jsx("div",{style:{position:"absolute",left:bar.left,'
+    'width:bar.width,height:12,top:"50%",marginTop:-6,'
+    'borderRadius:4,background:ic2?"#7c3aed":"#93c5fd",zIndex:2}}),'
+    'bar&&!ic2&&fw>0&&e.jsx("div",{style:{position:"absolute",'
+    'left:bar.left+bar.width,width:fw,height:2,'
+    'top:"50%",marginTop:-1,zIndex:1,'
+    'backgroundImage:"repeating-linear-gradient(90deg,#9ca3af 0,#9ca3af 4px,transparent 4px,transparent 8px)"}})'
+    ']},ri)'  # close right row
+    '})'    # close right rows map
+    ']})'   # close right rows relative div
+    ']})'   # close right panel
     ']})'   # close minWidth flex
-    '})'    # close overflowX
-    '})'    # close flex:1 overflowY
+    '}'     # close overflowX children (value)
+    ')'     # close overflowX div
     ','
-    # Bottom stats bar
-    'e.jsxs("div",{style:{display:"flex",gap:8,padding:"10px 16px",'
+    # bottom stats
+    'e.jsxs("div",{style:{display:"flex",gap:6,padding:"10px 16px",'
     'borderTop:"1px solid #e5e7eb",background:"#f9fafb",'
     'overflowX:"auto",flexShrink:0},children:['
     + ','.join(
-        'e.jsxs("div",{style:{flexShrink:0,padding:"6px 12px",borderRadius:8,'
-        'border:"1px solid #e5e7eb",background:"#fff",textAlign:"center"},children:['
+        'e.jsxs("div",{style:{flexShrink:0,padding:"6px 10px",'
+        'borderRadius:8,border:"1px solid #e5e7eb",background:"#fff",'
+        'textAlign:"center"},children:['
         'e.jsx("div",{style:{fontSize:9,color:"#9ca3af",fontWeight:600,'
         'textTransform:"uppercase",letterSpacing:"0.4px",'
-        'fontFamily:"Inter,sans-serif"},children:"' + label + '"}),'
-        'e.jsx("div",{style:{fontSize:14,fontWeight:700,color:"#111827",'
+        'fontFamily:"Inter,sans-serif"},children:"' + lbl + '"}),'
+        'e.jsx("div",{style:{fontSize:13,fontWeight:700,color:"#111827",'
         'fontFamily:"Inter,sans-serif",marginTop:2},children:' + val + '}),'
         'e.jsx("div",{style:{fontSize:9,color:"#6b7280",'
         'fontFamily:"Inter,sans-serif"},children:"' + sub + '"})'
-        ']},'+str(i)+')'
-        for i, (label, val, sub) in enumerate([
-            ('Critical Entities', 'critItems.length', '"zero-float"'),
-            ('Zero Float',        'critItems.length', '"entities"'),
-            ('Avg Float',         'avgFloat+"d"',     '"non-critical"'),
-            ('Lowest Float',      'minFloat+"d"',     '"near critical"'),
-            ('Total Float',       'totalFloat+"d"',   '"across non-critical"'),
-            ('Project Duration',  'projDays+"d"',     '"total span"'),
+        ']},' + str(i) + ')'
+        for i, (lbl, val, sub) in enumerate([
+            ('Critical', 'critN', '"zero-float"'),
+            ('Avg Float', 'avgFl+"d"', '"non-critical"'),
+            ('Min Float', 'minFl+"d"', '"near critical"'),
+            ('Total Float', 'totFl+"d"', '"non-critical"'),
+            ('Duration', 'projDays+"d"', '"total span"'),
         ])
     )
-    + ']})'    # close stats children + div
-    + ']})'   # close outer critical div children + div
+    + ']})'   # close stats
+    + ']})'   # close outer critical div
     + ';})()'  # close IIFE
     + ','
 )
+ob_cp, op_cp = chk(CRITICAL, 'CRITICAL')
 
-# Verify balance of new content
-ob_tabs, op_tabs = verify(SUB_TABS, 'SUB_TABS')
-ob_bl,   op_bl   = verify(BASELINE_CONTENT, 'BASELINE_CONTENT')
-ob_cp,   op_cp   = verify(CRITICAL_CONTENT, 'CRITICAL_CONTENT')
-print(f'SUB_TABS    {{ {ob_tabs:+d}  ( {op_tabs:+d}')
-print(f'BASELINE    {{ {ob_bl:+d}  ( {op_bl:+d}')
-print(f'CRITICAL    {{ {ob_cp:+d}  ( {op_cp:+d}')
 print()
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Now apply all patches
-# ─────────────────────────────────────────────────────────────────────────────
+# ── Apply patches ──────────────────────────────────────────────────────────
+errors = []
 
-# Patch 1: Add state
+# P1: state
 old1 = '[_depBdOpen,_setDepBdOpen]=b.useState(!1),'
 new1 = '[_depBdOpen,_setDepBdOpen]=b.useState(!1),[_ganttSub,_setGanttSub]=b.useState("gantt"),'
-if old1 in content and new1 not in content:
+if new1 in content:
+    print('P1 state: already present')
+elif old1 in content:
     content = content.replace(old1, new1, 1)
-    print('OK: Add state')
-elif new1 in content:
-    print('SKIP: state already added')
+    print('P1 state: OK')
 else:
-    print('FAIL: state anchor not found')
-    errors.append('state')
+    errors.append('P1-state'); print('P1 state: FAIL')
 
-# Patch 2: Add sub-tabs as first child of outer gantt div
-old2 = 'e.jsxs("div",{style:{background:"#fff",overflow:"hidden"},children:[e.jsxs("div",{style:{display:"flex",alignItems:"center",gap:8,padding:"10px 16px",borderBottom:"1px solid #e5e7eb",background:"#fff",overflowX:"auto"},'
-new2 = ('e.jsxs("div",{style:{background:"#fff",overflow:"hidden"},children:['
+# P2: inject sub-tabs + open Fragment for gantt content
+old2 = ('e.jsxs("div",{style:{background:"#fff",overflow:"hidden"},children:['
+        'e.jsxs("div",{style:{display:"flex",alignItems:"center",gap:8,'
+        'padding:"10px 16px",borderBottom:"1px solid #e5e7eb",'
+        'background:"#fff",overflowX:"auto"},')
+new2 = ('e.jsxs("div",{style:{background:"#fff",overflow:"hidden",display:"flex",'
+        'flexDirection:"column"},children:['
         + SUB_TABS
-        + '_ganttSub==="gantt"&&e.jsxs(e.Fragment,{children:[e.jsxs("div",{style:{display:"flex",alignItems:"center",gap:8,padding:"10px 16px",borderBottom:"1px solid #e5e7eb",background:"#fff",overflowX:"auto"},')
+        + '_ganttSub==="gantt"&&e.jsxs(e.Fragment,{children:['
+        'e.jsxs("div",{style:{display:"flex",alignItems:"center",gap:8,'
+        'padding:"10px 16px",borderBottom:"1px solid #e5e7eb",'
+        'background:"#fff",overflowX:"auto"},')
 if old2 in content:
     content = content.replace(old2, new2, 1)
-    print('OK: Add sub-tabs + open gantt Fragment')
+    print('P2 sub-tabs: OK')
 else:
-    print('FAIL: outer div anchor not found')
-    errors.append('sub-tabs')
+    errors.append('P2-tabs'); print('P2 sub-tabs: FAIL')
 
-# Patch 3: Close the gantt Fragment before the gantt IIFE closes
-# The gantt IIFE ends with: ]})})()
-# We need to close the Fragment after ganttSel detail panel but before ]})})()
-# The exact end is: "})]})]})]})})()"]
-# After pe)) the sequence is: }) + ]}) x3 + })()
-# }) = close inner map-row element
-# ]}) x2 = close map wrapper + ganttSel Fragment
-# ]}) = close outer div children[] + props{} + jsxs() — this one we replace
-# })() = close IIFE
-PREFIX = 'children:W.value})]},pe))'
-SUFFIX_OLD = '})' + ']})' * 3 + '})()'
-SUFFIX_NEW = ('})' + ']})' * 2     # keep: close map-row + ganttSel Fragment
-              + ']})' +             # close _ganttSub==="gantt"&&e.jsxs(e.Fragment,...)
-              BASELINE_CONTENT +
-              CRITICAL_CONTENT +
-              ']})' +               # close outer div children[] + props{} + jsxs()
-              '})()')               # close IIFE
-old3 = PREFIX + SUFFIX_OLD
-new3 = PREFIX + SUFFIX_NEW
+# P3: close Fragment + inject baseline + critical + close outer div
+# After pe)) the chars are: }) ]}) ]}) ]}) })()
+# Breakdown:
+#   })     = close a div in the detail panel
+#   ]})    = close detail panel map array + props + jsxs
+#   ]})    = close ganttSel&&Fragment
+#   ]})    = OLD outer div close — in new version:
+#              → becomes Fragment close for _ganttSub==="gantt"&&Fragment
+#              → then BASELINE + CRITICAL as siblings
+#              → then outer div close ]})
+#   })()   = IIFE close
+PREFIX3 = 'children:W.value})]},pe))'
+OLD_TAIL = '})' + ']})' * 3 + '})()'
+NEW_TAIL = ('})' + ']})' * 2   # keep: detail + ganttSel Fragment
+            + ']})' +           # close _ganttSub==="gantt"&&e.jsxs(e.Fragment,...)
+            BASELINE +
+            CRITICAL +
+            ']})' +             # close outer div
+            '})()')             # close IIFE
+
+old3 = PREFIX3 + OLD_TAIL
+new3 = PREFIX3 + NEW_TAIL
 
 if old3 in content:
     content = content.replace(old3, new3, 1)
-    print('OK: Close Fragment + add baseline + critical')
+    print('P3 close+inject: OK')
 else:
-    print('FAIL: gantt end anchor not found')
-    print('Looking for:', repr(old3[:60]))
-    errors.append('gantt-end')
+    errors.append('P3-end'); print('P3 close+inject: FAIL')
+    # debug
+    idx = content.find(PREFIX3)
+    if idx != -1:
+        print('  PREFIX found at', idx, '- chars after:', repr(content[idx+len(PREFIX3):idx+len(PREFIX3)+30]))
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Check balance & write
-# ─────────────────────────────────────────────────────────────────────────────
+# ── Balance check & write ──────────────────────────────────────────────────
 if errors:
-    print('\nFailed patches:', errors)
+    print('\nFailed:', errors)
 else:
     ob = content.count('{') - content.count('}')
     op = content.count('(') - content.count(')')
