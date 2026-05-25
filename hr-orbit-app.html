@@ -3458,6 +3458,106 @@ const WFMNotifications = ({ nav }) => {
   );
 };
 
+const WFMDocuments = ({ nav }) => {
+  const [tab, setTab] = useState('all');
+  const [showUpload, setShowUpload] = useState(false);
+  const [toast, showToast] = useToast();
+  const docs = [
+    {id:'d1',name:'Work Permit — Metro Tower Block B',cat:'Permit',size:'1.2 MB',date:'May 20, 2026',status:'active',icon:'shield',ic:'#16a34a',ib:'#f0fdf4'},
+    {id:'d2',name:'Site Safety Inspection Report',cat:'Safety',size:'3.4 MB',date:'May 18, 2026',status:'approved',icon:'check-circle',ic:'#16a34a',ib:'#f0fdf4'},
+    {id:'d3',name:'Foundation Assessment — Phase 1',cat:'Site Report',size:'5.1 MB',date:'May 15, 2026',status:'approved',icon:'file-text',ic:'#1a56db',ib:'#eff4ff'},
+    {id:'d4',name:'WBS Project Plan — Highway Bridge',cat:'Project',size:'2.8 MB',date:'May 12, 2026',status:'approved',icon:'layers',ic:'#7c3aed',ib:'#f5f3ff'},
+    {id:'d5',name:'Timesheet Report — May 2026',cat:'Timesheet',size:'0.8 MB',date:'May 10, 2026',status:'pending',icon:'clock',ic:'#d97706',ib:'#fffbeb'},
+    {id:'d6',name:'Travel Expense Claim — Mumbai Trip',cat:'Travel',size:'1.5 MB',date:'May 8, 2026',status:'pending',icon:'airplane',ic:'#0891b2',ib:'#ecfeff'},
+    {id:'d7',name:'Risk Assessment — Block C Excavation',cat:'Safety',size:'2.2 MB',date:'May 5, 2026',status:'approved',icon:'alert-triangle',ic:'#dc2626',ib:'#fef2f2'},
+    {id:'d8',name:'Attendance Record — April 2026',cat:'Attendance',size:'0.5 MB',date:'Apr 30, 2026',status:'approved',icon:'user-check',ic:'#16a34a',ib:'#f0fdf4'},
+    {id:'d9',name:'Work Permit — Solar Farm Site',cat:'Permit',size:'1.1 MB',date:'Apr 25, 2026',status:'expired',icon:'shield',ic:'#9ca3af',ib:'#f3f4f6'},
+    {id:'d10',name:'Sprint Report — April Cycle',cat:'Project',size:'1.8 MB',date:'Apr 20, 2026',status:'approved',icon:'bar-chart',ic:'#7c3aed',ib:'#f5f3ff'},
+  ];
+  const cats = ['all','Permit','Safety','Project','Timesheet','Travel','Attendance','Site Report'];
+  const filtered = tab==='all' ? docs : docs.filter(d=>d.cat===tab);
+  const statusStyle = {active:{bg:'#f0fdf4',c:'#16a34a'},approved:{bg:'#f0fdf4',c:'#16a34a'},pending:{bg:'#fffbeb',c:'#d97706'},expired:{bg:'#f3f4f6',c:'#9ca3af'}};
+  return (
+    <div className="screen screen-anim">
+      <ScreenHeader title="Documents" subtitle="Work files & reports" onBack={()=>nav('wfm-dashboard')}/>
+      <div className="scroll-area">
+        {/* Stats */}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,padding:'14px 16px 0'}}>
+          {[{l:'Total',v:docs.length,c:'#1a56db',bg:'#eff4ff'},{l:'Pending',v:docs.filter(d=>d.status==='pending').length,c:'#d97706',bg:'#fffbeb'},{l:'Expired',v:docs.filter(d=>d.status==='expired').length,c:'#dc2626',bg:'#fef2f2'}].map(s=>(
+            <div key={s.l} style={{background:s.bg,borderRadius:10,padding:'10px 8px',textAlign:'center'}}>
+              <p style={{fontSize:20,fontWeight:800,color:s.c}}>{s.v}</p>
+              <p style={{fontSize:10,color:'#6b7280',marginTop:2,fontWeight:600}}>{s.l}</p>
+            </div>
+          ))}
+        </div>
+        {/* Category filter pills */}
+        <div style={{display:'flex',gap:8,overflowX:'auto',padding:'14px 16px 0',scrollbarWidth:'none'}}>
+          {cats.map(c=>(
+            <button key={c} onClick={()=>setTab(c)} style={{flexShrink:0,padding:'6px 12px',border:'none',borderRadius:20,fontSize:11,fontWeight:600,cursor:'pointer',background:tab===c?'#7c3aed':'#f3f4f6',color:tab===c?'#fff':'#6b7280'}}>
+              {c==='all'?'All':c}
+            </button>
+          ))}
+        </div>
+        {/* Upload button */}
+        <div style={{padding:'12px 16px 0'}}>
+          <button className="btn-primary" style={{width:'100%',background:'#7c3aed',display:'flex',alignItems:'center',justifyContent:'center',gap:8}} onClick={()=>setShowUpload(true)}>
+            <Icon name="upload" size={16} color="#fff"/>Upload Document
+          </button>
+        </div>
+        {/* Document list */}
+        <div style={{padding:'12px 16px 16px',display:'flex',flexDirection:'column',gap:10}}>
+          {filtered.length===0 && <p style={{textAlign:'center',color:'#9ca3af',fontSize:13,padding:'32px 0'}}>No documents in this category</p>}
+          {filtered.map(d=>(
+            <div key={d.id} className="card" style={{display:'flex',alignItems:'center',gap:12}}>
+              <div style={{width:40,height:40,background:d.ib,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                <Icon name={d.icon} size={18} color={d.ic}/>
+              </div>
+              <div style={{flex:1,minWidth:0}}>
+                <p style={{fontSize:13,fontWeight:600,color:'#111827',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{d.name}</p>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginTop:3}}>
+                  <span style={{fontSize:10,color:'#9ca3af'}}>{d.cat} · {d.size}</span>
+                  <span style={{fontSize:10,color:'#9ca3af'}}>{d.date}</span>
+                </div>
+                <span style={{fontSize:10,fontWeight:700,padding:'2px 7px',borderRadius:20,background:statusStyle[d.status].bg,color:statusStyle[d.status].c,display:'inline-block',marginTop:4}}>{d.status}</span>
+              </div>
+              <div style={{display:'flex',gap:6,flexShrink:0}}>
+                <button style={{width:32,height:32,border:'none',background:'#eff4ff',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}} onClick={()=>showToast(`${d.name} downloaded`)}>
+                  <Icon name="download" size={14} color="#7c3aed"/>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      {showUpload && (
+        <div className="modal-backdrop" onClick={()=>setShowUpload(false)}>
+          <div className="modal-sheet" onClick={e=>e.stopPropagation()}>
+            <div className="drag-handle"/>
+            <div style={{padding:'0 20px 12px',borderBottom:'1px solid #e5e7eb'}}><h3 style={{fontSize:15,fontWeight:700}}>Upload Document</h3></div>
+            <div style={{padding:'16px 20px',display:'flex',flexDirection:'column',gap:12}}>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Document Name *</label><input className="input-field" placeholder="e.g. Work Permit Block A"/></div>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Category</label>
+                <select className="select-field"><option>Permit</option><option>Safety</option><option>Project</option><option>Timesheet</option><option>Travel</option><option>Attendance</option><option>Site Report</option></select></div>
+              <div style={{border:'2px dashed #ddd6fe',borderRadius:12,padding:'24px',textAlign:'center',cursor:'pointer',background:'#faf5ff'}} onClick={()=>showToast('File picker coming soon')}>
+                <Icon name="upload" size={28} color="#7c3aed" style={{margin:'0 auto 8px'}}/>
+                <p style={{fontSize:13,fontWeight:600,color:'#7c3aed'}}>Tap to select file</p>
+                <p style={{fontSize:11,color:'#9ca3af',marginTop:4}}>PDF, DOC, XLS, JPG up to 20MB</p>
+              </div>
+              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Remarks</label><textarea className="input-field" rows={2} placeholder="Optional notes..." style={{resize:'none'}}/></div>
+              <div style={{display:'flex',gap:10}}>
+                <button className="btn-ghost" style={{flex:1}} onClick={()=>setShowUpload(false)}>Cancel</button>
+                <button className="btn-primary" style={{flex:1,background:'#7c3aed'}} onClick={()=>{setShowUpload(false);showToast('Document uploaded successfully!');}}>Upload</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      <WFMBottomNav current="wfm-documents" nav={nav}/>
+      <Toast msg={toast}/>
+    </div>
+  );
+};
+
 // WFM Bottom Navigation
 const WFMBottomNav = ({ current, nav }) => {
   const [showMore, setShowMore] = useState(false);
@@ -3475,6 +3575,7 @@ const WFMBottomNav = ({ current, nav }) => {
     {s:'wfm-travel',l:'Travel',icon:'airplane',c:'#0891b2',bg:'#ecfeff'},
     {s:'wfm-safety',l:'Safety',icon:'shield',c:'#dc2626',bg:'#fef2f2'},
     {s:'wfm-analytics',l:'Analytics',icon:'bar-chart',c:'#7c3aed',bg:'#f5f3ff'},
+    {s:'wfm-documents',l:'Documents',icon:'file-text',c:'#7c3aed',bg:'#f5f3ff'},
     {s:'wfm-communication',l:'Updates',icon:'message',c:'#16a34a',bg:'#f0fdf4'},
     {s:'wfm-manager',l:'Manager Hub',icon:'users',c:'#1a56db',bg:'#eff4ff'},
   ];
@@ -3620,6 +3721,7 @@ const App = () => {
     'wfm-travel': <WFMTravel nav={nav}/>,
     'wfm-safety': <WFMSafety nav={nav}/>,
     'wfm-analytics': <WFMAnalytics nav={nav}/>,
+    'wfm-documents': <WFMDocuments nav={nav}/>,
     'wfm-communication': <WFMCommunication nav={nav}/>,
     'wfm-notifications': <WFMNotifications nav={nav}/>,
   };
