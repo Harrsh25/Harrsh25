@@ -2368,7 +2368,6 @@ const WFMDashboard = ({ nav }) => {
             {l:'Shifts',icon:'repeat',s:'wfm-shifts',c:'#7c3aed',bg:'#f5f3ff'},
             {l:'Timesheet',icon:'file-text',s:'wfm-timesheet',c:'#16a34a',bg:'#f0fdf4'},
             {l:'Approvals',icon:'check-circle',s:'wfm-approvals',c:'#d97706',bg:'#fffbeb'},
-            {l:'Travel',icon:'airplane',s:'wfm-travel',c:'#0891b2',bg:'#ecfeff'},
             {l:'Safety',icon:'shield',s:'wfm-safety',c:'#dc2626',bg:'#fef2f2'},
           ].map(a=>(
             <button key={a.l} onClick={()=>nav(a.s)} style={{background:'#fff',border:'1px solid #e5e7eb',borderRadius:12,padding:'12px 8px',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:6}}>
@@ -3102,99 +3101,6 @@ const WFMManagerHub = ({ nav }) => {
   );
 };
 
-const WFMTravel = ({ nav }) => {
-  const [showForm, setShowForm] = useState(false);
-  const [tab, setTab] = useState('requests');
-  const [toast, showToast] = useToast();
-  const requests = [
-    {dest:'Delhi',purpose:'Client meeting - Highway Bridge milestone review',dep:'Apr 30',ret:'May 1',cost:'₹25,000',status:'approved',by:'Priya Mehta'},
-    {dest:'Bangalore',purpose:'Solar Farm site inspection',dep:'May 15',ret:'May 16',cost:'₹18,000',status:'pending',by:''},
-  ];
-  const expenses = [
-    {cat:'Flight',amount:'₹8,500',date:'Apr 30',receipt:true},
-    {cat:'Hotel',amount:'₹4,000',date:'Apr 30',receipt:true},
-    {cat:'Cab',amount:'₹850',date:'May 1',receipt:false},
-  ];
-  return (
-    <div className="screen screen-anim">
-      <ScreenHeader title="Travel & Expense" subtitle="Trips & reimbursements" onBack={()=>nav('wfm-dashboard')}/>
-      <div className="scroll-area" style={{padding:'16px'}}>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:14}}>
-          {[{l:'Active Trips',v:'2'},{l:'Approved',v:'1'},{l:'Total Claims',v:'₹13,350'}].map(s=>(
-            <div key={s.l} className="stat-card"><p style={{fontSize:16,fontWeight:800,color:'#111827'}}>{s.v}</p><p style={{fontSize:10,color:'#9ca3af',marginTop:2}}>{s.l}</p></div>
-          ))}
-        </div>
-        <div className="tab-bar">
-          {[['requests','Travel Requests'],['expenses','Expenses']].map(([k,l])=>(
-            <button key={k} className={`tab-btn${tab===k?' active':''}`} onClick={()=>setTab(k)}>{l}</button>
-          ))}
-        </div>
-        {tab==='requests' && <>
-          {requests.map((r,i)=>(
-            <div key={i} className="card" style={{marginBottom:10}}>
-              <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
-                <p style={{fontSize:14,fontWeight:700,color:'#111827'}}>→ {r.dest}</p>
-                <StatusBadge status={r.status}/>
-              </div>
-              <p style={{fontSize:12,color:'#6b7280',marginBottom:8}}>{r.purpose}</p>
-              <div style={{display:'flex',gap:16,marginBottom:8}}>
-                <span style={{fontSize:11,color:'#9ca3af'}}>📅 {r.dep} – {r.ret}</span>
-                <span style={{fontSize:11,color:'#374151',fontWeight:600}}>Est: {r.cost}</span>
-              </div>
-              {r.status==='approved' && <p style={{fontSize:11,color:'#16a34a'}}>✓ Approved by {r.by}</p>}
-            </div>
-          ))}
-          <button className="btn-primary" style={{width:'100%',marginTop:4}} onClick={()=>setShowForm(true)}>+ New Travel Request</button>
-        </>}
-        {tab==='expenses' && <>
-          {expenses.map((e,i)=>(
-            <div key={i} className="card" style={{marginBottom:8,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-              <div>
-                <p style={{fontSize:13,fontWeight:600,color:'#111827'}}>{e.cat}</p>
-                <p style={{fontSize:11,color:'#6b7280'}}>{e.date} · {e.receipt?'Receipt attached':'No receipt'}</p>
-              </div>
-              <span style={{fontSize:15,fontWeight:700,color:'#111827'}}>{e.amount}</span>
-            </div>
-          ))}
-          <div className="card" style={{background:'#f0fdf4',border:'1px solid #bbf7d0',marginTop:8}}>
-            <p style={{fontSize:13,fontWeight:700,color:'#166534'}}>Reimbursable: ₹12,500</p>
-            <p style={{fontSize:11,color:'#16a34a',marginTop:2}}>Policy limit: ₹20,000 · Within limit ✓</p>
-          </div>
-          <button className="btn-primary" style={{width:'100%',marginTop:12}} onClick={()=>showToast('Expense claim submitted!')}>Submit Claim</button>
-        </>}
-      </div>
-      {showForm && (
-        <div className="modal-backdrop" onClick={()=>setShowForm(false)}>
-          <div className="modal-sheet" onClick={e=>e.stopPropagation()}>
-            <div className="drag-handle"/>
-            <div style={{padding:'0 20px 12px',borderBottom:'1px solid #e5e7eb'}}><h3 style={{fontSize:15,fontWeight:700}}>New Travel Request</h3></div>
-            <div style={{overflowY:'auto',padding:'16px 20px',display:'flex',flexDirection:'column',gap:12}}>
-              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Trip Type</label>
-                <div style={{display:'flex',gap:8}}>{['Inhouse','External'].map(t=><button key={t} style={{flex:1,padding:'8px',border:'1px solid #e5e7eb',borderRadius:8,fontSize:12,cursor:'pointer',background:'#f8f9fc'}}>{t}</button>)}</div></div>
-              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Destination *</label><input className="input-field" placeholder="City, State"/></div>
-              <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Purpose *</label><textarea className="input-field" rows={2} style={{resize:'none'}} placeholder="Purpose of travel..."/></div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-                <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Departure</label><input className="input-field" type="date"/></div>
-                <div><label style={{fontSize:12,fontWeight:600,color:'#374151',display:'block',marginBottom:5}}>Return</label><input className="input-field" type="date"/></div>
-              </div>
-              <div style={{display:'flex',gap:12}}>
-                {['Advance Needed','Hotel Required','Booking Needed'].map(opt=>(
-                  <label key={opt} style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'#374151',cursor:'pointer'}}><input type="checkbox"/>{opt}</label>
-                ))}
-              </div>
-              <div style={{display:'flex',gap:10}}>
-                <button className="btn-ghost" style={{flex:1}} onClick={()=>setShowForm(false)}>Cancel</button>
-                <button className="btn-primary" style={{flex:1}} onClick={()=>{setShowForm(false);showToast('Travel request submitted!');}}>Submit Request</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      <WFMBottomNav current="wfm-travel" nav={nav}/>
-      <Toast msg={toast}/>
-    </div>
-  );
-};
 
 const WFMSafety = ({ nav }) => {
   const [tab, setTab] = useState('incidents');
@@ -3572,7 +3478,6 @@ const WFMBottomNav = ({ current, nav }) => {
     {s:'wfm-shifts',l:'Shifts',icon:'repeat',c:'#7c3aed',bg:'#f5f3ff'},
     {s:'wfm-timesheet',l:'Timesheet',icon:'file-text',c:'#16a34a',bg:'#f0fdf4'},
     {s:'wfm-projects',l:'Projects',icon:'layers',c:'#1a56db',bg:'#eff4ff'},
-    {s:'wfm-travel',l:'Travel',icon:'airplane',c:'#0891b2',bg:'#ecfeff'},
     {s:'wfm-safety',l:'Safety',icon:'shield',c:'#dc2626',bg:'#fef2f2'},
     {s:'wfm-analytics',l:'Analytics',icon:'bar-chart',c:'#7c3aed',bg:'#f5f3ff'},
     {s:'wfm-documents',l:'Documents',icon:'file-text',c:'#7c3aed',bg:'#f5f3ff'},
@@ -3718,7 +3623,6 @@ const App = () => {
     'wfm-projects': <WFMProjects nav={nav}/>,
     'wfm-approvals': <WFMApprovals nav={nav}/>,
     'wfm-manager': <WFMManagerHub nav={nav}/>,
-    'wfm-travel': <WFMTravel nav={nav}/>,
     'wfm-safety': <WFMSafety nav={nav}/>,
     'wfm-analytics': <WFMAnalytics nav={nav}/>,
     'wfm-documents': <WFMDocuments nav={nav}/>,
