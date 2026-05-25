@@ -47,8 +47,6 @@ patches.append(('Add + onClick',
 ))
 
 # ── 3. Insert optional column HEADERS before the + div ───────────────────
-#   Current: ...children:"DEPENDENCY"}),  e.jsx("div",{style:{width:36,...PLUS...
-#   Target:  ...children:"DEPENDENCY"}),  EXTRA_HDRS,  e.jsx("div",{style:{width:36,...PLUS...
 EXTRA_HDRS = ''.join(
     'e.jsx("div",{style:{width:' + str(w) + ',flexShrink:0,' + HDR_STYLE + '},'
     'children:_colVis["' + k + '"]?"' + lbl + '":null}),'
@@ -61,8 +59,6 @@ patches.append(('Insert extra col headers',
 ))
 
 # ── 4. Insert optional column CELLS before the + cell ────────────────────
-#   Current: ...children:"—"})}),  e.jsx("div",{style:{width:36,flexShrink:0}})  ]})
-#   Target:  ...children:"—"})}),  EXTRA_CELLS,  e.jsx("div",{style:{width:36,flexShrink:0}})  ]})
 EXTRA_CELLS = ''.join(
     '_colVis["' + k + '"]&&e.jsx("div",{style:{width:' + str(w) + ',flexShrink:0,'
     'fontSize:11,color:"#374151",fontFamily:"Inter,sans-serif",'
@@ -114,26 +110,62 @@ def col_row(k, lbl, desc):
 
 SEL = 'Object.keys(_colDraft).filter(function(k){return _colDraft[k];}).length'
 
+#
+# Panel structure (braces must balance):
+#
+#   _colPanel && e.jsxs("div", {   ← outer overlay  {1
+#     style:{...},                                    {2  }2
+#     children:[
+#       e.jsx("div", {             ← backdrop         {3  }3
+#         style:{...},                                {4  }4
+#         onClick:...
+#       }),
+#       e.jsxs("div", {            ← centering wrap   {5  }5
+#         style:{...},                                {6  }6
+#         children:[
+#           e.jsxs("div", {        ← white panel      {7  }7
+#             style:{...},                            {8  }8
+#             children:[
+#               ... header ...
+#               ... body ...
+#               ... footer ...
+#             ]
+#           })                     close panel        }7
+#         ]
+#       })                         close centering    }5
+#     ]
+#   }),                            close overlay      }1
+#
+
 COL_PANEL = (
-    '_colPanel&&e.jsxs("div",{style:{position:"fixed",inset:0,zIndex:300},children:['
-    # semi-transparent backdrop (closes on click)
-    'e.jsx("div",{style:{position:"absolute",inset:0,background:"rgba(0,0,0,0.35)"},'
+    # ── outer overlay (position:fixed covers viewport; flex-centers the 448px column)
+    '_colPanel&&e.jsxs("div",{'
+    'style:{position:"fixed",inset:0,zIndex:300,'
+    'display:"flex",justifyContent:"center"},'
+    'children:['
+    # ── semi-transparent backdrop
+    'e.jsx("div",{'
+    'style:{position:"absolute",inset:0,background:"rgba(0,0,0,0.35)"},'
     'onClick:()=>_setColPanel(!1)}),'
-    # drawer panel – absolutely positioned at right edge of the fixed overlay
-    'e.jsxs("div",{style:{position:"absolute",right:0,top:0,bottom:0,'
-    'width:"min(88vw,380px)",background:"#fff",'
+    # ── centering wrapper – same width as the app column
+    'e.jsxs("div",{'
+    'style:{position:"relative",width:"min(100vw,448px)",height:"100%",'
+    'display:"flex",justifyContent:"flex-end",pointerEvents:"none"},'
+    'children:['
+    # ── white drawer panel
+    'e.jsxs("div",{'
+    'style:{width:"min(88%,360px)",height:"100%",background:"#fff",'
     'display:"flex",flexDirection:"column",'
-    'boxShadow:"-6px 0 32px rgba(0,0,0,0.18)"},children:['
+    'boxShadow:"-6px 0 32px rgba(0,0,0,0.18)",pointerEvents:"auto"},'
+    'children:['
     # ── header ──
     'e.jsxs("div",{style:{padding:"18px 20px 14px",'
     'borderBottom:"1px solid #f0f1f4"},children:['
     'e.jsxs("div",{style:{display:"flex",alignItems:"center",gap:12},children:['
-    # icon
     'e.jsx("div",{style:{width:38,height:38,borderRadius:10,'
     'background:"#1a56db",display:"flex",alignItems:"center",'
     'justifyContent:"center",flexShrink:0},'
     'children:e.jsx("span",{style:{fontSize:18,color:"#fff"},children:"⊞"})}),'
-    # title block
     'e.jsxs("div",{style:{flex:1,minWidth:0},children:['
     'e.jsx("div",{style:{fontSize:15,fontWeight:700,color:"#111827",'
     'fontFamily:"Inter,sans-serif"},children:"Customize Columns"}),'
@@ -144,7 +176,7 @@ COL_PANEL = (
     'style:{background:"none",border:"none",cursor:"pointer",'
     'padding:"4px 6px",flexShrink:0,'
     'fontSize:20,color:"#9ca3af",lineHeight:1,borderRadius:6},'
-    'children:"×"})'
+    'children:"\xd7"})'
     ']})]}),'
     # ── scrollable body ──
     'e.jsxs("div",{style:{flex:1,overflowY:"auto"},children:['
@@ -173,7 +205,8 @@ COL_PANEL = (
     'fontFamily:"Inter,sans-serif",'
     'cursor:' + SEL + '>0?"pointer":"default"},'
     'children:"Save Changes"})'
-    ']})]})]})]}),'
+    # close: btn-group ]}) footer ]}) panel ]}) centering ]}) overlay ]})
+    ']})]})]})]})]}),'
 )
 
 ANCHOR = '_depItem&&e.jsxs("div",{style:{position:"fixed",inset:0,zIndex:200,'
