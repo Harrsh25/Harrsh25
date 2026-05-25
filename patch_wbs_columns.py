@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 """
 WBS list view – Customize Columns panel
-Adds a right-side drawer that opens when the + button is clicked,
-lets the user toggle optional columns on/off, and saves the selection.
+Clicking + opens a right-side drawer; optional columns appear
+BETWEEN the DEPENDENCY column and the + button.
 """
 
 with open('/home/user/Harrsh25/hrmobileapp.html', 'r', encoding='utf-8') as f:
     content = f.read()
-original = content
 
 patches = []
 
@@ -16,22 +15,21 @@ HDR_STYLE = (
     'textTransform:"uppercase",fontFamily:"Inter,sans-serif"'
 )
 
-# ── Column definitions ─────────────────────────────────────────────────────
-# key, label, desc, width
+# (key, display-label, description, width-px)
 COL_DEFS = [
-    ('duration',       'DURATION',        'Time span in days or hours',       90),
-    ('timeLogged',     'TIME LOGGED',      'Tracked time spent on work',       100),
-    ('recurrence',     'RECURRENCE',       'Repeat schedule pattern',          110),
-    ('inventory',      'INVENTORY',        'Associated inventory tags',        100),
-    ('completionDate', 'COMPLETION DATE',  'Actual completion date',           120),
-    ('location',       'LOCATION',         'Work site or remote',              100),
-    ('scope',          'SCOPE',            'Quantity and unit of work',         90),
-    ('shift',          'SHIFT',            'Assigned work shift',               80),
-    ('skill',          'SKILL',            'Required competencies',             80),
-    ('priority',       'PRIORITY',         'Urgency level',                     80),
+    ('duration',       'DURATION',       'Time span in days or hours',    90),
+    ('timeLogged',     'TIME LOGGED',     'Tracked time spent on work',   100),
+    ('recurrence',     'RECURRENCE',      'Repeat schedule pattern',      110),
+    ('inventory',      'INVENTORY',       'Associated inventory tags',    100),
+    ('completionDate', 'COMPLETION DATE', 'Actual completion date',       120),
+    ('location',       'LOCATION',        'Work site or remote',          100),
+    ('scope',          'SCOPE',           'Quantity and unit of work',     90),
+    ('shift',          'SHIFT',           'Assigned work shift',           80),
+    ('skill',          'SKILL',           'Required competencies',         80),
+    ('priority',       'PRIORITY',        'Urgency level',                 80),
 ]
 
-# ── 1. Add _colVis + _colDraft + _colPanel state ──────────────────────────
+# ── 1. Add state ──────────────────────────────────────────────────────────
 patches.append(('Add col state',
     '[_depBdOpen,_setDepBdOpen]=b.useState(!1),',
     '[_depBdOpen,_setDepBdOpen]=b.useState(!1),'
@@ -48,41 +46,38 @@ patches.append(('Add + onClick',
     'children:"+"',
 ))
 
-# ── 3. Add optional column headers after the PLUS header ──────────────────
+# ── 3. Insert optional column HEADERS before the + div ───────────────────
+#   Current: ...children:"DEPENDENCY"}),  e.jsx("div",{style:{width:36,...PLUS...
+#   Target:  ...children:"DEPENDENCY"}),  EXTRA_HDRS,  e.jsx("div",{style:{width:36,...PLUS...
 EXTRA_HDRS = ''.join(
-    'e.jsx("div",{style:{width:%d,flexShrink:0,%s},'
-    'children:_colVis["%s"]?"%s":null}),' % (w, HDR_STYLE, k, lbl)
-    for k, lbl, _desc, w in COL_DEFS
+    'e.jsx("div",{style:{width:' + str(w) + ',flexShrink:0,' + HDR_STYLE + '},'
+    'children:_colVis["' + k + '"]?"' + lbl + '":null}),'
+    for k, lbl, _d, w in COL_DEFS
 )
-# current end: ...children:"+"})})    ]})    ,
-# target:      ...children:"+"})}),  EXTRA_HDRS  ]})  ,
-patches.append(('Add extra col headers',
-    'title:"Add custom column",'
-    'onClick:()=>{_setColDraft(Object.assign({},_colVis));_setColPanel(!0);},'
-    'children:"+"})})]})',
-    'title:"Add custom column",'
-    'onClick:()=>{_setColDraft(Object.assign({},_colVis));_setColPanel(!0);},'
-    'children:"+"})})'
-    ',' + EXTRA_HDRS.rstrip(',') + ']})',
+patches.append(('Insert extra col headers',
+    'children:"DEPENDENCY"}),e.jsx("div",{style:{width:36,flexShrink:0,display:"flex"',
+    'children:"DEPENDENCY"}),' + EXTRA_HDRS
+    + 'e.jsx("div",{style:{width:36,flexShrink:0,display:"flex"',
 ))
 
-# ── 4. Add optional column cells after the PLUS cell ──────────────────────
+# ── 4. Insert optional column CELLS before the + cell ────────────────────
+#   Current: ...children:"—"})}),  e.jsx("div",{style:{width:36,flexShrink:0}})  ]})
+#   Target:  ...children:"—"})}),  EXTRA_CELLS,  e.jsx("div",{style:{width:36,flexShrink:0}})  ]})
 EXTRA_CELLS = ''.join(
-    '_colVis["%s"]&&e.jsx("div",{style:{width:%d,flexShrink:0,'
+    '_colVis["' + k + '"]&&e.jsx("div",{style:{width:' + str(w) + ',flexShrink:0,'
     'fontSize:11,color:"#374151",fontFamily:"Inter,sans-serif",'
     'display:"flex",alignItems:"center",justifyContent:"center",'
     'padding:"0 6px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"},'
-    'children:W["%s"]||"—"}),' % (k, w, k)
-    for k, _lbl, _desc, w in COL_DEFS
+    'children:W["' + k + '"]||"—"}),'
+    for k, _l, _d, w in COL_DEFS
 )
-patches.append(('Add extra col cells',
-    'e.jsx("div",{style:{width:36,flexShrink:0}})]}),_e&&je.map',
-    'e.jsx("div",{style:{width:36,flexShrink:0}}),'
-    + EXTRA_CELLS.rstrip(',')
-    + ']}),_e&&je.map',
+patches.append(('Insert extra col cells',
+    'children:"—"})}),e.jsx("div",{style:{width:36,flexShrink:0}})]}),_e&&je.map',
+    'children:"—"})}),' + EXTRA_CELLS
+    + 'e.jsx("div",{style:{width:36,flexShrink:0}})]}),_e&&je.map',
 ))
 
-# ── 5. Dynamic minWidth ────────────────────────────────────────────────────
+# ── 5. Dynamic minWidth ───────────────────────────────────────────────────
 patches.append(('Dynamic minWidth',
     'children:e.jsxs("div",{style:{minWidth:760},',
     'children:e.jsxs("div",{style:{minWidth:760+'
@@ -90,82 +85,78 @@ patches.append(('Dynamic minWidth',
 ))
 
 # ── 6. Inject the Customize Columns panel ────────────────────────────────
-# Toggle switch helper (inline in JSX, no separate component)
-# Toggle: outer pill div + inner circle
-def toggle_switch(key):
-    k = key
+def toggle_switch(k):
     return (
-        'e.jsx("div",{onClick:()=>_setColDraft(Object.assign({},_colDraft,{["' + k + '"]:!_colDraft["' + k + '"]})),'
-        'style:{width:44,height:24,borderRadius:12,background:_colDraft["' + k + '"]?"#1a56db":"#e5e7eb",'
+        'e.jsx("div",{'
+        'onClick:()=>_setColDraft(Object.assign({},_colDraft,{["' + k + '"]:!_colDraft["' + k + '"]})),'
+        'style:{width:44,height:24,borderRadius:12,'
+        'background:_colDraft["' + k + '"]?"#1a56db":"#e5e7eb",'
         'position:"relative",cursor:"pointer",flexShrink:0},'
         'children:e.jsx("div",{style:{position:"absolute",top:2,'
-        'left:_colDraft["' + k + '"]?20:2,width:20,height:20,borderRadius:"50%",'
+        'left:_colDraft["' + k + '"]?20:2,'
+        'width:20,height:20,borderRadius:"50%",'
         'background:"#fff",boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}})})'
     )
 
-def col_row(key, label, desc):
+def col_row(k, lbl, desc):
     return (
         'e.jsxs("div",{style:{display:"flex",alignItems:"center",'
-        'justifyContent:"space-between",padding:"14px 24px",'
-        'borderBottom:"1px solid #f9fafb",background:_colDraft["' + key + '"]?"#f0f4ff":"#fff"},children:['
-        'e.jsxs("div",{children:['
+        'justifyContent:"space-between",padding:"14px 20px",'
+        'borderBottom:"1px solid #f0f1f4",'
+        'background:_colDraft["' + k + '"]?"#f5f7ff":"#fff"},children:['
+        'e.jsxs("div",{style:{flex:1,marginRight:16},children:['
         'e.jsx("div",{style:{fontSize:13,fontWeight:600,color:"#111827",'
-        'fontFamily:"Inter,sans-serif"},children:"' + label + '"}),'
+        'fontFamily:"Inter,sans-serif"},children:"' + lbl + '"}),'
         'e.jsx("div",{style:{fontSize:11,color:"#6b7280",'
         'fontFamily:"Inter,sans-serif",marginTop:2},children:"' + desc + '"})]})'
-        + ',' + toggle_switch(key)
-        + ']})'
+        ',' + toggle_switch(k) + ']})'
     )
 
-selected_count = (
-    'Object.keys(_colDraft).filter(function(k){return _colDraft[k];}).length'
-)
+SEL = 'Object.keys(_colDraft).filter(function(k){return _colDraft[k];}).length'
 
 COL_PANEL = (
-    '_colPanel&&e.jsxs("div",{style:{position:"fixed",inset:0,zIndex:300,'
-    'display:"flex",justifyContent:"flex-end"},children:['
-    # backdrop
-    'e.jsx("div",{style:{position:"absolute",inset:0,background:"rgba(0,0,0,0.3)"},'
+    '_colPanel&&e.jsxs("div",{style:{position:"fixed",inset:0,zIndex:300},children:['
+    # semi-transparent backdrop (closes on click)
+    'e.jsx("div",{style:{position:"absolute",inset:0,background:"rgba(0,0,0,0.35)"},'
     'onClick:()=>_setColPanel(!1)}),'
-    # drawer
-    'e.jsxs("div",{style:{position:"relative",background:"#fff",'
-    'width:"min(90vw,400px)",height:"100%",display:"flex",'
-    'flexDirection:"column",overflow:"hidden",'
-    'boxShadow:"-4px 0 24px rgba(0,0,0,0.15)"},children:['
-    # header
-    'e.jsxs("div",{style:{padding:"20px 24px 16px",'
+    # drawer panel – absolutely positioned at right edge of the fixed overlay
+    'e.jsxs("div",{style:{position:"absolute",right:0,top:0,bottom:0,'
+    'width:"min(88vw,380px)",background:"#fff",'
+    'display:"flex",flexDirection:"column",'
+    'boxShadow:"-6px 0 32px rgba(0,0,0,0.18)"},children:['
+    # ── header ──
+    'e.jsxs("div",{style:{padding:"18px 20px 14px",'
     'borderBottom:"1px solid #f0f1f4"},children:['
-    'e.jsxs("div",{style:{display:"flex",alignItems:"flex-start",'
-    'gap:14},children:['
-    # icon box
-    'e.jsx("div",{style:{width:40,height:40,borderRadius:10,'
+    'e.jsxs("div",{style:{display:"flex",alignItems:"center",gap:12},children:['
+    # icon
+    'e.jsx("div",{style:{width:38,height:38,borderRadius:10,'
     'background:"#1a56db",display:"flex",alignItems:"center",'
     'justifyContent:"center",flexShrink:0},'
-    'children:e.jsx("span",{style:{fontSize:20,color:"#fff"},children:"⊞"})}),'
-    # title + subtitle
-    'e.jsxs("div",{style:{flex:1},children:['
-    'e.jsx("h2",{style:{fontSize:16,fontWeight:700,color:"#111827",'
-    'fontFamily:"Inter,sans-serif",margin:0},children:"Customize Columns"}),'
-    'e.jsx("p",{style:{fontSize:12,color:"#6b7280",'
-    'fontFamily:"Inter,sans-serif",marginTop:3,marginBottom:0},'
-    'children:"Choose visible columns for this view"})]}),'
-    # close X
-    'e.jsx("button",{onClick:()=>_setColPanel(!1),'
+    'children:e.jsx("span",{style:{fontSize:18,color:"#fff"},children:"⊞"})}),'
+    # title block
+    'e.jsxs("div",{style:{flex:1,minWidth:0},children:['
+    'e.jsx("div",{style:{fontSize:15,fontWeight:700,color:"#111827",'
+    'fontFamily:"Inter,sans-serif"},children:"Customize Columns"}),'
+    'e.jsx("div",{style:{fontSize:11,color:"#6b7280",'
+    'fontFamily:"Inter,sans-serif",marginTop:2},'
+    'children:"Choose visible columns for this view"})]})'
+    ',e.jsx("button",{onClick:()=>_setColPanel(!1),'
     'style:{background:"none",border:"none",cursor:"pointer",'
-    'padding:4,flexShrink:0,fontSize:18,color:"#9ca3af",lineHeight:1},'
+    'padding:"4px 6px",flexShrink:0,'
+    'fontSize:20,color:"#9ca3af",lineHeight:1,borderRadius:6},'
     'children:"×"})'
     ']})]}),'
-    # body – scrollable list of column rows
+    # ── scrollable body ──
     'e.jsxs("div",{style:{flex:1,overflowY:"auto"},children:['
     + ','.join(col_row(k, lbl, desc) for k, lbl, desc, _w in COL_DEFS)
     + ']}),'
-    # footer
-    'e.jsxs("div",{style:{padding:"14px 24px",'
-    'borderTop:"1px solid #f0f1f4",display:"flex",'
-    'alignItems:"center",justifyContent:"space-between"},children:['
-    'e.jsx("span",{style:{fontSize:12,color:"#6b7280",'
-    'fontFamily:"Inter,sans-serif"},'
-    'children:[' + selected_count + '," columns selected"]}),'
+    # ── footer ──
+    'e.jsxs("div",{style:{padding:"14px 20px",'
+    'borderTop:"1px solid #f0f1f4",'
+    'display:"flex",alignItems:"center",'
+    'justifyContent:"space-between"},children:['
+    'e.jsxs("span",{style:{fontSize:12,color:"#6b7280",'
+    'fontFamily:"Inter,sans-serif"},children:[' + SEL + '," columns selected"]}),'
     'e.jsxs("div",{style:{display:"flex",gap:10},children:['
     'e.jsx("button",{onClick:()=>_setColPanel(!1),'
     'style:{padding:"8px 18px",borderRadius:8,'
@@ -173,31 +164,34 @@ COL_PANEL = (
     'fontSize:13,fontWeight:600,color:"#374151",'
     'fontFamily:"Inter,sans-serif",cursor:"pointer"},'
     'children:"Cancel"}),'
-    'e.jsx("button",{onClick:()=>{_setColVis(Object.assign({},_colDraft));_setColPanel(!1);},'
+    'e.jsx("button",'
+    '{onClick:()=>{_setColVis(Object.assign({},_colDraft));_setColPanel(!1);},'
     'style:{padding:"8px 18px",borderRadius:8,'
-    'border:"none",background:' + selected_count + '>0?"#1a56db":"#c7d2fe",'
+    'border:"none",'
+    'background:' + SEL + '>0?"#1a56db":"#c7d2fe",'
     'fontSize:13,fontWeight:600,color:"#fff",'
     'fontFamily:"Inter,sans-serif",'
-    'cursor:' + selected_count + '>0?"pointer":"default"},'
+    'cursor:' + SEL + '>0?"pointer":"default"},'
     'children:"Save Changes"})'
     ']})]})]})]}),'
 )
 
-COL_PANEL_ANCHOR = '_depItem&&e.jsxs("div",{style:{position:"fixed",inset:0,zIndex:200,'
-patches.append(('Inject col panel', COL_PANEL_ANCHOR, COL_PANEL + COL_PANEL_ANCHOR))
+ANCHOR = '_depItem&&e.jsxs("div",{style:{position:"fixed",inset:0,zIndex:200,'
+patches.append(('Inject col panel', ANCHOR, COL_PANEL + ANCHOR))
 
-# ── Validate ────────────────────────────────────────────────────────────────
+# ── Run ──────────────────────────────────────────────────────────────────
 errors = []
 for name, old, new in patches:
     if old not in content:
-        errors.append(f'NOT FOUND: {name}')
-        print(f'  NOT FOUND ({name}): looking for {repr(old[:80])}')
+        errors.append(name)
+        print(f'  NOT FOUND: {name}')
+        print(f'    looking for: {repr(old[:80])}')
     else:
         content = content.replace(old, new, 1)
         print(f'  OK: {name}')
 
 if errors:
-    print('\nFailed patches:', errors)
+    print('\nFailed:', errors)
 else:
     ob = content.count('{') - content.count('}')
     op = content.count('(') - content.count(')')
