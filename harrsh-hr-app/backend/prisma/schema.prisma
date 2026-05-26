@@ -1,0 +1,259 @@
+// To switch to PostgreSQL:
+// 1. Change provider from "sqlite" to "postgresql"
+// 2. Update DATABASE_URL in .env to: postgresql://user:password@localhost:5432/harrsh_hr
+// 3. Run: npx prisma migrate dev
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  employeeId    String   @unique
+  email         String   @unique
+  passwordHash  String
+  firstName     String
+  lastName      String
+  role          String   @default("EMPLOYEE") // EMPLOYEE | MANAGER | HR | ADMIN
+  department    String?
+  designation   String?
+  managerId     String?
+  phone         String?
+  joinDate      DateTime?
+  status        String   @default("ACTIVE") // ACTIVE | INACTIVE | ON_LEAVE
+  profilePhoto  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  manager         User?   @relation("ManagerEmployee", fields: [managerId], references: [id])
+  directReports   User[]  @relation("ManagerEmployee")
+
+  refreshTokens     RefreshToken[]
+  attendanceRecords AttendanceRecord[]
+  leaveBalances     LeaveBalance[]
+  leaveRequests     LeaveRequest[]      @relation("LeaveRequester")
+  approvedLeaves    LeaveRequest[]      @relation("LeaveApprover")
+  payrollRecords    PayrollRecord[]
+  assignedTasks     Task[]              @relation("TaskAssignee")
+  createdTasks      Task[]              @relation("TaskCreator")
+  managedProjects   Project[]           @relation("ProjectManager")
+  notifications     Notification[]
+  documents         Document[]
+  expenses          Expense[]           @relation("ExpenseOwner")
+  approvedExpenses  Expense[]           @relation("ExpenseApprover")
+  approvalRequests  ApprovalRequest[]   @relation("ApprovalRequester")
+  pendingApprovals  ApprovalRequest[]   @relation("ApprovalApprover")
+  departmentHead    Department[]
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AttendanceRecord {
+  id           String    @id @default(uuid())
+  userId       String
+  date         DateTime
+  checkInTime  DateTime?
+  checkOutTime DateTime?
+  status       String    @default("PRESENT") // PRESENT | ABSENT | LATE | HALF_DAY | ON_LEAVE | HOLIDAY
+  workingHours Float?
+  notes        String?
+  createdAt    DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+}
+
+model LeaveType {
+  id            String   @id @default(uuid())
+  name          String   @unique
+  description   String?
+  totalDays     Int
+  carryForward  Boolean  @default(false)
+  isPaid        Boolean  @default(true)
+  color         String   @default("#3B82F6")
+  createdAt     DateTime @default(now())
+
+  leaveBalances  LeaveBalance[]
+  leaveRequests  LeaveRequest[]
+}
+
+model LeaveBalance {
+  id          String   @id @default(uuid())
+  userId      String
+  leaveTypeId String
+  year        Int
+  allocated   Float
+  used        Float    @default(0)
+  remaining   Float
+  createdAt   DateTime @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leaveType LeaveType @relation(fields: [leaveTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, leaveTypeId, year])
+}
+
+model LeaveRequest {
+  id              String    @id @default(uuid())
+  userId          String
+  leaveTypeId     String
+  startDate       DateTime
+  endDate         DateTime
+  totalDays       Float
+  reason          String
+  status          String    @default("PENDING") // PENDING | APPROVED | REJECTED | CANCELLED
+  approverId      String?
+  approverComment String?
+  appliedAt       DateTime  @default(now())
+  actionedAt      DateTime?
+  createdAt       DateTime  @default(now())
+
+  user      User      @relation("LeaveRequester", fields: [userId], references: [id], onDelete: Cascade)
+  leaveType LeaveType @relation(fields: [leaveTypeId], references: [id])
+  approver  User?     @relation("LeaveApprover", fields: [approverId], references: [id])
+}
+
+model PayrollRecord {
+  id                  String    @id @default(uuid())
+  userId              String
+  month               Int
+  year                Int
+  basicSalary         Float
+  hra                 Float     @default(0)
+  specialAllowance    Float     @default(0)
+  transportAllowance  Float     @default(0)
+  medicalAllowance    Float     @default(0)
+  grossSalary         Float
+  pfEmployee          Float     @default(0)
+  pfEmployer          Float     @default(0)
+  professionalTax     Float     @default(0)
+  tds                 Float     @default(0)
+  esiEmployee         Float     @default(0)
+  totalDeductions     Float
+  netSalary           Float
+  status              String    @default("DRAFT") // DRAFT | PROCESSED | PAID
+  paidAt              DateTime?
+  createdAt           DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, month, year])
+}
+
+model Department {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  headId      String?
+  createdAt   DateTime @default(now())
+
+  head User? @relation(fields: [headId], references: [id])
+}
+
+model Project {
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  status      String    @default("ACTIVE") // ACTIVE | ON_HOLD | COMPLETED | CANCELLED
+  startDate   DateTime?
+  endDate     DateTime?
+  managerId   String?
+  budget      Float?
+  progress    Int       @default(0)
+  priority    String    @default("MEDIUM") // LOW | MEDIUM | HIGH | CRITICAL
+  createdAt   DateTime  @default(now())
+
+  manager User?  @relation("ProjectManager", fields: [managerId], references: [id])
+  tasks   Task[]
+}
+
+model Task {
+  id           String    @id @default(uuid())
+  projectId    String
+  title        String
+  description  String?
+  assignedToId String?
+  assignedById String?
+  status       String    @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | COMPLETED | ON_HOLD
+  priority     String    @default("MEDIUM")
+  startDate    DateTime?
+  dueDate      DateTime?
+  progress     Int       @default(0)
+  createdAt    DateTime  @default(now())
+
+  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignedTo User?   @relation("TaskAssignee", fields: [assignedToId], references: [id])
+  assignedBy User?   @relation("TaskCreator", fields: [assignedById], references: [id])
+}
+
+model ApprovalRequest {
+  id               String    @id @default(uuid())
+  requestType      String    // LEAVE | EXPENSE | TRAVEL | OVERTIME | SHIFT_CHANGE
+  referenceId      String?
+  requestedById    String
+  currentApproverId String?
+  status           String    @default("PENDING") // PENDING | APPROVED | REJECTED | CANCELLED
+  comments         String?
+  createdAt        DateTime  @default(now())
+
+  requestedBy    User  @relation("ApprovalRequester", fields: [requestedById], references: [id], onDelete: Cascade)
+  currentApprover User? @relation("ApprovalApprover", fields: [currentApproverId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      String   @default("INFO") // INFO | SUCCESS | WARNING | ERROR
+  isRead    Boolean  @default(false)
+  actionUrl String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Document {
+  id         String   @id @default(uuid())
+  userId     String
+  name       String
+  type       String
+  fileUrl    String
+  status     String   @default("PENDING") // PENDING | VERIFIED | REJECTED
+  uploadedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Expense {
+  id          String    @id @default(uuid())
+  userId      String
+  title       String
+  amount      Float
+  category    String
+  billDate    DateTime
+  billNumber  String?
+  description String?
+  receiptUrl  String?
+  status      String    @default("DRAFT") // DRAFT | SUBMITTED | APPROVED | REJECTED | PAID
+  approverId  String?
+  createdAt   DateTime  @default(now())
+
+  user     User  @relation("ExpenseOwner", fields: [userId], references: [id], onDelete: Cascade)
+  approver User? @relation("ExpenseApprover", fields: [approverId], references: [id])
+}
