@@ -7,7 +7,8 @@ const inputCls = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm foc
 const labelCls = 'block text-xs font-medium text-gray-600 mb-1';
 
 const OrgSettingsPage = () => {
-  const { showToast } = useToast();
+  const toast = useToast();
+  const showToast = (msg, type) => toast[type] ? toast[type](msg) : toast.info(msg);
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState('general');
   const [newHoliday, setNewHoliday] = useState({ name: '', date: '', type: 'national' });

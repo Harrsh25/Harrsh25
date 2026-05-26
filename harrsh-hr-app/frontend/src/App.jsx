@@ -26,6 +26,7 @@ import NotFoundPage from './pages/NotFoundPage.jsx';
 import DocumentsPage from './pages/DocumentsPage.jsx';
 import OrgSettingsPage from './pages/OrgSettingsPage.jsx';
 import OnboardingPage from './pages/OnboardingPage.jsx';
+import ReportsPage from './pages/ReportsPage.jsx';
 
 // Protected route wrapper
 const ProtectedRoute = ({ children, roles }) => {
@@ -35,10 +36,11 @@ const ProtectedRoute = ({ children, roles }) => {
   return children;
 };
 
-// Notification count syncer
+// Notification count syncer + SSE listener
 const NotificationSync = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, accessToken } = useAuth();
   const setNotificationCount = useAppStore(s => s.setNotificationCount);
+  const addToast = useAppStore(s => s.addToast);
 
   const { data } = useQuery({
     queryKey: ['notifications', 'unread-count'],
@@ -52,6 +54,30 @@ const NotificationSync = () => {
       setNotificationCount(data.data.count);
     }
   }, [data, setNotificationCount]);
+
+  // SSE connection for real-time notifications
+  useEffect(() => {
+    if (!isAuthenticated || !accessToken) return;
+
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const es = new EventSource(`${apiBase}/api/v1/sse/events?token=${accessToken}`);
+
+    es.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data.type === 'notification') {
+          addToast(data.message || data.notification?.message || 'New notification', 'info');
+          setNotificationCount(prev => (prev || 0) + 1);
+        }
+      } catch (_) {}
+    };
+
+    es.onerror = () => {
+      es.close();
+    };
+
+    return () => es.close();
+  }, [isAuthenticated, accessToken, addToast, setNotificationCount]);
 
   return null;
 };
@@ -101,6 +127,14 @@ const App = () => {
             element={
               <ProtectedRoute roles={['ADMIN', 'HR']}>
                 <OrgSettingsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports"
+            element={
+              <ProtectedRoute roles={['MANAGER', 'HR', 'ADMIN']}>
+                <ReportsPage />
               </ProtectedRoute>
             }
           />

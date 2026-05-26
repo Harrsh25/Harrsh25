@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, Clock, CheckSquare, FolderOpen, User } from 'lucide-react';
+import { Home, Clock, FileText, FolderOpen, User } from 'lucide-react';
 import clsx from 'clsx';
 import useAppStore from '../../store/appStore.js';
 import useAuth from '../../hooks/useAuth.js';
@@ -7,7 +7,7 @@ import useAuth from '../../hooks/useAuth.js';
 const tabs = [
   { to: '/dashboard', icon: Home, label: 'Home' },
   { to: '/attendance', icon: Clock, label: 'Attendance' },
-  { to: '/approvals', icon: CheckSquare, label: 'Approvals', roles: ['MANAGER', 'HR', 'ADMIN'] },
+  { to: '/documents', icon: FileText, label: 'Docs' },
   { to: '/projects', icon: FolderOpen, label: 'Projects' },
   { to: '/profile', icon: User, label: 'Profile' },
 ];

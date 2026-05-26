@@ -7,7 +7,11 @@ const useAppStore = create((set) => ({
   isLoading: false,
   toasts: [],
 
-  setNotificationCount: (count) => set({ notificationCount: count }),
+  setNotificationCount: (countOrUpdater) => set((state) => ({
+    notificationCount: typeof countOrUpdater === 'function'
+      ? countOrUpdater(state.notificationCount)
+      : countOrUpdater,
+  })),
   setLoading: (isLoading) => set({ isLoading }),
 
   addToast: (message, type = 'info') => {

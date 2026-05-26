@@ -19,6 +19,11 @@ const dashboardRoutes = require('./src/routes/dashboard');
 const orgRoutes = require('./src/routes/org');
 const documentRoutes = require('./src/routes/documents');
 const sseRoutes = require('./src/routes/sse');
+const auditRoutes = require('./src/routes/audit');
+const reportRoutes = require('./src/routes/reports');
+const gdprRoutes = require('./src/routes/gdpr');
+const ssoRoutes = require('./src/routes/sso');
+const passport = require('./src/middleware/passport');
 const errorHandler = require('./src/middleware/errorHandler');
 
 const app = express();
@@ -65,6 +70,11 @@ app.use('/api/v1/dashboard', dashboardRoutes);
 app.use('/api/v1/org', orgRoutes);
 app.use('/api/v1/documents', documentRoutes);
 app.use('/api/v1/sse', sseRoutes);
+app.use(passport.initialize());
+app.use('/api/v1/audit', auditRoutes);
+app.use('/api/v1/reports', reportRoutes);
+app.use('/api/v1/gdpr', gdprRoutes);
+app.use('/api/v1/auth', ssoRoutes);
 
 // SSE notifications stream (alternate path)
 app.use('/api/v1/notifications/stream', sseRoutes);

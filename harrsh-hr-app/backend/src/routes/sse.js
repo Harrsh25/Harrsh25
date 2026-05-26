@@ -1,8 +1,20 @@
 const router = require('express').Router();
-const { authenticate } = require('../middleware/auth');
+const { verifyAccessToken } = require('../utils/jwt');
 const { addClient, removeClient } = require('../services/notificationService');
 
-router.get('/events', authenticate, (req, res) => {
+// Custom auth for SSE - token can be in query param or Authorization header
+const sseAuth = (req, res, next) => {
+  const token = req.query.token || (req.headers['authorization'] || '').replace('Bearer ', '');
+  if (!token) return res.status(401).end('Unauthorized');
+  try {
+    req.user = verifyAccessToken(token);
+    next();
+  } catch (_) {
+    res.status(401).end('Invalid token');
+  }
+};
+
+router.get('/events', sseAuth, (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');

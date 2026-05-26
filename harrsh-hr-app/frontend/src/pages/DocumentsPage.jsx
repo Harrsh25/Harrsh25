@@ -10,7 +10,8 @@ const statusColor = { PENDING: 'bg-yellow-100 text-yellow-700', VERIFIED: 'bg-gr
 
 const DocumentsPage = () => {
   const { user } = useAuth();
-  const { showToast } = useToast();
+  const toast = useToast();
+  const showToast = (msg, type) => toast[type] ? toast[type](msg) : toast.info(msg);
   const qc = useQueryClient();
   const fileRef = useRef(null);
   const [showUpload, setShowUpload] = useState(false);
