@@ -29,6 +29,11 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Type check
+        run: npm run typecheck
+        env:
+          VITE_API_URL: http://localhost:5000
+
       - name: Build
         run: npm run build
         env:
