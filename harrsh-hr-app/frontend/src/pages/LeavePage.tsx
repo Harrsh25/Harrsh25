@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Calendar, ChevronRight } from 'lucide-react';
+import { Plus, Calendar } from 'lucide-react';
 import { getMyLeaves, getLeaveBalance, getPendingApprovals, approveLeave, rejectLeave } from '../api/leave';
 import useAuth from '../hooks/useAuth';
 import useToast from '../hooks/useToast';
@@ -46,6 +46,11 @@ const LeavePage = () => {
   const myLeaves = myLeavesData?.data?.leaves || [];
   const pendingLeaves = pendingData?.data?.leaves || [];
 
+  const filteredMyLeaves = useMemo(() =>
+    myLeaves ?? [],
+    [myLeaves]
+  );
+
   return (
     <div>
       <Header
@@ -56,31 +61,44 @@ const LeavePage = () => {
           </Button>
         }
       />
-      <div className="p-4 space-y-4">
-        {/* Leave Balance Cards */}
-        {balances.length > 0 && (
-          <div>
+
+      {/* Sticky leave balance summary */}
+      {balances.length > 0 && (
+        <div className="sticky top-0 z-10 bg-white border-b border-gray-100 pb-3">
+          <div className="px-4 pt-3">
             <h3 className="text-sm font-semibold text-gray-700 mb-2">Leave Balance</h3>
             <div className="grid grid-cols-2 gap-2">
               {balances.map((b) => (
                 <Card key={b.id} className="py-3">
-                  <div className="flex justify-between items-start mb-2">
-                    <p className="text-xs font-medium text-gray-700 leading-tight">{b.leaveType?.name}</p>
-                    <span className="text-lg font-bold text-indigo-600">{b.remaining}</span>
+                  <div className="flex justify-between items-start mb-1">
+                    <p className="text-xs font-medium text-gray-700 leading-tight pr-1">{b.leaveType?.name}</p>
+                    <span className="text-lg font-bold text-[#1a56db] flex-shrink-0">{b.remaining}</span>
                   </div>
-                  <div className="w-full bg-gray-100 rounded-full h-1.5">
-                    <div
-                      className="h-1.5 rounded-full transition-all"
-                      style={{ width: `${Math.min((b.used / b.allocated) * 100, 100)}%`, backgroundColor: b.leaveType?.color || '#6366F1' }}
-                    />
+                  {/* Progress bar */}
+                  <div className="mt-1.5">
+                    <div className="flex justify-between text-xs text-gray-500 mb-1">
+                      <span>{b.used} used</span>
+                      <span>{b.remaining} remaining</span>
+                    </div>
+                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{
+                          width: `${Math.min(100, (b.used / b.allocated) * 100)}%`,
+                          backgroundColor: b.leaveType?.color || '#1a56db',
+                        }}
+                      />
+                    </div>
                   </div>
                   <p className="text-xs text-gray-400 mt-1">{b.used}/{b.allocated} used</p>
                 </Card>
               ))}
             </div>
           </div>
-        )}
+        </div>
+      )}
 
+      <div className="p-4 space-y-4">
         {/* Tabs */}
         {isManager && (
           <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
@@ -88,7 +106,7 @@ const LeavePage = () => {
               <button
                 key={key}
                 onClick={() => setActiveTab(key)}
-                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === key ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500'}`}
+                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === key ? 'bg-white text-[#1a56db] shadow-sm' : 'text-gray-500'}`}
               >
                 {label}
               </button>
@@ -99,11 +117,11 @@ const LeavePage = () => {
         {/* My Leaves Tab */}
         {activeTab === 'my' && (
           <div>
-            {myLoading ? <SkeletonList count={3} /> : myLeaves.length === 0 ? (
+            {myLoading ? <SkeletonList count={3} /> : filteredMyLeaves.length === 0 ? (
               <EmptyState icon={Calendar} title="No leaves yet" subtitle="Apply for leave when you need time off" action={() => navigate('/leave/apply')} actionLabel="Apply Leave" />
             ) : (
               <div className="space-y-2">
-                {myLeaves.map((leave) => (
+                {filteredMyLeaves.map((leave) => (
                   <Card key={leave.id}>
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">

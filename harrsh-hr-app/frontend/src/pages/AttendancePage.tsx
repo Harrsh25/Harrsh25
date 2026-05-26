@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { Clock, LogIn, LogOut, Calendar, MapPin } from 'lucide-react';
+import { Clock, LogIn, LogOut, Calendar, Loader2 } from 'lucide-react';
 import { checkIn, checkOut, getMyAttendance, getAttendanceSummary } from '../api/attendance';
 import Header from '../components/layout/Header';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
-import Button from '../components/ui/Button';
 import { SkeletonCard } from '../components/ui/Skeleton';
 import { formatTime, formatDate, formatDuration } from '../utils/formatters';
 import useToast from '../hooks/useToast';
@@ -27,13 +26,16 @@ const StatusBar = ({ label, value, max, color }) => (
 );
 
 const AttendancePage = () => {
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [now, setNow] = useState(new Date());
   const [locationLoading, setLocationLoading] = useState(false);
+  const [checkInSuccess, setCheckInSuccess] = useState(false);
+  const [successTime, setSuccessTime] = useState('');
+  const [showHistory, setShowHistory] = useState(false);
   const toast = useToast();
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
@@ -55,6 +57,10 @@ const AttendancePage = () => {
   const checkInMutation = useMutation({
     mutationFn: checkIn,
     onSuccess: () => {
+      const timeStr = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+      setSuccessTime(`Checked in at ${timeStr}`);
+      setCheckInSuccess(true);
+      setTimeout(() => setCheckInSuccess(false), 4000);
       toast.success('Checked in successfully!');
       if (navigator.vibrate) navigator.vibrate(50);
       queryClient.invalidateQueries({ queryKey: ['attendance'] });
@@ -96,6 +102,7 @@ const AttendancePage = () => {
   const checkOutMutation = useMutation({
     mutationFn: checkOut,
     onSuccess: () => {
+      if (navigator.vibrate) navigator.vibrate(50);
       toast.success('Checked out successfully!');
       queryClient.invalidateQueries({ queryKey: ['attendance'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
@@ -105,49 +112,95 @@ const AttendancePage = () => {
 
   const hasCheckedIn = !!todayRecord?.checkInTime;
   const hasCheckedOut = !!todayRecord?.checkOutTime;
+  const isCheckInLoading = checkInMutation.isPending || locationLoading;
+  const isCheckOutLoading = checkOutMutation.isPending;
   const summary = summaryData?.data?.summary || {};
   const records = attendanceData?.data?.records || [];
 
   return (
-    <div>
+    <div className="min-h-screen bg-gray-50">
       <Header title="Attendance" />
-      <div className="p-4 space-y-4">
-        {/* Current Time */}
-        <Card className="text-center py-6">
-          <p className="text-4xl font-bold text-gray-900 tabular-nums">
-            {format(currentTime, 'hh:mm:ss')}
+
+      {/* Hero Section — clock + status */}
+      <div className="bg-gradient-to-b from-[#1a56db] to-[#1e40af] text-white px-4 pt-8 pb-6">
+        {/* Real-time clock */}
+        <div className="text-center mb-6">
+          <p className="text-5xl font-bold tabular-nums tracking-tight">
+            {now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </p>
-          <p className="text-sm text-gray-500 mt-1">{format(currentTime, 'EEEE, dd MMMM yyyy')}</p>
-          <p className="text-xs text-gray-400 mt-0.5">{format(currentTime, 'a')}</p>
-        </Card>
-
-        {/* Check In/Out */}
-        <div className="flex gap-3">
-          <Button
-            size="full"
-            variant="primary"
-            onClick={handleCheckIn}
-            loading={checkInMutation.isPending || locationLoading}
-            disabled={hasCheckedIn}
-            className="flex-1 h-14 text-base gap-2"
-          >
-            <LogIn size={20} />
-            {hasCheckedIn ? `In: ${formatTime(todayRecord.checkInTime)}` : 'Check In'}
-          </Button>
-          <Button
-            size="full"
-            variant={hasCheckedOut ? 'secondary' : 'destructive'}
-            onClick={() => checkOutMutation.mutate({})}
-            loading={checkOutMutation.isPending}
-            disabled={!hasCheckedIn || hasCheckedOut}
-            className="flex-1 h-14 text-base gap-2"
-          >
-            <LogOut size={20} />
-            {hasCheckedOut ? `Out: ${formatTime(todayRecord.checkOutTime)}` : 'Check Out'}
-          </Button>
+          <p className="text-blue-200 text-sm mt-1">
+            {now.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+          </p>
         </div>
+        {/* Today's status badge */}
+        {todayRecord && (
+          <div className="flex justify-center mb-4">
+            <span className="bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full">
+              {todayRecord.status}
+              {todayRecord.checkInTime && ` · In at ${new Date(todayRecord.checkInTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`}
+            </span>
+          </div>
+        )}
+        {!todayRecord && (
+          <div className="flex justify-center mb-4">
+            <span className="bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full">
+              NOT YET CHECKED IN
+            </span>
+          </div>
+        )}
+      </div>
 
-        {/* Today Status */}
+      {/* Check In / Check Out button */}
+      <div className="px-4 -mt-3">
+        {!hasCheckedIn ? (
+          <button
+            onClick={handleCheckIn}
+            disabled={isCheckInLoading}
+            className="w-full h-16 rounded-2xl font-semibold text-base shadow-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-3 bg-white text-[#1a56db] border border-blue-100 disabled:opacity-60"
+          >
+            {isCheckInLoading ? (
+              <Loader2 size={20} className="animate-spin" />
+            ) : (
+              <LogIn size={20} />
+            )}
+            {isCheckInLoading ? 'Locating...' : 'Check In'}
+          </button>
+        ) : !hasCheckedOut ? (
+          <button
+            onClick={() => checkOutMutation.mutate({})}
+            disabled={isCheckOutLoading}
+            className="w-full h-16 rounded-2xl font-semibold text-base shadow-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-3 bg-red-500 text-white disabled:opacity-60"
+          >
+            {isCheckOutLoading ? (
+              <Loader2 size={20} className="animate-spin" />
+            ) : (
+              <LogOut size={20} />
+            )}
+            {isCheckOutLoading ? 'Checking out...' : 'Check Out'}
+          </button>
+        ) : (
+          <div className="w-full h-16 rounded-2xl font-semibold text-base shadow-sm flex items-center justify-center gap-3 bg-gray-100 text-gray-400 border border-gray-200">
+            <Clock size={20} />
+            Day Complete · Out at {formatTime(todayRecord?.checkOutTime)}
+          </div>
+        )}
+      </div>
+
+      {/* Success Card */}
+      {checkInSuccess && (
+        <div className="mx-4 mt-3 bg-green-50 border border-green-200 rounded-2xl p-4 flex items-center gap-3 animate-[slideUp_0.22s_ease-out]">
+          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 text-green-600 font-bold text-lg">
+            ✓
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-green-800">Checked in successfully</p>
+            <p className="text-xs text-green-600">{successTime}</p>
+          </div>
+        </div>
+      )}
+
+      <div className="p-4 space-y-4">
+        {/* Today Status Card */}
         {todayRecord && (
           <Card>
             <h3 className="text-sm font-semibold text-gray-700 mb-3">Today's Summary</h3>
@@ -203,47 +256,57 @@ const AttendancePage = () => {
           </Card>
         )}
 
-        {/* Attendance History */}
+        {/* Attendance History — collapsible */}
         <div>
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">Attendance History</h3>
-          {attendanceLoading ? (
-            <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
-                <SkeletonCard key={i} />
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {records.slice(0, 20).map((record) => (
-                <Card key={record.id} className="flex items-center justify-between py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gray-100 rounded-xl flex items-center justify-center">
-                      <Calendar size={14} className="text-gray-500" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-800">{formatDate(record.date)}</p>
-                      <p className="text-xs text-gray-400">
-                        {record.checkInTime
-                          ? `${formatTime(record.checkInTime)} — ${formatTime(record.checkOutTime)}`
-                          : 'No record'}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {record.workingHours && (
-                      <span className="text-xs text-gray-500">
-                        {formatDuration(record.workingHours)}
-                      </span>
-                    )}
-                    <Badge status={record.status} />
-                  </div>
-                </Card>
-              ))}
-              {records.length === 0 && (
-                <Card className="text-center py-8">
-                  <Clock size={24} className="text-gray-300 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500">No attendance records yet</p>
-                </Card>
+          <button
+            onClick={() => setShowHistory((v) => !v)}
+            className="flex items-center justify-between w-full px-4 py-3 bg-white rounded-2xl border border-gray-100 shadow-sm text-sm font-semibold text-gray-700"
+          >
+            <span>View History</span>
+            <span className="text-gray-400">{showHistory ? '▲' : '▾'}</span>
+          </button>
+          {showHistory && (
+            <div className="mt-2">
+              {attendanceLoading ? (
+                <div className="space-y-2">
+                  {[1, 2, 3].map((i) => (
+                    <SkeletonCard key={i} />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-2 mt-2">
+                  {records.slice(0, 20).map((record) => (
+                    <Card key={record.id} className="flex items-center justify-between py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-gray-100 rounded-xl flex items-center justify-center">
+                          <Calendar size={14} className="text-gray-500" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-800">{formatDate(record.date)}</p>
+                          <p className="text-xs text-gray-400">
+                            {record.checkInTime
+                              ? `${formatTime(record.checkInTime)} — ${formatTime(record.checkOutTime)}`
+                              : 'No record'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {record.workingHours && (
+                          <span className="text-xs text-gray-500">
+                            {formatDuration(record.workingHours)}
+                          </span>
+                        )}
+                        <Badge status={record.status} />
+                      </div>
+                    </Card>
+                  ))}
+                  {records.length === 0 && (
+                    <Card className="text-center py-8">
+                      <Clock size={24} className="text-gray-300 mx-auto mb-2" />
+                      <p className="text-sm text-gray-500">No attendance records yet</p>
+                    </Card>
+                  )}
+                </div>
               )}
             </div>
           )}
