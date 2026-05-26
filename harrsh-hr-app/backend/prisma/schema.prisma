@@ -12,32 +12,99 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id            String   @id @default(uuid())
-  employeeId    String   @unique
-  email         String   @unique
-  passwordHash  String
-  firstName     String
-  lastName      String
-  role          String   @default("EMPLOYEE") // EMPLOYEE | MANAGER | HR | ADMIN
-  department    String?
-  designation   String?
-  managerId     String?
-  phone         String?
-  joinDate      DateTime?
-  status        String   @default("ACTIVE") // ACTIVE | INACTIVE | ON_LEAVE
-  profilePhoto  String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+model Organization {
+  id              String    @id @default(uuid())
+  name            String
+  slug            String    @unique
+  logoUrl         String?
+  timezone        String    @default("Asia/Kolkata")
+  currency        String    @default("INR")
+  fiscalYearStart Int       @default(4)
+  workingDays     String    @default("1,2,3,4,5")
+  workStartTime   String    @default("09:00")
+  workEndTime     String    @default("18:00")
+  address         String?
+  phone           String?
+  email           String?
+  website         String?
+  isActive        Boolean   @default(true)
+  maxEmployees    Int       @default(50)
+  plan            String    @default("starter")
+  planExpiresAt   DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  manager         User?   @relation("ManagerEmployee", fields: [managerId], references: [id])
-  directReports   User[]  @relation("ManagerEmployee")
+  users       User[]
+  departments Department[]
+  leaveTypes  LeaveType[]
+  projects    Project[]
+  holidays    Holiday[]
+  settings    OrgSettings?
+}
+
+model OrgSettings {
+  id                   String       @id @default(uuid())
+  organizationId       String       @unique
+  organization         Organization @relation(fields: [organizationId], references: [id])
+  requireCheckInGPS    Boolean      @default(false)
+  gpsRadius            Int          @default(200)
+  officeLatitude       Float?
+  officeLongitude      Float?
+  requireSelfie        Boolean      @default(false)
+  autoCheckOut         Boolean      @default(true)
+  autoCheckOutTime     String       @default("19:00")
+  leaveApprovalLevels  Int          @default(1)
+  allowLeaveBackdate   Int          @default(0)
+  payrollDay           Int          @default(25)
+  emailNotifications   Boolean      @default(true)
+  smtpHost             String?
+  smtpPort             Int?
+  smtpUser             String?
+  smtpPass             String?
+  updatedAt            DateTime     @updatedAt
+}
+
+model Holiday {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String
+  date           DateTime
+  type           String       @default("national")
+  isRecurring    Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+}
+
+model User {
+  id             String   @id @default(uuid())
+  employeeId     String   @unique
+  email          String   @unique
+  passwordHash   String
+  firstName      String
+  lastName       String
+  role           String   @default("EMPLOYEE")
+  department     String?
+  designation    String?
+  managerId      String?
+  phone          String?
+  joinDate       DateTime?
+  status         String   @default("ACTIVE")
+  profilePhoto   String?
+  organizationId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization    Organization? @relation(fields: [organizationId], references: [id])
+  manager         User?         @relation("ManagerEmployee", fields: [managerId], references: [id])
+  directReports   User[]        @relation("ManagerEmployee")
 
   refreshTokens     RefreshToken[]
   attendanceRecords AttendanceRecord[]
   leaveBalances     LeaveBalance[]
   leaveRequests     LeaveRequest[]      @relation("LeaveRequester")
   approvedLeaves    LeaveRequest[]      @relation("LeaveApprover")
+  managerLeaves     LeaveRequest[]      @relation("LeaveManager")
+  hrLeaves          LeaveRequest[]      @relation("LeaveHR")
   payrollRecords    PayrollRecord[]
   assignedTasks     Task[]              @relation("TaskAssignee")
   createdTasks      Task[]              @relation("TaskCreator")
@@ -62,15 +129,25 @@ model RefreshToken {
 }
 
 model AttendanceRecord {
-  id           String    @id @default(uuid())
-  userId       String
-  date         DateTime
-  checkInTime  DateTime?
-  checkOutTime DateTime?
-  status       String    @default("PRESENT") // PRESENT | ABSENT | LATE | HALF_DAY | ON_LEAVE | HOLIDAY
-  workingHours Float?
-  notes        String?
-  createdAt    DateTime  @default(now())
+  id                    String    @id @default(uuid())
+  userId                String
+  organizationId        String?
+  date                  DateTime
+  checkInTime           DateTime?
+  checkOutTime          DateTime?
+  status                String    @default("PRESENT")
+  workingHours          Float?
+  notes                 String?
+  checkInLatitude       Float?
+  checkInLongitude      Float?
+  checkOutLatitude      Float?
+  checkOutLongitude     Float?
+  checkInAddress        String?
+  selfieUrl             String?
+  isRemote              Boolean   @default(false)
+  regularizationStatus  String?
+  regularizationReason  String?
+  createdAt             DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -78,28 +155,31 @@ model AttendanceRecord {
 }
 
 model LeaveType {
-  id            String   @id @default(uuid())
-  name          String   @unique
-  description   String?
-  totalDays     Int
-  carryForward  Boolean  @default(false)
-  isPaid        Boolean  @default(true)
-  color         String   @default("#3B82F6")
-  createdAt     DateTime @default(now())
+  id             String   @id @default(uuid())
+  name           String
+  description    String?
+  totalDays      Int
+  carryForward   Boolean  @default(false)
+  isPaid         Boolean  @default(true)
+  color          String   @default("#3B82F6")
+  organizationId String?
+  createdAt      DateTime @default(now())
 
-  leaveBalances  LeaveBalance[]
-  leaveRequests  LeaveRequest[]
+  organization  Organization? @relation(fields: [organizationId], references: [id])
+  leaveBalances LeaveBalance[]
+  leaveRequests LeaveRequest[]
 }
 
 model LeaveBalance {
-  id          String   @id @default(uuid())
-  userId      String
-  leaveTypeId String
-  year        Int
-  allocated   Float
-  used        Float    @default(0)
-  remaining   Float
-  createdAt   DateTime @default(now())
+  id             String   @id @default(uuid())
+  userId         String
+  leaveTypeId    String
+  organizationId String?
+  year           Int
+  allocated      Float
+  used           Float    @default(0)
+  remaining      Float
+  createdAt      DateTime @default(now())
 
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   leaveType LeaveType @relation(fields: [leaveTypeId], references: [id], onDelete: Cascade)
@@ -108,28 +188,41 @@ model LeaveBalance {
 }
 
 model LeaveRequest {
-  id              String    @id @default(uuid())
-  userId          String
-  leaveTypeId     String
-  startDate       DateTime
-  endDate         DateTime
-  totalDays       Float
-  reason          String
-  status          String    @default("PENDING") // PENDING | APPROVED | REJECTED | CANCELLED
-  approverId      String?
-  approverComment String?
-  appliedAt       DateTime  @default(now())
-  actionedAt      DateTime?
-  createdAt       DateTime  @default(now())
+  id               String    @id @default(uuid())
+  userId           String
+  leaveTypeId      String
+  organizationId   String?
+  startDate        DateTime
+  endDate          DateTime
+  totalDays        Float
+  reason           String
+  status           String    @default("PENDING")
+  approvalLevel    Int       @default(0)
+  managerId        String?
+  hrReviewerId     String?
+  approverId       String?
+  approverComment  String?
+  managerComment   String?
+  hrComment        String?
+  managerActionedAt DateTime?
+  hrActionedAt     DateTime?
+  cancelReason     String?
+  attachmentUrl    String?
+  appliedAt        DateTime  @default(now())
+  actionedAt       DateTime?
+  createdAt        DateTime  @default(now())
 
-  user      User      @relation("LeaveRequester", fields: [userId], references: [id], onDelete: Cascade)
-  leaveType LeaveType @relation(fields: [leaveTypeId], references: [id])
-  approver  User?     @relation("LeaveApprover", fields: [approverId], references: [id])
+  user         User      @relation("LeaveRequester", fields: [userId], references: [id], onDelete: Cascade)
+  leaveType    LeaveType @relation(fields: [leaveTypeId], references: [id])
+  approver     User?     @relation("LeaveApprover", fields: [approverId], references: [id])
+  manager      User?     @relation("LeaveManager", fields: [managerId], references: [id])
+  hrReviewer   User?     @relation("LeaveHR", fields: [hrReviewerId], references: [id])
 }
 
 model PayrollRecord {
   id                  String    @id @default(uuid())
   userId              String
+  organizationId      String?
   month               Int
   year                Int
   basicSalary         Float
@@ -145,7 +238,7 @@ model PayrollRecord {
   esiEmployee         Float     @default(0)
   totalDeductions     Float
   netSalary           Float
-  status              String    @default("DRAFT") // DRAFT | PROCESSED | PAID
+  status              String    @default("DRAFT")
   paidAt              DateTime?
   createdAt           DateTime  @default(now())
 
@@ -155,30 +248,34 @@ model PayrollRecord {
 }
 
 model Department {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  description String?
-  headId      String?
-  createdAt   DateTime @default(now())
+  id             String   @id @default(uuid())
+  name           String
+  description    String?
+  headId         String?
+  organizationId String?
+  createdAt      DateTime @default(now())
 
-  head User? @relation(fields: [headId], references: [id])
+  head         User?         @relation(fields: [headId], references: [id])
+  organization Organization? @relation(fields: [organizationId], references: [id])
 }
 
 model Project {
-  id          String    @id @default(uuid())
-  name        String
-  description String?
-  status      String    @default("ACTIVE") // ACTIVE | ON_HOLD | COMPLETED | CANCELLED
-  startDate   DateTime?
-  endDate     DateTime?
-  managerId   String?
-  budget      Float?
-  progress    Int       @default(0)
-  priority    String    @default("MEDIUM") // LOW | MEDIUM | HIGH | CRITICAL
-  createdAt   DateTime  @default(now())
+  id             String    @id @default(uuid())
+  name           String
+  description    String?
+  status         String    @default("ACTIVE")
+  startDate      DateTime?
+  endDate        DateTime?
+  managerId      String?
+  organizationId String?
+  budget         Float?
+  progress       Int       @default(0)
+  priority       String    @default("MEDIUM")
+  createdAt      DateTime  @default(now())
 
-  manager User?  @relation("ProjectManager", fields: [managerId], references: [id])
-  tasks   Task[]
+  manager      User?         @relation("ProjectManager", fields: [managerId], references: [id])
+  organization Organization? @relation(fields: [organizationId], references: [id])
+  tasks        Task[]
 }
 
 model Task {
@@ -188,7 +285,7 @@ model Task {
   description  String?
   assignedToId String?
   assignedById String?
-  status       String    @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | COMPLETED | ON_HOLD
+  status       String    @default("NOT_STARTED")
   priority     String    @default("MEDIUM")
   startDate    DateTime?
   dueDate      DateTime?
@@ -201,41 +298,51 @@ model Task {
 }
 
 model ApprovalRequest {
-  id               String    @id @default(uuid())
-  requestType      String    // LEAVE | EXPENSE | TRAVEL | OVERTIME | SHIFT_CHANGE
-  referenceId      String?
-  requestedById    String
+  id                String    @id @default(uuid())
+  requestType       String
+  referenceId       String?
+  requestedById     String
   currentApproverId String?
-  status           String    @default("PENDING") // PENDING | APPROVED | REJECTED | CANCELLED
-  comments         String?
-  createdAt        DateTime  @default(now())
+  organizationId    String?
+  status            String    @default("PENDING")
+  comments          String?
+  createdAt         DateTime  @default(now())
 
-  requestedBy    User  @relation("ApprovalRequester", fields: [requestedById], references: [id], onDelete: Cascade)
+  requestedBy     User  @relation("ApprovalRequester", fields: [requestedById], references: [id], onDelete: Cascade)
   currentApprover User? @relation("ApprovalApprover", fields: [currentApproverId], references: [id])
 }
 
 model Notification {
-  id        String   @id @default(uuid())
-  userId    String
-  title     String
-  message   String
-  type      String   @default("INFO") // INFO | SUCCESS | WARNING | ERROR
-  isRead    Boolean  @default(false)
-  actionUrl String?
-  createdAt DateTime @default(now())
+  id             String   @id @default(uuid())
+  userId         String
+  organizationId String?
+  title          String
+  message        String
+  type           String   @default("INFO")
+  isRead         Boolean  @default(false)
+  actionUrl      String?
+  createdAt      DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Document {
-  id         String   @id @default(uuid())
-  userId     String
-  name       String
-  type       String
-  fileUrl    String
-  status     String   @default("PENDING") // PENDING | VERIFIED | REJECTED
-  uploadedAt DateTime @default(now())
-  createdAt  DateTime @default(now())
+  id             String    @id @default(uuid())
+  userId         String
+  organizationId String?
+  name           String
+  type           String
+  fileUrl        String
+  fileSize       Int?
+  mimeType       String?
+  expiryDate     DateTime?
+  status         String    @default("PENDING")
+  verifiedById   String?
+  verifierComment String?
+  isDeleted      Boolean   @default(false)
+  requestedById  String?
+  uploadedAt     DateTime  @default(now())
+  createdAt      DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -250,7 +357,7 @@ model Expense {
   billNumber  String?
   description String?
   receiptUrl  String?
-  status      String    @default("DRAFT") // DRAFT | SUBMITTED | APPROVED | REJECTED | PAID
+  status      String    @default("DRAFT")
   approverId  String?
   createdAt   DateTime  @default(now())
 

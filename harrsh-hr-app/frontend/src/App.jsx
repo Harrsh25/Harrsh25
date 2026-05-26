@@ -23,6 +23,9 @@ import ProfilePage from './pages/ProfilePage.jsx';
 import TeamPage from './pages/TeamPage.jsx';
 import NotificationsPage from './pages/NotificationsPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
+import DocumentsPage from './pages/DocumentsPage.jsx';
+import OrgSettingsPage from './pages/OrgSettingsPage.jsx';
+import OnboardingPage from './pages/OnboardingPage.jsx';
 
 // Protected route wrapper
 const ProtectedRoute = ({ children, roles }) => {
@@ -92,7 +95,26 @@ const App = () => {
             }
           />
           <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/documents" element={<DocumentsPage />} />
+          <Route
+            path="/org-settings"
+            element={
+              <ProtectedRoute roles={['ADMIN', 'HR']}>
+                <OrgSettingsPage />
+              </ProtectedRoute>
+            }
+          />
         </Route>
+
+        {/* Onboarding (authenticated but no layout) */}
+        <Route
+          path="/onboarding"
+          element={
+            <ProtectedRoute>
+              <OnboardingPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* 404 */}
         <Route path="*" element={<NotFoundPage />} />

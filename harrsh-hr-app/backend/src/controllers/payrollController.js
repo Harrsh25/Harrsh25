@@ -1,5 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const { success, error } = require('../utils/response');
+const { generatePayslipPDF } = require('../services/payrollService');
+const { notifyPayslipReady } = require('../services/notificationService');
 
 const prisma = new PrismaClient();
 
@@ -129,4 +131,143 @@ const getPayrollSummary = async (req, res) => {
   }
 };
 
-module.exports = { getMyPayslips, getPayslipById, getAllPayroll, processPayroll, getPayrollSummary };
+const downloadPayslipPDF = async (req, res) => {
+  try {
+    const payslip = await prisma.payrollRecord.findUnique({
+      where: { id: req.params.id },
+      include: {
+        user: {
+          select: {
+            id: true, firstName: true, lastName: true, employeeId: true,
+            department: true, designation: true, organizationId: true,
+          },
+        },
+      },
+    });
+    if (!payslip) return error(res, 'Payslip not found', 404);
+    if (payslip.userId !== req.user.id && !['HR', 'ADMIN'].includes(req.user.role)) {
+      return error(res, 'Forbidden', 403);
+    }
+
+    const org = payslip.user.organizationId
+      ? await prisma.organization.findUnique({ where: { id: payslip.user.organizationId } })
+      : null;
+
+    const pdfBuffer = await generatePayslipPDF(payslip, payslip.user, org);
+    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const filename = `payslip-${payslip.user.employeeId}-${MONTHS[payslip.month - 1]}-${payslip.year}.pdf`;
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(pdfBuffer);
+  } catch (err) {
+    console.error(err);
+    return error(res, 'Failed to generate PDF', 500);
+  }
+};
+
+// POST /payroll/:id/email — generates PDF and emails it
+const emailPayslip = async (req, res) => {
+  try {
+    const payslip = await prisma.payrollRecord.findUnique({
+      where: { id: req.params.id },
+      include: {
+        user: {
+          select: {
+            id: true, firstName: true, lastName: true, email: true,
+            employeeId: true, department: true, designation: true, organizationId: true,
+          },
+        },
+      },
+    });
+    if (!payslip) return error(res, 'Payslip not found', 404);
+    if (payslip.userId !== req.user.id && !['HR', 'ADMIN'].includes(req.user.role)) {
+      return error(res, 'Forbidden', 403);
+    }
+
+    let org = null;
+    if (payslip.user.organizationId) {
+      org = await prisma.organization.findUnique({
+        where: { id: payslip.user.organizationId },
+        include: { settings: true },
+      });
+    }
+
+    const pdfBuffer = await generatePayslipPDF(payslip, payslip.user, org);
+    const nodemailer = require('nodemailer');
+    const smtpConfig = org?.settings;
+
+    const transportCfg = smtpConfig?.smtpHost
+      ? { host: smtpConfig.smtpHost, port: smtpConfig.smtpPort || 587, secure: false, auth: { user: smtpConfig.smtpUser, pass: smtpConfig.smtpPass } }
+      : { host: process.env.SMTP_HOST || 'smtp.gmail.com', port: parseInt(process.env.SMTP_PORT || '587'), secure: false, auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } };
+
+    const transporter = nodemailer.createTransport(transportCfg);
+    const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const monthLabel = MONTHS[payslip.month - 1];
+
+    await transporter.sendMail({
+      from: smtpConfig?.smtpUser || process.env.SMTP_USER || 'noreply@harrsh-hr.com',
+      to: payslip.user.email,
+      subject: `Your Payslip for ${monthLabel} ${payslip.year}`,
+      html: `<p>Dear ${payslip.user.firstName},</p><p>Please find your payslip for <strong>${monthLabel} ${payslip.year}</strong> attached.</p>`,
+      attachments: [{ filename: `payslip-${monthLabel}-${payslip.year}.pdf`, content: pdfBuffer, contentType: 'application/pdf' }],
+    });
+
+    return success(res, null, `Payslip emailed to ${payslip.user.email}`);
+  } catch (err) {
+    console.error(err);
+    return error(res, 'Failed to email payslip: ' + err.message, 500);
+  }
+};
+
+// POST /payroll/process-all — HR runs payroll for all employees in org
+const processMonthlyPayroll = async (req, res) => {
+  try {
+    const { month, year } = req.body;
+    if (!month || !year) return error(res, 'Month and year are required', 400);
+
+    const { calculatePayroll } = require('../services/payrollService');
+    const orgId = req.user.organizationId;
+    const where = { status: 'ACTIVE' };
+    if (orgId) where.organizationId = orgId;
+
+    const users = await prisma.user.findMany({ where });
+    const salaryMap = { ADMIN: 100000, HR: 80000, MANAGER: 90000, EMPLOYEE: 60000 };
+    let processedCount = 0;
+
+    for (const user of users) {
+      const existing = await prisma.payrollRecord.findUnique({
+        where: { userId_month_year: { userId: user.id, month: parseInt(month), year: parseInt(year) } },
+      });
+      if (existing) continue;
+
+      const basicSalary = salaryMap[user.role] || 60000;
+      const breakdown = calculatePayroll(basicSalary);
+
+      await prisma.payrollRecord.create({
+        data: {
+          userId: user.id,
+          organizationId: orgId || null,
+          month: parseInt(month),
+          year: parseInt(year),
+          ...breakdown,
+          status: 'PROCESSED',
+        },
+      });
+      processedCount++;
+
+      try {
+        await notifyPayslipReady(user.id, parseInt(month), parseInt(year));
+      } catch (notifyErr) {
+        console.error('Notification error:', notifyErr.message);
+      }
+    }
+
+    return success(res, { processed: processedCount, skipped: users.length - processedCount }, `Monthly payroll processed for ${processedCount} employees`, 201);
+  } catch (err) {
+    console.error(err);
+    return error(res, 'Failed to process monthly payroll', 500);
+  }
+};
+
+module.exports = { getMyPayslips, getPayslipById, getAllPayroll, processPayroll, getPayrollSummary, downloadPayslipPDF, emailPayslip, processMonthlyPayroll };

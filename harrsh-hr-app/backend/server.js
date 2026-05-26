@@ -16,6 +16,9 @@ const projectRoutes = require('./src/routes/projects');
 const approvalRoutes = require('./src/routes/approvals');
 const notificationRoutes = require('./src/routes/notifications');
 const dashboardRoutes = require('./src/routes/dashboard');
+const orgRoutes = require('./src/routes/org');
+const documentRoutes = require('./src/routes/documents');
+const sseRoutes = require('./src/routes/sse');
 const errorHandler = require('./src/middleware/errorHandler');
 
 const app = express();
@@ -59,6 +62,9 @@ app.use('/api/v1/projects', projectRoutes);
 app.use('/api/v1/approvals', approvalRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
+app.use('/api/v1/org', orgRoutes);
+app.use('/api/v1/documents', documentRoutes);
+app.use('/api/v1/sse', sseRoutes);
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
