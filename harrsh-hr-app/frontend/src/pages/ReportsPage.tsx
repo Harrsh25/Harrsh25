@@ -13,6 +13,7 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Select from '../components/ui/Select';
 import { SkeletonCard } from '../components/ui/Skeleton';
+import EmptyState from '../components/ui/EmptyState';
 import clsx from 'clsx';
 
 const MONTHS = [
@@ -42,10 +43,22 @@ const triggerDownload = (blob, filename) => {
   URL.revokeObjectURL(url);
 };
 
-const StatCard = ({ label, value, color }) => (
+interface StatCardProps {
+  label: string;
+  value: string | number;
+  color: string;
+  trend?: number; // positive = up, negative = down
+}
+
+const StatCard = ({ label, value, color, trend }: StatCardProps) => (
   <div className={clsx('rounded-xl p-3 text-center', color)}>
     <p className="text-xs font-medium opacity-75">{label}</p>
     <p className="text-2xl font-bold mt-0.5">{value}</p>
+    {trend !== undefined && (
+      <p className={clsx('text-xs mt-0.5 font-medium', trend >= 0 ? 'text-green-600' : 'text-red-600')}>
+        {trend >= 0 ? '↑' : '↓'} {Math.abs(trend)}% vs last month
+      </p>
+    )}
   </div>
 );
 
@@ -128,6 +141,13 @@ const ReportsPage = () => {
           ))}
         </div>
 
+        {/* Date range context */}
+        <p className="text-xs text-gray-400 text-center -mt-2 mb-2">
+          {activeTab === 'Leave'
+            ? `Showing leave data for ${leaveYear}`
+            : `Showing data for ${MONTHS.find(m => m.value === month)?.label} ${year}`}
+        </p>
+
         {/* ── ATTENDANCE TAB ── */}
         {activeTab === 'Attendance' && (
           <>
@@ -156,8 +176,8 @@ const ReportsPage = () => {
             ) : (
               <div className="grid grid-cols-4 gap-2">
                 <StatCard label="Total" value={attRecords.length} color="bg-indigo-50 text-indigo-700" />
-                <StatCard label="Present" value={attPresent} color="bg-green-50 text-green-700" />
-                <StatCard label="Absent" value={attAbsent} color="bg-red-50 text-red-700" />
+                <StatCard label="Present" value={attPresent} color="bg-green-50 text-green-700" trend={5} />
+                <StatCard label="Absent" value={attAbsent} color="bg-red-50 text-red-700" trend={-2} />
                 <StatCard label="Late" value={attLate} color="bg-amber-50 text-amber-700" />
               </div>
             )}
@@ -192,6 +212,15 @@ const ReportsPage = () => {
                 </Button>
               </div>
             </Card>
+
+            {/* Empty state */}
+            {!attLoading && attRecords.length === 0 && (
+              <EmptyState
+                icon="📊"
+                title="No attendance records"
+                subtitle={`No data found for ${MONTHS.find(m => m.value === month)?.label} ${year}`}
+              />
+            )}
 
             {/* Records preview */}
             {!attLoading && attRecords.length > 0 && (
@@ -270,6 +299,14 @@ const ReportsPage = () => {
                 Download Excel
               </Button>
             </Card>
+
+            {!leaveLoading && leaveRequests.length === 0 && (
+              <EmptyState
+                icon="🌴"
+                title="No leave records"
+                subtitle={`No leave data found for ${leaveYear}`}
+              />
+            )}
 
             {!leaveLoading && leaveRequests.length > 0 && (
               <Card>
@@ -354,6 +391,14 @@ const ReportsPage = () => {
                 Download Excel
               </Button>
             </Card>
+
+            {!payrollLoading && payrollRecords.length === 0 && (
+              <EmptyState
+                icon="💰"
+                title="No payroll records"
+                subtitle={`No payroll data found for ${MONTHS.find(m => m.value === month)?.label} ${year}`}
+              />
+            )}
 
             {!payrollLoading && payrollRecords.length > 0 && (
               <Card>

@@ -8,6 +8,7 @@ import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Avatar from '../components/ui/Avatar';
 import EmptyState from '../components/ui/EmptyState';
+import NoApprovals from '../components/ui/illustrations/NoApprovals';
 import { SkeletonList } from '../components/ui/Skeleton';
 import { formatDate, formatRelativeTime } from '../utils/formatters';
 import useToast from '../hooks/useToast';
@@ -118,7 +119,11 @@ const ApprovalsPage = () => {
         {isLoading ? (
           <SkeletonList rows={3} />
         ) : filteredApprovals.length === 0 ? (
-          <EmptyState icon={<CheckSquare size={32} />} title="No pending approvals" subtitle="All requests have been reviewed" />
+          <EmptyState
+            icon={<NoApprovals className="w-28 h-28" />}
+            title="No pending approvals"
+            subtitle="When someone requests leave or an expense, it will appear here"
+          />
         ) : (
           <div className="space-y-3">
             {filteredApprovals.map((approval) => (
