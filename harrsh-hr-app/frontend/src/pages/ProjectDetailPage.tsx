@@ -112,7 +112,7 @@ const ProjectDetailPage = () => {
         {activeTab === 'tasks' && (
           <div className="space-y-2">
             {tasks.length === 0 ? (
-              <EmptyState icon={CheckSquare} title="No tasks yet" subtitle="Tasks will appear here once added" />
+              <EmptyState icon={<CheckSquare size={32} />} title="No tasks yet" subtitle="Tasks will appear here once added" />
             ) : tasks.map((task) => (
               <Card key={task.id}>
                 <div className="flex items-start gap-3">

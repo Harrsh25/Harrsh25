@@ -135,7 +135,7 @@ const ProfilePage = () => {
             </h2>
             <p className="text-sm text-gray-500">{user?.designation || 'Employee'}</p>
             <div className="flex items-center justify-center gap-2 mt-2">
-              <Badge color="indigo">{user?.role}</Badge>
+              <Badge>{user?.role}</Badge>
               <Badge status={user?.status || 'ACTIVE'} />
             </div>
           </div>

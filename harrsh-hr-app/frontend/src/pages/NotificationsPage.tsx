@@ -90,9 +90,9 @@ const NotificationsPage = () => {
           <Bell size={22} />
         </div>
         {isLoading ? (
-          <SkeletonList count={5} />
+          <SkeletonList rows={5} />
         ) : notifications.length === 0 ? (
-          <EmptyState icon={Bell} title="No notifications" subtitle="You're all caught up!" />
+          <EmptyState icon={<Bell size={32} />} title="No notifications" subtitle="You're all caught up!" />
         ) : (
           <>
             {todayNotifs.length > 0 && (

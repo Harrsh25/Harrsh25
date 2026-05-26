@@ -3,7 +3,7 @@ import type { InputHTMLAttributes, ReactNode } from 'react';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
-  error?: string;
+  error?: string | { message?: string };
   hint?: string;
   icon?: ReactNode;
   rightIcon?: ReactNode;
@@ -62,7 +62,7 @@ const Input = ({
       </div>
       {error && (
         <p id={errorId} role="alert" className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
-          <span>⚠</span> {error}
+          <span>⚠</span> {typeof error === 'string' ? error : error.message}
         </p>
       )}
       {hint && !error && (

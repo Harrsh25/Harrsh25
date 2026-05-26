@@ -65,9 +65,9 @@ const ProjectsPage = () => {
         </div>
 
         {isLoading ? (
-          <SkeletonList count={4} />
+          <SkeletonList rows={4} />
         ) : filteredProjects.length === 0 ? (
-          <EmptyState icon={FolderOpen} title="No projects found" subtitle="Projects will appear here once created" />
+          <EmptyState icon={<FolderOpen size={32} />} title="No projects found" subtitle="Projects will appear here once created" />
         ) : (
           <div className="space-y-3">
             {filteredProjects.map((project) => {
@@ -83,7 +83,7 @@ const ProjectsPage = () => {
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       <Badge status={project.status} />
-                      <Badge status={project.priority} size="sm" />
+                      <Badge status={project.priority} />
                     </div>
                   </div>
 

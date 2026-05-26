@@ -117,8 +117,8 @@ const LeavePage = () => {
         {/* My Leaves Tab */}
         {activeTab === 'my' && (
           <div>
-            {myLoading ? <SkeletonList count={3} /> : filteredMyLeaves.length === 0 ? (
-              <EmptyState icon={Calendar} title="No leaves yet" subtitle="Apply for leave when you need time off" action={() => navigate('/leave/apply')} actionLabel="Apply Leave" />
+            {myLoading ? <SkeletonList rows={3} /> : filteredMyLeaves.length === 0 ? (
+              <EmptyState icon={<Calendar size={32} />} title="No leaves yet" subtitle="Apply for leave when you need time off" onAction={() => navigate('/leave/apply')} actionLabel="Apply Leave" />
             ) : (
               <div className="space-y-2">
                 {filteredMyLeaves.map((leave) => (
@@ -148,8 +148,8 @@ const LeavePage = () => {
         {/* Pending Approvals Tab */}
         {activeTab === 'pending' && isManager && (
           <div>
-            {pendingLoading ? <SkeletonList count={3} /> : pendingLeaves.length === 0 ? (
-              <EmptyState icon={Calendar} title="No pending approvals" subtitle="All leave requests have been reviewed" />
+            {pendingLoading ? <SkeletonList rows={3} /> : pendingLeaves.length === 0 ? (
+              <EmptyState icon={<Calendar size={32} />} title="No pending approvals" subtitle="All leave requests have been reviewed" />
             ) : (
               <div className="space-y-3">
                 {pendingLeaves.map((leave) => (

@@ -27,9 +27,9 @@ const TeamPage = () => {
       <div className="p-4 space-y-3">
         <p className="text-sm text-gray-500">{team.length} direct reports</p>
         {isLoading ? (
-          <SkeletonList count={5} />
+          <SkeletonList rows={5} />
         ) : team.length === 0 ? (
-          <EmptyState icon={Users} title="No direct reports" subtitle="Your team members will appear here" />
+          <EmptyState icon={<Users size={32} />} title="No direct reports" subtitle="Your team members will appear here" />
         ) : (
           team.map((member) => (
             <Card key={member.id} className="flex items-center gap-3">

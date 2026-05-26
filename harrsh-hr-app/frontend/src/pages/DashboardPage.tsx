@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { Clock, Calendar, CheckSquare, Bell, Users, Briefcase, TrendingUp, DollarSign } from 'lucide-react';
 import { getDashboardStats } from '../api/dashboard';
@@ -12,6 +12,8 @@ import { SkeletonCard } from '../components/ui/Skeleton';
 import { formatCurrency, formatTime } from '../utils/formatters';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
+import usePullToRefresh from '../hooks/usePullToRefresh';
+import PullToRefreshIndicator from '../components/ui/PullToRefreshIndicator';
 
 const StatCard = ({ icon: Icon, label, value, color = 'indigo', onClick }: { icon: any; label: any; value: any; color?: string; onClick?: () => void }) => (
   <Card className="flex flex-col gap-2 cursor-pointer hover:shadow-md transition-shadow" onClick={onClick}>
@@ -28,6 +30,10 @@ const DashboardPage = () => {
   const navigate = useNavigate();
   const { data, isLoading, error } = useQuery({ queryKey: ['dashboard'], queryFn: getDashboardStats });
   const [showMore, setShowMore] = useState(false);
+  const qc = useQueryClient();
+  const { containerRef, pulling, pullDistance } = usePullToRefresh({
+    onRefresh: () => qc.invalidateQueries(),
+  });
 
   const stats = data?.data;
 
@@ -40,7 +46,8 @@ const DashboardPage = () => {
   }, [stats]);
 
   return (
-    <div>
+    <div ref={containerRef} className="overflow-y-auto h-full">
+      <PullToRefreshIndicator pulling={pulling} pullDistance={pullDistance} />
       <Header title="Dashboard" />
 
       {/* Role-aware greeting hero */}

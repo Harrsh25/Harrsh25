@@ -116,9 +116,9 @@ const ApprovalsPage = () => {
         </div>
 
         {isLoading ? (
-          <SkeletonList count={3} />
+          <SkeletonList rows={3} />
         ) : filteredApprovals.length === 0 ? (
-          <EmptyState icon={CheckSquare} title="No pending approvals" subtitle="All requests have been reviewed" />
+          <EmptyState icon={<CheckSquare size={32} />} title="No pending approvals" subtitle="All requests have been reviewed" />
         ) : (
           <div className="space-y-3">
             {filteredApprovals.map((approval) => (
@@ -135,7 +135,7 @@ const ApprovalsPage = () => {
                     </p>
                     <p className="text-xs text-gray-500">{approval.requestedBy?.department}</p>
                   </div>
-                  <Badge status={approval.requestType === 'LEAVE' ? 'blue' : 'gray'} color="blue">
+                  <Badge status={approval.requestType === 'LEAVE' ? 'blue' : 'gray'}>
                     {approval.requestType}
                   </Badge>
                 </div>

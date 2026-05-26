@@ -110,7 +110,7 @@ const PayrollPage = () => {
           </div>
         ) : !displayPayslip ? (
           <EmptyState
-            icon={DollarSign}
+            icon={<DollarSign size={32} />}
             title="No payslip found"
             subtitle={`No payslip available for ${formatMonthYear(selectedMonth, selectedYear)}`}
           />
