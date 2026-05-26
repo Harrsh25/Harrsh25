@@ -364,3 +364,18 @@ model Expense {
   user     User  @relation("ExpenseOwner", fields: [userId], references: [id], onDelete: Cascade)
   approver User? @relation("ExpenseApprover", fields: [approverId], references: [id])
 }
+
+model AuditLog {
+  id             String   @id @default(uuid())
+  organizationId String?
+  userId         String?
+  action         String
+  entity         String
+  entityId       String?
+  oldValues      String?
+  newValues      String?
+  ipAddress      String?
+  userAgent      String?
+  metadata       String?
+  createdAt      DateTime @default(now())
+}
