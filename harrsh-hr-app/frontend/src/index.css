@@ -118,3 +118,65 @@ button:active:not(:disabled) {
 /* Hide scrollbar but keep scroll functionality */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ─── Micro-interactions ────────────────────────────── */
+
+/* Tab/page crossfade */
+.page-transition {
+  animation: fadeIn 0.15s ease-out;
+}
+
+/* Notification bell shake */
+.bell-shake {
+  animation: ringShake 0.5s ease-in-out;
+}
+
+/* Check-in success pulse */
+@keyframes successPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+.success-pulse {
+  animation: successPulse 0.4s ease-out;
+}
+
+/* Badge status transition */
+.badge-transition {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Form field shake on error */
+@keyframes fieldShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
+.field-error-shake {
+  animation: fieldShake 0.3s ease-out;
+}
+
+/* Floating action button pulse */
+@keyframes fabPulse {
+  0% { box-shadow: 0 0 0 0 rgba(26, 86, 219, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(26, 86, 219, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(26, 86, 219, 0); }
+}
+.fab-pulse {
+  animation: fabPulse 2s ease-out infinite;
+}
+
+/* Card hover lift */
+.card-hover {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.10);
+}
+
+/* ─── Safe area for notch/home indicator ─────────────── */
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0); }
+.safe-top    { padding-top:    env(safe-area-inset-top, 0); }

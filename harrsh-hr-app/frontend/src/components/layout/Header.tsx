@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Bell } from 'lucide-react';
+import { ChevronLeft, Bell, Sun, Moon } from 'lucide-react';
 import clsx from 'clsx';
 import useAppStore from '../../store/appStore';
+import useDarkMode from '../../hooks/useDarkMode';
 import type { ReactNode } from 'react';
 
 interface HeaderProps {
@@ -14,6 +15,7 @@ interface HeaderProps {
 const Header = ({ title, showBack = false, rightAction, className = '' }: HeaderProps) => {
   const navigate = useNavigate();
   const notificationCount = useAppStore((s) => s.notificationCount);
+  const { isDark, toggle } = useDarkMode();
 
   return (
     <header className={clsx('flex items-center justify-between h-14 px-4 bg-white border-b border-gray-100 sticky top-0 z-30', className)}>
@@ -30,6 +32,13 @@ const Header = ({ title, showBack = false, rightAction, className = '' }: Header
       </div>
       <div className="flex items-center gap-1 flex-shrink-0">
         {rightAction}
+        <button
+          onClick={toggle}
+          aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+        >
+          {isDark ? <Sun size={18} className="text-yellow-400" /> : <Moon size={18} className="text-gray-500" />}
+        </button>
         <button
           onClick={() => navigate('/notifications')}
           className="p-2 hover:bg-gray-100 rounded-xl transition-colors relative"

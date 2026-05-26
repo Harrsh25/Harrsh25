@@ -11,7 +11,7 @@ const AppLayout = () => {
       >
         Skip to main content
       </a>
-      <main id="main-content" className="flex-1 pb-20 overflow-y-auto">
+      <main id="main-content" className="flex-1 pb-20 overflow-y-auto page-transition">
         <Outlet />
       </main>
       <BottomNav />

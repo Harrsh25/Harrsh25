@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef } from 'react';
 import { Bell, CheckCheck } from 'lucide-react';
 import { getMyNotifications, markAsRead, markAllRead } from '../api/notifications';
 import Header from '../components/layout/Header';
@@ -47,6 +48,17 @@ const NotificationsPage = () => {
   });
 
   const hasUnread = notifications.some(n => !n.isRead);
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  const bellRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (unreadCount > 0 && bellRef.current) {
+      bellRef.current.classList.add('bell-shake');
+      const t = setTimeout(() => bellRef.current?.classList.remove('bell-shake'), 600);
+      return () => clearTimeout(t);
+    }
+  }, [unreadCount]);
 
   const NotifItem = ({ notification }) => (
     <div
@@ -74,6 +86,9 @@ const NotificationsPage = () => {
         )}
       />
       <div className="p-4 space-y-4">
+        <div ref={bellRef} className="hidden">
+          <Bell size={22} />
+        </div>
         {isLoading ? (
           <SkeletonList count={5} />
         ) : notifications.length === 0 ? (
