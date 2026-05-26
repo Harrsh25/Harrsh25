@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { differenceInBusinessDays, parseISO } from 'date-fns';
-import { leaveApplicationSchema } from '../utils/validators.js';
 import { applyLeave, getLeaveTypes } from '../api/leave.js';
 import Header from '../components/layout/Header.jsx';
 import Input from '../components/ui/Input.jsx';
@@ -14,6 +14,22 @@ import Button from '../components/ui/Button.jsx';
 import Card from '../components/ui/Card.jsx';
 import useToast from '../hooks/useToast.js';
 
+const schema = z
+  .object({
+    leaveTypeId: z.string().min(1, 'Please select a leave type'),
+    startDate: z.string().min(1, 'Start date is required'),
+    endDate: z.string().min(1, 'End date is required'),
+    reason: z
+      .string()
+      .min(10, 'Please provide a reason (minimum 10 characters)')
+      .max(500, 'Reason too long'),
+    halfDay: z.boolean().optional(),
+  })
+  .refine((d) => new Date(d.endDate) >= new Date(d.startDate), {
+    message: 'End date must be after start date',
+    path: ['endDate'],
+  });
+
 const ApplyLeavePage = () => {
   const navigate = useNavigate();
   const toast = useToast();
@@ -22,8 +38,13 @@ const ApplyLeavePage = () => {
 
   const { data: typesData } = useQuery({ queryKey: ['leave', 'types'], queryFn: getLeaveTypes });
 
-  const { register, handleSubmit, watch, formState: { errors } } = useForm({
-    resolver: zodResolver(leaveApplicationSchema),
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(schema),
   });
 
   const startDate = watch('startDate');
@@ -34,7 +55,9 @@ const ApplyLeavePage = () => {
       try {
         const days = differenceInBusinessDays(parseISO(endDate), parseISO(startDate)) + 1;
         setCalculatedDays(Math.max(0, days));
-      } catch { setCalculatedDays(0); }
+      } catch {
+        setCalculatedDays(0);
+      }
     }
   }, [startDate, endDate]);
 
@@ -49,7 +72,10 @@ const ApplyLeavePage = () => {
   });
 
   const leaveTypes = typesData?.data || [];
-  const typeOptions = leaveTypes.map(t => ({ value: t.id, label: `${t.name} (${t.totalDays} days/year)` }));
+  const typeOptions = leaveTypes.map((t) => ({
+    value: t.id,
+    label: `${t.name} (${t.totalDays} days/year)`,
+  }));
 
   return (
     <div>
@@ -102,10 +128,21 @@ const ApplyLeavePage = () => {
           />
 
           <div className="flex gap-3 pt-2">
-            <Button type="button" variant="secondary" size="full" onClick={() => navigate('/leave')} className="flex-1">
+            <Button
+              type="button"
+              variant="secondary"
+              size="full"
+              onClick={() => navigate('/leave')}
+              className="flex-1"
+            >
               Cancel
             </Button>
-            <Button type="submit" size="full" loading={mutation.isPending} className="flex-1">
+            <Button
+              type="submit"
+              size="full"
+              loading={mutation.isPending || isSubmitting}
+              className="flex-1"
+            >
               Submit Application
             </Button>
           </div>

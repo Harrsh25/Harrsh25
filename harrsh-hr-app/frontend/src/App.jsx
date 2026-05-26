@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import useAuth from './hooks/useAuth.js';
 import useAppStore from './store/appStore.js';
 import { getUnreadCount } from './api/notifications.js';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
 
 // Layout
 import AppLayout from './components/layout/AppLayout.jsx';
@@ -39,8 +40,8 @@ const ProtectedRoute = ({ children, roles }) => {
 // Notification count syncer + SSE listener
 const NotificationSync = () => {
   const { isAuthenticated, accessToken } = useAuth();
-  const setNotificationCount = useAppStore(s => s.setNotificationCount);
-  const addToast = useAppStore(s => s.addToast);
+  const setNotificationCount = useAppStore((s) => s.setNotificationCount);
+  const addToast = useAppStore((s) => s.addToast);
 
   const { data } = useQuery({
     queryKey: ['notifications', 'unread-count'],
@@ -67,9 +68,11 @@ const NotificationSync = () => {
         const data = JSON.parse(e.data);
         if (data.type === 'notification') {
           addToast(data.message || data.notification?.message || 'New notification', 'info');
-          setNotificationCount(prev => (prev || 0) + 1);
+          setNotificationCount((prev) => (prev || 0) + 1);
         }
-      } catch (_) {}
+      } catch (_e) {
+        /* ignore malformed SSE payloads */
+      }
     };
 
     es.onerror = () => {
@@ -86,15 +89,24 @@ const App = () => {
   const { isAuthenticated } = useAuth();
 
   return (
-    <>
+    <ErrorBoundary>
       <NotificationSync />
       <ToastContainer />
       <Routes>
         {/* Public Routes */}
-        <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
+        <Route
+          path="/login"
+          element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />}
+        />
 
         {/* Protected Routes */}
-        <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+        <Route
+          element={
+            <ProtectedRoute>
+              <AppLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/attendance" element={<AttendancePage />} />
@@ -153,7 +165,7 @@ const App = () => {
         {/* 404 */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
-    </>
+    </ErrorBoundary>
   );
 };
 

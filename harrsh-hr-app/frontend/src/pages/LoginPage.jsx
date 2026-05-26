@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Eye, EyeOff, Building2 } from 'lucide-react';
-import { loginSchema } from '../utils/validators.js';
 import { login as loginApi } from '../api/auth.js';
 import useAuth from '../hooks/useAuth.js';
 import useToast from '../hooks/useToast.js';
@@ -11,19 +11,30 @@ import Input from '../components/ui/Input.jsx';
 import Button from '../components/ui/Button.jsx';
 import ToastContainer from '../components/ui/Toast.jsx';
 
+const schema = z.object({
+  email: z.string().min(1, 'Email is required').email('Enter a valid email'),
+  password: z
+    .string()
+    .min(1, 'Password is required')
+    .min(6, 'Password must be at least 6 characters'),
+});
+
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
   const toast = useToast();
 
-  const { register, handleSubmit, formState: { errors }, setError } = useForm({
-    resolver: zodResolver(loginSchema),
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setError,
+  } = useForm({
+    resolver: zodResolver(schema),
   });
 
   const onSubmit = async (data) => {
-    setIsLoading(true);
     try {
       const result = await loginApi(data);
       if (result.success) {
@@ -38,8 +49,6 @@ const LoginPage = () => {
       const message = err.response?.data?.message || 'Login failed. Please try again.';
       toast.error(message);
       setError('root', { message });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -73,11 +82,12 @@ const LoginPage = () => {
             />
 
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">
+              <label htmlFor="password" className="text-sm font-medium text-gray-700">
                 Password <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <input
+                  id="password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Enter your password"
                   className={`w-full px-3 py-2.5 pr-10 border rounded-xl text-sm bg-white text-gray-900 placeholder-gray-400 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${errors.password ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
@@ -100,7 +110,7 @@ const LoginPage = () => {
               </div>
             )}
 
-            <Button type="submit" size="full" loading={isLoading}>
+            <Button type="submit" size="full" loading={isSubmitting}>
               Sign In
             </Button>
           </form>

@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { useMutation } from '@tanstack/react-query';
 import { LogOut, Lock, Mail, Phone, Building2, Briefcase, Calendar } from 'lucide-react';
 import { changePassword as changePasswordApi } from '../api/auth.js';
@@ -18,13 +19,61 @@ import Button from '../components/ui/Button.jsx';
 import Modal from '../components/ui/Modal.jsx';
 import { useNavigate } from 'react-router-dom';
 
+const profileSchema = z.object({
+  firstName: z.string().min(1, 'First name is required').max(50),
+  lastName: z.string().min(1, 'Last name is required').max(50),
+  phone: z
+    .string()
+    .regex(/^[+]?[\d\s\-()]{7,15}$/, 'Enter a valid phone number')
+    .optional()
+    .or(z.literal('')),
+});
+
+const InfoRow = ({ icon: Icon, label, value }) => (
+  <div className="flex items-center gap-3 py-2">
+    <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+      <Icon size={14} className="text-gray-500" />
+    </div>
+    <div className="flex-1 min-w-0">
+      <p className="text-xs text-gray-400">{label}</p>
+      <p className="text-sm font-medium text-gray-800 truncate">{value || '—'}</p>
+    </div>
+  </div>
+);
+
 const ProfilePage = () => {
   const { user, logout } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const [showPasswordModal, setShowPasswordModal] = useState(false);
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm({
+  // Profile edit form (schema-validated, reset when user data loads)
+  const {
+    register: registerProfile,
+    reset: resetProfile,
+    formState: { errors: profileErrors },
+  } = useForm({ resolver: zodResolver(profileSchema) });
+
+  // suppress unused warning — profileErrors used for future inline edit form
+  void profileErrors;
+  void registerProfile;
+
+  useEffect(() => {
+    if (user) {
+      resetProfile({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        phone: user.phone || '',
+      });
+    }
+  }, [user, resetProfile]);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({
     resolver: zodResolver(changePasswordSchema),
   });
 
@@ -44,22 +93,12 @@ const ProfilePage = () => {
       const stored = JSON.parse(localStorage.getItem('harrsh-hr-auth') || '{}');
       const refreshToken = stored?.state?.refreshToken;
       if (refreshToken) await logoutApi(refreshToken);
-    } catch {}
+    } catch (_e) {
+      /* ignore logout API errors — proceed to local logout */
+    }
     logout();
     navigate('/login', { replace: true });
   };
-
-  const InfoRow = ({ icon: Icon, label, value }) => (
-    <div className="flex items-center gap-3 py-2">
-      <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-        <Icon size={14} className="text-gray-500" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-xs text-gray-400">{label}</p>
-        <p className="text-sm font-medium text-gray-800 truncate">{value || '—'}</p>
-      </div>
-    </div>
-  );
 
   return (
     <div>
@@ -69,7 +108,9 @@ const ProfilePage = () => {
         <Card className="flex flex-col items-center text-center py-6 gap-3">
           <Avatar firstName={user?.firstName} lastName={user?.lastName} size="2xl" />
           <div>
-            <h2 className="text-xl font-bold text-gray-900">{user?.firstName} {user?.lastName}</h2>
+            <h2 className="text-xl font-bold text-gray-900">
+              {user?.firstName} {user?.lastName}
+            </h2>
             <p className="text-sm text-gray-500">{user?.designation || 'Employee'}</p>
             <div className="flex items-center justify-center gap-2 mt-2">
               <Badge color="indigo">{user?.role}</Badge>
@@ -125,14 +166,61 @@ const ProfilePage = () => {
       </div>
 
       {/* Change Password Modal */}
-      <Modal isOpen={showPasswordModal} onClose={() => { setShowPasswordModal(false); reset(); }} title="Change Password">
-        <form onSubmit={handleSubmit((data) => changePwdMutation.mutate(data))} className="space-y-4">
-          <Input label="Current Password" type="password" required error={errors.oldPassword?.message} {...register('oldPassword')} />
-          <Input label="New Password" type="password" required error={errors.newPassword?.message} hint="At least 6 characters" {...register('newPassword')} />
-          <Input label="Confirm New Password" type="password" required error={errors.confirmPassword?.message} {...register('confirmPassword')} />
+      <Modal
+        isOpen={showPasswordModal}
+        onClose={() => {
+          setShowPasswordModal(false);
+          reset();
+        }}
+        title="Change Password"
+      >
+        <form
+          onSubmit={handleSubmit((data) => changePwdMutation.mutate(data))}
+          className="space-y-4"
+        >
+          <Input
+            label="Current Password"
+            type="password"
+            required
+            error={errors.oldPassword?.message}
+            {...register('oldPassword')}
+          />
+          <Input
+            label="New Password"
+            type="password"
+            required
+            error={errors.newPassword?.message}
+            hint="At least 6 characters"
+            {...register('newPassword')}
+          />
+          <Input
+            label="Confirm New Password"
+            type="password"
+            required
+            error={errors.confirmPassword?.message}
+            {...register('confirmPassword')}
+          />
           <div className="flex gap-3 pt-2">
-            <Button type="button" variant="secondary" size="full" onClick={() => { setShowPasswordModal(false); reset(); }} className="flex-1">Cancel</Button>
-            <Button type="submit" size="full" loading={changePwdMutation.isPending} className="flex-1">Update Password</Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="full"
+              onClick={() => {
+                setShowPasswordModal(false);
+                reset();
+              }}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              size="full"
+              loading={changePwdMutation.isPending}
+              className="flex-1"
+            >
+              Update Password
+            </Button>
           </div>
         </form>
       </Modal>
