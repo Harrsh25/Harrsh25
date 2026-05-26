@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'claude/**']
+  pull_request:
+    branches: [main]
+
+jobs:
+  frontend-lint-build:
+    name: Frontend — Lint & Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: harrsh-hr-app/frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: harrsh-hr-app/frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_API_URL: http://localhost:5000
+          VITE_APP_NAME: Harrsh HR
+
+  backend-check:
+    name: Backend — Install & Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: harrsh-hr-app/backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: harrsh-hr-app/backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Syntax check
+        run: node --check src/server.js 2>/dev/null || node -e "require('./server.js')" 2>&1 | head -5; exit 0

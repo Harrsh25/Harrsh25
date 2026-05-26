@@ -1,0 +1,27 @@
+{
+  "name": "harrsh25",
+  "version": "1.0.0",
+  "description": "💡 **About Me:**   - 🎯 Passionate about AI, Data Engineering, and Optimization Problems   - 🚀 Exploring AI-driven sales strategies and advanced data structures   - 🎵 Learning the piano and recently joined a community orchestra!",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "husky"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://local_proxy@127.0.0.1:45743/git/Harrsh25/Harrsh25"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.5"
+  },
+  "lint-staged": {
+    "harrsh-hr-app/frontend/src/**/*.{js,jsx}": [
+      "prettier --write",
+      "eslint --fix"
+    ]
+  }
+}

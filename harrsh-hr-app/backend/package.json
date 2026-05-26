@@ -7,7 +7,9 @@
     "start": "node server.js",
     "db:migrate": "prisma migrate dev",
     "db:seed": "node prisma/seed.js",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "format": "prettier --write src",
+    "lint": "node --check src/**/*.js 2>&1"
   },
   "dependencies": {
     "@prisma/client": "^5.10.0",
@@ -32,6 +34,7 @@
   },
   "devDependencies": {
     "nodemon": "^3.0.3",
+    "prettier": "^3.8.3",
     "prisma": "^5.10.0"
   }
 }
