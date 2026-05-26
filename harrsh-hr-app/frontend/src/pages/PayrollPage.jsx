@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { DollarSign, Download, TrendingUp, TrendingDown } from 'lucide-react';
-import api from '../api/axios.js';
-import { getMyPayslips } from '../api/payroll.js';
+import { DollarSign, Download, TrendingUp, TrendingDown, Mail } from 'lucide-react';
+import { getMyPayslips, downloadPayslip, emailPayslip } from '../api/payroll.js';
+import useToast from '../hooks/useToast.js';
 import Header from '../components/layout/Header.jsx';
 import Card from '../components/ui/Card.jsx';
 import Badge from '../components/ui/Badge.jsx';
@@ -29,6 +29,20 @@ const PayrollPage = () => {
   const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState(String(currentDate.getMonth() + 1));
   const [selectedYear, setSelectedYear] = useState(String(currentDate.getFullYear()));
+  const [downloading, setDownloading] = useState(false);
+  const toast = useToast();
+
+  const handleDownload = async (payslip) => {
+    setDownloading(true);
+    try {
+      await downloadPayslip(payslip.id, payslip.month, payslip.year);
+      toast.success('Payslip downloaded!');
+    } catch (err) {
+      toast.error('Failed to download payslip');
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ['payroll', 'me'],
@@ -115,26 +129,17 @@ const PayrollPage = () => {
               {displayPayslip.esiEmployee > 0 && <EarningRow label="ESI" amount={displayPayslip.esiEmployee} />}
             </Card>
 
-            {/* Download Button */}
-            <button
-              className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-2xl text-sm font-medium text-gray-500 hover:border-indigo-400 hover:text-indigo-600 transition-colors"
-              onClick={async () => {
-                try {
-                  const res = await api.get(`/payroll/${displayPayslip.id}/pdf`, { responseType: 'blob' });
-                  const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = `payslip-${displayPayslip.month}-${displayPayslip.year}.pdf`;
-                  a.click();
-                  URL.revokeObjectURL(url);
-                } catch (e) {
-                  alert('Failed to download PDF');
-                }
-              }}
-            >
-              <Download size={16} />
-              Download Payslip PDF
-            </button>
+            {/* Action Buttons */}
+            <div className="flex gap-2">
+              <button
+                className="flex-1 flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 rounded-2xl text-sm font-medium text-gray-500 hover:border-indigo-400 hover:text-indigo-600 transition-colors disabled:opacity-50"
+                onClick={() => handleDownload(displayPayslip)}
+                disabled={downloading}
+              >
+                <Download size={16} />
+                {downloading ? 'Downloading...' : 'Download PDF'}
+              </button>
+            </div>
           </>
         )}
 

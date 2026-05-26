@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { Clock, LogIn, LogOut, Calendar } from 'lucide-react';
+import { Clock, LogIn, LogOut, Calendar, MapPin } from 'lucide-react';
 import { checkIn, checkOut, getMyAttendance, getAttendanceSummary } from '../api/attendance.js';
 import Header from '../components/layout/Header.jsx';
 import Card from '../components/ui/Card.jsx';
@@ -13,6 +13,7 @@ import useToast from '../hooks/useToast.js';
 
 const AttendancePage = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [locationLoading, setLocationLoading] = useState(false);
   const toast = useToast();
   const queryClient = useQueryClient();
 
@@ -40,11 +41,42 @@ const AttendancePage = () => {
     mutationFn: checkIn,
     onSuccess: () => {
       toast.success('Checked in successfully!');
+      if (navigator.vibrate) navigator.vibrate(50);
       queryClient.invalidateQueries({ queryKey: ['attendance'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
     onError: (err) => toast.error(err.response?.data?.message || 'Check-in failed'),
   });
+
+  const handleCheckIn = async () => {
+    setLocationLoading(true);
+    try {
+      let locationData = {};
+      if (navigator.geolocation) {
+        try {
+          const position = await new Promise((resolve, reject) =>
+            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 })
+          );
+          locationData = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          };
+        } catch (geoErr) {
+          if (geoErr.code === 1) {
+            toast.error('Location access denied. Please enable GPS.');
+            setLocationLoading(false);
+            return;
+          }
+          // GPS optional if not required by org - continue without
+        }
+      }
+      await checkInMutation.mutateAsync(locationData);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Check-in failed');
+    } finally {
+      setLocationLoading(false);
+    }
+  };
 
   const checkOutMutation = useMutation({
     mutationFn: checkOut,
@@ -89,8 +121,8 @@ const AttendancePage = () => {
           <Button
             size="full"
             variant="primary"
-            onClick={() => checkInMutation.mutate()}
-            loading={checkInMutation.isPending}
+            onClick={handleCheckIn}
+            loading={checkInMutation.isPending || locationLoading}
             disabled={hasCheckedIn}
             className="flex-1 h-14 text-base gap-2"
           >

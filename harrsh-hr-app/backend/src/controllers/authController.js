@@ -41,7 +41,7 @@ const login = async (req, res) => {
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) return error(res, 'Invalid credentials', 401);
 
-    const payload = { id: user.id, email: user.email, role: user.role, firstName: user.firstName, lastName: user.lastName };
+    const payload = { id: user.id, email: user.email, role: user.role, firstName: user.firstName, lastName: user.lastName, organizationId: user.organizationId || null };
     const accessToken = generateAccessToken(payload);
     const refreshToken = generateRefreshToken({ id: user.id });
     await prisma.refreshToken.create({ data: { token: refreshToken, userId: user.id, expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) } });
@@ -75,7 +75,7 @@ const refreshToken = async (req, res) => {
     const user = await prisma.user.findUnique({ where: { id: decoded.id } });
     if (!user) return error(res, 'User not found', 404);
 
-    const accessToken = generateAccessToken({ id: user.id, email: user.email, role: user.role, firstName: user.firstName, lastName: user.lastName });
+    const accessToken = generateAccessToken({ id: user.id, email: user.email, role: user.role, firstName: user.firstName, lastName: user.lastName, organizationId: user.organizationId || null });
     return success(res, { accessToken }, 'Token refreshed');
   } catch (err) {
     console.error(err);
