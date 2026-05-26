@@ -1,20 +1,67 @@
-/* Visible focus ring for keyboard navigation */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Design Tokens (CSS Variables) ──────────────────── */
+:root {
+  --color-primary:        #1a56db;
+  --color-primary-light:  #EFF4FF;
+  --color-primary-dark:   #1e40af;
+  --color-success:        #16a34a;
+  --color-success-bg:     #dcfce7;
+  --color-error:          #dc2626;
+  --color-error-bg:       #fee2e2;
+  --color-warning:        #d97706;
+  --color-warning-bg:     #fef3c7;
+  --color-info:           #2563eb;
+  --color-info-bg:        #dbeafe;
+  --color-text-primary:   #111827;
+  --color-text-secondary: #6b7280;
+  --color-text-muted:     #9ca3af;
+  --color-surface:        #ffffff;
+  --color-surface-subtle: #f9fafb;
+  --color-border:         #e5e7eb;
+  --color-border-subtle:  #f0f1f4;
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px;
+  --radius-sm: 6px; --radius-md: 10px; --radius-lg: 14px;
+  --radius-xl: 20px; --radius-full: 9999px;
+  --text-xs: 11px; --text-sm: 12px; --text-base: 13px;
+  --text-md: 15px; --text-lg: 18px; --text-xl: 22px; --text-2xl: 28px;
+}
+
+/* Dark mode */
+.dark {
+  --color-surface:        #1c1c1e;
+  --color-surface-subtle: #2c2c2e;
+  --color-text-primary:   #f9fafb;
+  --color-text-secondary: #9ca3af;
+  --color-border:         #3a3a3c;
+  --color-border-subtle:  #2c2c2e;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not(.light) {
+    --color-surface:        #1c1c1e;
+    --color-surface-subtle: #2c2c2e;
+    --color-text-primary:   #f9fafb;
+    --color-text-secondary: #9ca3af;
+    --color-border:         #3a3a3c;
+    --color-border-subtle:  #2c2c2e;
+  }
+}
+
+/* ─── Keyboard focus ring ───────────────────────────── */
 :focus-visible {
   outline: 2px solid #4F46E5;
   outline-offset: 2px;
   border-radius: 4px;
 }
+:focus:not(:focus-visible) { outline: none; }
 
-/* Remove focus ring for mouse users */
-:focus:not(:focus-visible) {
-  outline: none;
-}
-
-/* Respect reduced motion preference */
+/* ─── Reduced motion ────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -22,36 +69,48 @@
   }
 }
 
-/* Skip navigation link helper classes */
+/* ─── Utility classes ───────────────────────────────── */
 .sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); white-space: nowrap; border-width: 0;
+}
+.focus\:not-sr-only:focus {
+  position: static; width: auto; height: auto;
+  padding: inherit; margin: inherit; overflow: visible;
+  clip: auto; white-space: normal;
 }
 
-.sr-only:focus {
-  position: static;
-  width: auto;
-  height: auto;
-  padding: 8px 16px;
-  margin: 0;
-  overflow: visible;
-  clip: auto;
-  white-space: normal;
-  top: 16px;
-  left: 16px;
-  z-index: 50;
-  background-color: #4F46E5;
-  color: #ffffff;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  text-decoration: none;
-  display: inline-block;
+/* Button press micro-interaction */
+button:active:not(:disabled) {
+  transform: scale(0.97);
 }
+
+/* Smooth tab transitions */
+.page-enter { animation: fadeIn 0.15s ease-out; }
+
+/* Dynamic viewport height for keyboard handling */
+@supports (height: 100dvh) {
+  .h-screen { height: 100dvh; }
+  .min-h-screen { min-height: 100dvh; }
+}
+
+/* Custom scrollbar (WebKit) */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+/* Shimmer animation for skeletons */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Line height fix — never allow 0 */
+* { line-height: max(1.2, inherit); }
