@@ -1,40 +1,46 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import useAuth from './hooks/useAuth.js';
-import useAppStore from './store/appStore.js';
-import { getUnreadCount } from './api/notifications.js';
-import ErrorBoundary from './components/ErrorBoundary.jsx';
+import useAuth from './hooks/useAuth';
+import useAppStore from './store/appStore';
+import { getUnreadCount } from './api/notifications';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Layout
-import AppLayout from './components/layout/AppLayout.jsx';
-import ToastContainer from './components/ui/Toast.jsx';
+import AppLayout from './components/layout/AppLayout';
+import ToastContainer from './components/ui/Toast';
+import OfflineIndicator from './components/ui/OfflineIndicator';
 
 // Pages
-import LoginPage from './pages/LoginPage.jsx';
-import DashboardPage from './pages/DashboardPage.jsx';
-import AttendancePage from './pages/AttendancePage.jsx';
-import LeavePage from './pages/LeavePage.jsx';
-import ApplyLeavePage from './pages/ApplyLeavePage.jsx';
-import PayrollPage from './pages/PayrollPage.jsx';
-import ProjectsPage from './pages/ProjectsPage.jsx';
-import ProjectDetailPage from './pages/ProjectDetailPage.jsx';
-import ApprovalsPage from './pages/ApprovalsPage.jsx';
-import ProfilePage from './pages/ProfilePage.jsx';
-import TeamPage from './pages/TeamPage.jsx';
-import NotificationsPage from './pages/NotificationsPage.jsx';
-import NotFoundPage from './pages/NotFoundPage.jsx';
-import DocumentsPage from './pages/DocumentsPage.jsx';
-import OrgSettingsPage from './pages/OrgSettingsPage.jsx';
-import OnboardingPage from './pages/OnboardingPage.jsx';
-import ReportsPage from './pages/ReportsPage.jsx';
+import LoginPage from './pages/LoginPage';
+import DashboardPage from './pages/DashboardPage';
+import AttendancePage from './pages/AttendancePage';
+import LeavePage from './pages/LeavePage';
+import ApplyLeavePage from './pages/ApplyLeavePage';
+import PayrollPage from './pages/PayrollPage';
+import ProjectsPage from './pages/ProjectsPage';
+import ProjectDetailPage from './pages/ProjectDetailPage';
+import ApprovalsPage from './pages/ApprovalsPage';
+import ProfilePage from './pages/ProfilePage';
+import TeamPage from './pages/TeamPage';
+import NotificationsPage from './pages/NotificationsPage';
+import NotFoundPage from './pages/NotFoundPage';
+import DocumentsPage from './pages/DocumentsPage';
+import OrgSettingsPage from './pages/OrgSettingsPage';
+import OnboardingPage from './pages/OnboardingPage';
+import ReportsPage from './pages/ReportsPage';
 
 // Protected route wrapper
-const ProtectedRoute = ({ children, roles }) => {
+interface ProtectedRouteProps {
+  children: ReactNode;
+  roles?: string[];
+}
+const ProtectedRoute = ({ children, roles }: ProtectedRouteProps) => {
   const { isAuthenticated, user } = useAuth();
   if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (roles && !roles.includes(user?.role)) return <Navigate to="/dashboard" replace />;
-  return children;
+  if (roles && !roles.includes(user?.role || '')) return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
 };
 
 // Notification count syncer + SSE listener
@@ -92,6 +98,7 @@ const App = () => {
     <ErrorBoundary>
       <NotificationSync />
       <ToastContainer />
+      <OfflineIndicator />
       <Routes>
         {/* Public Routes */}
         <Route
