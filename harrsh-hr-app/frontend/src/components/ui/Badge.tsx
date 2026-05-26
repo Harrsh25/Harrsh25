@@ -1,46 +1,53 @@
 import clsx from 'clsx';
 import type { ReactNode } from 'react';
 
-const colorMap: Record<string, string> = {
-  green: 'bg-green-100 text-green-800',
-  yellow: 'bg-yellow-100 text-yellow-800',
-  red: 'bg-red-100 text-red-800',
-  blue: 'bg-blue-100 text-blue-800',
-  gray: 'bg-gray-100 text-gray-700',
-  purple: 'bg-purple-100 text-purple-800',
-  orange: 'bg-orange-100 text-orange-800',
-  indigo: 'bg-indigo-100 text-indigo-800',
-};
-
-const statusColorMap: Record<string, string> = {
-  APPROVED: 'green', PENDING: 'yellow', REJECTED: 'red', CANCELLED: 'gray',
-  PRESENT: 'green', ABSENT: 'red', LATE: 'yellow', HALF_DAY: 'orange', ON_LEAVE: 'blue', HOLIDAY: 'purple',
-  ACTIVE: 'blue', ON_HOLD: 'yellow', COMPLETED: 'green',
-  NOT_STARTED: 'gray', IN_PROGRESS: 'blue',
-  DRAFT: 'gray', PROCESSED: 'blue', PAID: 'green',
-  LOW: 'gray', MEDIUM: 'blue', HIGH: 'orange', CRITICAL: 'red',
+const VARIANTS: Record<string, { bg: string; text: string }> = {
+  approved:   { bg: 'bg-green-100 dark:bg-green-900/30',  text: 'text-green-700 dark:text-green-400' },
+  pending:    { bg: 'bg-yellow-100 dark:bg-yellow-900/30', text: 'text-yellow-700 dark:text-yellow-400' },
+  rejected:   { bg: 'bg-red-100 dark:bg-red-900/30',     text: 'text-red-700 dark:text-red-400' },
+  cancelled:  { bg: 'bg-gray-100 dark:bg-gray-700',       text: 'text-gray-600 dark:text-gray-300' },
+  draft:      { bg: 'bg-gray-100 dark:bg-gray-700',       text: 'text-gray-600 dark:text-gray-300' },
+  active:     { bg: 'bg-blue-100 dark:bg-blue-900/30',    text: 'text-blue-700 dark:text-blue-400' },
+  ongoing:    { bg: 'bg-blue-100 dark:bg-blue-900/30',    text: 'text-blue-700 dark:text-blue-400' },
+  completed:  { bg: 'bg-green-100 dark:bg-green-900/30',  text: 'text-green-700 dark:text-green-400' },
+  paid:       { bg: 'bg-green-100 dark:bg-green-900/30',  text: 'text-green-700 dark:text-green-400' },
+  processed:  { bg: 'bg-blue-100 dark:bg-blue-900/30',    text: 'text-blue-700 dark:text-blue-400' },
+  present:    { bg: 'bg-green-100 dark:bg-green-900/30',  text: 'text-green-700 dark:text-green-400' },
+  absent:     { bg: 'bg-red-100 dark:bg-red-900/30',      text: 'text-red-700 dark:text-red-400' },
+  late:       { bg: 'bg-yellow-100 dark:bg-yellow-900/30',text: 'text-yellow-700 dark:text-yellow-400' },
+  half_day:   { bg: 'bg-orange-100 dark:bg-orange-900/30',text: 'text-orange-700 dark:text-orange-400' },
+  on_leave:   { bg: 'bg-purple-100 dark:bg-purple-900/30',text: 'text-purple-700 dark:text-purple-400' },
+  holiday:    { bg: 'bg-indigo-100 dark:bg-indigo-900/30',text: 'text-indigo-700 dark:text-indigo-400' },
+  critical:   { bg: 'bg-red-100 dark:bg-red-900/30',      text: 'text-red-700 dark:text-red-400' },
+  high:       { bg: 'bg-orange-100 dark:bg-orange-900/30',text: 'text-orange-700 dark:text-orange-400' },
+  medium:     { bg: 'bg-blue-100 dark:bg-blue-900/30',    text: 'text-blue-700 dark:text-blue-400' },
+  low:        { bg: 'bg-gray-100 dark:bg-gray-700',       text: 'text-gray-600 dark:text-gray-300' },
+  not_started:{ bg: 'bg-gray-100 dark:bg-gray-700',       text: 'text-gray-600 dark:text-gray-300' },
+  in_progress:{ bg: 'bg-blue-100 dark:bg-blue-900/30',    text: 'text-blue-700 dark:text-blue-400' },
+  on_hold:    { bg: 'bg-yellow-100 dark:bg-yellow-900/30',text: 'text-yellow-700 dark:text-yellow-400' },
+  verified:   { bg: 'bg-green-100 dark:bg-green-900/30',  text: 'text-green-700 dark:text-green-400' },
+  expired:    { bg: 'bg-red-100 dark:bg-red-900/30',      text: 'text-red-700 dark:text-red-400' },
 };
 
 interface BadgeProps {
   children?: ReactNode;
-  color?: string;
   status?: string;
-  size?: string;
   className?: string;
 }
 
-const Badge = ({ children, color, status, size = 'sm', className = '' }: BadgeProps) => {
-  const resolvedColor = color || (status && statusColorMap[status]) || 'gray';
-  const colorClass = colorMap[resolvedColor] || colorMap.gray;
+const Badge = ({ children, status, className = '' }: BadgeProps) => {
+  const key = (status || '').toLowerCase().replace(/ /g, '_');
+  const variant = VARIANTS[key] || { bg: 'bg-gray-100', text: 'text-gray-600' };
+  const label = children ?? (status ? status.replace(/_/g, ' ') : '');
 
   return (
     <span className={clsx(
-      'inline-flex items-center rounded-full font-medium',
-      size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-3 py-1 text-sm',
-      colorClass,
-      className
+      'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold leading-tight',
+      variant.bg, variant.text, className
     )}>
-      {children || status?.replace(/_/g, ' ')}
+      {typeof label === 'string'
+        ? label.charAt(0).toUpperCase() + label.slice(1).toLowerCase().replace(/_/g, ' ')
+        : label}
     </span>
   );
 };

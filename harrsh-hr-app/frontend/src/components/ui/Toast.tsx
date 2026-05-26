@@ -29,6 +29,8 @@ const ToastItem = ({ id, message, type }: ToastItemProps) => {
   return (
     <div
       role={isAlert ? 'alert' : 'status'}
+      aria-live={isAlert ? 'assertive' : 'polite'}
+      aria-atomic="true"
       className={clsx(
         'flex items-start gap-3 p-3 rounded-xl border shadow-lg min-w-[280px] max-w-sm',
         bgMap[type] || bgMap.info
@@ -46,7 +48,7 @@ const ToastItem = ({ id, message, type }: ToastItemProps) => {
 const ToastContainer = () => {
   const toasts = useAppStore((s) => s.toasts);
   return (
-    <div aria-live="polite" aria-atomic="false" className="fixed top-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none">
+    <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none">
       {toasts.map((t) => (
         <div key={t.id} className="pointer-events-auto">
           <ToastItem {...t} />
