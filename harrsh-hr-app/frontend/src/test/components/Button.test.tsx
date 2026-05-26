@@ -40,19 +40,19 @@ describe('Button', () => {
   it('renders with primary variant by default', () => {
     render(<Button>Primary</Button>);
     const btn = screen.getByRole('button');
-    expect(btn.className).toContain('bg-indigo-600');
+    expect(btn.className).toContain('bg-[#1a56db]');
   });
 
   it('renders with secondary variant', () => {
     render(<Button variant="secondary">Secondary</Button>);
     const btn = screen.getByRole('button');
-    expect(btn.className).toContain('bg-white');
+    expect(btn.className).toContain('bg-[#EFF4FF]');
   });
 
   it('renders with destructive variant', () => {
     render(<Button variant="destructive">Delete</Button>);
     const btn = screen.getByRole('button');
-    expect(btn.className).toContain('bg-red-600');
+    expect(btn.className).toContain('bg-red-50');
   });
 
   it('sets type="submit" when passed', () => {

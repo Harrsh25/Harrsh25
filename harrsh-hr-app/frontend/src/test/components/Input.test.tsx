@@ -28,9 +28,9 @@ describe('Input', () => {
     expect(screen.getByRole('textbox')).toBeInTheDocument();
   });
 
-  it('defaults to type text', () => {
-    render(<Input id="name" label="Name" />);
-    expect(screen.getByLabelText('Name')).toHaveAttribute('type', 'text');
+  it('accepts type prop and passes it through', () => {
+    render(<Input id="pwd" label="Password" type="password" />);
+    expect(screen.getByLabelText('Password')).toHaveAttribute('type', 'password');
   });
 
   it('renders hint text when no error', () => {
