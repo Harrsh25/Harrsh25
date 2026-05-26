@@ -66,6 +66,9 @@ app.use('/api/v1/org', orgRoutes);
 app.use('/api/v1/documents', documentRoutes);
 app.use('/api/v1/sse', sseRoutes);
 
+// SSE notifications stream (alternate path)
+app.use('/api/v1/notifications/stream', sseRoutes);
+
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
@@ -97,5 +100,45 @@ const gracefulShutdown = async (signal) => {
 
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// Auto-checkout cron (checks every minute)
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+
+const autoCheckOut = async () => {
+  try {
+    const now = new Date();
+    const orgs = await prisma.organization.findMany({
+      where: { isActive: true },
+      include: { settings: true },
+    });
+
+    for (const org of orgs) {
+      const settings = org.settings;
+      if (!settings || !settings.autoCheckOut) continue;
+
+      const [checkOutHour, checkOutMin] = (settings.autoCheckOutTime || '19:00').split(':').map(Number);
+      if (now.getHours() === checkOutHour && now.getMinutes() === checkOutMin) {
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const openRecords = await prisma.attendanceRecord.findMany({
+          where: { organizationId: org.id, date: today, checkInTime: { not: null }, checkOutTime: null },
+        });
+        for (const record of openRecords) {
+          const diff = (now - new Date(record.checkInTime)) / (1000 * 60 * 60);
+          const workingHours = Math.round(diff * 100) / 100;
+          const status = workingHours < 4 ? 'HALF_DAY' : record.status;
+          await prisma.attendanceRecord.update({
+            where: { id: record.id },
+            data: { checkOutTime: now, workingHours, status, notes: (record.notes || '') + ' [Auto checkout]' },
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Auto-checkout error:', err.message);
+  }
+};
+
+setInterval(autoCheckOut, 60000);
 
 module.exports = app;
