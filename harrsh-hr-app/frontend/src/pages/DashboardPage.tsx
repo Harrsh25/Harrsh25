@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { Clock, Calendar, CheckSquare, Bell, Users, Briefcase, TrendingUp, DollarSign } from 'lucide-react';
@@ -26,29 +27,35 @@ const DashboardPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { data, isLoading, error } = useQuery({ queryKey: ['dashboard'], queryFn: getDashboardStats });
+  const [showMore, setShowMore] = useState(false);
 
   const stats = data?.data;
-  const greeting = () => {
-    const h = new Date().getHours();
-    if (h < 12) return 'Good morning';
-    if (h < 17) return 'Good afternoon';
-    return 'Good evening';
-  };
+
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+
+  const pendingApprovalsCount = useMemo(() => {
+    if (!stats) return 0;
+    return stats.pendingLeaveApprovals ?? stats.pendingApprovals ?? 0;
+  }, [stats]);
 
   return (
     <div>
       <Header title="Dashboard" />
-      <div className="p-4 space-y-5">
-        {/* Greeting */}
-        <div className="flex items-center gap-3">
-          <Avatar firstName={user?.firstName} lastName={user?.lastName} size="lg" />
-          <div>
-            <p className="text-sm text-gray-500">{greeting()},</p>
-            <h2 className="text-lg font-bold text-gray-900">{user?.firstName} {user?.lastName}</h2>
-            <p className="text-xs text-gray-400">{format(new Date(), 'EEEE, dd MMMM yyyy')}</p>
-          </div>
-        </div>
 
+      {/* Role-aware greeting hero */}
+      <div className="bg-gradient-to-r from-[#1a56db] to-[#1e40af] text-white px-4 pt-6 pb-5 mb-4">
+        <p className="text-base font-semibold opacity-90">{greeting}, {user?.firstName} 👋</p>
+        {user?.role === 'EMPLOYEE' && stats?.todayAttendance?.status !== 'PRESENT' && (
+          <p className="text-blue-200 text-sm mt-0.5">Don't forget to check in today</p>
+        )}
+        {(user?.role === 'MANAGER' || user?.role === 'HR' || user?.role === 'ADMIN') && pendingApprovalsCount > 0 && (
+          <p className="text-blue-200 text-sm mt-0.5">{pendingApprovalsCount} approval{pendingApprovalsCount > 1 ? 's' : ''} waiting for your review</p>
+        )}
+        <p className="text-blue-300 text-xs mt-1 opacity-80">{format(new Date(), 'EEEE, dd MMMM yyyy')}</p>
+      </div>
+
+      <div className="px-4 space-y-5">
         {isLoading && (
           <div className="grid grid-cols-2 gap-3">
             {[1,2,3,4].map(i => <SkeletonCard key={i} />)}
@@ -107,41 +114,116 @@ const DashboardPage = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <StatCard icon={CheckSquare} label="Pending Tasks" value={stats.pendingTasks} color="orange" onClick={() => navigate('/projects')} />
-              <StatCard icon={Bell} label="Notifications" value={stats.unreadNotifications} color="purple" onClick={() => navigate('/notifications')} />
+            {/* Quick actions — 2-column grid */}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-2">Quick Actions</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <Card className="flex flex-col items-center justify-center min-h-[80px] gap-2 cursor-pointer hover:shadow-md transition-shadow text-center" onClick={() => navigate('/projects')}>
+                  <CheckSquare size={22} className="text-orange-500" />
+                  <p className="text-xs font-semibold text-gray-700">Pending Tasks</p>
+                  {stats.pendingTasks != null && <p className="text-lg font-bold text-gray-900">{stats.pendingTasks}</p>}
+                </Card>
+                <Card className="flex flex-col items-center justify-center min-h-[80px] gap-2 cursor-pointer hover:shadow-md transition-shadow text-center" onClick={() => navigate('/notifications')}>
+                  <Bell size={22} className="text-purple-500" />
+                  <p className="text-xs font-semibold text-gray-700">Notifications</p>
+                  {stats.unreadNotifications != null && <p className="text-lg font-bold text-gray-900">{stats.unreadNotifications}</p>}
+                </Card>
+              </div>
             </div>
+
+            {/* Collapsible secondary content */}
+            <button
+              onClick={() => setShowMore(v => !v)}
+              className="w-full text-center text-sm text-[#1a56db] py-2 font-medium"
+            >
+              {showMore ? 'Show less ▲' : 'Show more ▾'}
+            </button>
+            {showMore && (
+              <div className="space-y-3">
+                <Card className="text-center py-4">
+                  <p className="text-xs text-gray-500">No additional activity to show</p>
+                </Card>
+              </div>
+            )}
           </>
         )}
 
         {/* Manager Dashboard */}
         {stats?.role === 'MANAGER' && (
-          <div className="grid grid-cols-2 gap-3">
-            <StatCard icon={Users} label="Team Size" value={stats.teamSize} color="blue" onClick={() => navigate('/team')} />
-            <StatCard icon={Clock} label="Present Today" value={stats.teamPresentToday} color="green" />
-            <StatCard icon={CheckSquare} label="Pending Approvals" value={stats.pendingLeaveApprovals} color="orange" onClick={() => navigate('/approvals')} />
-            <StatCard icon={Briefcase} label="Active Projects" value={stats.activeProjects} color="purple" onClick={() => navigate('/projects')} />
-          </div>
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <StatCard icon={Users} label="Team Size" value={stats.teamSize} color="blue" onClick={() => navigate('/team')} />
+              <StatCard icon={Clock} label="Present Today" value={stats.teamPresentToday} color="green" />
+              <StatCard icon={CheckSquare} label="Pending Approvals" value={stats.pendingLeaveApprovals} color="orange" onClick={() => navigate('/approvals')} />
+              <StatCard icon={Briefcase} label="Active Projects" value={stats.activeProjects} color="purple" onClick={() => navigate('/projects')} />
+            </div>
+
+            <button
+              onClick={() => setShowMore(v => !v)}
+              className="w-full text-center text-sm text-[#1a56db] py-2 font-medium"
+            >
+              {showMore ? 'Show less ▲' : 'Show more ▾'}
+            </button>
+            {showMore && (
+              <div className="space-y-3">
+                <Card className="text-center py-4">
+                  <p className="text-xs text-gray-500">No additional activity to show</p>
+                </Card>
+              </div>
+            )}
+          </>
         )}
 
         {/* HR Dashboard */}
         {stats?.role === 'HR' && (
-          <div className="grid grid-cols-2 gap-3">
-            <StatCard icon={Users} label="Total Employees" value={stats.totalEmployees} color="blue" />
-            <StatCard icon={Calendar} label="On Leave Today" value={stats.leavesToday} color="orange" />
-            <StatCard icon={DollarSign} label="Payroll Processed" value={stats.payrollStatus} color="green" onClick={() => navigate('/payroll')} />
-            <StatCard icon={CheckSquare} label="Pending Approvals" value={stats.pendingApprovals} color="red" onClick={() => navigate('/approvals')} />
-          </div>
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <StatCard icon={Users} label="Total Employees" value={stats.totalEmployees} color="blue" />
+              <StatCard icon={Calendar} label="On Leave Today" value={stats.leavesToday} color="orange" />
+              <StatCard icon={DollarSign} label="Payroll Processed" value={stats.payrollStatus} color="green" onClick={() => navigate('/payroll')} />
+              <StatCard icon={CheckSquare} label="Pending Approvals" value={stats.pendingApprovals} color="red" onClick={() => navigate('/approvals')} />
+            </div>
+
+            <button
+              onClick={() => setShowMore(v => !v)}
+              className="w-full text-center text-sm text-[#1a56db] py-2 font-medium"
+            >
+              {showMore ? 'Show less ▲' : 'Show more ▾'}
+            </button>
+            {showMore && (
+              <div className="space-y-3">
+                <Card className="text-center py-4">
+                  <p className="text-xs text-gray-500">No additional activity to show</p>
+                </Card>
+              </div>
+            )}
+          </>
         )}
 
         {/* Admin Dashboard */}
         {stats?.role === 'ADMIN' && (
-          <div className="grid grid-cols-2 gap-3">
-            <StatCard icon={Users} label="Total Employees" value={stats.totalEmployees} color="blue" />
-            <StatCard icon={Briefcase} label="Active Projects" value={stats.activeProjects} color="purple" onClick={() => navigate('/projects')} />
-            <StatCard icon={CheckSquare} label="Pending Approvals" value={stats.pendingApprovals} color="orange" onClick={() => navigate('/approvals')} />
-            <StatCard icon={TrendingUp} label="Departments" value={stats.totalDepartments} color="green" />
-          </div>
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <StatCard icon={Users} label="Total Employees" value={stats.totalEmployees} color="blue" />
+              <StatCard icon={Briefcase} label="Active Projects" value={stats.activeProjects} color="purple" onClick={() => navigate('/projects')} />
+              <StatCard icon={CheckSquare} label="Pending Approvals" value={stats.pendingApprovals} color="orange" onClick={() => navigate('/approvals')} />
+              <StatCard icon={TrendingUp} label="Departments" value={stats.totalDepartments} color="green" />
+            </div>
+
+            <button
+              onClick={() => setShowMore(v => !v)}
+              className="w-full text-center text-sm text-[#1a56db] py-2 font-medium"
+            >
+              {showMore ? 'Show less ▲' : 'Show more ▾'}
+            </button>
+            {showMore && (
+              <div className="space-y-3">
+                <Card className="text-center py-4">
+                  <p className="text-xs text-gray-500">No additional activity to show</p>
+                </Card>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

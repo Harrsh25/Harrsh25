@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation } from '@tanstack/react-query';
-import { LogOut, Lock, Mail, Phone, Building2, Briefcase, Calendar } from 'lucide-react';
+import { LogOut, Lock, Mail, Phone, Building2, Briefcase, Calendar, Camera } from 'lucide-react';
 import { changePassword as changePasswordApi } from '../api/auth';
 import { logout as logoutApi } from '../api/auth';
 import useAuth from '../hooks/useAuth';
@@ -29,23 +29,16 @@ const profileSchema = z.object({
     .or(z.literal('')),
 });
 
-const InfoRow = ({ icon: Icon, label, value }) => (
-  <div className="flex items-center gap-3 py-2">
-    <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-      <Icon size={14} className="text-gray-500" />
-    </div>
-    <div className="flex-1 min-w-0">
-      <p className="text-xs text-gray-400">{label}</p>
-      <p className="text-sm font-medium text-gray-800 truncate">{value || '—'}</p>
-    </div>
-  </div>
-);
-
 const ProfilePage = () => {
   const { user, logout } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+
+  // Profile completeness
+  const fields = ['firstName', 'lastName', 'phone', 'department', 'designation', 'profilePhoto'];
+  const filledCount = fields.filter(f => !!(user as any)?.[f]).length;
+  const completeness = Math.round((filledCount / fields.length) * 100);
 
   // Profile edit form (schema-validated, reset when user data loads)
   const {
@@ -104,9 +97,38 @@ const ProfilePage = () => {
     <div>
       <Header title="Profile" />
       <div className="p-4 space-y-4">
+
+        {/* Profile completeness bar */}
+        <div className="bg-white rounded-2xl p-4 mb-4 border border-gray-100">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-semibold text-gray-800">Profile completeness</span>
+            <span className="text-sm font-bold text-[#1a56db]">{completeness}%</span>
+          </div>
+          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-[#1a56db] rounded-full transition-all duration-700"
+              style={{ width: `${completeness}%` }}
+            />
+          </div>
+          {completeness < 100 && (
+            <p className="text-xs text-gray-500 mt-1.5">
+              Complete your profile to unlock all features
+            </p>
+          )}
+        </div>
+
         {/* Avatar + Basic Info */}
         <Card className="flex flex-col items-center text-center py-6 gap-3">
-          <Avatar firstName={user?.firstName} lastName={user?.lastName} size="2xl" />
+          <div className="relative w-20 h-20 mx-auto mb-3">
+            <Avatar firstName={user?.firstName} lastName={user?.lastName} size="2xl" />
+            <button
+              className="absolute bottom-0 right-0 w-7 h-7 bg-[#1a56db] rounded-full flex items-center justify-center shadow-md"
+              aria-label="Change profile photo"
+              onClick={() => {/* TODO: photo upload */}}
+            >
+              <Camera size={14} className="text-white" />
+            </button>
+          </div>
           <div>
             <h2 className="text-xl font-bold text-gray-900">
               {user?.firstName} {user?.lastName}
@@ -122,17 +144,51 @@ const ProfilePage = () => {
 
         {/* Work Info */}
         <Card>
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">Work Information</h3>
-          <InfoRow icon={Building2} label="Department" value={user?.department} />
-          <InfoRow icon={Briefcase} label="Designation" value={user?.designation} />
-          <InfoRow icon={Calendar} label="Joining Date" value={formatDate(user?.joinDate)} />
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">Work Information</h3>
+          <div className="bg-gray-50 rounded-xl divide-y divide-gray-100">
+            <div className="flex items-center justify-between px-4 py-3">
+              <div className="flex items-center gap-2">
+                <Building2 size={14} className="text-gray-400" />
+                <span className="text-xs text-gray-500 uppercase tracking-wide">Department</span>
+              </div>
+              <span className="text-sm font-medium text-gray-800">{user?.department || '—'}</span>
+            </div>
+            <div className="flex items-center justify-between px-4 py-3">
+              <div className="flex items-center gap-2">
+                <Briefcase size={14} className="text-gray-400" />
+                <span className="text-xs text-gray-500 uppercase tracking-wide">Designation</span>
+              </div>
+              <span className="text-sm font-medium text-gray-800">{user?.designation || '—'}</span>
+            </div>
+            <div className="flex items-center justify-between px-4 py-3">
+              <div className="flex items-center gap-2">
+                <Calendar size={14} className="text-gray-400" />
+                <span className="text-xs text-gray-500 uppercase tracking-wide">Joining Date</span>
+              </div>
+              <span className="text-sm font-medium text-gray-800">{formatDate(user?.joinDate) || '—'}</span>
+            </div>
+          </div>
         </Card>
 
         {/* Contact Info */}
         <Card>
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">Contact Information</h3>
-          <InfoRow icon={Mail} label="Email" value={user?.email} />
-          <InfoRow icon={Phone} label="Phone" value={user?.phone} />
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">Contact Information</h3>
+          <div className="bg-gray-50 rounded-xl divide-y divide-gray-100">
+            <div className="flex items-center justify-between px-4 py-3">
+              <div className="flex items-center gap-2">
+                <Mail size={14} className="text-gray-400" />
+                <span className="text-xs text-gray-500 uppercase tracking-wide">Email</span>
+              </div>
+              <span className="text-sm font-medium text-gray-800 truncate max-w-[55%]">{user?.email || '—'}</span>
+            </div>
+            <div className="flex items-center justify-between px-4 py-3">
+              <div className="flex items-center gap-2">
+                <Phone size={14} className="text-gray-400" />
+                <span className="text-xs text-gray-500 uppercase tracking-wide">Phone</span>
+              </div>
+              <span className="text-sm font-medium text-gray-800">{user?.phone || '—'}</span>
+            </div>
+          </div>
         </Card>
 
         {/* Actions */}
