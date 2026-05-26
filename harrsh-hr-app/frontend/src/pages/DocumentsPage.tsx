@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../api/axios';
 import useToast from '../hooks/useToast';
 import useAuth from '../hooks/useAuth';
+import EmptyState from '../components/ui/EmptyState';
+import NoDocuments from '../components/ui/illustrations/NoDocuments';
 
 const DOC_TYPES = ['AADHAR', 'PAN', 'PASSPORT', 'DRIVING_LICENSE', 'DEGREE', 'EXPERIENCE_LETTER', 'OFFER_LETTER', 'OTHER'];
 
@@ -80,11 +82,11 @@ const DocumentsPage = () => {
       {isLoading ? (
         <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />)}</div>
       ) : docs.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <div className="text-4xl mb-3">📄</div>
-          <p className="font-medium">No documents found</p>
-          <p className="text-sm mt-1">Upload your first document to get started</p>
-        </div>
+        <EmptyState
+          icon={<NoDocuments className="w-28 h-28" />}
+          title="No documents found"
+          subtitle="Upload your first document to get started"
+        />
       ) : (
         <div className="space-y-3">
           {docs.map(doc => (
