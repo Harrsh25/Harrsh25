@@ -5,14 +5,14 @@ import { z } from 'zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { differenceInBusinessDays, parseISO } from 'date-fns';
-import { applyLeave, getLeaveTypes } from '../api/leave.js';
-import Header from '../components/layout/Header.jsx';
-import Input from '../components/ui/Input.jsx';
-import Select from '../components/ui/Select.jsx';
-import Textarea from '../components/ui/Textarea.jsx';
-import Button from '../components/ui/Button.jsx';
-import Card from '../components/ui/Card.jsx';
-import useToast from '../hooks/useToast.js';
+import { applyLeave, getLeaveTypes } from '../api/leave';
+import Header from '../components/layout/Header';
+import Input from '../components/ui/Input';
+import Select from '../components/ui/Select';
+import Textarea from '../components/ui/Textarea';
+import Button from '../components/ui/Button';
+import Card from '../components/ui/Card';
+import useToast from '../hooks/useToast';
 
 const schema = z
   .object({
@@ -68,7 +68,7 @@ const ApplyLeavePage = () => {
       queryClient.invalidateQueries({ queryKey: ['leave'] });
       navigate('/leave');
     },
-    onError: (err) => toast.error(err.response?.data?.message || 'Failed to apply for leave'),
+    onError: (err: any) => toast.error((err as any).response?.data?.message || 'Failed to apply for leave'),
   });
 
   const leaveTypes = typesData?.data || [];

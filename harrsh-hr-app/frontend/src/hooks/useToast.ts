@@ -1,4 +1,4 @@
-import useAppStore from '../store/appStore.js';
+import useAppStore from '../store/appStore';
 
 const useToast = () => {
   const { addToast, removeToast } = useAppStore();

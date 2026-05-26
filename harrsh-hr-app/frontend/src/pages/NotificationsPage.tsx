@@ -1,14 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bell, CheckCheck } from 'lucide-react';
-import { getMyNotifications, markAsRead, markAllRead } from '../api/notifications.js';
-import Header from '../components/layout/Header.jsx';
-import Card from '../components/ui/Card.jsx';
-import Button from '../components/ui/Button.jsx';
-import EmptyState from '../components/ui/EmptyState.jsx';
-import { SkeletonList } from '../components/ui/Skeleton.jsx';
-import { formatRelativeTime } from '../utils/formatters.js';
-import useToast from '../hooks/useToast.js';
-import useAppStore from '../store/appStore.js';
+import { getMyNotifications, markAsRead, markAllRead } from '../api/notifications';
+import Header from '../components/layout/Header';
+import Card from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import EmptyState from '../components/ui/EmptyState';
+import { SkeletonList } from '../components/ui/Skeleton';
+import { formatRelativeTime } from '../utils/formatters';
+import useToast from '../hooks/useToast';
+import useAppStore from '../store/appStore';
 import clsx from 'clsx';
 import { isToday, parseISO } from 'date-fns';
 

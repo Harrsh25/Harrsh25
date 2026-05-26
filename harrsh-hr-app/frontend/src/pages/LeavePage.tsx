@@ -2,17 +2,17 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Calendar, ChevronRight } from 'lucide-react';
-import { getMyLeaves, getLeaveBalance, getPendingApprovals, approveLeave, rejectLeave } from '../api/leave.js';
-import useAuth from '../hooks/useAuth.js';
-import useToast from '../hooks/useToast.js';
-import Header from '../components/layout/Header.jsx';
-import Card from '../components/ui/Card.jsx';
-import Badge from '../components/ui/Badge.jsx';
-import Button from '../components/ui/Button.jsx';
-import Avatar from '../components/ui/Avatar.jsx';
-import EmptyState from '../components/ui/EmptyState.jsx';
-import { SkeletonList } from '../components/ui/Skeleton.jsx';
-import { formatDate } from '../utils/formatters.js';
+import { getMyLeaves, getLeaveBalance, getPendingApprovals, approveLeave, rejectLeave } from '../api/leave';
+import useAuth from '../hooks/useAuth';
+import useToast from '../hooks/useToast';
+import Header from '../components/layout/Header';
+import Card from '../components/ui/Card';
+import Badge from '../components/ui/Badge';
+import Button from '../components/ui/Button';
+import Avatar from '../components/ui/Avatar';
+import EmptyState from '../components/ui/EmptyState';
+import { SkeletonList } from '../components/ui/Skeleton';
+import { formatDate } from '../utils/formatters';
 
 const LeavePage = () => {
   const [activeTab, setActiveTab] = useState('my');
@@ -30,16 +30,16 @@ const LeavePage = () => {
     enabled: isManager,
   });
 
-  const approveMutation = useMutation({
+  const approveMutation = useMutation<any, Error, { id: any; comment?: string }>({
     mutationFn: ({ id, comment }) => approveLeave(id, { comment }),
     onSuccess: () => { toast.success('Leave approved'); queryClient.invalidateQueries({ queryKey: ['leave'] }); },
-    onError: (err) => toast.error(err.response?.data?.message || 'Failed to approve'),
+    onError: (err: any) => toast.error((err as any).response?.data?.message || 'Failed to approve'),
   });
 
-  const rejectMutation = useMutation({
+  const rejectMutation = useMutation<any, Error, { id: any; comment?: string }>({
     mutationFn: ({ id, comment }) => rejectLeave(id, { comment }),
     onSuccess: () => { toast.success('Leave rejected'); queryClient.invalidateQueries({ queryKey: ['leave'] }); },
-    onError: (err) => toast.error(err.response?.data?.message || 'Failed to reject'),
+    onError: (err: any) => toast.error((err as any).response?.data?.message || 'Failed to reject'),
   });
 
   const balances = balanceData?.data || [];

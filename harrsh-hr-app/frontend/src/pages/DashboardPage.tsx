@@ -1,18 +1,18 @@
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { Clock, Calendar, CheckSquare, Bell, Users, Briefcase, TrendingUp, DollarSign } from 'lucide-react';
-import { getDashboardStats } from '../api/dashboard.js';
-import useAuth from '../hooks/useAuth.js';
-import Header from '../components/layout/Header.jsx';
-import Card from '../components/ui/Card.jsx';
-import Badge from '../components/ui/Badge.jsx';
-import Avatar from '../components/ui/Avatar.jsx';
-import { SkeletonCard } from '../components/ui/Skeleton.jsx';
-import { formatCurrency, formatTime } from '../utils/formatters.js';
+import { getDashboardStats } from '../api/dashboard';
+import useAuth from '../hooks/useAuth';
+import Header from '../components/layout/Header';
+import Card from '../components/ui/Card';
+import Badge from '../components/ui/Badge';
+import Avatar from '../components/ui/Avatar';
+import { SkeletonCard } from '../components/ui/Skeleton';
+import { formatCurrency, formatTime } from '../utils/formatters';
 import { useNavigate } from 'react-router-dom';
-import Button from '../components/ui/Button.jsx';
+import Button from '../components/ui/Button';
 
-const StatCard = ({ icon: Icon, label, value, color = 'indigo', onClick }) => (
+const StatCard = ({ icon: Icon, label, value, color = 'indigo', onClick }: { icon: any; label: any; value: any; color?: string; onClick?: () => void }) => (
   <Card className="flex flex-col gap-2 cursor-pointer hover:shadow-md transition-shadow" onClick={onClick}>
     <div className={`w-9 h-9 rounded-xl flex items-center justify-center bg-${color}-100`}>
       <Icon size={18} className={`text-${color}-600`} />

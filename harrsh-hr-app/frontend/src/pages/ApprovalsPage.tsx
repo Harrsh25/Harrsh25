@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CheckSquare, Check, X } from 'lucide-react';
-import { getPendingApprovals, approveRequest, rejectRequest } from '../api/approvals.js';
-import Header from '../components/layout/Header.jsx';
-import Card from '../components/ui/Card.jsx';
-import Badge from '../components/ui/Badge.jsx';
-import Button from '../components/ui/Button.jsx';
-import Avatar from '../components/ui/Avatar.jsx';
-import EmptyState from '../components/ui/EmptyState.jsx';
-import { SkeletonList } from '../components/ui/Skeleton.jsx';
-import { formatDate, formatRelativeTime } from '../utils/formatters.js';
-import useToast from '../hooks/useToast.js';
+import { getPendingApprovals, approveRequest, rejectRequest } from '../api/approvals';
+import Header from '../components/layout/Header';
+import Card from '../components/ui/Card';
+import Badge from '../components/ui/Badge';
+import Button from '../components/ui/Button';
+import Avatar from '../components/ui/Avatar';
+import EmptyState from '../components/ui/EmptyState';
+import { SkeletonList } from '../components/ui/Skeleton';
+import { formatDate, formatRelativeTime } from '../utils/formatters';
+import useToast from '../hooks/useToast';
 import clsx from 'clsx';
 
 const getPendingApprovalsDirect = (params) => getPendingApprovals(params);
@@ -29,16 +29,16 @@ const ApprovalsPage = () => {
     queryFn: () => getPendingApprovalsDirect({ ...(typeFilter !== 'ALL' && { type: typeFilter }) }),
   });
 
-  const approveMutation = useMutation({
+  const approveMutation = useMutation<any, Error, { id: any }>({
     mutationFn: ({ id }) => approveRequestDirect(id, {}),
     onSuccess: () => { toast.success('Request approved'); queryClient.invalidateQueries({ queryKey: ['approvals'] }); },
-    onError: (err) => toast.error(err.response?.data?.message || 'Failed to approve'),
+    onError: (err: any) => toast.error((err as any).response?.data?.message || 'Failed to approve'),
   });
 
-  const rejectMutation = useMutation({
+  const rejectMutation = useMutation<any, Error, { id: any }>({
     mutationFn: ({ id }) => rejectRequestDirect(id, {}),
     onSuccess: () => { toast.success('Request rejected'); queryClient.invalidateQueries({ queryKey: ['approvals'] }); },
-    onError: (err) => toast.error(err.response?.data?.message || 'Failed to reject'),
+    onError: (err: any) => toast.error((err as any).response?.data?.message || 'Failed to reject'),
   });
 
   const approvals = data?.data?.approvals || [];

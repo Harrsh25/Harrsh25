@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { getProjectById } from '../api/projects.js';
-import Header from '../components/layout/Header.jsx';
-import Card from '../components/ui/Card.jsx';
-import Badge from '../components/ui/Badge.jsx';
-import Avatar from '../components/ui/Avatar.jsx';
-import EmptyState from '../components/ui/EmptyState.jsx';
-import { SkeletonCard } from '../components/ui/Skeleton.jsx';
-import { formatDate, formatCurrency } from '../utils/formatters.js';
+import { getProjectById } from '../api/projects';
+import Header from '../components/layout/Header';
+import Card from '../components/ui/Card';
+import Badge from '../components/ui/Badge';
+import Avatar from '../components/ui/Avatar';
+import EmptyState from '../components/ui/EmptyState';
+import { SkeletonCard } from '../components/ui/Skeleton';
+import { formatDate, formatCurrency } from '../utils/formatters';
 import { CheckSquare } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -153,7 +153,7 @@ const ProjectDetailPage = () => {
               const member = tasks.find(t => t.assignedTo?.id === uid)?.assignedTo;
               const memberTasks = tasks.filter(t => t.assignedTo?.id === uid);
               return (
-                <Card key={uid} className="flex items-center gap-3">
+                <Card key={uid as string} className="flex items-center gap-3">
                   <Avatar firstName={member.firstName} lastName={member.lastName} />
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-gray-800">{member.firstName} {member.lastName}</p>

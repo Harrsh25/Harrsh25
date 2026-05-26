@@ -1,10 +1,18 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { Home, Clock, FileText, FolderOpen, User } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import clsx from 'clsx';
-import useAppStore from '../../store/appStore.js';
-import useAuth from '../../hooks/useAuth.js';
+import useAppStore from '../../store/appStore';
+import useAuth from '../../hooks/useAuth';
 
-const tabs = [
+interface Tab {
+  to: string;
+  icon: LucideIcon;
+  label: string;
+  roles?: string[];
+}
+
+const tabs: Tab[] = [
   { to: '/dashboard', icon: Home, label: 'Home' },
   { to: '/attendance', icon: Clock, label: 'Attendance' },
   { to: '/documents', icon: FileText, label: 'Docs' },
@@ -16,11 +24,12 @@ const BottomNav = () => {
   const { user } = useAuth();
   const notificationCount = useAppStore((s) => s.notificationCount);
   const location = useLocation();
+  void notificationCount;
 
-  const visibleTabs = tabs.filter(tab => !tab.roles || tab.roles.includes(user?.role));
+  const visibleTabs = tabs.filter(tab => !tab.roles || tab.roles.includes(user?.role || ''));
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 pb-safe">
+    <nav aria-label="Main navigation" className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 pb-safe">
       <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
         {visibleTabs.map(({ to, icon: Icon, label }) => {
           const isActive = location.pathname === to || location.pathname.startsWith(to + '/');
@@ -28,6 +37,7 @@ const BottomNav = () => {
             <NavLink
               key={to}
               to={to}
+              aria-current={isActive ? 'page' : undefined}
               className={clsx(
                 'flex flex-col items-center justify-center gap-0.5 px-3 py-1 rounded-xl transition-colors min-w-[60px]',
                 isActive ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'

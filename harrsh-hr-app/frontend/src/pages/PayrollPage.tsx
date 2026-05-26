@@ -1,15 +1,15 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { DollarSign, Download, TrendingUp, TrendingDown, Mail } from 'lucide-react';
-import { getMyPayslips, downloadPayslip, emailPayslip } from '../api/payroll.js';
-import useToast from '../hooks/useToast.js';
-import Header from '../components/layout/Header.jsx';
-import Card from '../components/ui/Card.jsx';
-import Badge from '../components/ui/Badge.jsx';
-import Select from '../components/ui/Select.jsx';
-import EmptyState from '../components/ui/EmptyState.jsx';
-import { SkeletonCard } from '../components/ui/Skeleton.jsx';
-import { formatCurrency, formatMonthYear, formatDate } from '../utils/formatters.js';
+import { getMyPayslips, downloadPayslip, emailPayslip } from '../api/payroll';
+import useToast from '../hooks/useToast';
+import Header from '../components/layout/Header';
+import Card from '../components/ui/Card';
+import Badge from '../components/ui/Badge';
+import Select from '../components/ui/Select';
+import EmptyState from '../components/ui/EmptyState';
+import { SkeletonCard } from '../components/ui/Skeleton';
+import { formatCurrency, formatMonthYear, formatDate } from '../utils/formatters';
 
 const monthOptions = [
   { value: '1', label: 'January' },

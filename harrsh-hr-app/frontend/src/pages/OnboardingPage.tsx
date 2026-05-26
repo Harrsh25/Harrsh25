@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { z } from 'zod';
-import api from '../api/axios.js';
-import useToast from '../hooks/useToast.js';
+import api from '../api/axios';
+import useToast from '../hooks/useToast';
 
 export const onboardingSchema = z.object({
   name: z.string().min(1, 'Company name is required').max(100, 'Company name too long'),
@@ -103,7 +103,7 @@ const OnboardingPage = () => {
       showToast('Organization set up successfully!', 'success');
       navigate('/dashboard');
     },
-    onError: (err) => showToast(err.response?.data?.message || 'Setup failed', 'error'),
+    onError: (err: any) => showToast((err as any).response?.data?.message || 'Setup failed', 'error'),
   });
 
   const steps = [

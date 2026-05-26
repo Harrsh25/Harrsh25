@@ -4,12 +4,12 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Eye, EyeOff, Building2 } from 'lucide-react';
-import { login as loginApi } from '../api/auth.js';
-import useAuth from '../hooks/useAuth.js';
-import useToast from '../hooks/useToast.js';
-import Input from '../components/ui/Input.jsx';
-import Button from '../components/ui/Button.jsx';
-import ToastContainer from '../components/ui/Toast.jsx';
+import { login as loginApi } from '../api/auth';
+import useAuth from '../hooks/useAuth';
+import useToast from '../hooks/useToast';
+import Input from '../components/ui/Input';
+import Button from '../components/ui/Button';
+import ToastContainer from '../components/ui/Toast';
 
 const schema = z.object({
   email: z.string().min(1, 'Email is required').email('Enter a valid email'),
@@ -45,8 +45,8 @@ const LoginPage = () => {
         localStorage.setItem('harrsh-hr-auth', JSON.stringify(stored));
         navigate('/dashboard', { replace: true });
       }
-    } catch (err) {
-      const message = err.response?.data?.message || 'Login failed. Please try again.';
+    } catch (err: any) {
+      const message = (err as any).response?.data?.message || 'Login failed. Please try again.';
       toast.error(message);
       setError('root', { message });
     }
@@ -101,7 +101,7 @@ const LoginPage = () => {
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
-              {errors.password && <p className="text-xs text-red-600">{errors.password.message}</p>}
+              {errors.password && <p className="text-xs text-red-600">{errors.password.message as string}</p>}
             </div>
 
             {errors.root && (

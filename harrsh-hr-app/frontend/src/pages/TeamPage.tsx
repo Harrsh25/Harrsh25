@@ -1,14 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { Users } from 'lucide-react';
-import api from '../api/axios.js';
-import useAuth from '../hooks/useAuth.js';
-import Header from '../components/layout/Header.jsx';
-import Card from '../components/ui/Card.jsx';
-import Avatar from '../components/ui/Avatar.jsx';
-import Badge from '../components/ui/Badge.jsx';
-import EmptyState from '../components/ui/EmptyState.jsx';
-import { SkeletonList } from '../components/ui/Skeleton.jsx';
-import { formatDate } from '../utils/formatters.js';
+import api from '../api/axios';
+import useAuth from '../hooks/useAuth';
+import Header from '../components/layout/Header';
+import Card from '../components/ui/Card';
+import Avatar from '../components/ui/Avatar';
+import Badge from '../components/ui/Badge';
+import EmptyState from '../components/ui/EmptyState';
+import { SkeletonList } from '../components/ui/Skeleton';
+import { formatDate } from '../utils/formatters';
 
 const TeamPage = () => {
   const { user } = useAuth();

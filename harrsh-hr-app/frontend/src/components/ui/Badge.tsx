@@ -1,6 +1,7 @@
 import clsx from 'clsx';
+import type { ReactNode } from 'react';
 
-const colorMap = {
+const colorMap: Record<string, string> = {
   green: 'bg-green-100 text-green-800',
   yellow: 'bg-yellow-100 text-yellow-800',
   red: 'bg-red-100 text-red-800',
@@ -11,7 +12,7 @@ const colorMap = {
   indigo: 'bg-indigo-100 text-indigo-800',
 };
 
-const statusColorMap = {
+const statusColorMap: Record<string, string> = {
   APPROVED: 'green', PENDING: 'yellow', REJECTED: 'red', CANCELLED: 'gray',
   PRESENT: 'green', ABSENT: 'red', LATE: 'yellow', HALF_DAY: 'orange', ON_LEAVE: 'blue', HOLIDAY: 'purple',
   ACTIVE: 'blue', ON_HOLD: 'yellow', COMPLETED: 'green',
@@ -20,7 +21,15 @@ const statusColorMap = {
   LOW: 'gray', MEDIUM: 'blue', HIGH: 'orange', CRITICAL: 'red',
 };
 
-const Badge = ({ children, color, status, size = 'sm', className = '' }) => {
+interface BadgeProps {
+  children?: ReactNode;
+  color?: string;
+  status?: string;
+  size?: string;
+  className?: string;
+}
+
+const Badge = ({ children, color, status, size = 'sm', className = '' }: BadgeProps) => {
   const resolvedColor = color || (status && statusColorMap[status]) || 'gray';
   const colorClass = colorMap[resolvedColor] || colorMap.gray;
 

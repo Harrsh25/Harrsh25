@@ -1,7 +1,14 @@
 import clsx from 'clsx';
 import { forwardRef } from 'react';
 
-const Textarea = forwardRef(({ label, error, required, className = '', containerClassName = '', rows = 4, ...props }, ref) => {
+interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+  label?: string;
+  error?: string | any;
+  required?: boolean;
+  containerClassName?: string;
+}
+
+const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(({ label, error, required, className = '', containerClassName = '', rows = 4, ...props }, ref) => {
   return (
     <div className={clsx('flex flex-col gap-1', containerClassName)}>
       {label && (
@@ -21,7 +28,7 @@ const Textarea = forwardRef(({ label, error, required, className = '', container
         )}
         {...props}
       />
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-xs text-red-600">{typeof error === 'string' ? error : error?.message}</p>}
     </div>
   );
 });

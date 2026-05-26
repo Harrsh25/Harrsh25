@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import { getInitials } from '../../utils/formatters.js';
+import { getInitials } from '../../utils/formatters';
 
 const colorPalette = [
   'bg-red-500', 'bg-orange-500', 'bg-amber-500', 'bg-yellow-500',
@@ -8,7 +8,7 @@ const colorPalette = [
   'bg-violet-500', 'bg-purple-500', 'bg-fuchsia-500', 'bg-pink-500',
 ];
 
-const getColor = (name) => {
+const getColor = (name: string) => {
   let hash = 0;
   for (let i = 0; i < (name || '').length; i++) {
     hash = (hash << 5) - hash + name.charCodeAt(i);
@@ -17,7 +17,7 @@ const getColor = (name) => {
   return colorPalette[Math.abs(hash) % colorPalette.length];
 };
 
-const sizes = {
+const sizes: Record<string, string> = {
   xs: 'w-6 h-6 text-xs',
   sm: 'w-8 h-8 text-xs',
   md: 'w-10 h-10 text-sm',
@@ -26,7 +26,15 @@ const sizes = {
   '2xl': 'w-24 h-24 text-3xl',
 };
 
-const Avatar = ({ firstName = '', lastName = '', src, size = 'md', className = '' }) => {
+interface AvatarProps {
+  firstName?: string;
+  lastName?: string;
+  src?: string;
+  size?: string;
+  className?: string;
+}
+
+const Avatar = ({ firstName = '', lastName = '', src, size = 'md', className = '' }: AvatarProps) => {
   const initials = getInitials(firstName, lastName);
   const bgColor = getColor(firstName + lastName);
 

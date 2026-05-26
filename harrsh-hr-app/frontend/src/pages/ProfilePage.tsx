@@ -4,19 +4,19 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation } from '@tanstack/react-query';
 import { LogOut, Lock, Mail, Phone, Building2, Briefcase, Calendar } from 'lucide-react';
-import { changePassword as changePasswordApi } from '../api/auth.js';
-import { logout as logoutApi } from '../api/auth.js';
-import useAuth from '../hooks/useAuth.js';
-import useToast from '../hooks/useToast.js';
-import { changePasswordSchema } from '../utils/validators.js';
-import { formatDate } from '../utils/formatters.js';
-import Header from '../components/layout/Header.jsx';
-import Card from '../components/ui/Card.jsx';
-import Avatar from '../components/ui/Avatar.jsx';
-import Badge from '../components/ui/Badge.jsx';
-import Input from '../components/ui/Input.jsx';
-import Button from '../components/ui/Button.jsx';
-import Modal from '../components/ui/Modal.jsx';
+import { changePassword as changePasswordApi } from '../api/auth';
+import { logout as logoutApi } from '../api/auth';
+import useAuth from '../hooks/useAuth';
+import useToast from '../hooks/useToast';
+import { changePasswordSchema } from '../utils/validators';
+import { formatDate } from '../utils/formatters';
+import Header from '../components/layout/Header';
+import Card from '../components/ui/Card';
+import Avatar from '../components/ui/Avatar';
+import Badge from '../components/ui/Badge';
+import Input from '../components/ui/Input';
+import Button from '../components/ui/Button';
+import Modal from '../components/ui/Modal';
 import { useNavigate } from 'react-router-dom';
 
 const profileSchema = z.object({
@@ -77,14 +77,14 @@ const ProfilePage = () => {
     resolver: zodResolver(changePasswordSchema),
   });
 
-  const changePwdMutation = useMutation({
+  const changePwdMutation = useMutation<any, Error, { oldPassword: string; newPassword: string }>({
     mutationFn: ({ oldPassword, newPassword }) => changePasswordApi({ oldPassword, newPassword }),
     onSuccess: () => {
       toast.success('Password changed successfully');
       setShowPasswordModal(false);
       reset();
     },
-    onError: (err) => toast.error(err.response?.data?.message || 'Failed to change password'),
+    onError: (err: any) => toast.error((err as any).response?.data?.message || 'Failed to change password'),
   });
 
   const handleLogout = async () => {
@@ -175,7 +175,7 @@ const ProfilePage = () => {
         title="Change Password"
       >
         <form
-          onSubmit={handleSubmit((data) => changePwdMutation.mutate(data))}
+          onSubmit={handleSubmit((data) => changePwdMutation.mutate(data as any))}
           className="space-y-4"
         >
           <Input

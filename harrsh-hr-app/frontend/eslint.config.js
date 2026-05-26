@@ -8,7 +8,7 @@ import jsxA11y from 'eslint-plugin-jsx-a11y';
 export default [
   { ignores: ['dist', 'node_modules'] },
   {
-    files: ['**/*.{js,jsx}'],
+    files: ['**/*.{js,jsx,ts,tsx}'],
     languageOptions: {
       ecmaVersion: 2022,
       globals: globals.browser,

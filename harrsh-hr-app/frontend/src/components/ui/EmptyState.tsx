@@ -1,6 +1,15 @@
-import Button from './Button.jsx';
+import Button from './Button';
+import type { LucideIcon } from 'lucide-react';
 
-const EmptyState = ({ icon: Icon, title, subtitle, action, actionLabel }) => (
+interface EmptyStateProps {
+  icon?: LucideIcon;
+  title: string;
+  subtitle?: string;
+  action?: () => void;
+  actionLabel?: string;
+}
+
+const EmptyState = ({ icon: Icon, title, subtitle, action, actionLabel }: EmptyStateProps) => (
   <div className="flex flex-col items-center justify-center py-12 text-center px-4">
     {Icon && (
       <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">

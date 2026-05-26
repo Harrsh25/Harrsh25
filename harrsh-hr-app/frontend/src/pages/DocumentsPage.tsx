@@ -1,8 +1,8 @@
 import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '../api/axios.js';
-import useToast from '../hooks/useToast.js';
-import useAuth from '../hooks/useAuth.js';
+import api from '../api/axios';
+import useToast from '../hooks/useToast';
+import useAuth from '../hooks/useAuth';
 
 const DOC_TYPES = ['AADHAR', 'PAN', 'PASSPORT', 'DRIVING_LICENSE', 'DEGREE', 'EXPERIENCE_LETTER', 'OFFER_LETTER', 'OTHER'];
 
@@ -41,25 +41,25 @@ const DocumentsPage = () => {
       setSelectedFile(null);
       setUploadForm({ name: '', type: 'OTHER', expiryDate: '' });
     },
-    onError: (e) => showToast(e.response?.data?.message || 'Upload failed', 'error'),
+    onError: (e: any) => showToast((e as any).response?.data?.message || 'Upload failed', 'error'),
   });
 
-  const verifyMutation = useMutation({
+  const verifyMutation = useMutation<any, Error, { id: any; status: string; verifierComment?: string }>({
     mutationFn: ({ id, status, verifierComment }) => api.put(`/documents/${id}/verify`, { status, verifierComment }),
     onSuccess: () => { showToast('Document updated', 'success'); qc.invalidateQueries({ queryKey: ['documents'] }); },
   });
 
-  const deleteMutation = useMutation({
+  const deleteMutation = useMutation<any, Error, any>({
     mutationFn: (id) => api.delete(`/documents/${id}`),
     onSuccess: () => { showToast('Document deleted', 'success'); qc.invalidateQueries({ queryKey: ['documents'] }); },
   });
 
-  const docs = (data || []).filter(d => !filter || d.type === filter);
+  const docs = (data || []).filter((d: any) => !filter || d.type === filter);
   const isHR = ['HR', 'ADMIN'].includes(user?.role);
 
-  const isExpiringSoon = (date) => {
+  const isExpiringSoon = (date: string | null): boolean => {
     if (!date) return false;
-    const diff = new Date(date) - new Date();
+    const diff = new Date(date).getTime() - new Date().getTime();
     return diff > 0 && diff < 30 * 24 * 60 * 60 * 1000;
   };
 

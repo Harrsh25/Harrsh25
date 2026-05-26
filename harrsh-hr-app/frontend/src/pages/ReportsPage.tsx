@@ -5,14 +5,14 @@ import {
   getAttendanceReport, downloadAttendancePDF, downloadAttendanceExcel,
   getLeaveReport, downloadLeaveExcel,
   getPayrollReport, downloadPayrollExcel,
-} from '../api/reports.js';
-import useAuth from '../hooks/useAuth.js';
-import useToast from '../hooks/useToast.js';
-import Header from '../components/layout/Header.jsx';
-import Card from '../components/ui/Card.jsx';
-import Button from '../components/ui/Button.jsx';
-import Select from '../components/ui/Select.jsx';
-import { SkeletonCard } from '../components/ui/Skeleton.jsx';
+} from '../api/reports';
+import useAuth from '../hooks/useAuth';
+import useToast from '../hooks/useToast';
+import Header from '../components/layout/Header';
+import Card from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import Select from '../components/ui/Select';
+import { SkeletonCard } from '../components/ui/Skeleton';
 import clsx from 'clsx';
 
 const MONTHS = [

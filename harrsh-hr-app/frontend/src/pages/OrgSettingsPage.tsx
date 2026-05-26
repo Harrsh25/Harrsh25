@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '../api/axios.js';
-import useToast from '../hooks/useToast.js';
+import api from '../api/axios';
+import useToast from '../hooks/useToast';
 
 const inputCls = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500';
 const labelCls = 'block text-xs font-medium text-gray-600 mb-1';
@@ -40,13 +40,13 @@ const OrgSettingsPage = () => {
   const updateOrgMutation = useMutation({
     mutationFn: () => api.put('/org', orgForm),
     onSuccess: () => { showToast('Organization updated', 'success'); qc.invalidateQueries({ queryKey: ['org'] }); setOrgForm({}); },
-    onError: (e) => showToast(e.response?.data?.message || 'Update failed', 'error'),
+    onError: (e: any) => showToast((e as any).response?.data?.message || 'Update failed', 'error'),
   });
 
   const updateSettingsMutation = useMutation({
     mutationFn: () => api.put('/org/settings', settingsForm),
     onSuccess: () => { showToast('Settings saved', 'success'); qc.invalidateQueries({ queryKey: ['org-settings'] }); setSettingsForm({}); },
-    onError: (e) => showToast(e.response?.data?.message || 'Save failed', 'error'),
+    onError: (e: any) => showToast((e as any).response?.data?.message || 'Save failed', 'error'),
   });
 
   const addHolidayMutation = useMutation({

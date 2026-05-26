@@ -1,7 +1,21 @@
 import clsx from 'clsx';
 import { forwardRef } from 'react';
 
-const Select = forwardRef(({ label, error, required, options = [], className = '', containerClassName = '', placeholder, ...props }, ref) => {
+interface SelectOption {
+  value: string | number;
+  label: string;
+}
+
+interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+  label?: string;
+  error?: string | any;
+  required?: boolean;
+  options?: SelectOption[];
+  containerClassName?: string;
+  placeholder?: string;
+}
+
+const Select = forwardRef<HTMLSelectElement, SelectProps>(({ label, error, required, options = [], className = '', containerClassName = '', placeholder, ...props }, ref) => {
   return (
     <div className={clsx('flex flex-col gap-1', containerClassName)}>
       {label && (
@@ -26,7 +40,7 @@ const Select = forwardRef(({ label, error, required, options = [], className = '
           <option key={opt.value} value={opt.value}>{opt.label}</option>
         ))}
       </select>
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-xs text-red-600">{typeof error === 'string' ? error : error?.message}</p>}
     </div>
   );
 });

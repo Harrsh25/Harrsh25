@@ -1,2 +1,2 @@
-import api from './axios.js';
-export const getAuditLogs = (params) => api.get('/audit', { params });
+import api from './axios';
+export const getAuditLogs = (params?: any) => api.get('/audit', { params });

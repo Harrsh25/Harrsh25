@@ -1,6 +1,13 @@
 import clsx from 'clsx';
 
-const Skeleton = ({ className = '', height, width, rounded = 'rounded-lg' }) => (
+interface SkeletonProps {
+  className?: string;
+  height?: string | number;
+  width?: string | number;
+  rounded?: string;
+}
+
+const Skeleton = ({ className = '', height, width, rounded = 'rounded-lg' }: SkeletonProps) => (
   <div
     className={clsx('animate-pulse bg-gray-200', rounded, className)}
     style={{ height, width }}
@@ -15,7 +22,11 @@ export const SkeletonCard = () => (
   </div>
 );
 
-export const SkeletonList = ({ count = 3 }) => (
+interface SkeletonListProps {
+  count?: number;
+}
+
+export const SkeletonList = ({ count = 3 }: SkeletonListProps) => (
   <div className="space-y-3">
     {Array.from({ length: count }).map((_, i) => (
       <div key={i} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex gap-3">

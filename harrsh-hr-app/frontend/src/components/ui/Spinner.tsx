@@ -1,7 +1,12 @@
 import clsx from 'clsx';
 import { Loader2 } from 'lucide-react';
 
-const Spinner = ({ size = 24, className = '' }) => (
+interface SpinnerProps {
+  size?: number;
+  className?: string;
+}
+
+const Spinner = ({ size = 24, className = '' }: SpinnerProps) => (
   <Loader2 size={size} className={clsx('animate-spin text-indigo-600', className)} />
 );
 

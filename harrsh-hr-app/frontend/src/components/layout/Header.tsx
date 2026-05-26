@@ -1,9 +1,17 @@
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Bell } from 'lucide-react';
 import clsx from 'clsx';
-import useAppStore from '../../store/appStore.js';
+import useAppStore from '../../store/appStore';
+import type { ReactNode } from 'react';
 
-const Header = ({ title, showBack = false, rightAction, className = '' }) => {
+interface HeaderProps {
+  title: any;
+  showBack?: boolean;
+  rightAction?: ReactNode;
+  className?: string;
+}
+
+const Header = ({ title, showBack = false, rightAction, className = '' }: HeaderProps) => {
   const navigate = useNavigate();
   const notificationCount = useAppStore((s) => s.notificationCount);
 
