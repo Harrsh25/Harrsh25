@@ -114,3 +114,7 @@ button:active:not(:disabled) {
 
 /* Line height fix — never allow 0 */
 * { line-height: max(1.2, inherit); }
+
+/* Hide scrollbar but keep scroll functionality */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
