@@ -612,6 +612,8 @@ e.jsxs("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-be
   var _cit=_stateCit[0],_setCit=_stateCit[1];
   var _stateCs=b.useState(0);
   var _cs=_stateCs[0],_setCs=_stateCs[1];
+  var _stateWh=b.useState("");
+  var _wh=_stateWh[0],_setWh=_stateWh[1];
 
   // Listen for punch events fired by home page
   b.useEffect(function(){
@@ -889,10 +891,15 @@ e.jsxs("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-be
                 // Feature 4: Clock In/Out on today's card
                 T && e.jsxs("div",{style:{marginTop:8,paddingTop:8,borderTop:"1px solid #f3f4f6"},children:[
                   !_ci ?
-                    e.jsx("button",{onClick:function(){_setCi(true);_setCit(Date.now());_setCs(0);},style:{padding:"5px 14px",borderRadius:8,background:"#EFF6FF",border:"1px solid #93C5FD",color:"#1D4ED8",fontSize:11,fontWeight:700,cursor:"pointer"},children:"Clock In"}) :
+                    (_wh ? e.jsxs("div",{style:{display:"flex",alignItems:"center",gap:6},children:[
+                      e.jsx("span",{style:{fontSize:11,color:"#6B7280"},children:"Hours worked:"}),
+                      e.jsx("span",{style:{fontSize:13,fontWeight:700,color:"#1D4ED8"},children:_wh}),
+                      e.jsx("button",{onClick:function(){_setWh("");_setCi(true);_setCit(Date.now());_setCs(0);},style:{marginLeft:4,padding:"3px 10px",borderRadius:8,background:"#EFF6FF",border:"1px solid #93C5FD",color:"#1D4ED8",fontSize:10,fontWeight:700,cursor:"pointer"},children:"Re-clock"})
+                    ]}) :
+                    e.jsx("button",{onClick:function(){_setCi(true);_setCit(Date.now());_setCs(0);},style:{padding:"5px 14px",borderRadius:8,background:"#EFF6FF",border:"1px solid #93C5FD",color:"#1D4ED8",fontSize:11,fontWeight:700,cursor:"pointer"},children:"Clock In"})) :
                     e.jsxs("div",{style:{display:"flex",alignItems:"center",gap:8},children:[
                       e.jsx("span",{style:{fontFamily:"monospace",fontSize:14,fontWeight:700,color:"#15803D"},children:_elapsed}),
-                      e.jsx("button",{onClick:function(){_setCi(false);_setCit(0);_setShToast("Clocked out successfully");setTimeout(function(){_setShToast("");},3000);},style:{padding:"5px 14px",borderRadius:8,background:"#FEF2F2",border:"1px solid #FCA5A5",color:"#DC2626",fontSize:11,fontWeight:700,cursor:"pointer"},children:"Clock Out"})
+                      e.jsx("button",{onClick:function(){var _outSec=Math.floor((Date.now()-_cit)/1000);var _outh=Math.floor(_outSec/3600);var _outm=Math.floor((_outSec%3600)/60);var _wstr=_outh>0?_outh+"h "+(_outm<10?"0":"")+_outm+"m":_outm+"m";_setWh(_wstr);_setCi(false);_setCit(0);_setShToast("Clocked out — worked "+_wstr);setTimeout(function(){_setShToast("");},3000);},style:{padding:"5px 14px",borderRadius:8,background:"#FEF2F2",border:"1px solid #FCA5A5",color:"#DC2626",fontSize:11,fontWeight:700,cursor:"pointer"},children:"Clock Out"})
                     ]})
                 ]})
               ]})
