@@ -41,10 +41,8 @@
 .cp-trigger.cp-placeholder { color: #9ca3af; }
 .cp-trigger-icon { font-size: 16px; flex-shrink: 0; margin-left: 8px; }
 .cp-dropdown {
-  position: absolute;
-  left: 0;
-  top: calc(100% + 4px);
-  z-index: 9999;
+  position: fixed;
+  z-index: 99999;
   background: #fff;
   border: 1px solid #d1d5db;
   border-radius: 12px;
@@ -1203,7 +1201,6 @@ e.jsxs("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-be
     f && e.jsx("div",{className:"fixed inset-0 z-50 flex items-center justify-center",style:{backgroundColor:"rgba(0,0,0,0.4)",zIndex:600,padding:"16px"},onMouseDown:function(g){if(g.target===g.currentTarget)j(false);},children:
       e.jsxs("div",{className:"w-full max-w-md bg-white rounded-2xl flex flex-col",style:{maxHeight:"85vh"},children:[
         e.jsxs("div",{className:"p-5 pb-2 flex-shrink-0",children:[
-          e.jsx("div",{className:"w-10 h-1 bg-neutral-200 rounded-full mx-auto mb-4"}),
           e.jsx("h2",{className:"text-lg font-bold",children:_swMode==="card"?"Request Shift Swap":"New Swap Request"}),
         ]}),
         e.jsxs("div",{className:"overflow-y-auto overscroll-contain px-5 pb-8 no-scrollbar space-y-4",children:[
@@ -1388,13 +1385,17 @@ document.addEventListener('click', function(e) {
 /* ===== Position dropdown above/below ===== */
 function positionDropdown(wrapper, dropdown) {
   var rect = wrapper.getBoundingClientRect();
+  var ddHeight = dropdown.offsetHeight || 320;
+  var ddWidth = dropdown.offsetWidth || 280;
   var spaceBelow = window.innerHeight - rect.bottom;
-  var spaceAbove = rect.top;
-  var ddHeight = 320;
-  if (spaceBelow < ddHeight && spaceAbove > spaceBelow) {
-    dropdown.classList.add('cp-above');
+  var left = rect.left;
+  if (left + ddWidth > window.innerWidth - 8) { left = window.innerWidth - ddWidth - 8; }
+  if (left < 8) { left = 8; }
+  dropdown.style.left = left + 'px';
+  if (spaceBelow < ddHeight && rect.top > spaceBelow) {
+    dropdown.style.top = Math.max(8, rect.top - ddHeight - 4) + 'px';
   } else {
-    dropdown.classList.remove('cp-above');
+    dropdown.style.top = (rect.bottom + 4) + 'px';
   }
 }
 
