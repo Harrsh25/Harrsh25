@@ -803,6 +803,8 @@ e.jsxs("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-be
   var _vw=_stateVw[0],_setVw=_stateVw[1];
   var _stateWk=b.useState(0);
   var _wk=_stateWk[0],_setWk=_stateWk[1];
+  var _stateMo=b.useState(0);
+  var _mo=_stateMo[0],_setMo=_stateMo[1];
 
   // Swap request extra state
   var _stateSwMbr=b.useState("");
@@ -898,6 +900,21 @@ e.jsxs("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-be
       dates.push(dd.toISOString().split("T")[0]);
     }
     return dates;
+  }
+
+  // Helper: generate roster for a given month offset
+  function _getMonthRoster(moOffset) {
+    var base = new Date(new Date().getFullYear(), new Date().getMonth()+moOffset, 1);
+    var len = new Date(base.getFullYear(), base.getMonth()+1, 0).getDate();
+    var arr = [];
+    for(var s=0; s<len; s++) {
+      var n = new Date(base.getFullYear(), base.getMonth(), 1);
+      n.setDate(n.getDate()+s);
+      var r = n.getDay()===0;
+      var o = r ? {shiftName:"Day Off",shiftStart:"",shiftEnd:"",isNight:false} : [{shiftName:"Morning Shift",shiftStart:"08:00",shiftEnd:"17:00",isNight:false},{shiftName:"General Shift",shiftStart:"09:00",shiftEnd:"18:00",isNight:false}][s%2];
+      arr.push(Object.assign({id:"sr-"+moOffset+"-"+s, date:n.toISOString().split("T")[0], isOff:r}, o));
+    }
+    return arr;
   }
 
   // Feature 3: hours summary
@@ -1012,9 +1029,9 @@ e.jsxs("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-be
         // Feature 1: View toggle + week nav
         e.jsxs("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10},children:[
           e.jsxs("div",{style:{display:"flex",alignItems:"center",gap:6},children:[
-            e.jsx("button",{onClick:function(){_setWk(function(w){return w-1;});},style:{padding:"3px 8px",borderRadius:6,border:"1px solid #e5e7eb",background:"#fff",fontSize:13,cursor:"pointer"},children:"‹"}),
-            e.jsx("span",{style:{fontSize:11,fontWeight:600,color:"#374151"},children:_wk===0?"This Week":_wk>0?"+"+_wk+" week":""+_wk+" week"}),
-            e.jsx("button",{onClick:function(){_setWk(function(w){return w+1;});},style:{padding:"3px 8px",borderRadius:6,border:"1px solid #e5e7eb",background:"#fff",fontSize:13,cursor:"pointer"},children:"›"})
+            e.jsx("button",{onClick:function(){if(_vw==="week"){_setWk(function(w){return w-1;});}else{_setMo(function(w){return w-1;});}},style:{padding:"3px 8px",borderRadius:6,border:"1px solid #e5e7eb",background:"#fff",fontSize:13,cursor:"pointer"},children:"‹"}),
+            e.jsx("span",{style:{fontSize:11,fontWeight:600,color:"#374151"},children:_vw==="week"?(_wk===0?"This Week":_wk>0?"+"+_wk+" week":""+_wk+" week"):(_mo===0?"This Month":new Date(new Date().getFullYear(),new Date().getMonth()+_mo,1).toLocaleString("default",{month:"short",year:"numeric"}))}),
+            e.jsx("button",{onClick:function(){if(_vw==="week"){_setWk(function(w){return w+1;});}else{_setMo(function(w){return w+1;});}},style:{padding:"3px 8px",borderRadius:6,border:"1px solid #e5e7eb",background:"#fff",fontSize:13,cursor:"pointer"},children:"›"})
           ]}),
           e.jsxs("div",{style:{display:"flex",gap:4},children:[
             e.jsx("button",{onClick:function(){_setVw("list");},style:{padding:"3px 10px",borderRadius:6,border:"1px solid "+(_vw==="list"?"#1D4ED8":"#e5e7eb"),background:_vw==="list"?"#EFF6FF":"#fff",fontSize:10,fontWeight:_vw==="list"?700:400,color:_vw==="list"?"#1D4ED8":"#374151",cursor:"pointer"},children:"List"}),
@@ -1072,7 +1089,7 @@ e.jsxs("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-be
         ]}),
 
         // List View
-        _vw==="list" && e.jsx("div",{className:"space-y-2",children:gy.map(function(g,w){
+        _vw==="list" && e.jsx("div",{className:"space-y-2",children:_getMonthRoster(_mo).map(function(g,w){
           var T=g.date===_todayStr;
           var A=new Date(g.date)>new Date();
           return e.jsxs("div",{className:N("card p-4",T&&"ring-2 ring-teal-500 border-teal-200"),children:[
