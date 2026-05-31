@@ -1646,6 +1646,7 @@ function buildDatePicker(input) {
       var v = parseInputDate(input);
       if (v) { state.selected = v; state.viewYear = v.getFullYear(); state.viewMonth = v.getMonth(); }
       renderCalendar();
+      if (dropdown.parentNode !== document.body) { document.body.appendChild(dropdown); }
       dropdown.style.display = 'block';
       positionDropdown(wrapper, dropdown);
       updateTrigger();
@@ -1807,6 +1808,7 @@ function buildTimePicker(input) {
       var v = parseTimeInput(input);
       if (v) { state.hour = v.hour; state.minute = v.minute; state.ampm = v.ampm; }
       renderTimePicker();
+      if (dropdown.parentNode !== document.body) { document.body.appendChild(dropdown); }
       dropdown.style.display = 'block';
       positionDropdown(wrapper, dropdown);
       updateTrigger();
