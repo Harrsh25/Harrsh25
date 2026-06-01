@@ -1392,7 +1392,7 @@ e.jsx("div",{style:{display:"flex",flexDirection:"column",gap:12},children:_pmMe
 var _effVal=h.efficiency||0;
 var _attVal=h.attendance||0;
 var _circ=2*Math.PI*15;
-return e.jsxs("div",{key:s,style:{background:"#fff",borderRadius:16,padding:"14px 14px 12px",boxShadow:"0 1px 4px rgba(0,0,0,0.07)"},children:[
+return e.jsxs("div",{key:s,style:{background:"#fff",borderRadius:16,padding:"14px 14px 12px",boxShadow:"0 1px 4px rgba(0,0,0,0.07)",cursor:"pointer"},onClick:function(){_mhSetSelMember(h);_mhSetView("team-detail");},children:[
 e.jsxs("div",{style:{display:"flex",alignItems:"flex-start",gap:10,marginBottom:12},children:[
 e.jsx("div",{style:{position:"relative",flexShrink:0},children:
 e.jsxs("div",{style:{position:"relative",width:46,height:46},children:[
@@ -1404,7 +1404,7 @@ e.jsxs("div",{style:{flex:1,minWidth:0},children:[
 e.jsx("p",{style:{fontSize:14,fontWeight:700,color:"#111827",margin:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"},children:h.name}),
 e.jsx("p",{style:{fontSize:11,color:"#9ca3af",margin:"2px 0 0 0"},children:(h.role||"")+" \xb7 "+(h.dept||"")})
 ]}),
-e.jsxs("div",{style:{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:2,cursor:"pointer"},onClick:function(){_mhSetSelMember(h);_mhSetView("team-detail");},children:[
+e.jsxs("div",{style:{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:2},children:[
 e.jsx("span",{style:{fontSize:15,fontWeight:700,color:"#1a56db"},children:h.completedTasks+"/"+h.tasks}),
 e.jsx("span",{style:{fontSize:10,color:"#9ca3af"},children:"Tasks"})
 ]})
