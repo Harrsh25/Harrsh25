@@ -17,7 +17,6 @@ SCROLL_STR = 'e.jsx("div",{style:{flex:1,overflowY:"auto"'
 SCROLL_START = content.find(SCROLL_STR, OLD_START+100, OLD_START+8000)
 assert SCROLL_START != -1, 'Scroll div not found'
 
-# Scan scroll div end
 seg = content[SCROLL_START:]
 db=dp=ds=0; ever=False; end_rel=None
 for ii,ch in enumerate(seg):
@@ -79,6 +78,17 @@ GRID_P = (
     'e.jsx("rect",{x:14,y:14,width:7,height:7}),'
     'e.jsx("rect",{x:3,y:14,width:7,height:7})'
 )
+# GitBranch icon — rendered with dynamic _sA color (JS var in sub-project map scope)
+GITBRANCH_SM = (
+    'e.jsx("svg",{width:11,height:11,viewBox:"0 0 24 24",fill:"none",'
+    'stroke:_sA?"#1a56db":"#9ca3af",strokeWidth:2,style:{flexShrink:0},'
+    'children:e.jsxs("g",{children:['
+    'e.jsx("line",{x1:6,y1:3,x2:6,y2:15}),'
+    'e.jsx("circle",{cx:18,cy:6,r:3}),'
+    'e.jsx("circle",{cx:6,cy:18,r:3}),'
+    'e.jsx("path",{d:"M18 9a9 9 0 0 1-9 9"})'
+    ']})})'
+)
 
 # ── Stats helper ──────────────────────────────────────────────────────────────
 def stat_item(ic, num_expr, label, sub_expr, bg, border_right=True):
@@ -93,7 +103,7 @@ def stat_item(ic, num_expr, label, sub_expr, bg, border_right=True):
             +'e.jsx("span",{style:{fontSize:10,color:"#9ca3af"},children:'+sub_expr+'})'
             +']})')
 
-FILE_IC  = sicon(FILE_P, '#1a56db', 22)
+FILE_IC  = sicon(FILE_P,  '#1a56db', 22)
 CHECK_IC = sicon(CHECK_P, '#16a34a', 22)
 CLOCK_IC = sicon(CLOCK_P, '#f97316', 22)
 XCIRC_IC = sicon(XCIRC_P, '#ef4444', 22)
@@ -118,7 +128,6 @@ STATS_CARD = (
 # ── Card map ──────────────────────────────────────────────────────────────────
 CAL_SM = sicon(CAL_P, '#9ca3af', 12)
 CLK_SM = sicon(CLOCK_P, '#9ca3af', 12)
-CAL_BADGE = sicon(CAL_P, 'accentCol', 14)  # note: accentCol is a JS var
 
 CARDS_MAP = (
     '_filtered.map(function(d,di){'
@@ -137,21 +146,18 @@ CARDS_MAP = (
     +'e.jsxs("div",{style:{width:52,height:52,borderRadius:12,background:accentBg,'
     +'display:"flex",flexDirection:"column",alignItems:"center",'
     +'justifyContent:"center",gap:3,flexShrink:0},children:['
-    +sicon(CAL_P,'accentCol',16)  # Note: accentCol is a JS variable (string)
+    +sicon(CAL_P,'accentCol',16)
     +',e.jsx("span",{style:{fontSize:11,fontWeight:800,color:accentCol,letterSpacing:0.5},children:wkBadge})'
     +']})'
     # Main content
     +',e.jsxs("div",{style:{flex:1,minWidth:0},children:['
-    # Row 1: title + chip
     +'e.jsxs("div",{style:{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:4},children:['
     +'e.jsx("p",{style:{fontSize:15,fontWeight:800,color:"#111827",margin:0,flex:1,paddingRight:8},children:d.name}),'
     +'e.jsx("span",{style:{fontSize:11,fontWeight:700,color:chipCol,background:chipBg,'
     +'borderRadius:20,padding:"3px 10px",border:"1px solid "+chipCol+"33",whiteSpace:"nowrap"},'
     +'children:chipLbl})'
     +']})'
-    # Row 2: project
     +',e.jsx("p",{style:{fontSize:12,color:"#6b7280",margin:"0 0 6px"},children:d.parentNames.join(", ")})'
-    # Row 3: date + hours
     +',e.jsxs("div",{style:{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"},children:['
     +CAL_SM
     +',e.jsx("span",{style:{fontSize:11,color:"#6b7280"},children:d.duration}),'
@@ -199,7 +205,6 @@ BANNER = (
     +']})'
 )
 
-# ── New scroll div ────────────────────────────────────────────────────────────
 EMPTY_STATE = (
     'e.jsxs("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",'
     +'justifyContent:"center",padding:"60px 16px",gap:8},children:['
@@ -220,7 +225,70 @@ NEW_SCROLL = (
     +']})'
 )
 
+# ── Project dropdown with full hierarchy (parent + sub-projects) ───────────────
+PROJ_ICON = sicon(GRID_P, 'currentColor', 13)
+
+DROPDOWN = (
+    '_tsDd&&(function(){'
+    +'return e.jsx("div",{style:{position:"absolute",left:0,top:"calc(100% + 4px)",'
+    +'background:"#fff",border:"1px solid #e5e7eb",borderRadius:10,'
+    +'boxShadow:"0 8px 24px rgba(0,0,0,0.12)",zIndex:999,minWidth:230,'
+    +'maxHeight:340,overflowY:"auto"},children:e.jsx("div",{children:'
+    +'([e.jsxs("button",{type:"button",'
+    +'onClick:function(ev){ev.preventDefault();ev.stopPropagation();'
+    +'_setProj("");_setSubProj("");_setTsDd(false);},'
+    +'style:{display:"flex",alignItems:"center",gap:8,width:"100%",textAlign:"left",'
+    +'padding:"8px 12px",fontSize:12,fontWeight:!_proj?700:400,'
+    +'color:!_proj?"#1a56db":"#374151",background:!_proj?"#eff4ff":"transparent",'
+    +'border:"none",cursor:"pointer",borderBottom:"1px solid #f3f4f6"},children:['
+    +PROJ_ICON+','
+    +'e.jsx("span",{style:{flex:1},children:"All Projects"}),'
+    +'!_proj&&e.jsx("span",{style:{color:"#1a56db",fontSize:11,fontWeight:700},children:"✓"})'
+    +']},0)'
+    +'].concat(_projects.flatMap(function(p,qi){'
+    +'var _pSel=(_proj===p.id);'
+    +'var rows=[e.jsxs("button",{type:"button",'
+    +'onClick:function(ev){ev.preventDefault();ev.stopPropagation();'
+    +'_setProj(p.id);_setSubProj("");_setTsDd(false);},'
+    +'style:{display:"flex",alignItems:"center",gap:8,width:"100%",textAlign:"left",'
+    +'padding:"8px 12px",fontSize:12,fontWeight:_pSel&&!_subProj?700:400,'
+    +'color:_pSel?"#1a56db":"#374151",background:_pSel&&!_subProj?"#eff4ff":"transparent",'
+    +'border:"none",cursor:"pointer",borderBottom:"1px solid #f3f4f6"},children:['
+    +PROJ_ICON+','
+    +'e.jsx("span",{style:{flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"},'
+    +'children:p.name}),'
+    +'_pSel&&!_subProj&&e.jsx("span",{style:{color:"#1a56db",fontSize:11,fontWeight:700},children:"✓"})'
+    +']},qi+1)];'
+    +'rows=rows.concat((p.sub||[]).map(function(s,si){'
+    +'var _sA=(_pSel&&_subProj===s);'
+    +'return e.jsxs("button",{type:"button",'
+    +'onClick:function(ev){ev.preventDefault();ev.stopPropagation();'
+    +'_setProj(p.id);_setSubProj(s);_setTsDd(false);},'
+    +'style:{display:"flex",alignItems:"center",gap:8,width:"100%",textAlign:"left",'
+    +'padding:"7px 12px 7px 28px",fontSize:11,fontWeight:_sA?700:400,'
+    +'color:_sA?"#1a56db":"#374151",background:_sA?"#eff4ff":"#f9fafb",'
+    +'border:"none",cursor:"pointer",borderBottom:"1px solid #f3f4f6",'
+    +'borderLeft:"3px solid #e5e7eb"},children:['
+    +GITBRANCH_SM+','
+    +'e.jsx("span",{style:{flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"},'
+    +'children:s}),'
+    +'_sA&&e.jsx("span",{style:{color:"#1a56db",fontSize:11,fontWeight:700},children:"✓"})'
+    +']},qi+"-"+si);'
+    +'}));'
+    +'return rows;'
+    +'}))'
+    +')})}'
+    +')})()'
+)
+
 # ── New header ────────────────────────────────────────────────────────────────
+# Dropdown button label: "All Projects" or "ProjectName" or "ProjectName / SubProject"
+PROJ_BTN_LABEL = (
+    'e.jsx("span",{children:_selectedProject'
+    '?(_subProj?_selectedProject.name+" / "+_subProj:_selectedProject.name)'
+    ':"All Projects"})'
+)
+
 NEW_HEADER = (
     'e.jsxs("div",{style:{background:"#fff",padding:"44px 16px 12px",'
     +'borderBottom:"1px solid #f0f1f4",position:"sticky",top:0,zIndex:40},children:['
@@ -240,40 +308,26 @@ NEW_HEADER = (
     +']})'
     # Right: All Projects dropdown + Create button
     +',e.jsxs("div",{style:{display:"flex",alignItems:"center",gap:8,flexShrink:0},children:['
-    # Dropdown
+    # Dropdown wrapper
     +'e.jsxs("div",{style:{position:"relative"},children:['
     +'e.jsxs("button",{type:"button",'
     +'onClick:function(ev){ev.preventDefault();ev.stopPropagation();_setTsDd(function(q){return !q;});},'
     +'style:{display:"flex",alignItems:"center",gap:5,padding:"7px 10px",'
     +'border:"1px solid "+(_proj?"#1a56db":"#e5e7eb"),borderRadius:10,'
     +'background:_proj?"#eff4ff":"#fff",color:_proj?"#1a56db":"#374151",'
-    +'fontSize:11,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"},children:['
-    +sicon(GRID_P,'currentColor',12)
-    +',e.jsx("span",{children:_selectedProject?_selectedProject.name:"All Projects"}),'
+    +'fontSize:11,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap",maxWidth:140},children:['
+    +PROJ_ICON+','
+    +PROJ_BTN_LABEL+','
     +sicon(CHEV_D_P,'currentColor',10)
     +']})'
-    # Dropdown list
-    +',_tsDd&&e.jsxs("div",{style:{position:"absolute",top:"calc(100% + 4px)",left:0,'
-    +'background:"#fff",borderRadius:12,boxShadow:"0 4px 20px rgba(0,0,0,0.12)",'
-    +'border:"1px solid #f0f1f4",minWidth:170,zIndex:300,overflow:"hidden"},children:['
-    +'e.jsx("button",{type:"button",'
-    +'onClick:function(ev){ev.preventDefault();ev.stopPropagation();_setProj("");_setTsDd(false);},'
-    +'style:{width:"100%",textAlign:"left",padding:"10px 14px",border:"none",'
-    +'background:!_proj?"#eff4ff":"#fff",color:!_proj?"#1a56db":"#374151",'
-    +'fontSize:12,fontWeight:!_proj?700:400,cursor:"pointer"},children:"All Projects"}),'
-    +'..._projects.map(function(p){'
-    +'return e.jsx("button",{type:"button",'
-    +'onClick:function(ev){ev.preventDefault();ev.stopPropagation();_setProj(p.id);_setTsDd(false);},'
-    +'style:{width:"100%",textAlign:"left",padding:"10px 14px",border:"none",'
-    +'background:_proj===p.id?"#eff4ff":"#fff",color:_proj===p.id?"#1a56db":"#374151",'
-    +'fontSize:12,fontWeight:_proj===p.id?700:400,cursor:"pointer"},children:p.name},'
-    +'p.id);})'
+    # Hierarchical dropdown list
+    +','+DROPDOWN
     +']})'
-    +']})'
-    # Create button
-    +',e.jsxs("button",{style:{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",'
+    # Create button — navigates to timesheet-create screen
+    +',e.jsxs("button",{onClick:function(){le("timesheet-create");},'
+    +'style:{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",'
     +'background:"#1a56db",color:"#fff",border:"none",borderRadius:10,'
-    +'fontSize:13,fontWeight:700,cursor:"pointer"},children:['
+    +'fontSize:13,fontWeight:700,cursor:"pointer",flexShrink:0},children:['
     +sicon(PLUS_P,'#fff',14)
     +',e.jsx("span",{children:"Create"})'
     +']})'
@@ -310,13 +364,13 @@ NEW_HEADER = (
 print('STATS_CARD delta:', delta(STATS_CARD))
 print('CARDS_MAP delta:', delta(CARDS_MAP))
 print('BANNER delta:', delta(BANNER))
+print('DROPDOWN delta:', delta(DROPDOWN))
 print('NEW_SCROLL delta:', delta(NEW_SCROLL))
 print('NEW_HEADER delta:', delta(NEW_HEADER))
 
-assert delta(NEW_SCROLL) == (0,0,0), 'NEW_SCROLL imbalance!'
-assert delta(NEW_HEADER) == (0,0,0), 'NEW_HEADER imbalance!'
+assert delta(NEW_SCROLL) == (0,0,0), 'NEW_SCROLL imbalance: %s' % str(delta(NEW_SCROLL))
+assert delta(NEW_HEADER) == (0,0,0), 'NEW_HEADER imbalance: %s' % str(delta(NEW_HEADER))
 
-# ── Assemble and verify global balance ────────────────────────────────────────
 new_content = content[:OLD_START] + NEW_HEADER + ',' + NEW_SCROLL + content[OLD_END:]
 g0,g1,g2 = delta(new_content)
 c0,c1,c2 = delta(content)
@@ -326,20 +380,20 @@ assert (g0-c0,g1-c1,g2-c2) == (0,0,0), 'Global bracket imbalance!'
 # ── Node syntax check ─────────────────────────────────────────────────────────
 tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.js', delete=False, encoding='utf-8')
 js_vars = (
-    'var le=()=>{},_setTsDd=()=>{},_setProj=()=>{},_setShowFilter=()=>{},'
-    '_setTsSearch=()=>{},_setSelTs=()=>{},'
-    '_proj="",_tsDd=false,_hasFilter=false,'
+    'var le=()=>{},_setTsDd=()=>{},_setProj=()=>{},_setSubProj=()=>{},'
+    '_setShowFilter=()=>{},_setTsSearch=()=>{},_setSelTs=()=>{},'
+    '_proj="",_subProj="",_tsDd=false,_hasFilter=false,'
     '_filterStatus=[],'
     '_tsSearch="",'
     '_selectedProject=null,'
-    '_projects=[{id:"p1",name:"HR Module",sub:[]}],'
+    '_projects=[{id:"p1",name:"HR Module",sub:["Leave Management","Payroll"]}],'
     '_stColor=function(s){return "#000";},'
     '_stBg=function(s){return "#fff";},'
     '_stLabel=function(s){return s;},'
     '_data=[{id:"ts-w20",name:"Week 20 - Harsh",duration:"18-24 May 2026",'
-    'parentNames:["HR Module"],loggedHours:32,approvalStatus:"pending",addedBy:"Harsh"}],'
+    'parentNames:["HR Module"],loggedHours:32,approvalStatus:"pending"}],'
     '_filtered=[{id:"ts-w20",name:"Week 20 - Harsh",duration:"18-24 May 2026",'
-    'parentNames:["HR Module"],loggedHours:32,approvalStatus:"pending",addedBy:"Harsh"}],'
+    'parentNames:["HR Module"],loggedHours:32,approvalStatus:"pending"}],'
     'e={jsx:()=>{},jsxs:()=>{},Fragment:"f"};'
 )
 tmp.write(js_vars + 'void(' + NEW_HEADER + ');void(' + NEW_SCROLL + ')')
