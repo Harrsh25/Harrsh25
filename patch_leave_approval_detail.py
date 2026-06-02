@@ -3,13 +3,13 @@ import re
 content = open('hrmobileapp.html').read()
 
 OLD_START = 811977
-OLD_END   = 817145
+OLD_END   = 817149  # includes the closing '});' + '}' of the if block
 
 old_check_start = 'if(i.approvalKind==="leave"){return e.jsxs("div",{className:'
-old_check_end   = '4})," Approve"]})]})]}),e.jsx("div",{style:{height:16}})]})]'
+old_check_end   = '4})," Approve"]})]})]}),e.jsx("div",{style:{height:16}})]})]});}if'
 
 assert content[OLD_START:OLD_START+len(old_check_start)] == old_check_start, "START mismatch"
-assert content[OLD_END-len(old_check_end):OLD_END] == old_check_end, "END mismatch"
+assert content[OLD_END-len(old_check_end):OLD_END] == old_check_end, f"END mismatch: got {content[OLD_END-len(old_check_end):OLD_END]!r}"
 
 # ---- Helper: small inline SVG factory ----
 def isvg(w, h, vb, paths_str, extra=''):
