@@ -604,46 +604,269 @@ EXPENSE_TAB = (
 )
 
 # ── APPROVALS TAB ───────────────────────────────────────────────────────────────
-APPROVALS_TAB = (
-    'e.jsxs("div",{style:{padding:"14px"},children:['
-    'e.jsxs("div",{style:{borderRadius:12,border:"1px solid #fde68a",'
-    'background:"#fffbeb",padding:"12px 14px",marginBottom:12},children:['
-    'e.jsx("p",{style:{fontSize:13,fontWeight:700,color:"#92400e",'
-    'fontFamily:' + FF + ',margin:"0 0 3px"},children:"Travel Approval & Policy Compliance"}),'
-    'e.jsx("p",{style:{fontSize:11,color:"#b45309",fontFamily:' + FF + ',margin:0},'
-    'children:"Policy-based validation ensures compliance with travel guidelines"})'
+
+# City destination SVG icons
+BUILDING_GREEN = isvg(26, 26, '0 0 24 24',
+    'e.jsxs("g",{children:['
+    'e.jsx("rect",{x:3,y:3,width:18,height:18,rx:2}),'
+    'e.jsx("path",{d:"M9 22V12h6v10"}),'
+    'e.jsx("path",{d:"M3 9h18"}),'
+    'e.jsx("rect",{x:7,y:5,width:2,height:2}),'
+    'e.jsx("rect",{x:11,y:5,width:2,height:2}),'
+    'e.jsx("rect",{x:15,y:5,width:2,height:2})'
+    ']})',
+    'stroke:"#16a34a"'
+)
+
+GATEWAY_ICON = isvg(26, 26, '0 0 24 24',
+    'e.jsxs("g",{children:['
+    'e.jsx("path",{d:"M3 20h18M4 20V10M20 20V10M7 20V14h4v6M13 20V14h4v6M4 10Q8 5 12 5Q16 5 20 10"}),'
+    'e.jsx("path",{d:"M8 10h8"}),'
+    'e.jsx("circle",{cx:12,cy:8,r:1,fill:"currentColor"})'
+    ']})',
+    'stroke:"#d97706"'
+)
+
+ARCH_ICON = isvg(26, 26, '0 0 24 24',
+    'e.jsxs("g",{children:['
+    'e.jsx("path",{d:"M3 20h18M5 20V12M19 20V12"}),'
+    'e.jsx("path",{d:"M5 12Q5 6 12 6Q19 6 19 12"}),'
+    'e.jsx("path",{d:"M8 20V15h8v5"}),'
+    'e.jsx("path",{d:"M8 12h8"})'
+    ']})',
+    'stroke:"' + BLUE + '"'
+)
+
+LINK_IC = isvg(14, 14, '0 0 24 24',
+    'e.jsxs("g",{children:['
+    'e.jsx("path",{d:"M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"}),'
+    'e.jsx("path",{d:"M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"})'
+    ']})',
+    'stroke:"#fff"'
+)
+
+# Approval data matching reference
+APPROVAL_DATA = (
+    '[{'
+    'id:"ta-001",destination:"Bangalore",'
+    'dates:"2026-05-10 to 2026-05-15",'
+    'departureDate:"2026-05-10",returnDate:"2026-05-15",'
+    'status:"approved",'
+    'policyCompliance:"Within policy",'
+    'estimatedCost:25e3,'
+    'bookingStatus:"booked",'
+    'approvedBy:"Sarah Chen",'
+    'approvedDate:"2026-05-08",'
+    'initials:"SC",'
+    'iconType:"building",'
+    'borderColor:"#16a34a",'
+    'iconBg:"#f0fdf4"'
+    '},{'
+    'id:"ta-002",destination:"Mumbai",'
+    'dates:"2026-05-20 to 2026-05-23",'
+    'departureDate:"2026-05-20",returnDate:"2026-05-23",'
+    'status:"pending",'
+    'policyCompliance:"Within policy",'
+    'estimatedCost:18e3,'
+    'bookingStatus:"not-booked",'
+    'approvedBy:"Pending",'
+    'approvedDate:"",'
+    'initials:"AK",'
+    'iconType:"gateway",'
+    'borderColor:"#f59e0b",'
+    'iconBg:"#fffbeb"'
+    '},{'
+    'id:"ta-003",destination:"Delhi",'
+    'dates:"2026-05-08 to 2026-05-10",'
+    'departureDate:"2026-05-08",returnDate:"2026-05-10",'
+    'status:"approved",'
+    'policyCompliance:"Requires Escalation",'
+    'estimatedCost:32e3,'
+    'bookingStatus:"pending",'
+    'approvedBy:"Marcus Rivera",'
+    'approvedDate:"2026-05-07",'
+    'initials:"MR",'
+    'iconType:"arch",'
+    'borderColor:"' + BLUE + '",'
+    'iconBg:"#eff6ff"'
+    '}]'
+)
+
+def fmt_approval_date(field):
+    return (
+        '(function(){var _d='+field+';if(!_d)return"Pending Approval";'
+        'var _p=_d.split("-");if(_p.length<3)return _d;'
+        'var _mo=["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];'
+        'return _mo[parseInt(_p[1],10)]+" "+("0"+parseInt(_p[2],10)).slice(-2)+", "+_p[0];})()'
+    )
+
+# Each approval card
+APPROVAL_CARDS = (
+    '(' + APPROVAL_DATA + ').map(function(k){'
+    'var isApproved=k.status==="approved";'
+    'var isPending=k.status==="pending";'
+    'var chipColor=isApproved?"#16a34a":"#d97706";'
+    'var chipBg=isApproved?"#dcfce7":"#fef3c7";'
+    'var chipLabel=isApproved?"Approved":"Pending";'
+    'var chipIcon=isApproved?e.jsx(xt,{size:12}):e.jsx(Q1,{size:12});'
+    'var compColor=k.policyCompliance==="Within policy"?"#16a34a":"#dc2626";'
+    'var compBg=k.policyCompliance==="Within policy"?"#dcfce7":"#fee2e2";'
+    'var destIcon=k.iconType==="building"?' + BUILDING_GREEN + ':'
+    'k.iconType==="gateway"?' + GATEWAY_ICON + ':' + ARCH_ICON + ';'
+    'return e.jsxs("div",{style:{margin:"0 14px 12px",'
+    'borderRadius:14,border:"1px solid #e5e7eb",'
+    'background:"#fff",overflow:"hidden",'
+    'borderLeft:"3px solid "+k.borderColor},children:['
+
+    # Card header: icon + destination + dates + status chip
+    'e.jsxs("div",{style:{display:"flex",alignItems:"flex-start",gap:12,'
+    'padding:"14px 14px 12px"},children:['
+    'e.jsx("div",{style:{width:50,height:50,borderRadius:"50%",'
+    'background:k.iconBg,'
+    'display:"flex",alignItems:"center",justifyContent:"center",'
+    'flexShrink:0,color:k.borderColor},'
+    'children:destIcon}),'
+    'e.jsxs("div",{style:{flex:1,minWidth:0},children:['
+    'e.jsx("p",{style:{fontSize:17,fontWeight:800,color:"#111827",'
+    'fontFamily:' + FF + ',margin:"0 0 4px"},children:k.destination}),'
+    'e.jsxs("div",{style:{display:"flex",alignItems:"center",gap:6},children:['
+    'e.jsx("span",{style:{fontSize:12,color:"#6b7280",fontFamily:' + FF + '},'
+    'children:k.dates}),'
+    'e.jsx(Ns,{size:12,style:{color:"#9ca3af"}})'
+    ']})'
     ']}),'
-    'p.map(function(k){'
-    'return e.jsxs("div",{style:{borderRadius:12,border:"1px solid #e5e7eb",'
-    'background:"#fff",padding:"14px",marginBottom:10},children:['
-    'e.jsxs("div",{style:{display:"flex",alignItems:"flex-start",'
-    'justifyContent:"space-between",marginBottom:10},children:['
-    'e.jsxs("div",{style:{flex:1},children:['
-    'e.jsx("p",{style:{fontSize:14,fontWeight:700,color:"#111827",'
-    'fontFamily:' + FF + ',margin:"0 0 2px"},children:k.destination}),'
-    'e.jsx("p",{style:{fontSize:11,color:"#6b7280",fontFamily:' + FF + ',margin:0},'
-    'children:k.dates})'
+    # Status chip
+    'e.jsxs("span",{style:{display:"flex",alignItems:"center",gap:4,'
+    'fontSize:11,fontWeight:700,color:chipColor,'
+    'background:chipBg,borderRadius:20,padding:"4px 10px",'
+    'fontFamily:' + FF + ',flexShrink:0},'
+    'children:[chipIcon,chipLabel]})'
     ']}),'
+
+    # Policy compliance + Est. cost row
+    'e.jsxs("div",{style:{margin:"0 14px 12px",borderRadius:10,'
+    'background:"#f8fafc",border:"1px solid #f0f1f4",'
+    'display:"flex",alignItems:"center"},children:['
+    'e.jsxs("div",{style:{flex:1,padding:"10px 12px",borderRight:"1px solid #e5e7eb"},children:['
+    'e.jsx("p",{style:{fontSize:10,color:"#9ca3af",fontFamily:' + FF + ',margin:"0 0 5px"},'
+    'children:"Policy Compliance"}),'
+    'e.jsx("span",{style:{fontSize:11,fontWeight:700,color:compColor,'
+    'background:compBg,borderRadius:6,padding:"3px 8px",'
+    'fontFamily:' + FF + '},children:k.policyCompliance})'
+    ']}),'
+    'e.jsxs("div",{style:{flex:1,padding:"10px 12px"},children:['
+    'e.jsx("p",{style:{fontSize:10,color:"#9ca3af",fontFamily:' + FF + ',margin:"0 0 5px"},'
+    'children:"Est. Cost"}),'
+    'e.jsxs("p",{style:{fontSize:14,fontWeight:700,color:"#111827",'
+    'fontFamily:' + FF + ',margin:0},children:["\\u20b9",k.estimatedCost.toLocaleString("en-IN")]})'
+    ']})'
+    ']}),'
+
+    # Booking linkage row
+    'e.jsxs("div",{style:{display:"flex",alignItems:"center",'
+    'padding:"0 14px 12px"},children:['
+    'e.jsx("span",{style:{fontSize:12,color:"#6b7280",'
+    'fontFamily:' + FF + ',flex:1},children:"Booking Linkage"}),'
     'e.jsx("span",{style:{fontSize:11,fontWeight:600,'
-    'color:k.status==="approved"?"#16a34a":"#d97706",'
-    'background:k.status==="approved"?"#dcfce7":"#fef3c7",'
+    'color:k.bookingStatus==="booked"?"' + BLUE + '":k.bookingStatus==="pending"?"#d97706":"#6b7280",'
+    'background:k.bookingStatus==="booked"?"#eff6ff":k.bookingStatus==="pending"?"#fef3c7":"#f3f4f6",'
+    'border:k.bookingStatus==="booked"?"1.5px solid #bfdbfe":"1.5px solid transparent",'
     'borderRadius:20,padding:"3px 10px",fontFamily:' + FF + '},'
-    'children:k.status})'
+    'children:k.bookingStatus==="booked"?"Booked":k.bookingStatus==="pending"?"Pending":"Not Booked"})'
     ']}),'
-    'e.jsxs("div",{style:{background:"#f9fafb",borderRadius:8,padding:"10px 12px",marginBottom:8},children:['
-    'e.jsx("p",{style:{fontSize:11,fontWeight:600,color:"#374151",'
-    'fontFamily:' + FF + ',margin:"0 0 4px"},children:"Policy Compliance"}),'
-    'e.jsxs("div",{style:{display:"flex",alignItems:"center",gap:8},children:['
-    'e.jsx("span",{style:{fontSize:10,fontWeight:600,'
-    'color:k.policyCompliance==="Within policy"?"#16a34a":"#dc2626",'
-    'background:k.policyCompliance==="Within policy"?"#dcfce7":"#fee2e2",'
-    'borderRadius:20,padding:"2px 8px"},children:k.policyCompliance}),'
-    'e.jsxs("span",{style:{fontSize:11,color:"#6b7280",fontFamily:' + FF + '},'
-    'children:["Est. Cost: ",Se(k.estimatedCost)]})'
+
+    # Link Booking button (only for not-booked)
+    'k.bookingStatus==="not-booked"?e.jsxs("button",{style:{'
+    'display:"flex",alignItems:"center",justifyContent:"center",gap:8,'
+    'margin:"0 14px 12px",width:"calc(100% - 28px)",'
+    'padding:"13px",background:"' + BLUE + '",color:"#fff",'
+    'border:"none",borderRadius:10,fontSize:13,fontWeight:700,'
+    'fontFamily:' + FF + ',cursor:"pointer"},children:['
+    'e.jsx("span",{style:{display:"inline-flex"},children:' + LINK_IC + '}),'
+    '"Link Booking"'
+    ']}):null,'
+
+    # Pending booking note
+    'k.bookingStatus==="pending"?e.jsx("p",{style:{fontSize:12,color:"#d97706",'
+    'fontFamily:' + FF + ',padding:"0 14px 10px",margin:0},'
+    'children:"Waiting for booking confirmation"}):null,'
+
+    # Approved by + date footer
+    'e.jsxs("div",{style:{display:"flex",alignItems:"center",gap:8,'
+    'padding:"10px 14px",borderTop:"1px solid #f3f4f6"},children:['
+    'e.jsx("div",{style:{width:28,height:28,borderRadius:"50%",'
+    'background:"#e5e7eb",display:"flex",alignItems:"center",'
+    'justifyContent:"center",flexShrink:0},'
+    'children:e.jsx("span",{style:{fontSize:10,fontWeight:700,'
+    'color:"#6b7280",fontFamily:' + FF + '},children:k.initials})}),'
+    'e.jsxs("span",{style:{fontSize:12,color:"#6b7280",'
+    'fontFamily:' + FF + ',flex:1},children:["Approved by: ",'
+    'e.jsx("span",{style:{fontWeight:700,color:"#111827"},children:k.approvedBy})]}),'
+    'e.jsxs("div",{style:{display:"flex",alignItems:"center",gap:4},children:['
+    'e.jsx(Ns,{size:12,style:{color:"#9ca3af"}}),'
+    'e.jsx("span",{style:{fontSize:11,color:"#9ca3af",fontFamily:' + FF + '},'
+    'children:' + fmt_approval_date('k.approvedDate') + '})'
     ']})'
     ']})'
+
     ']},k.id);'
     '})'
+)
+
+# Bottom stats bar
+BOTTOM_STATS = (
+    'e.jsxs("div",{style:{display:"flex",background:"#fff",'
+    'borderTop:"1px solid #e5e7eb",padding:"12px 14px",'
+    'flexShrink:0,gap:0},children:['
+    '[{icon:e.jsx(Ku,{size:18,color:"#16a34a"}),iconBg:"#f0fdf4",'
+    'count:"12",label:"Approved",labelColor:"#374151"},'
+    '{icon:e.jsx(Q1,{size:18,color:"#d97706"}),iconBg:"#fffbeb",'
+    'count:"5",label:"Pending",labelColor:"#374151"},'
+    '{icon:e.jsx(L1,{size:18,color:"#dc2626"}),iconBg:"#fef2f2",'
+    'count:"2",label:"Requires Action",labelColor:"#dc2626"},'
+    '{icon:e.jsx(Ba,{size:18,color:"' + BLUE + '"}),iconBg:"#eff6ff",'
+    'count:"19",label:"Total",labelColor:"#374151"}]'
+    '.map(function(s,idx){'
+    'return e.jsxs("div",{style:{flex:1,display:"flex",flexDirection:"column",'
+    'alignItems:"center",gap:4,borderRight:idx<3?"1px solid #f0f1f4":"none"},children:['
+    'e.jsx("div",{style:{width:36,height:36,borderRadius:10,'
+    'background:s.iconBg,display:"flex",alignItems:"center",'
+    'justifyContent:"center"},children:s.icon}),'
+    'e.jsx("span",{style:{fontSize:16,fontWeight:800,color:"#111827",'
+    'fontFamily:' + FF + ',lineHeight:1},children:s.count}),'
+    'e.jsx("span",{style:{fontSize:10,color:s.labelColor,'
+    'fontFamily:' + FF + ',textAlign:"center",fontWeight:s.labelColor==="' + BLUE + '"||s.labelColor==="#dc2626"?700:500},'
+    'children:s.label})'
+    ']},idx);'
+    '})'
+    ']})'
+)
+
+# Info banner
+INFO_BANNER = (
+    'e.jsxs("div",{style:{margin:"14px 14px 12px",borderRadius:14,'
+    'border:"1px solid #fed7aa",background:"#fffbeb",'
+    'padding:"14px",display:"flex",alignItems:"center",gap:12,cursor:"pointer"},children:['
+    'e.jsx("div",{style:{width:40,height:40,borderRadius:10,'
+    'background:"#ffedd5",display:"flex",alignItems:"center",'
+    'justifyContent:"center",flexShrink:0},'
+    'children:e.jsx(eo,{size:20,color:"#f59e0b"})}),'
+    'e.jsxs("div",{style:{flex:1,minWidth:0},children:['
+    'e.jsx("p",{style:{fontSize:14,fontWeight:700,color:"#d97706",'
+    'fontFamily:' + FF + ',margin:"0 0 3px"},'
+    'children:"Travel Approval & Policy Compliance"}),'
+    'e.jsx("p",{style:{fontSize:12,color:"#b45309",fontFamily:' + FF + ',margin:0},'
+    'children:"Policy-based validation ensures compliance with travel guidelines."})'
+    ']}),'
+    'e.jsx(Oe,{size:16,color:"#f59e0b"})'
+    ']})'
+)
+
+APPROVALS_TAB = (
+    'e.jsxs(e.Fragment,{children:['
+    + INFO_BANNER + ','
+    + APPROVAL_CARDS + ','
+    + BOTTOM_STATS +
     ']})'
 )
 
@@ -785,7 +1008,7 @@ STUBS = (
     'var b={useState:function(v){return[v,function(){}];}};'
     'var ke={},qe={},Ve={},Ba={},Wu={},Au={},fg={};'
     'var Q1={},xt={},so={},Tu={},_1={},Oe={},Vn={},Yi={},eo={};'
-    'var U1={},Ns={},al={},_n={},Zu={};'
+    'var U1={},Ns={},al={},_n={},Zu={},L1={},Ku={},Qu={};'
     'var ll=[{amount:8000,status:"approved"},{amount:12000,status:"approved"},'
     '{amount:2500,status:"partial"},{amount:1200,status:"approved"}];'
     'var oo=[{status:"approved"},{status:"pending"},{status:"approved"},'
