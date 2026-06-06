@@ -850,26 +850,39 @@ e.jsxs("p",{style:{fontSize:11,color:"#16a34a",fontWeight:600,margin:0},children
 ]}),
 e.jsxs("div",{style:{border:"1px solid #f3f4f6",borderRadius:12,padding:"12px",marginBottom:12},children:[
 e.jsx("p",{style:{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:10},children:"DAILY ASSIGNMENTS"}),
-e.jsxs("svg",{viewBox:("0 0 "+_pdCW+" "+(_pdCH+20)),width:"100%",style:{overflow:"visible"},children:[
+(function(){
+var _svgW=300,_svgH=160,_axL=28,_axB=24,_axT=20,_axR=8;
+var _aW=_svgW-_axL-_axR,_aH=_svgH-_axT-_axB,_yMax=10;
+var _sPts=_pdDays.map(function(d,i){
+  var x=_axL+(_aW/(_pdDays.length-1))*i;
+  var y=_svgH-_axB-(_aH*d.n/_yMax);
+  return {x:x,y:y,n:d.n,day:d.day,color:d.color};
+});
+var _sPath=_sPts.map(function(p,i){return (i===0?"M":"L")+p.x.toFixed(1)+","+p.y.toFixed(1);}).join(" ");
+var _sArea=_sPath+" L"+(_svgW-_axR)+","+(_svgH-_axB)+" L"+_axL+","+(_svgH-_axB)+" Z";
+return e.jsx("svg",{viewBox:"0 0 300 160",width:"100%",height:"160",children:
+e.jsxs("g",{children:[
 [0,2,4,6,8,10].map(function(yv,yi){
-var yPos=(_pdCH-_pdPB-(_pdH*yv/_pdYMax)).toFixed(1);
+var yp=(_svgH-_axB-(_aH*yv/_yMax));
 return e.jsxs("g",{key:yi,children:[
-e.jsx("line",{x1:String(_pdPL),y1:yPos,x2:String(_pdCW-_pdPR),y2:yPos,stroke:"#f3f4f6",strokeWidth:"1"}),
-e.jsx("text",{x:String(_pdPL-5),y:String(Number(yPos)+3),textAnchor:"end",fontSize:"9",fill:"#9ca3af"},String(yv))
+e.jsx("line",{x1:_axL,y1:yp,x2:_svgW-_axR,y2:yp,stroke:"#f3f4f6",strokeWidth:1}),
+e.jsx("text",{x:_axL-5,y:yp+3.5,textAnchor:"end",fontSize:9,fill:"#9ca3af",children:String(yv)})
 ]});
 }),
-e.jsx("line",{x1:String(_pdPL),y1:String(_pdCH-_pdPB),x2:String(_pdCW-_pdPR),y2:String(_pdCH-_pdPB),stroke:"#e5e7eb",strokeWidth:"1.5"}),
-e.jsx("line",{x1:String(_pdPL),y1:String(_pdPT),x2:String(_pdPL),y2:String(_pdCH-_pdPB),stroke:"#e5e7eb",strokeWidth:"1.5"}),
-e.jsx("path",{d:_pdArea,fill:"#eff4ff",opacity:"0.8"}),
-e.jsx("path",{d:_pdPath,fill:"none",stroke:"#1a56db",strokeWidth:"2.5",strokeLinejoin:"round",strokeLinecap:"round"}),
-_pdPts.map(function(pt,pi){
+e.jsx("line",{x1:_axL,y1:_svgH-_axB,x2:_svgW-_axR,y2:_svgH-_axB,stroke:"#d1d5db",strokeWidth:1.5}),
+e.jsx("line",{x1:_axL,y1:_axT,x2:_axL,y2:_svgH-_axB,stroke:"#d1d5db",strokeWidth:1.5}),
+e.jsx("path",{d:_sArea,fill:"#eff4ff",opacity:0.8}),
+e.jsx("path",{d:_sPath,fill:"none",stroke:"#1a56db",strokeWidth:2.5,strokeLinejoin:"round",strokeLinecap:"round"}),
+_sPts.map(function(pt,pi){
 return e.jsxs("g",{key:pi,children:[
-e.jsx("circle",{cx:pt.x.toFixed(1),cy:pt.y.toFixed(1),r:"4",fill:"#fff",stroke:pt.color,strokeWidth:"2.5"}),
-e.jsx("text",{x:pt.x.toFixed(1),y:(pt.y-10).toFixed(1),textAnchor:"middle",fontSize:"11",fontWeight:"700",fill:pt.color},String(pt.n)),
-e.jsx("text",{x:pt.x.toFixed(1),y:String(_pdCH-_pdPB+16),textAnchor:"middle",fontSize:"10",fill:"#6b7280"},pt.day)
+e.jsx("circle",{cx:pt.x,cy:pt.y,r:4,fill:"#fff",stroke:pt.color,strokeWidth:2.5}),
+e.jsx("text",{x:pt.x,y:pt.y-10,textAnchor:"middle",fontSize:11,fontWeight:"700",fill:pt.color,children:String(pt.n)}),
+e.jsx("text",{x:pt.x,y:_svgH-_axB+15,textAnchor:"middle",fontSize:10,fill:"#6b7280",children:pt.day})
 ]});
 })
 ]})
+});
+})()
 ]}),
 e.jsxs("div",{style:{border:"1px solid #f3f4f6",borderRadius:12,padding:"12px"},children:[
 e.jsx("p",{style:{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:12},children:"DISTRIBUTION THIS MONTH"}),
