@@ -850,21 +850,23 @@ e.jsxs("p",{style:{fontSize:11,color:"#16a34a",fontWeight:600,margin:0},children
 ]}),
 e.jsxs("div",{style:{border:"1px solid #f3f4f6",borderRadius:12,padding:"12px",marginBottom:12},children:[
 e.jsx("p",{style:{fontSize:10,fontWeight:700,color:"#6b7280",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:10},children:"DAILY ASSIGNMENTS"}),
-e.jsxs("svg",{viewBox:("0 0 "+_pdCW+" "+_pdCH),width:"100%",style:{overflow:"visible"},children:[
+e.jsxs("svg",{viewBox:("0 0 "+_pdCW+" "+(_pdCH+20)),width:"100%",style:{overflow:"visible"},children:[
 [0,2,4,6,8,10].map(function(yv,yi){
 var yPos=(_pdCH-_pdPB-(_pdH*yv/_pdYMax)).toFixed(1);
 return e.jsxs("g",{key:yi,children:[
 e.jsx("line",{x1:String(_pdPL),y1:yPos,x2:String(_pdCW-_pdPR),y2:yPos,stroke:"#f3f4f6",strokeWidth:"1"}),
-e.jsx("text",{x:String(_pdPL-4),y:String(Number(yPos)+3),textAnchor:"end",fontSize:"8",fill:"#9ca3af"},String(yv))
+e.jsx("text",{x:String(_pdPL-5),y:String(Number(yPos)+3),textAnchor:"end",fontSize:"9",fill:"#9ca3af"},String(yv))
 ]});
 }),
+e.jsx("line",{x1:String(_pdPL),y1:String(_pdCH-_pdPB),x2:String(_pdCW-_pdPR),y2:String(_pdCH-_pdPB),stroke:"#e5e7eb",strokeWidth:"1.5"}),
+e.jsx("line",{x1:String(_pdPL),y1:String(_pdPT),x2:String(_pdPL),y2:String(_pdCH-_pdPB),stroke:"#e5e7eb",strokeWidth:"1.5"}),
 e.jsx("path",{d:_pdArea,fill:"#eff4ff",opacity:"0.8"}),
 e.jsx("path",{d:_pdPath,fill:"none",stroke:"#1a56db",strokeWidth:"2.5",strokeLinejoin:"round",strokeLinecap:"round"}),
 _pdPts.map(function(pt,pi){
 return e.jsxs("g",{key:pi,children:[
 e.jsx("circle",{cx:pt.x.toFixed(1),cy:pt.y.toFixed(1),r:"4",fill:"#fff",stroke:pt.color,strokeWidth:"2.5"}),
-e.jsx("text",{x:pt.x.toFixed(1),y:(pt.y-9).toFixed(1),textAnchor:"middle",fontSize:"10",fontWeight:"700",fill:pt.color},String(pt.n)),
-e.jsx("text",{x:pt.x.toFixed(1),y:String(_pdCH-_pdPB+13),textAnchor:"middle",fontSize:"9",fill:"#6b7280"},pt.day)
+e.jsx("text",{x:pt.x.toFixed(1),y:(pt.y-10).toFixed(1),textAnchor:"middle",fontSize:"11",fontWeight:"700",fill:pt.color},String(pt.n)),
+e.jsx("text",{x:pt.x.toFixed(1),y:String(_pdCH-_pdPB+16),textAnchor:"middle",fontSize:"10",fill:"#6b7280"},pt.day)
 ]});
 })
 ]})
