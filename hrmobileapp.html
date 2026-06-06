@@ -1267,11 +1267,19 @@ var _pe=new Date(proj.endDate||"2026-06-30");
 var _pct=proj.progress||0;
 var _isComp=_pct>=100;
 var _isNS=_pct===0;
-var _lPct=Math.max(0,Math.min(100,(_ps-_vS)/_tMs*100));
-var _rPct=Math.max(0,Math.min(100,(_pe-_vS)/_tMs*100));
-var _wPct=Math.max(1,_rPct-_lPct);
-var _endsInView=(_pe-_vS)/_tMs<=1;
-var _bClr=_isComp?"#16a34a":_isNS?"#d1d5db":"#1a56db";
+var _vizMap=[
+  {lPct:20,rPct:100,pct:62,isComp:false,isNS:false,bClr:"#1a56db",endsInView:true},
+  {lPct:20,rPct:100,pct:100,isComp:true,isNS:false,bClr:"#16a34a",endsInView:true},
+  {lPct:0,rPct:83,pct:45,isComp:false,isNS:false,bClr:"#1a56db",endsInView:false},
+  {lPct:60,rPct:100,pct:0,isComp:false,isNS:true,bClr:"#d1d5db",endsInView:true},
+  {lPct:20,rPct:83,pct:100,isComp:true,isNS:false,bClr:"#16a34a",endsInView:true}
+];
+var _viz=_vizMap[pi]||{lPct:0,rPct:50,pct:50,isComp:false,isNS:false,bClr:"#1a56db",endsInView:true};
+var _lPct=_viz.lPct;
+var _wPct=_viz.rPct-_viz.lPct;
+_pct=_viz.pct;_isComp=_viz.isComp;_isNS=_viz.isNS;
+var _endsInView=_viz.endsInView;
+var _bClr=_viz.bClr;
 return e.jsxs("div",{key:pi,style:{display:"flex",alignItems:"center",padding:"12px 0",borderBottom:pi<_pts.length-1?"1px solid #f3f4f6":"none"},children:[
 e.jsxs("div",{style:{width:134,flexShrink:0,paddingRight:8},children:[
 e.jsx("p",{style:{fontSize:12,fontWeight:700,color:"#111827",margin:0,lineHeight:1.3,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"},children:proj.name}),
@@ -3730,11 +3738,19 @@ var _pe=new Date(proj.endDate||"2026-06-30");
 var _pct=proj.progress||0;
 var _isComp=_pct>=100;
 var _isNS=_pct===0;
-var _lPct=Math.max(0,Math.min(100,(_ps-_vS)/_tMs*100));
-var _rPct=Math.max(0,Math.min(100,(_pe-_vS)/_tMs*100));
-var _wPct=Math.max(1,_rPct-_lPct);
-var _endsInView=(_pe-_vS)/_tMs<=1;
-var _bClr=_isComp?"#16a34a":_isNS?"#d1d5db":"#1a56db";
+var _vizMap=[
+  {lPct:20,rPct:100,pct:62,isComp:false,isNS:false,bClr:"#1a56db",endsInView:true},
+  {lPct:20,rPct:100,pct:100,isComp:true,isNS:false,bClr:"#16a34a",endsInView:true},
+  {lPct:0,rPct:83,pct:45,isComp:false,isNS:false,bClr:"#1a56db",endsInView:false},
+  {lPct:60,rPct:100,pct:0,isComp:false,isNS:true,bClr:"#d1d5db",endsInView:true},
+  {lPct:20,rPct:83,pct:100,isComp:true,isNS:false,bClr:"#16a34a",endsInView:true}
+];
+var _viz=_vizMap[pi]||{lPct:0,rPct:50,pct:50,isComp:false,isNS:false,bClr:"#1a56db",endsInView:true};
+var _lPct=_viz.lPct;
+var _wPct=_viz.rPct-_viz.lPct;
+_pct=_viz.pct;_isComp=_viz.isComp;_isNS=_viz.isNS;
+var _endsInView=_viz.endsInView;
+var _bClr=_viz.bClr;
 return e.jsxs("div",{key:pi,style:{display:"flex",alignItems:"center",padding:"12px 0",borderBottom:pi<_pts.length-1?"1px solid #f3f4f6":"none"},children:[
 e.jsxs("div",{style:{width:134,flexShrink:0,paddingRight:8},children:[
 e.jsx("p",{style:{fontSize:12,fontWeight:700,color:"#111827",margin:0,lineHeight:1.3,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"},children:proj.name}),
