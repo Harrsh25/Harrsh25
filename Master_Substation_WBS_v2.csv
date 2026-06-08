@@ -1,0 +1,746 @@
+Level1_Name,Level1_Desc,Level2_Name,Level2_Desc,Level3_Name,Level3_Desc,Level4_Name,Level4_Desc,Level5_Name,Level5_Desc,Assign_To,Timeline,Weight,Tower_Tagging,Leaf_Node_Progress_Type
+Project Initiation & Mobilization,,,,,,,,,,,,,No,
+,,Finalization of Sub-Contractor,,,,,,,,,,,No,Binary
+,,Site Office & Store Setup,,,,,,,,,,,No,
+,,,,Site office construction / temporary shed,,,,,,,,,No,Binary
+,,,,Store / godown setup,,,,,,,,,No,Binary
+,,,,Material unloading platform / hard standing,,,,,,,,,No,Binary
+,,,,Compound wall / temporary fencing for site,,,,,,,,,No,Binary
+,,Mobilization of Site Team,,,,,,,,,,,No,
+,,,,Engineers & supervisors deployment,,,,,,,,,No,Binary
+,,,,Skilled & unskilled workforce mobilization,,,,,,,,,No,Binary
+,,,,Safety officer & quality engineer deployment,,,,,,,,,No,Binary
+,,Construction Equipment & T&P Mobilization,,,,,,,,,,,No,
+,,,,Crane / hydra mobilization,,,,,,,,,No,Binary
+,,,,Excavator & tipper mobilization,,,,,,,,,No,Binary
+,,,,Welding sets / cutting tools,,,,,,,,,No,Binary
+,,,,Survey instruments (total station / level),,,,,,,,,No,Binary
+,,,,Cable pulling equipment,,,,,,,,,No,Binary
+,,Project Controls Setup,,,,,,,,,,,No,
+,,,,Baseline programme (L1/L2/L3 schedule),,,,,,,,,No,Binary
+,,,,Document control & filing system,,,,,,,,,No,Binary
+,,,,Drawing submission & approval register,,,,,,,,,No,Binary
+,,,,Material reconciliation register,,,,,,,,,No,Binary
+Statutory Clearances & Approvals,,,,,,,,,,,,,No,
+,,Land & Site Clearances,,,,,,,,,,,No,
+,,,,Site Possession Certificate,,,,,,,,,No,Binary
+,,,,Land NOC / Lease agreement,,,,,,,,,No,Binary
+,,,,ROW / Easement documentation,,,,,,,,,No,Binary
+,,,,Indemnity bond signing,,,,,,,,,No,Binary
+,,Environmental Clearances,,,,,,,,,,,No,
+,,,,Proposal Making,,,,,,,,,No,
+,,,,,,Environment / Pollution NOC,,,,,,,No,Binary
+,,,,,,Tree cutting permission,,,,,,,No,Binary
+,,,,,,EIA report (if applicable),,,,,,,No,Binary
+,,,,Proposal Submission,,,,,,,,,No,
+,,,,,,Environment / Pollution NOC,,,,,,,No,Binary
+,,,,,,Tree cutting permission,,,,,,,No,Binary
+,,,,,,EIA report (if applicable),,,,,,,No,Binary
+,,,,Approval,,,,,,,,,No,
+,,,,,,Environment / Pollution NOC,,,,,,,No,Binary
+,,,,,,Tree cutting permission,,,,,,,No,Binary
+,,,,,,EIA report (if applicable),,,,,,,No,Binary
+,,Electrical Statutory Approvals,,,,,,,,,,,No,
+,,,,Proposal Making,,,,,,,,,No,
+,,,,,,CEIG approval application,,,,,,,No,Binary
+,,,,,,CEA / SERC compliance submission,,,,,,,No,Binary
+,,,,,,Work authorization from utility / DISCOM,,,,,,,No,Binary
+,,,,,,Fire safety approval,,,,,,,No,Binary
+,,,,,,Building plan / local authority approval,,,,,,,No,Binary
+,,,,Proposal Submission,,,,,,,,,No,
+,,,,,,CEIG approval application,,,,,,,No,Binary
+,,,,,,CEA / SERC compliance submission,,,,,,,No,Binary
+,,,,,,Work authorization from utility / DISCOM,,,,,,,No,Binary
+,,,,,,Fire safety approval,,,,,,,No,Binary
+,,,,,,Building plan / local authority approval,,,,,,,No,Binary
+,,,,Approval,,,,,,,,,No,
+,,,,,,CEIG approval application,,,,,,,No,Binary
+,,,,,,CEA / SERC compliance submission,,,,,,,No,Binary
+,,,,,,Work authorization from utility / DISCOM,,,,,,,No,Binary
+,,,,,,Fire safety approval,,,,,,,No,Binary
+,,,,,,Building plan / local authority approval,,,,,,,No,Binary
+,,DISCOM / Utility Interface,,,,,,,,,,,No,
+,,,,Vendor approval list from DISCOM / Utility,,,,,,,,,No,Binary
+,,,,GTP / drawing / MQP submission & approval,,,,,,,,,No,Binary
+,,,,Manufacturing clearance from DISCOM,,,,,,,,,No,Binary
+Survey,,,,,,,,,,,,,No,
+,,Topographical Survey,,,,,,,,,,,No,
+,,,,Data collection / field survey,,,,,,,,,No,Binary
+,,,,Proposal submission to client,,,,,,,,,No,Binary
+,,,,Approval,,,,,,,,,No,Binary
+,,Geotechnical / Soil Investigation,,,,,,,,,,,No,
+,,,,Borehole / trial pit execution,,,,,,,,,No,Binary
+,,,,Laboratory testing,,,,,,,,,No,Binary
+,,,,Report submission to client,,,,,,,,,No,Binary
+,,,,Approval,,,,,,,,,No,Binary
+,,Bay / Layout Survey,,,,,,,,,,,No,
+,,,,Equipment foundation marking survey,,,,,,,,,No,Binary
+,,,,Gantry / structure alignment survey,,,,,,,,,No,Binary
+,,,,Control room location marking,,,,,,,,,No,Binary
+,,,,Submission to client,,,,,,,,,No,Binary
+,,,,Approval,,,,,,,,,No,Binary
+,,Cable Corridor & Trench Survey,,,,,,,,,,,No,
+,,,,Cable route marking,,,,,,,,,No,Binary
+,,,,Trench alignment survey,,,,,,,,,No,Binary
+,,,,Submission to client,,,,,,,,,No,Binary
+,,,,Approval,,,,,,,,,No,Binary
+Engineering & Design,,,,,,,,,,,,,No,
+,,System Studies,,,,,,,,,,,No,
+,,,,Load flow study,,,,,,,,,No,Binary
+,,,,Short circuit study,,,,,,,,,No,Binary
+,,,,Protection coordination study,,,,,,,,,No,Binary
+,,,,Insulation coordination study,,,,,,,,,No,Binary
+,,,,Earthing grid calculation,,,,,,,,,No,Binary
+,,,,Lightning protection design (DSLP),,,,,,,,,No,Binary
+,,Primary Design,,,,,,,,,,,No,
+,,,,Single Line Diagram (SLD) – client approval,,,,,,,,,No,Binary
+,,,,Switchyard GA & protection scheme approval,,,,,,,,,No,Binary
+,,,,Layout / plan drawing,,,,,,,,,No,Binary
+,,,,Busbar & bay design,,,,,,,,,No,Binary
+,,,,Gantry & equipment support structure design,,,,,,,,,No,Binary
+,,,,GIS hall architectural & layout design,,,,,,,,,No,Binary
+,,Civil Design,,,,,,,,,,,No,
+,,,,Foundation design – Power Transformer,,,,,,,,,No,Binary
+,,,,Foundation design – Circuit Breaker,,,,,,,,,No,Binary
+,,,,Foundation design – CT / PT / CVT / LA / Isolator,,,,,,,,,No,Binary
+,,,,Foundation design – Gantry & structures,,,,,,,,,No,Binary
+,,,,Foundation design – Control room,,,,,,,,,No,Binary
+,,,,Control room building architectural drawings,,,,,,,,,No,Binary
+,,,,Boundary wall / gate / fencing drawings,,,,,,,,,No,Binary
+,,,,Transformer oil soak pit & bund wall design,,,,,,,,,No,Binary
+,,,,Cable trench layout & section drawings,,,,,,,,,No,Binary
+,,,,Drainage & road design,,,,,,,,,No,Binary
+,,Secondary & Protection Design,,,,,,,,,,,No,
+,,,,Protection design & relay setting calculations,,,,,,,,,No,Binary
+,,,,Control & metering design,,,,,,,,,No,Binary
+,,,,DC system design (battery / charger sizing),,,,,,,,,No,Binary
+,,,,Busbar protection scheme design,,,,,,,,,No,Binary
+,,,,SCADA / SAS design (IEC 61850 / conventional),,,,,,,,,No,Binary
+,,,,Telecom design,,,,,,,,,No,Binary
+,,,,Cybersecurity / OT security design,,,,,,,,,No,Binary
+,,Ancillary Systems Design,,,,,,,,,,,No,
+,,,,Firefighting system design,,,,,,,,,No,Binary
+,,,,HVAC design for control room,,,,,,,,,No,Binary
+,,,,Yard & building lighting design,,,,,,,,,No,Binary
+,,,,Electronic security (CCTV / access / intrusion) design,,,,,,,,,No,Binary
+,,Drawing Approvals & Issue,,,,,,,,,,,No,
+,,,,Client / utility submission,,,,,,,,,No,Binary
+,,,,Comment incorporation & re-submission,,,,,,,,,No,Binary
+,,,,Issued for Construction (IFC),,,,,,,,,No,Binary
+,,As-Built Drawings,,,,,,,,,,,No,
+,,,,Mark-up collection from site,,,,,,,,,No,Binary
+,,,,Preparation & submission of as-built drawings,,,,,,,,,No,Binary
+,,,,Client / utility acceptance of as-builts,,,,,,,,,No,Binary
+Procurement,,,,,,,,,,,,,No,
+,,Vendor Finalization,,,,,,,,,,,No,
+,,,,Enquiry to approved vendors (civil & electrical),,,,,,,,,No,Binary
+,,,,RFQ from minimum 3 vendors,,,,,,,,,No,Binary
+,,,,Techno-commercial evaluation & comparison,,,,,,,,,No,Binary
+,,,,Vendor finalization & Purchase Order,,,,,,,,,No,Binary
+,,,,Guarantee / warranty certificate,,,,,,,,,No,Binary
+,,Power Transformer,,,,,,,,,,,No,
+,,,,Technical specification & BOQ,,,,,,,,,No,Binary
+,,,,Vendor evaluation & PO,,,,,,,,,No,Binary
+,,,,Factory inspection & FAT,,,,,,,,,No,Binary
+,,,,Dispatch clearance from DISCOM / utility,,,,,,,,,No,Binary
+,,,,Transportation to site,,,,,,,,,No,Binary
+,,Circuit Breakers,,,,,,,,,,,No,
+,,,,Technical specification & BOQ,,,,,,,,,No,Binary
+,,,,Vendor evaluation & PO,,,,,,,,,No,Binary
+,,,,Factory inspection,,,,,,,,,No,Binary
+,,,,Transportation to site,,,,,,,,,No,Binary
+,,Disconnectors / Isolators & Earth Switches,,,,,,,,,,,No,
+,,,,Technical specification & BOQ,,,,,,,,,No,Binary
+,,,,Vendor evaluation & PO,,,,,,,,,No,Binary
+,,,,Factory inspection,,,,,,,,,No,Binary
+,,,,Transportation to site,,,,,,,,,No,Binary
+,,CTs & CVTs / PTs,,,,,,,,,,,No,
+,,,,Technical specification & BOQ,,,,,,,,,No,Binary
+,,,,Vendor evaluation & PO,,,,,,,,,No,Binary
+,,,,Factory inspection,,,,,,,,,No,Binary
+,,,,Transportation to site,,,,,,,,,No,Binary
+,,Surge Arresters & Busbar Materials,,,,,,,,,,,No,
+,,,,Technical specification & BOQ,,,,,,,,,No,Binary
+,,,,Vendor evaluation & PO,,,,,,,,,No,Binary
+,,,,Transportation to site,,,,,,,,,No,Binary
+,,GIS Bays (GIS / Hybrid only),,,,,,,,,,,No,
+,,,,Technical specification & BOQ,,,,,,,,,No,Binary
+,,,,Vendor evaluation & PO,,,,,,,,,No,Binary
+,,,,Factory inspection & FAT,,,,,,,,,No,Binary
+,,,,Transportation to site,,,,,,,,,No,Binary
+,,33kV VCB / RMU & 11kV Panels (Distribution),,,,,,,,,,,No,
+,,,,Technical specification & BOQ,,,,,,,,,No,Binary
+,,,,Vendor evaluation & PO,,,,,,,,,No,Binary
+,,,,Factory inspection,,,,,,,,,No,Binary
+,,,,Transportation to site,,,,,,,,,No,Binary
+,,Protection Relays / IEDs & Control Panels,,,,,,,,,,,No,
+,,,,Technical specification & BOQ,,,,,,,,,No,Binary
+,,,,Vendor evaluation & PO,,,,,,,,,No,Binary
+,,,,Factory inspection & FAT,,,,,,,,,No,Binary
+,,,,Transportation to site,,,,,,,,,No,Binary
+,,Metering & SCADA / RTU / Telecom Equipment,,,,,,,,,,,No,
+,,,,Technical specification & BOQ,,,,,,,,,No,Binary
+,,,,Vendor evaluation & PO,,,,,,,,,No,Binary
+,,,,Factory inspection,,,,,,,,,No,Binary
+,,,,Transportation to site,,,,,,,,,No,Binary
+,,SAS / IEC 61850 Equipment (if applicable),,,,,,,,,,,No,
+,,,,IED & BCU procurement,,,,,,,,,No,Binary
+,,,,Station HMI & server,,,,,,,,,No,Binary
+,,,,Ethernet switches & GPS sync system,,,,,,,,,No,Binary
+,,,,Fiber optic patch panel & FO cables,,,,,,,,,No,Binary
+,,,,Factory inspection & FAT,,,,,,,,,No,Binary
+,,Battery & Charger / UPS / Auxiliary,,,,,,,,,,,No,
+,,,,Technical specification & BOQ,,,,,,,,,No,Binary
+,,,,Vendor evaluation & PO,,,,,,,,,No,Binary
+,,,,Transportation to site,,,,,,,,,No,Binary
+,,Cables & Conductors,,,,,,,,,,,No,
+,,,,Power & control cables – BOQ & PO,,,,,,,,,No,Binary
+,,,,Optical fiber cables – BOQ & PO,,,,,,,,,No,Binary
+,,,,Cable trays / supports / accessories – BOQ & PO,,,,,,,,,No,Binary
+,,,,Lugs / glands / PG clamps – BOQ & PO,,,,,,,,,No,Binary
+,,Structural & Earthing Materials,,,,,,,,,,,No,
+,,,,Structural steel (gantries / supports) – BOQ & PO,,,,,,,,,No,Binary
+,,,,Earthing material (mat / electrode / riser) – BOQ & PO,,,,,,,,,No,Binary
+,,Civil Materials,,,,,,,,,,,No,
+,,,,Cement – BOQ & PO,,,,,,,,,No,Binary
+,,,,Steel & iron – BOQ & PO,,,,,,,,,No,Binary
+,,,,Aggregates – BOQ & PO,,,,,,,,,No,Binary
+,,,,Bricks / blocks – BOQ & PO,,,,,,,,,No,Binary
+,,Ancillary / BoP Equipment,,,,,,,,,,,No,
+,,,,Fire protection & detection system,,,,,,,,,No,Binary
+,,,,HVAC & ventilation,,,,,,,,,No,Binary
+,,,,Lighting (yard & building),,,,,,,,,No,Binary
+,,,,Electronic security (CCTV / access / intrusion),,,,,,,,,No,Binary
+,,Material Management at Site,,,,,,,,,,,No,
+,,,,Material receipt & entry into store / warehouse,,,,,,,,,No,Binary
+,,,,Storage & preservation at site,,,,,,,,,No,Binary
+,,,,Material reconciliation reports,,,,,,,,,No,Binary
+,,,,DISCOM inspection & indemnity bond signing,,,,,,,,,No,Binary
+,,,,Cartage from DISCOM store (if applicable),,,,,,,,,No,Binary
+Site Development,,,,,,,,,,,,,No,
+,,Site Clearing & Demolition,,,,,,,,,,,No,
+,,,,Vegetation & tree clearance,,,,,,,,,No,Binary
+,,,,Demolition of existing structures (if any),,,,,,,,,No,Binary
+,,,,Debris removal & disposal,,,,,,,,,No,Binary
+,,Earthwork,,,,,,,,,,,No,
+,,,,Setting out & benchmark establishment,,,,,,,,,No,Binary
+,,,,Bulk excavation,,,,,,,,,No,Binary
+,,,,Filling & compaction,,,,,,,,,No,Binary
+,,,,Site grading & leveling,,,,,,,,,No,Binary
+,,,,Terrace formation (if sloped terrain),,,,,,,,,No,Binary
+,,Access,,,,,,,,,,,No,
+,,,,Approach road formation & surfacing,,,,,,,,,No,Binary
+,,,,Temporary haul roads,,,,,,,,,No,Binary
+Civil Works,,,,,,,,,,,,,No,
+,,Perimeter & Access,,,,,,,,,,,No,
+,,,,Boundary Wall,,,,,,,,,No,
+,,,,,,Setting out,,,,,,,No,Binary
+,,,,,,Foundation – excavation & PCC / RCC,,,,,,,No,Binary
+,,,,,,Brickwork / masonry,,,,,,,No,Binary
+,,,,,,Plastering & finishing,,,,,,,No,Binary
+,,,,Main Gate,,,,,,,,,No,
+,,,,,,Foundation,,,,,,,No,Binary
+,,,,,,Gate fabrication & erection,,,,,,,No,Binary
+,,,,,,Finishing & painting,,,,,,,No,Binary
+,,,,Security Fence,,,,,,,,,No,
+,,,,,,Post installation,,,,,,,No,Binary
+,,,,,,Fencing wire / mesh fixing,,,,,,,No,Binary
+,,Control Room Building,,,,,,,,,,,No,
+,,,,Foundation – excavation & PCC / RCC,,,,,,,,,No,Binary
+,,,,Plinth beam & superstructure,,,,,,,,,No,Binary
+,,,,Brickwork & internal / external plaster,,,,,,,,,No,Binary
+,,,,Roofing (RCC / sheet),,,,,,,,,No,Binary
+,,,,Flooring & anti-static / false flooring,,,,,,,,,No,Binary
+,,,,Doors / windows / rolling shutters,,,,,,,,,No,Binary
+,,,,Painting & finishing,,,,,,,,,No,Binary
+,,,,Electrical fittings provision (conduit / box),,,,,,,,,No,Binary
+,,GIS Hall (GIS / Hybrid only),,,,,,,,,,,No,
+,,,,Foundation,,,,,,,,,No,Binary
+,,,,Steel structure erection,,,,,,,,,No,Binary
+,,,,Roofing & cladding,,,,,,,,,No,Binary
+,,,,Flooring,,,,,,,,,No,Binary
+,,,,EOT crane beam & rail,,,,,,,,,No,Binary
+,,,,Doors & windows,,,,,,,,,No,Binary
+,,,,Finishing & painting,,,,,,,,,No,Binary
+,,Relay Room / Telecom Room,,,,,,,,,,,No,
+,,,,Foundation,,,,,,,,,No,Binary
+,,,,Construction (brick / RCC),,,,,,,,,No,Binary
+,,,,Flooring & finishing,,,,,,,,,No,Binary
+,,,,Doors & windows,,,,,,,,,No,Binary
+,,Store & Security Building,,,,,,,,,,,No,
+,,,,Foundation,,,,,,,,,No,Binary
+,,,,Construction,,,,,,,,,No,Binary
+,,,,Finishing,,,,,,,,,No,Binary
+,,Equipment Foundations,,,,,,,,,,,No,
+,,,,Power Transformer Foundation,,,,,,,,,No,
+,,,,,,Setting out & excavation,,,,,,,No,Binary
+,,,,,,PCC & RCC casting,,,,,,,No,Binary
+,,,,,,Anchor bolt setting,,,,,,,No,Binary
+,,,,,,Curing & backfilling,,,,,,,No,Binary
+,,,,Circuit Breaker Foundation,,,,,,,,,No,
+,,,,,,Setting out & excavation,,,,,,,No,Binary
+,,,,,,PCC & RCC casting,,,,,,,No,Binary
+,,,,,,Curing,,,,,,,No,Binary
+,,,,CT / PT / CVT / Surge Arrester Foundation,,,,,,,,,No,
+,,,,,,Setting out & excavation,,,,,,,No,Binary
+,,,,,,PCC & RCC casting,,,,,,,No,Binary
+,,,,,,Curing,,,,,,,No,Binary
+,,,,Isolator / Disconnector Foundation,,,,,,,,,No,
+,,,,,,Setting out & excavation,,,,,,,No,Binary
+,,,,,,PCC & RCC casting,,,,,,,No,Binary
+,,,,,,Curing,,,,,,,No,Binary
+,,,,Gantry Foundation,,,,,,,,,No,
+,,,,,,Setting out & excavation,,,,,,,No,Binary
+,,,,,,PCC & RCC casting,,,,,,,No,Binary
+,,,,,,Anchor bolt setting,,,,,,,No,Binary
+,,,,,,Curing & backfilling,,,,,,,No,Binary
+,,,,Wave Trap Foundation (132kV+),,,,,,,,,No,
+,,,,,,Setting out & excavation,,,,,,,No,Binary
+,,,,,,PCC & RCC casting,,,,,,,No,Binary
+,,,,,,Curing,,,,,,,No,Binary
+,,,,33kV Equipment Foundation (Distribution),,,,,,,,,No,
+,,,,,,Setting out & excavation,,,,,,,No,Binary
+,,,,,,PCC & RCC casting,,,,,,,No,Binary
+,,,,,,Curing,,,,,,,No,Binary
+,,,,11kV Switchgear Foundation (Distribution),,,,,,,,,No,
+,,,,,,Setting out & excavation,,,,,,,No,Binary
+,,,,,,PCC & RCC casting,,,,,,,No,Binary
+,,,,,,Curing,,,,,,,No,Binary
+,,Transformer Containment,,,,,,,,,,,No,
+,,,,Oil Soak Pit,,,,,,,,,No,
+,,,,,,Excavation,,,,,,,No,Binary
+,,,,,,RCC casting,,,,,,,No,Binary
+,,,,,,Waterproofing,,,,,,,No,Binary
+,,,,,,Oil drain pipe connection,,,,,,,No,Binary
+,,,,Bund Wall,,,,,,,,,No,
+,,,,,,Construction,,,,,,,No,Binary
+,,,,,,Waterproofing,,,,,,,No,Binary
+,,,,Fire Wall,,,,,,,,,No,
+,,,,,,Construction,,,,,,,No,Binary
+,,,,,,Finishing,,,,,,,No,Binary
+,,Cable Civil Works,,,,,,,,,,,No,
+,,,,Cable Trench,,,,,,,,,No,
+,,,,,,Setting out,,,,,,,No,Binary
+,,,,,,Excavation,,,,,,,No,Binary
+,,,,,,RCC casting,,,,,,,No,Binary
+,,,,,,Trench cover placement,,,,,,,No,Binary
+,,,,Cable Ducts & Conduits,,,,,,,,,No,
+,,,,,,Duct / conduit laying,,,,,,,No,Binary
+,,,,,,Sealing & backfilling,,,,,,,No,Binary
+,,,,Cable Pits & Manholes,,,,,,,,,No,
+,,,,,,Excavation & RCC construction,,,,,,,No,Binary
+,,,,,,Cover slab placement,,,,,,,No,Binary
+,,Drainage & Water,,,,,,,,,,,No,
+,,,,Storm Water Drainage,,,,,,,,,No,
+,,,,,,Drain excavation,,,,,,,No,Binary
+,,,,,,Pipe laying & jointing,,,,,,,No,Binary
+,,,,,,Backfilling & compaction,,,,,,,No,Binary
+,,,,Sewer System,,,,,,,,,No,Binary
+,,,,Water Supply,,,,,,,,,No,Binary
+,,,,Fire Water Tank,,,,,,,,,No,
+,,,,,,Foundation & tank construction,,,,,,,No,Binary
+,,,,,,Plumbing connections,,,,,,,No,Binary
+,,,,Pump House,,,,,,,,,No,
+,,,,,,Construction,,,,,,,No,Binary
+,,,,,,Pump & motor installation,,,,,,,No,Binary
+,,Yard & Roads,,,,,,,,,,,No,
+,,,,Yard gravelling / hard standing,,,,,,,,,No,Binary
+,,,,Internal roads – sub-base & surface course,,,,,,,,,No,Binary
+,,,,Kerbing & road markings,,,,,,,,,No,Binary
+Earthing System,,,,,,,,,,,,,No,
+,,Earth Mat,,,,,,,,,,,No,
+,,,,Excavation for earth mat grid,,,,,,,,,No,Binary
+,,,,GI flat / copper conductor laying,,,,,,,,,No,Binary
+,,,,Joints & exothermic / bolted connections,,,,,,,,,No,Binary
+,,,,Backfilling & compaction,,,,,,,,,No,Binary
+,,Earth Electrodes & Pits,,,,,,,,,,,No,
+,,,,Pipe / plate electrode installation,,,,,,,,,No,Binary
+,,,,Chemical / treated earth pit,,,,,,,,,No,Binary
+,,,,Earth pit testing pre-burial,,,,,,,,,No,Binary
+,,Earth Risers,,,,,,,,,,,No,
+,,,,Riser connection to equipment bases,,,,,,,,,No,Binary
+,,,,Riser connection to structures & gantries,,,,,,,,,No,Binary
+,,,,Riser connection to building / control room,,,,,,,,,No,Binary
+,,Equipment Earthing,,,,,,,,,,,No,
+,,,,Primary equipment body earthing,,,,,,,,,No,Binary
+,,,,Secondary panel & control room earthing,,,,,,,,,No,Binary
+,,,,GIS enclosure earthing,,,,,,,,,No,Binary
+,,Lightning Protection,,,,,,,,,,,No,
+,,,,Lightning mast / air terminal installation,,,,,,,,,No,Binary
+,,,,Down conductor installation,,,,,,,,,No,Binary
+,,,,Bonding to earth mat,,,,,,,,,No,Binary
+,,Earthing Testing & Acceptance,,,,,,,,,,,No,
+,,,,Earth resistance measurement (all pits),,,,,,,,,No,Binary
+,,,,Earth mat continuity check,,,,,,,,,No,Binary
+,,,,Step & touch potential verification,,,,,,,,,No,Binary
+,,,,Utility / client acceptance,,,,,,,,,No,Binary
+Structural Steel & Gantries,,,,,,,,,,,,,No,
+,,Gantry Structures,,,,,,,,,,,No,
+,,,,Gantry fabrication & trial assembly,,,,,,,,,No,Binary
+,,,,Foundation bolt setting check,,,,,,,,,No,Binary
+,,,,Gantry erection & alignment,,,,,,,,,No,Binary
+,,,,Grouting & fixing,,,,,,,,,No,Binary
+,,,,Painting & finishing,,,,,,,,,No,Binary
+,,Equipment Support Structures,,,,,,,,,,,No,
+,,,,LA structure erection,,,,,,,,,No,Binary
+,,,,CT / PT / CVT structure erection,,,,,,,,,No,Binary
+,,,,Circuit breaker support structure erection,,,,,,,,,No,Binary
+,,,,Isolator / disconnector structure erection,,,,,,,,,No,Binary
+,,,,33kV VCB / RMU structure (Distribution),,,,,,,,,No,Binary
+,,,,Cable support structure erection,,,,,,,,,No,Binary
+,,Bus Support Structures,,,,,,,,,,,No,
+,,,,Post insulator structure erection,,,,,,,,,No,Binary
+,,,,Bus clamps & fittings installation,,,,,,,,,No,Binary
+,,Platforms & Ladders,,,,,,,,,,,No,
+,,,,Steel platform erection,,,,,,,,,No,Binary
+,,,,Handrail & ladder installation,,,,,,,,,No,Binary
+,,,,Anti-fall protection,,,,,,,,,No,Binary
+Primary Equipment Installation,,,,,,,,,,,,,No,
+,,Power Transformer,,,,,,,,,,,No,
+,,,,Unloading & shifting to foundation,,,,,,,,,No,Binary
+,,,,Placement & alignment on foundation,,,,,,,,,No,Binary
+,,,,Oil filtration & filling,,,,,,,,,No,Binary
+,,,,Radiator & cooling equipment mounting,,,,,,,,,No,Binary
+,,,,Buchholz relay & PRD piping,,,,,,,,,No,Binary
+,,,,Conservator & breather installation,,,,,,,,,No,Binary
+,,,,Marshalling box mounting & wiring,,,,,,,,,No,Binary
+,,,,OLTC drive mechanism installation,,,,,,,,,No,Binary
+,,,,Transformer fencing & gravel spreading,,,,,,,,,No,Binary
+,,,,Fire fighting system integration,,,,,,,,,No,Binary
+,,,,HV / LV terminal connections,,,,,,,,,No,Binary
+,,Circuit Breakers (AIS / HYB),,,,,,,,,,,No,
+,,,,Unloading & positioning,,,,,,,,,No,Binary
+,,,,Erection & alignment on foundation,,,,,,,,,No,Binary
+,,,,SF6 / vacuum filling,,,,,,,,,No,Binary
+,,,,Operating mechanism adjustment,,,,,,,,,No,Binary
+,,,,Local control panel wiring,,,,,,,,,No,Binary
+,,,,Control cable connection at LCP,,,,,,,,,No,Binary
+,,Disconnectors / Isolators (AIS / HYB),,,,,,,,,,,No,
+,,,,Structure & base erection,,,,,,,,,No,Binary
+,,,,Isolator head mounting,,,,,,,,,No,Binary
+,,,,Blade alignment & adjustment,,,,,,,,,No,Binary
+,,,,Motor / manual mechanism installation,,,,,,,,,No,Binary
+,,,,Interlock mechanism adjustment,,,,,,,,,No,Binary
+,,,,Control wiring,,,,,,,,,No,Binary
+,,Earth Switches,,,,,,,,,,,No,
+,,,,Erection & alignment,,,,,,,,,No,Binary
+,,,,Interlock mechanism installation,,,,,,,,,No,Binary
+,,,,Control wiring,,,,,,,,,No,Binary
+,,Current Transformers (AIS / HYB),,,,,,,,,,,No,
+,,,,Unloading & erection on structure,,,,,,,,,No,Binary
+,,,,Primary terminal connection,,,,,,,,,No,Binary
+,,,,Secondary terminal box wiring,,,,,,,,,No,Binary
+,,,,Oil / SF6 filling (if applicable),,,,,,,,,No,Binary
+,,CVTs / PTs (AIS / HYB),,,,,,,,,,,No,
+,,,,Unloading & erection on structure,,,,,,,,,No,Binary
+,,,,Primary terminal connection,,,,,,,,,No,Binary
+,,,,Secondary terminal box wiring,,,,,,,,,No,Binary
+,,Surge Arresters (AIS / HYB),,,,,,,,,,,No,
+,,,,Erection on structure,,,,,,,,,No,Binary
+,,,,Primary terminal connection,,,,,,,,,No,Binary
+,,,,Counter / monitor installation,,,,,,,,,No,Binary
+,,,,Earthing of counter,,,,,,,,,No,Binary
+,,Wave Traps & PLCC (132kV+),,,,,,,,,,,No,
+,,,,Wave trap erection on gantry,,,,,,,,,No,Binary
+,,,,Tuning unit (LMU/HMU) connection,,,,,,,,,No,Binary
+,,,,PLCC coupling capacitor connection,,,,,,,,,No,Binary
+,,,,PLCC rack installation & wiring,,,,,,,,,No,Binary
+,,GIS Installation (GIS / HYB),,,,,,,,,,,No,
+,,,,GIS hall cleanliness & environment verification,,,,,,,,,No,Binary
+,,,,GIS bay module erection (factory-assembled),,,,,,,,,No,Binary
+,,,,Bus duct connections,,,,,,,,,No,Binary
+,,,,SF6 gas filling & quality check,,,,,,,,,No,Binary
+,,,,SF6 leak test (ppm check),,,,,,,,,No,Binary
+,,,,GIS CT / PT / LA integration,,,,,,,,,No,Binary
+,,,,GIS earth switch installation,,,,,,,,,No,Binary
+,,,,Local control cubicle (LCC) installation,,,,,,,,,No,Binary
+,,,,EOT crane commissioning,,,,,,,,,No,Binary
+,,33kV Yard Equipment (Distribution),,,,,,,,,,,No,
+,,,,33kV VCB / RMU erection & alignment,,,,,,,,,No,Binary
+,,,,CT & PT installation,,,,,,,,,No,Binary
+,,,,Lightning arrester installation,,,,,,,,,No,Binary
+,,,,Bus & jumper connections,,,,,,,,,No,Binary
+,,11kV Switchgear (Distribution),,,,,,,,,,,No,
+,,,,Panel unloading & placement,,,,,,,,,No,Binary
+,,,,Bus coupler installation (if two incomers),,,,,,,,,No,Binary
+,,,,Busbar installation & connections,,,,,,,,,No,Binary
+,,,,Inter-panel connections,,,,,,,,,No,Binary
+,,Busbar & Conductors (AIS / HYB),,,,,,,,,,,No,
+,,,,Tube busbar / ACSR stringing,,,,,,,,,No,Binary
+,,,,Jumper fabrication & fixing,,,,,,,,,No,Binary
+,,,,Strain clamp & hardware fittings,,,,,,,,,No,Binary
+,,,,Tightening & torque check,,,,,,,,,No,Binary
+Secondary System Installation,,,,,,,,,,,,,No,
+,,Control & Relay Panels,,,,,,,,,,,No,
+,,,,Panel unloading & shifting to control room,,,,,,,,,No,Binary
+,,,,Panel layout marking on floor,,,,,,,,,No,Binary
+,,,,Panel erection / alignment / grouting / fixing,,,,,,,,,No,Binary
+,,,,Inter-panel busbar connections,,,,,,,,,No,Binary
+,,Protection Panels,,,,,,,,,,,No,
+,,,,Protection relay / IED installation in panel,,,,,,,,,No,Binary
+,,,,CT / VT secondary terminal connections,,,,,,,,,No,Binary
+,,,,Scheme wiring,,,,,,,,,No,Binary
+,,,,Trip circuit wiring,,,,,,,,,No,Binary
+,,Metering Panels,,,,,,,,,,,No,
+,,,,Revenue / tariff meter installation,,,,,,,,,No,Binary
+,,,,Metering CT / PT wiring,,,,,,,,,No,Binary
+,,,,Meter terminal block connections,,,,,,,,,No,Binary
+,,Annunciation & Indication Panels,,,,,,,,,,,No,
+,,,,Annunciator card / module installation,,,,,,,,,No,Binary
+,,,,Indication wiring,,,,,,,,,No,Binary
+,,RTU / Gateway,,,,,,,,,,,No,
+,,,,RTU / gateway rack mounting,,,,,,,,,No,Binary
+,,,,I/O card installation,,,,,,,,,No,Binary
+,,,,Communication wiring (serial / Ethernet),,,,,,,,,No,Binary
+,,SCADA Server & HMI,,,,,,,,,,,No,
+,,,,Server rack mounting,,,,,,,,,No,Binary
+,,,,Software installation,,,,,,,,,No,Binary
+,,,,HMI screen installation & wiring,,,,,,,,,No,Binary
+,,Telecom Equipment,,,,,,,,,,,No,
+,,,,Telecom rack installation,,,,,,,,,No,Binary
+,,,,OFC equipment (SDH / MPLS) installation,,,,,,,,,No,Binary
+,,,,Patch panel installation,,,,,,,,,No,Binary
+,,,,Telecom wiring & patching,,,,,,,,,No,Binary
+,,SAS / IEC 61850 System (if applicable),,,,,,,,,,,No,
+,,,,Network switch installation & LAN setup,,,,,,,,,No,Binary
+,,,,IED IP mapping & configuration upload,,,,,,,,,No,Binary
+,,,,FO patch cord connections,,,,,,,,,No,Binary
+,,,,SAS server & HMI installation,,,,,,,,,No,Binary
+Auxiliary System Installation,,,,,,,,,,,,,No,
+,,Station Service Transformer,,,,,,,,,,,No,
+,,,,SST / substation DT erection,,,,,,,,,No,Binary
+,,,,HV & LV terminations,,,,,,,,,No,Binary
+,,,,Earthing connections,,,,,,,,,No,Binary
+,,AC Distribution,,,,,,,,,,,No,
+,,,,ACDB installation & wiring,,,,,,,,,No,Binary
+,,,,Station AC supply cabling,,,,,,,,,No,Binary
+,,,,LT cable connections to loads,,,,,,,,,No,Binary
+,,DC Distribution,,,,,,,,,,,No,
+,,,,DCDB installation & wiring,,,,,,,,,No,Binary
+,,,,DC loop wiring,,,,,,,,,No,Binary
+,,,,Fuse / MCB installation,,,,,,,,,No,Binary
+,,Battery Bank & Charger,,,,,,,,,,,No,
+,,,,Battery rack installation,,,,,,,,,No,Binary
+,,,,Battery cell placement & interconnection,,,,,,,,,No,Binary
+,,,,Battery charger installation,,,,,,,,,No,Binary
+,,,,Terminal connections,,,,,,,,,No,Binary
+,,,,Electrolyte filling (if VRLA / flooded),,,,,,,,,No,Binary
+,,UPS System,,,,,,,,,,,No,
+,,,,UPS installation & wiring,,,,,,,,,No,Binary
+,,,,Bypass switch connection,,,,,,,,,No,Binary
+,,Lighting System,,,,,,,,,,,No,
+,,,,Yard lighting mast & floodlight installation,,,,,,,,,No,Binary
+,,,,Control room / building lighting,,,,,,,,,No,Binary
+,,,,Emergency lighting,,,,,,,,,No,Binary
+,,,,Lighting distribution board (LDB) installation,,,,,,,,,No,Binary
+,,Fire Protection & Detection,,,,,,,,,,,No,
+,,,,Fire detection sensor installation,,,,,,,,,No,Binary
+,,,,Fire alarm panel installation,,,,,,,,,No,Binary
+,,,,Fire suppression system (FM200 / CO2 / sprinkler),,,,,,,,,No,Binary
+,,,,Fire hydrant & hose reel,,,,,,,,,No,Binary
+,,,,Fire fighting pipe work,,,,,,,,,No,Binary
+,,HVAC & Ventilation,,,,,,,,,,,No,
+,,,,AC unit installation (control room),,,,,,,,,No,Binary
+,,,,Ventilation fan & ductwork,,,,,,,,,No,Binary
+,,,,Thermostat & controls,,,,,,,,,No,Binary
+,,Electronic Security,,,,,,,,,,,No,
+,,,,CCTV camera installation,,,,,,,,,No,Binary
+,,,,DVR / NVR installation,,,,,,,,,No,Binary
+,,,,Access control system,,,,,,,,,No,Binary
+,,,,Intrusion alarm system,,,,,,,,,No,Binary
+Cable Works,,,,,,,,,,,,,No,
+,,Cable Tray & Support Installation,,,,,,,,,,,No,
+,,,,Cable tray erection,,,,,,,,,No,Binary
+,,,,Cable tray support brackets,,,,,,,,,No,Binary
+,,,,Conduit / rigid pipe installation,,,,,,,,,No,Binary
+,,Control Cable Laying,,,,,,,,,,,No,
+,,,,Cable route marking,,,,,,,,,No,Binary
+,,,,Control cable pulling & laying,,,,,,,,,No,Binary
+,,,,Cable identification & numbering,,,,,,,,,No,Binary
+,,Power Cable Laying,,,,,,,,,,,No,
+,,,,Power cable pulling & laying,,,,,,,,,No,Binary
+,,,,Cable identification & numbering,,,,,,,,,No,Binary
+,,Optical Fiber Cable Laying,,,,,,,,,,,No,
+,,,,FO cable pulling & laying,,,,,,,,,No,Binary
+,,,,FO splicing & termination,,,,,,,,,No,Binary
+,,,,OTDR testing,,,,,,,,,No,Binary
+,,Cable Dressing & Tagging,,,,,,,,,,,No,
+,,,,Cable dressing & cleating,,,,,,,,,No,Binary
+,,,,Ferruling & tagging,,,,,,,,,No,Binary
+,,,,Cable schedule preparation,,,,,,,,,No,Binary
+,,Glanding & Termination,,,,,,,,,,,No,
+,,,,Cable glanding,,,,,,,,,No,Binary
+,,,,Cable termination at panels,,,,,,,,,No,Binary
+,,,,Cable termination at field equipment,,,,,,,,,No,Binary
+,,,,HV / MV cable jointing (if applicable),,,,,,,,,No,Binary
+,,Panel & Marshalling Wiring,,,,,,,,,,,No,
+,,,,Marshalling kiosk wiring,,,,,,,,,No,Binary
+,,,,Panel internal wiring,,,,,,,,,No,Binary
+,,,,Terminal block connections,,,,,,,,,No,Binary
+,,,,Wiring continuity check,,,,,,,,,No,Binary
+Protection Control & SCADA,,,,,,,,,,,,,No,
+,,Relay Setting & Configuration,,,,,,,,,,,No,
+,,,,Relay setting calculation,,,,,,,,,No,Binary
+,,,,Setting upload to relay / IED,,,,,,,,,No,Binary
+,,,,Setting verification & sign-off,,,,,,,,,No,Binary
+,,Logic & Scheme Configuration,,,,,,,,,,,No,
+,,,,Protection logic programming,,,,,,,,,No,Binary
+,,,,Auto-reclose / AVR logic,,,,,,,,,No,Binary
+,,,,Alarm & event configuration,,,,,,,,,No,Binary
+,,Interlocking Checks,,,,,,,,,,,No,
+,,,,Mechanical interlock verification,,,,,,,,,No,Binary
+,,,,Electrical interlock testing,,,,,,,,,No,Binary
+,,,,Scheme interlock testing,,,,,,,,,No,Binary
+,,,,Emergency stop testing,,,,,,,,,No,Binary
+,,RTU & SCADA Configuration,,,,,,,,,,,No,
+,,,,RTU point mapping & configuration,,,,,,,,,No,Binary
+,,,,SCADA database build,,,,,,,,,No,Binary
+,,,,Signal list verification,,,,,,,,,No,Binary
+,,,,Point-to-point signal testing,,,,,,,,,No,Binary
+,,,,End-to-end communication test,,,,,,,,,No,Binary
+,,,,Alarm & event testing,,,,,,,,,No,Binary
+,,,,Historical data logging check,,,,,,,,,No,Binary
+,,IEC 61850 & SAS Configuration (if applicable),,,,,,,,,,,No,
+,,,,IED GOOSE configuration & binding,,,,,,,,,No,Binary
+,,,,SAS network configuration,,,,,,,,,No,Binary
+,,,,Time synchronization (GPS / PTP) setup,,,,,,,,,No,Binary
+,,,,MMS communication test,,,,,,,,,No,Binary
+,,,,SAS FAT verification at site,,,,,,,,,No,Binary
+,,Telecom Integration,,,,,,,,,,,No,
+,,,,Telecom system integration,,,,,,,,,No,Binary
+,,,,Voice communication setup,,,,,,,,,No,Binary
+,,,,PLCC channel testing (132kV+),,,,,,,,,No,Binary
+,,,,Teleprotection testing (132kV+),,,,,,,,,No,Binary
+,,Cybersecurity & OT Hardening,,,,,,,,,,,No,
+,,,,OT network segmentation & VLAN config,,,,,,,,,No,Binary
+,,,,Firewall rules configuration,,,,,,,,,No,Binary
+,,,,User access management & passwords,,,,,,,,,No,Binary
+,,,,OT security audit & sign-off,,,,,,,,,No,Binary
+Testing & Commissioning,,,,,,,,,,,,,No,
+,,Transformer Pre-Commissioning Tests,,,,,,,,,,,No,
+,,,,Turns ratio test,,,,,,,,,No,Binary
+,,,,Insulation resistance (IR) test,,,,,,,,,No,Binary
+,,,,Oil sampling & dissolved gas analysis (DGA),,,,,,,,,No,Binary
+,,,,Tan-delta test,,,,,,,,,No,Binary
+,,,,Magnetizing current test,,,,,,,,,No,Binary
+,,,,DC resistance test,,,,,,,,,No,Binary
+,,,,Buchholz & PRD functional check,,,,,,,,,No,Binary
+,,Circuit Breaker Tests,,,,,,,,,,,No,
+,,,,Contact resistance test,,,,,,,,,No,Binary
+,,,,Timing test (open / close / O-C),,,,,,,,,No,Binary
+,,,,Insulation resistance test,,,,,,,,,No,Binary
+,,,,SF6 pressure & quality check,,,,,,,,,No,Binary
+,,,,Mechanism functional test,,,,,,,,,No,Binary
+,,CT Tests,,,,,,,,,,,No,
+,,,,Ratio & polarity test,,,,,,,,,No,Binary
+,,,,Magnetization / knee point curve,,,,,,,,,No,Binary
+,,,,Insulation resistance test,,,,,,,,,No,Binary
+,,,,Burden measurement,,,,,,,,,No,Binary
+,,CVT / PT Tests,,,,,,,,,,,No,
+,,,,Ratio & polarity test,,,,,,,,,No,Binary
+,,,,Insulation resistance test,,,,,,,,,No,Binary
+,,,,Tan-delta test,,,,,,,,,No,Binary
+,,Isolator / Disconnector Tests,,,,,,,,,,,No,
+,,,,Contact resistance test,,,,,,,,,No,Binary
+,,,,Alignment & operation check,,,,,,,,,No,Binary
+,,,,Motor mechanism functional test,,,,,,,,,No,Binary
+,,GIS Tests (GIS / HYB),,,,,,,,,,,No,
+,,,,SF6 gas quality & purity test,,,,,,,,,No,Binary
+,,,,SF6 leak test (ppm / year),,,,,,,,,No,Binary
+,,,,HV withstand / partial discharge test,,,,,,,,,No,Binary
+,,Cable Tests,,,,,,,,,,,No,
+,,,,Insulation resistance (IR) test,,,,,,,,,No,Binary
+,,,,Hi-pot / VLF withstand test,,,,,,,,,No,Binary
+,,,,Continuity test,,,,,,,,,No,Binary
+,,,,Sheath test,,,,,,,,,No,Binary
+,,Battery & Charger Tests,,,,,,,,,,,No,
+,,,,Battery capacity discharge test,,,,,,,,,No,Binary
+,,,,Charger output & regulation test,,,,,,,,,No,Binary
+,,,,DC system endurance test,,,,,,,,,No,Binary
+,,Protection Secondary Injection Tests,,,,,,,,,,,No,
+,,,,Overcurrent & earth fault relay testing,,,,,,,,,No,Binary
+,,,,Differential relay testing,,,,,,,,,No,Binary
+,,,,Distance relay testing,,,,,,,,,No,Binary
+,,,,Busbar protection testing,,,,,,,,,No,Binary
+,,,,Auto-reclose relay testing,,,,,,,,,No,Binary
+,,,,Trip circuit supervision testing,,,,,,,,,No,Binary
+,,,,Lockout relay testing,,,,,,,,,No,Binary
+,,Metering Verification,,,,,,,,,,,No,
+,,,,Meter accuracy check,,,,,,,,,No,Binary
+,,,,CT / PT ratio verification,,,,,,,,,No,Binary
+,,,,Energy meter testing & sealing,,,,,,,,,No,Binary
+,,Auxiliary & Ancillary Systems Testing,,,,,,,,,,,No,
+,,,,AC / DC auxiliary supply verification,,,,,,,,,No,Binary
+,,,,Lighting & small power test,,,,,,,,,No,Binary
+,,,,HVAC functional test,,,,,,,,,No,Binary
+,,,,Fire detection & alarm test,,,,,,,,,No,Binary
+,,,,Fire suppression system test,,,,,,,,,No,Binary
+,,,,CCTV & access control test,,,,,,,,,No,Binary
+,,,,UPS changeover test,,,,,,,,,No,Binary
+,,System Integration Testing,,,,,,,,,,,No,
+,,,,Bay functional test (local & remote),,,,,,,,,No,Binary
+,,,,Inter-bay interlock testing,,,,,,,,,No,Binary
+,,,,SCADA point-to-point & end-to-end test,,,,,,,,,No,Binary
+,,,,IEC 61850 GOOSE message test,,,,,,,,,No,Binary
+,,,,Teleprotection end-to-end test (132kV+),,,,,,,,,No,Binary
+,,,,Control room simulation test,,,,,,,,,No,Binary
+,,Pre-Commissioning Review,,,,,,,,,,,No,
+,,,,Protection coordination final check,,,,,,,,,No,Binary
+,,,,Trial run (no-load operation),,,,,,,,,No,Binary
+,,,,Client / utility inspection & punch list,,,,,,,,,No,Binary
+,,,,Punch list closure,,,,,,,,,No,Binary
+Energization & Handover,,,,,,,,,,,,,No,
+,,Outage Coordination & Safety,,,,,,,,,,,No,
+,,,,Outage request & SLDC / DISCOM coordination,,,,,,,,,No,Binary
+,,,,Safety clearance & permit to work (PTW),,,,,,,,,No,Binary
+,,,,Isolation & earthing verification,,,,,,,,,No,Binary
+,,,,Safety audit before energization,,,,,,,,,No,Binary
+,,Energization,,,,,,,,,,,No,
+,,,,HV line / bus charging,,,,,,,,,No,Binary
+,,,,Transformer energization (no-load),,,,,,,,,No,Binary
+,,,,Bus voltage & phase verification,,,,,,,,,No,Binary
+,,,,Feeder energization & load transfer,,,,,,,,,No,Binary
+,,,,Reliability run (72-hour continuous),,,,,,,,,No,Binary
+,,Post-Energization Checks,,,,,,,,,,,No,
+,,,,Protection stability check under load,,,,,,,,,No,Binary
+,,,,Metering verification under load,,,,,,,,,No,Binary
+,,,,SCADA readings verification under load,,,,,,,,,No,Binary
+,,Documentation & Handover,,,,,,,,,,,No,
+,,,,As-built drawings final submission,,,,,,,,,No,Binary
+,,,,Test reports compilation & submission,,,,,,,,,No,Binary
+,,,,O&M manuals handover,,,,,,,,,No,Binary
+,,,,Spare parts list & handover,,,,,,,,,No,Binary
+,,,,Warranty documents compilation,,,,,,,,,No,Binary
+,,Training,,,,,,,,,,,No,
+,,,,Operations training to utility / client staff,,,,,,,,,No,Binary
+,,,,Maintenance training,,,,,,,,,No,Binary
+,,,,Emergency response training,,,,,,,,,No,Binary
+,,Acceptance,,,,,,,,,,,No,
+,,,,PAC (Provisional Acceptance Certificate),,,,,,,,,No,Binary
+,,,,Site reinstatement / rehabilitation,,,,,,,,,No,Binary
+,,,,Defects liability period monitoring,,,,,,,,,No,Binary
+,,,,FAC (Final Acceptance Certificate),,,,,,,,,No,Binary
+HSE & Quality,,,,,,,,,,,,,No,
+,,Health & Safety Management,,,,,,,,,,,No,
+,,,,Safety plan preparation & approval,,,,,,,,,No,Binary
+,,,,Toolbox talks (daily),,,,,,,,,No,Binary
+,,,,PPE compliance monitoring,,,,,,,,,No,Binary
+,,,,Permit to work (PTW) system,,,,,,,,,No,Binary
+,,,,Safety audits & inspections,,,,,,,,,No,Binary
+,,,,Incident reporting & investigation,,,,,,,,,No,Binary
+,,,,Emergency response drill,,,,,,,,,No,Binary
+,,,,Working at height safety,,,,,,,,,No,Binary
+,,,,Electrical safety (LV / HV awareness),,,,,,,,,No,Binary
+,,Quality Management,,,,,,,,,,,No,
+,,,,ITP (Inspection & Test Plan) preparation & approval,,,,,,,,,No,Binary
+,,,,Stage-wise quality checks & sign-off,,,,,,,,,No,Binary
+,,,,NCR (Non-Conformance Report) issuance & closure,,,,,,,,,No,Binary
+,,,,Calibration records management,,,,,,,,,No,Binary
+,,,,Third-party inspection coordination,,,,,,,,,No,Binary
+,,,,Material test certificates (MTC) verification,,,,,,,,,No,Binary
+,,Environmental Controls,,,,,,,,,,,No,
+,,,,Waste management plan,,,,,,,,,No,Binary
+,,,,Oil spill prevention & containment,,,,,,,,,No,Binary
+,,,,Noise & dust control,,,,,,,,,No,Binary
+,,,,Hazardous material handling,,,,,,,,,No,Binary
+,,,,Environmental monitoring reports,,,,,,,,,No,Binary
