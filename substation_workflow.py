@@ -643,7 +643,7 @@ data = [
 ]
 
 # ── Build Workbook ─────────────────────────────────────────────────────────────
-headers = ["Workflow Name", "Sub-Module / Step", "Source URLs"]
+headers = ["Module", "Sub-Module / Step", "Source URL 1", "Source URL 2"]
 
 thin = Side(style='thin')
 border = Border(left=thin, right=thin, top=thin, bottom=thin)
@@ -659,10 +659,10 @@ for col, h in enumerate(headers, 1):
 
 # Data rows
 wrap_top = Alignment(vertical='top', wrap_text=True)
-url_font = Font(color="0563C1", underline="single")
+link_font = Font(color="0563C1", underline="single")
 
 for row_num, (wf_name, sub_mod, url1, url2) in enumerate(data, 2):
-    # Col 1 — Workflow Name (bold only when not empty)
+    # Col 1 — Module (bold only when not empty)
     c1 = ws.cell(row=row_num, column=1, value=wf_name)
     c1.alignment = wrap_top
     c1.border = border
@@ -674,26 +674,34 @@ for row_num, (wf_name, sub_mod, url1, url2) in enumerate(data, 2):
     c2.alignment = wrap_top
     c2.border = border
 
-    # Col 3 — URLs combined in one cell (two lines)
-    combined_urls = f"1. {url1}\n2. {url2}"
-    c3 = ws.cell(row=row_num, column=3, value=combined_urls)
+    # Col 3 — Source URL 1 (clickable)
+    c3 = ws.cell(row=row_num, column=3, value=url1)
+    c3.hyperlink = url1
+    c3.font = Font(color="0563C1", underline="single")
     c3.alignment = wrap_top
     c3.border = border
-    c3.font = Font(color="0563C1")
+
+    # Col 4 — Source URL 2 (clickable)
+    c4 = ws.cell(row=row_num, column=4, value=url2)
+    c4.hyperlink = url2
+    c4.font = Font(color="0563C1", underline="single")
+    c4.alignment = wrap_top
+    c4.border = border
 
 # ── Column Widths ──────────────────────────────────────────────────────────────
 ws.column_dimensions['A'].width = 42
 ws.column_dimensions['B'].width = 50
-ws.column_dimensions['C'].width = 90
+ws.column_dimensions['C'].width = 65
+ws.column_dimensions['D'].width = 65
 
 # ── Row Heights ────────────────────────────────────────────────────────────────
 ws.row_dimensions[1].height = 28
 for r in range(2, len(data) + 2):
-    ws.row_dimensions[r].height = 48
+    ws.row_dimensions[r].height = 40
 
 # ── Freeze and Filter ──────────────────────────────────────────────────────────
 ws.freeze_panes = "A2"
-ws.auto_filter.ref = f"A1:C{len(data)+1}"
+ws.auto_filter.ref = f"A1:D{len(data)+1}"
 
 # ── Save ───────────────────────────────────────────────────────────────────────
 out = "/home/user/Harrsh25/Substation_Workflow_Module_Guide.xlsx"
