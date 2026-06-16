@@ -7,9 +7,23 @@ wb = Workbook()
 ws = wb.active
 ws.title = "Substation Workflows"
 
-# ── Data: (workflow_name, sub_module, url1, url2) ─────────────────────────────
-data = [
+# ── Data: (module, sub_module, url1, url2) ────────────────────────────────────
+# Broken URL replacements:
+#   lauwtjunnji.weebly.com  → https://www.academia.edu/8347063/FIDIC_Conditions_of_Contract_for_EPC_Turnkey_Projects_doc
+#   pmri.in/epccompletion/  → https://www.projectmanager.com/blog/managing-construction-projects
+#   petroedgeasia.net       → https://www.lexology.com/library/detail.aspx?g=2de63e41-6eef-432b-a5c8-0026bbeac029
+#   electra.cigre.org       → https://www.electrical4u.com/electrical-power-substation-engineering-and-layout/
+#   mayerbrown.com PDF      → https://projectmanagementformula.com/engineering-procurement-and-construction-epc-contract/
+#   pillsburylaw.com PDF    → https://constructionfront.com/epc-contract/
 
+FIDIC_URL  = "https://www.academia.edu/8347063/FIDIC_Conditions_of_Contract_for_EPC_Turnkey_Projects_doc"
+PMRI_URL   = "https://www.projectmanager.com/blog/managing-construction-projects"
+PETRO_URL  = "https://www.lexology.com/library/detail.aspx?g=2de63e41-6eef-432b-a5c8-0026bbeac029"
+CIGRE_URL  = "https://www.electrical4u.com/electrical-power-substation-engineering-and-layout/"
+MAYER_URL  = "https://projectmanagementformula.com/engineering-procurement-and-construction-epc-contract/"
+PILLS_URL  = "https://constructionfront.com/epc-contract/"
+
+data = [
     # WORKFLOW 1 — Bid Process
     ("Bid Process in Substation EPC Projects",
      "Tender / NIT Received – Opportunity Identification",
@@ -48,17 +62,17 @@ data = [
 
     ("",
      "Risk & Contingency Analysis – Project Risk Assessment",
-     "https://www.mayerbrown.com/Files/Publication/35328234-d6f9-49c7-bbe8-964945bb9158/Presentation/PublicationAttachment/96527455-174f-4e1a-9a9c-9a1d66e9bde3/EPC_contracts_jan15_hosie.pdf",
+     MAYER_URL,
      "https://www.pmi.org/learning/library/realizing-engineering-procurement-construction-projects-7173"),
 
     ("",
      "Margin Finalization – Profit Strategy Definition",
      "https://www.euci.com/event_post/epc-contracts/",
-     "https://www.pillsburylaw.com/a/web/157254/EPC-Agreement-Provisions.pdf"),
+     PILLS_URL),
 
     ("",
      "Technical & Commercial Bid Preparation – Proposal Creation",
-     "https://www.pillsburylaw.com/a/web/157254/EPC-Agreement-Provisions.pdf",
+     PILLS_URL,
      "https://fidic.org/sites/default/files/The%20FIDIC%20Contracts%20Guide.pdf"),
 
     ("",
@@ -69,27 +83,27 @@ data = [
     ("",
      "Bid Award (LOA) – Project Successfully Won",
      "https://relgrow.com/resources/dlp-full-form-in-construction/",
-     "https://www.pillsburylaw.com/a/web/157254/EPC-Agreement-Provisions.pdf"),
+     PILLS_URL),
 
     ("",
      "Contract Finalization & PBG – Legal Agreement Completion",
      "https://fidic.org/sites/default/files/The%20FIDIC%20Contracts%20Guide.pdf",
-     "https://lauwtjunnji.weebly.com/uploads/1/0/1/7/10171621/fidic_-_conditions_of_contract_for_epc_(turnkey)_projects_(1999).pdf"),
+     FIDIC_URL),
 
     # WORKFLOW 2 — Contract Finalization
     ("Contract Finalization and Project Mobilization Process",
      "LOA / LOI Received – Project Award Confirmation",
-     "https://pmri.in/epccompletion/",
+     PMRI_URL,
      "https://relgrow.com/resources/dlp-full-form-in-construction/"),
 
     ("",
      "Draft and Review Contract – Contract Preparation",
      "https://fidic.org/sites/default/files/The%20FIDIC%20Contracts%20Guide.pdf",
-     "https://www.pillsburylaw.com/a/web/157254/EPC-Agreement-Provisions.pdf"),
+     PILLS_URL),
 
     ("",
      "Negotiation and Finalization – Commercial and Legal Alignment",
-     "https://petroedgeasia.net/training/engineering-procurement-construction-contracts-epc-training-course/",
+     PETRO_URL,
      "https://fidic.org/sites/default/files/The%20FIDIC%20Contracts%20Guide.pdf"),
 
     ("",
@@ -99,18 +113,18 @@ data = [
 
     ("",
      "Parallel Compliance Activities – Financial and Regulatory Commitments",
-     "https://lauwtjunnji.weebly.com/uploads/1/0/1/7/10171621/fidic_-_conditions_of_contract_for_epc_(turnkey)_projects_(1999).pdf",
+     FIDIC_URL,
      "https://constructionlawmadeeasy.com/construction-law/chapter-10/defects-liability-period/"),
 
     ("",
      "Contract Effective – Contract Activation",
-     "https://pmri.in/epccompletion/",
+     PMRI_URL,
      "https://rkstrainings.com/what-is-project-management-in-epc/"),
 
     ("",
      "Bid to Execution Handover – Ownership Transfer",
      "https://projectmanagement123.com/project-completion-and-handover-procedure/",
-     "https://pmri.in/epccompletion/"),
+     PMRI_URL),
 
     ("",
      "Project Planning Activities – Execution Preparation",
@@ -120,7 +134,7 @@ data = [
     # WORKFLOW 3 — Project Mobilization
     ("Project Mobilization and Site Establishment Process",
      "Mobilization Advance and Bank Guarantee Processing",
-     "https://lauwtjunnji.weebly.com/uploads/1/0/1/7/10171621/fidic_-_conditions_of_contract_for_epc_(turnkey)_projects_(1999).pdf",
+     FIDIC_URL,
      "https://constructionlawmadeeasy.com/construction-law/chapter-10/defects-liability-period/"),
 
     ("",
@@ -140,7 +154,7 @@ data = [
 
     ("",
      "HSE Plan and Safety Induction Setup",
-     "https://electra.cigre.org/311-august-2020/technical-brochures/guidelines-for-safe-work-methods-in-substations.html",
+     CIGRE_URL,
      "https://electrical4learning.blogspot.com/2024/11/method-statement-for-testing-and-commissioning-of-substation-equipments.html"),
 
     ("",
@@ -264,7 +278,7 @@ data = [
 
     ("",
      "Advance Payment and Bank Guarantee Processing",
-     "https://lauwtjunnji.weebly.com/uploads/1/0/1/7/10171621/fidic_-_conditions_of_contract_for_epc_(turnkey)_projects_(1999).pdf",
+     FIDIC_URL,
      "https://constructionlawmadeeasy.com/construction-law/chapter-10/defects-liability-period/"),
 
     # WORKFLOW 8 — Manufacturing & FAT
@@ -354,7 +368,7 @@ data = [
     ("",
      "Below Grade Works – Cable Trenches, Conduits, Ground Grid",
      "https://www.substationfaults.com/electrical-substation-construction/",
-     "https://electra.cigre.org/311-august-2020/technical-brochures/guidelines-for-safe-work-methods-in-substations.html"),
+     CIGRE_URL),
 
     ("",
      "Foundation Construction",
@@ -364,12 +378,12 @@ data = [
     ("",
      "Control Room and Buildings Construction",
      "https://electrical-engineering-portal.com/power-substation-project-design-construction-erection-commissioning",
-     "https://electra.cigre.org/311-august-2020/technical-brochures/guidelines-for-safe-work-methods-in-substations.html"),
+     CIGRE_URL),
 
     ("",
      "Drainage, Fencing and Stone Verge",
      "https://www.substationfaults.com/electrical-substation-construction/",
-     "https://electra.cigre.org/311-august-2020/technical-brochures/guidelines-for-safe-work-methods-in-substations.html"),
+     CIGRE_URL),
 
     ("",
      "Civil Readiness Check – Structural Work Complete",
@@ -385,7 +399,7 @@ data = [
     ("",
      "Structural Steel Erection",
      "https://electrical-engineering-portal.com/power-substation-project-design-construction-erection-commissioning",
-     "https://electra.cigre.org/311-august-2020/technical-brochures/guidelines-for-safe-work-methods-in-substations.html"),
+     CIGRE_URL),
 
     ("",
      "Power Transformer and Major Equipment Installation",
@@ -488,7 +502,7 @@ data = [
     ("",
      "Punch List Identification and Rectification",
      "https://powersynchro.com/substation-commissioning-checklist/",
-     "https://pmri.in/epccompletion/"),
+     PMRI_URL),
 
     ("",
      "Commissioning Readiness Certificate Issued",
@@ -566,23 +580,23 @@ data = [
     ("",
      "Performance Stabilization Confirmed",
      "https://eepower.com/technical-articles/substation-commissioning-and-testingpart-1-scope-and-workflow/",
-     "https://pmri.in/epccompletion/"),
+     PMRI_URL),
 
     # WORKFLOW 19 — Project Closure
     ("Project Closure, Client Acceptance and Final Handover Process",
      "Punch List Final Completion",
-     "https://pmri.in/epccompletion/",
+     PMRI_URL,
      "https://projectmanagement123.com/project-completion-and-handover-procedure/"),
 
     ("",
      "Client Walk-through and Acceptance Inspection",
-     "https://pmri.in/epccompletion/",
+     PMRI_URL,
      "https://projectmanagement123.com/project-completion-and-handover-procedure/"),
 
     ("",
      "As-Built Documentation Handover",
      "https://projectmanagement123.com/project-completion-and-handover-procedure/",
-     "https://pmri.in/epccompletion/"),
+     PMRI_URL),
 
     ("",
      "Certificate of Completion / Provisional Acceptance Certificate (PAC)",
@@ -592,13 +606,13 @@ data = [
     ("",
      "Contractor Closeout Submittals",
      "https://projectmanagement123.com/project-completion-and-handover-procedure/",
-     "https://pmri.in/epccompletion/"),
+     PMRI_URL),
 
     # WORKFLOW 20 — DLP
     ("Defect Liability Period (DLP), Warranty Support and Final Acceptance Process",
      "DLP Period Commencement",
      "https://www.mastt.com/blogs/defects-liability-period",
-     "https://relgrow.com/resources/dlp-full-form-in-construction/"),
+     "https://www.designingbuildings.co.uk/wiki/Defects_liability_period_DLP"),
 
     ("",
      "Defect Attendance – Identification and Repair",
@@ -613,13 +627,13 @@ data = [
     ("",
      "Warranty Claims Management",
      "https://www.mastt.com/blogs/defects-liability-period",
-     "https://lauwtjunnji.weebly.com/uploads/1/0/1/7/10171621/fidic_-_conditions_of_contract_for_epc_(turnkey)_projects_(1999).pdf"),
+     FIDIC_URL),
 
     # WORKFLOW 21 — FAC & Closeout
     ("Final Acceptance Certificate (FAC), Contract Closure and Project Closeout Process",
      "All DLP Defects Rectified – Final Inspection Request",
      "https://relgrow.com/resources/dlp-full-form-in-construction/",
-     "https://pmri.in/epccompletion/"),
+     PMRI_URL),
 
     ("",
      "Final Acceptance Certificate (FAC) Issuance",
@@ -629,7 +643,7 @@ data = [
     ("",
      "Final Payment and Retention Release",
      "https://constructionlawmadeeasy.com/construction-law/chapter-10/defects-liability-period/",
-     "https://lauwtjunnji.weebly.com/uploads/1/0/1/7/10171621/fidic_-_conditions_of_contract_for_epc_(turnkey)_projects_(1999).pdf"),
+     FIDIC_URL),
 
     ("",
      "Contract Closure and Project Closeout",
@@ -642,14 +656,21 @@ data = [
      "https://www.mastt.com/blogs/defects-liability-period"),
 ]
 
+# ── Build rows: each (module, sub_module, url1, url2) → two Excel rows ─────────
+# Row A: module_name (bold if first of workflow), sub_module, url1
+# Row B: "",          "",          url2
+excel_rows = []
+for (mod, sub, url1, url2) in data:
+    excel_rows.append((mod, sub, url1))
+    excel_rows.append(("", "", url2))
+
 # ── Build Workbook ─────────────────────────────────────────────────────────────
-headers = ["Module", "Sub-Module / Step", "Source URL 1", "Source URL 2"]
+headers = ["Module", "Sub-Module / Step", "Source URL"]
 
 thin = Side(style='thin')
 border = Border(left=thin, right=thin, top=thin, bottom=thin)
 
-# Header row
-hdr_font = Font(bold=True, size=11)
+hdr_font  = Font(bold=True, size=11)
 hdr_align = Alignment(horizontal='center', vertical='center', wrap_text=True)
 for col, h in enumerate(headers, 1):
     cell = ws.cell(row=1, column=col, value=h)
@@ -657,53 +678,45 @@ for col, h in enumerate(headers, 1):
     cell.alignment = hdr_align
     cell.border = border
 
-# Data rows
-wrap_top = Alignment(vertical='top', wrap_text=True)
+wrap_top  = Alignment(vertical='top', wrap_text=True)
 link_font = Font(color="0563C1", underline="single")
 
-for row_num, (wf_name, sub_mod, url1, url2) in enumerate(data, 2):
-    # Col 1 — Module (bold only when not empty)
-    c1 = ws.cell(row=row_num, column=1, value=wf_name)
+for row_num, (mod, sub, url) in enumerate(excel_rows, 2):
+    # Col A — Module
+    c1 = ws.cell(row=row_num, column=1, value=mod)
     c1.alignment = wrap_top
     c1.border = border
-    if wf_name:
+    if mod:
         c1.font = Font(bold=True)
 
-    # Col 2 — Sub-Module
-    c2 = ws.cell(row=row_num, column=2, value=sub_mod)
+    # Col B — Sub-Module
+    c2 = ws.cell(row=row_num, column=2, value=sub)
     c2.alignment = wrap_top
     c2.border = border
 
-    # Col 3 — Source URL 1 (clickable)
-    c3 = ws.cell(row=row_num, column=3, value=url1)
-    c3.hyperlink = url1
-    c3.font = Font(color="0563C1", underline="single")
+    # Col C — Source URL (clickable)
+    c3 = ws.cell(row=row_num, column=3, value=url)
+    if url:
+        c3.hyperlink = url
+        c3.font = Font(color="0563C1", underline="single")
     c3.alignment = wrap_top
     c3.border = border
 
-    # Col 4 — Source URL 2 (clickable)
-    c4 = ws.cell(row=row_num, column=4, value=url2)
-    c4.hyperlink = url2
-    c4.font = Font(color="0563C1", underline="single")
-    c4.alignment = wrap_top
-    c4.border = border
-
 # ── Column Widths ──────────────────────────────────────────────────────────────
 ws.column_dimensions['A'].width = 42
-ws.column_dimensions['B'].width = 50
-ws.column_dimensions['C'].width = 65
-ws.column_dimensions['D'].width = 65
+ws.column_dimensions['B'].width = 52
+ws.column_dimensions['C'].width = 80
 
 # ── Row Heights ────────────────────────────────────────────────────────────────
 ws.row_dimensions[1].height = 28
-for r in range(2, len(data) + 2):
-    ws.row_dimensions[r].height = 40
+for r in range(2, len(excel_rows) + 2):
+    ws.row_dimensions[r].height = 30
 
 # ── Freeze and Filter ──────────────────────────────────────────────────────────
 ws.freeze_panes = "A2"
-ws.auto_filter.ref = f"A1:D{len(data)+1}"
+ws.auto_filter.ref = f"A1:C{len(excel_rows)+1}"
 
 # ── Save ───────────────────────────────────────────────────────────────────────
 out = "/home/user/Harrsh25/Substation_Workflow_Module_Guide.xlsx"
 wb.save(out)
-print(f"Saved: {out} | Rows: {len(data)}")
+print(f"Saved: {out} | Data rows: {len(data)} | Excel rows: {len(excel_rows)}")
