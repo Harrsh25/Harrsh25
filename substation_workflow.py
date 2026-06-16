@@ -656,32 +656,33 @@ data = [
      "https://www.mastt.com/blogs/defects-liability-period"),
 ]
 
-# ── Build rows: each (module, sub_module, url1, url2) → two Excel rows ─────────
-# Row A: module_name (bold if first of workflow), sub_module, url1
-# Row B: "",          "",          url2
-excel_rows = []
-for (mod, sub, url1, url2) in data:
-    excel_rows.append((mod, sub, url1))
-    excel_rows.append(("", "", url2))
-
 # ── Build Workbook ─────────────────────────────────────────────────────────────
-headers = ["Module", "Sub-Module / Step", "Source URL"]
-
 thin = Side(style='thin')
 border = Border(left=thin, right=thin, top=thin, bottom=thin)
+# Border with no internal vertical divider (for merged-look URL cells)
+border_no_right = Border(left=thin, right=Side(style=None), top=thin, bottom=thin)
+border_no_left  = Border(left=Side(style=None), right=thin, top=thin, bottom=thin)
 
 hdr_font  = Font(bold=True, size=11)
 hdr_align = Alignment(horizontal='center', vertical='center', wrap_text=True)
-for col, h in enumerate(headers, 1):
+
+# Columns A, B headers
+for col, h in enumerate(["Module", "Sub-Module / Step"], 1):
     cell = ws.cell(row=1, column=col, value=h)
     cell.font = hdr_font
     cell.alignment = hdr_align
     cell.border = border
 
-wrap_top  = Alignment(vertical='top', wrap_text=True)
-link_font = Font(color="0563C1", underline="single")
+# Merged header C1:D1 — "Source URLs"
+ws.merge_cells("C1:D1")
+hdr_url = ws.cell(row=1, column=3, value="Source URLs")
+hdr_url.font = hdr_font
+hdr_url.alignment = hdr_align
+hdr_url.border = border
 
-for row_num, (mod, sub, url) in enumerate(excel_rows, 2):
+wrap_top = Alignment(vertical='top', wrap_text=True)
+
+for row_num, (mod, sub, url1, url2) in enumerate(data, 2):
     # Col A — Module
     c1 = ws.cell(row=row_num, column=1, value=mod)
     c1.alignment = wrap_top
@@ -694,29 +695,36 @@ for row_num, (mod, sub, url) in enumerate(excel_rows, 2):
     c2.alignment = wrap_top
     c2.border = border
 
-    # Col C — Source URL (clickable)
-    c3 = ws.cell(row=row_num, column=3, value=url)
-    if url:
-        c3.hyperlink = url
-        c3.font = Font(color="0563C1", underline="single")
+    # Col C — Source URL 1 (clickable, no right border)
+    c3 = ws.cell(row=row_num, column=3, value=url1)
+    c3.hyperlink = url1
+    c3.font = Font(color="0563C1", underline="single")
     c3.alignment = wrap_top
-    c3.border = border
+    c3.border = border_no_right
+
+    # Col D — Source URL 2 (clickable, no left border)
+    c4 = ws.cell(row=row_num, column=4, value=url2)
+    c4.hyperlink = url2
+    c4.font = Font(color="0563C1", underline="single")
+    c4.alignment = wrap_top
+    c4.border = border_no_left
 
 # ── Column Widths ──────────────────────────────────────────────────────────────
 ws.column_dimensions['A'].width = 42
 ws.column_dimensions['B'].width = 52
-ws.column_dimensions['C'].width = 80
+ws.column_dimensions['C'].width = 62
+ws.column_dimensions['D'].width = 62
 
 # ── Row Heights ────────────────────────────────────────────────────────────────
 ws.row_dimensions[1].height = 28
-for r in range(2, len(excel_rows) + 2):
-    ws.row_dimensions[r].height = 30
+for r in range(2, len(data) + 2):
+    ws.row_dimensions[r].height = 40
 
 # ── Freeze and Filter ──────────────────────────────────────────────────────────
 ws.freeze_panes = "A2"
-ws.auto_filter.ref = f"A1:C{len(excel_rows)+1}"
+ws.auto_filter.ref = f"A1:D{len(data)+1}"
 
 # ── Save ───────────────────────────────────────────────────────────────────────
 out = "/home/user/Harrsh25/Substation_Workflow_Module_Guide.xlsx"
 wb.save(out)
-print(f"Saved: {out} | Data rows: {len(data)} | Excel rows: {len(excel_rows)}")
+print(f"Saved: {out} | Rows: {len(data)}")
