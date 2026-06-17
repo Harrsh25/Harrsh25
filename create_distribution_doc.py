@@ -1,3 +1,4 @@
+import os
 from docx import Document
 from docx.shared import Inches, Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -458,7 +459,7 @@ workflows.append({
 })
 
 # ── RENDER ALL WORKFLOWS ──────────────────────────────────────────────────────
-for wf in workflows:
+for wf_idx, wf in enumerate(workflows, start=1):
     doc.add_page_break()
     add_heading(doc, wf['title'], level=1)
     add_body(doc, wf['opening'])
@@ -466,8 +467,14 @@ for wf in workflows:
     p = doc.add_paragraph()
     run = p.add_run('Flowchart:')
     set_font(run, bold=True)
-    run2 = p.add_run('  [Flowchart to be inserted here]')
-    set_font(run2)
+
+    flowchart_path = f'/home/user/Harrsh25/flowcharts/section_{wf_idx:02d}.png'
+    if os.path.exists(flowchart_path):
+        doc.add_picture(flowchart_path, width=Inches(6))
+        doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+    else:
+        run2 = p.add_run('  [Flowchart to be inserted here]')
+        set_font(run2)
 
     for sub_title, sub_content in wf['subsections']:
         add_subheading(doc, sub_title)
