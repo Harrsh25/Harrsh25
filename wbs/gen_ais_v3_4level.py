@@ -765,5 +765,5 @@ AIS_TREE_V3 = [
     ]),
 ]
 
-write_csv("AIS_Substation_WBS_5Level.csv", AIS_TREE_V3, "AIS")
+write_csv("AIS_Substation_WBS_4Level_Full.csv", AIS_TREE_V3, "AIS")
 print("Done")
