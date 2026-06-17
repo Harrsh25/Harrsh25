@@ -33,6 +33,13 @@ def write_csv(path, tree, sub_type):
     for top in tree:
         walk(top, [])
 
+    prev_level1 = None
+    for row in rows:
+        if row[0] == prev_level1:
+            row[0] = ""
+        else:
+            prev_level1 = row[0]
+
     with open(path, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(HEADER)
