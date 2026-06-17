@@ -130,12 +130,16 @@ GIS_TREE = [
             leaf("EOT Crane Design"),
         ]),
         node("Protection & System Engineering", [
-            leaf("Protection Philosophy Design"),
-            leaf("Relay Coordination Study"),
-            leaf("Interlocking Scheme Design"),
-            leaf("Control & Relay Panel Design"),
-            leaf("SCADA Architecture Design"),
-            leaf("RTU Design"),
+            node("Protection & Control Design", [
+                leaf("Protection Philosophy Design"),
+                leaf("Relay Coordination Study"),
+                leaf("Interlocking Scheme Design"),
+                leaf("Control & Relay Panel Design"),
+            ]),
+            node("SCADA & Communication Design", [
+                leaf("SCADA Architecture Design"),
+                leaf("RTU Design"),
+            ]),
         ]),
         node("System Studies", [
             leaf("Short Circuit Study"),
