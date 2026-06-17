@@ -32,12 +32,16 @@ def write_csv(path, tree, sub_type):
     for top in tree:
         walk(top, [])
 
-    prev_level1 = None
+    prev_names = [None] * 5
     for row in rows:
-        if row[0] == prev_level1:
-            row[0] = ""
-        else:
-            prev_level1 = row[0]
+        cur_names = [row[0], row[2], row[4], row[6], row[8]]
+        changed_before = False
+        for i in range(5):
+            if not changed_before and cur_names[i] == prev_names[i]:
+                row[i * 2] = ""
+            else:
+                changed_before = True
+        prev_names = cur_names
 
     with open(path, "w", newline="") as f:
         w = csv.writer(f)

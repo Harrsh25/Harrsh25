@@ -1,370 +1,370 @@
 Level1_Name,Level1_Desc,Level2_Name,Level2_Desc,Level3_Name,Level3_Desc,Level4_Name,Level4_Desc,Level5_Name,Level5_Desc,Assign_To,Timeline,Weight,Substation_Type,Leaf_Node_Progress_Type
 Project Initial Activity / Mobilization,,,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
 ,,Contractor Mobilization,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Contractor Mobilization,,Sub-Contractor Finalization,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Contractor Mobilization,,Mobilization of Site Team,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Contractor Mobilization,,Construction Equipment & Vehicle Mobilization,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Sub-Contractor Finalization,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Mobilization of Site Team,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Construction Equipment & Vehicle Mobilization,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,Site Infrastructure Setup,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Site Infrastructure Setup,,Labor Camp / Accommodation Setup,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Site Infrastructure Setup,,Site Office Setup,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Site Infrastructure Setup,,Site Store/Warehouse Setup,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Site Infrastructure Setup,,Site Security Arrangement,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Labor Camp / Accommodation Setup,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Site Office Setup,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Site Store/Warehouse Setup,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Site Security Arrangement,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,Temporary Utilities & Compliance,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Temporary Utilities & Compliance,,Workmen Insurance / ESI-PF Registration,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Temporary Utilities & Compliance,,Temporary Power/Water Arrangement,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Temporary Utilities & Compliance,,Internet & Communication Setup,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Workmen Insurance / ESI-PF Registration,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Temporary Power/Water Arrangement,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Internet & Communication Setup,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 Statutory Approvals & Clearances,,,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
 ,,Land & Environmental Approval,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Land & Environmental Approval,,Land Acquisition / Site Handover,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Land & Environmental Approval,,Forest Clearance,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Land & Environmental Approval,,Environmental Clearance,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Land & Environmental Approval,,Pollution Control Board Consent,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Land Acquisition / Site Handover,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Forest Clearance,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Environmental Clearance,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Pollution Control Board Consent,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,Regulatory Approvals,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Regulatory Approvals,,CEIG Drawing Approval,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Regulatory Approvals,,Electrical Inspectorate Approval,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Regulatory Approvals,,CEA Compliance Approval,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Regulatory Approvals,,SF6 Gas Handling Compliance,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Regulatory Approvals,,Explosive License (Oil/SF6 Storage),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,CEIG Drawing Approval,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Electrical Inspectorate Approval,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,CEA Compliance Approval,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,SF6 Gas Handling Compliance,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Explosive License (Oil/SF6 Storage),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,Civil & Building Approvals,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Civil & Building Approvals,,Building Plan Approval (GIS Hall),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Civil & Building Approvals,,Fire Safety Approval,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Civil & Building Approvals,,Local Authority Approval,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Building Plan Approval (GIS Hall),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Fire Safety Approval,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Local Authority Approval,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,Grid & Utility Approval,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Grid & Utility Approval,,Grid Connectivity Approval,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Grid & Utility Approval,,Right of Way Approval,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Grid & Utility Approval,,Aviation/Height Clearance,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Grid & Utility Approval,,Railway/Highway Crossing Approval,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Grid & Utility Approval,,Telecom/PLCC Frequency Clearance,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Grid Connectivity Approval,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Right of Way Approval,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Aviation/Height Clearance,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Railway/Highway Crossing Approval,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Telecom/PLCC Frequency Clearance,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 Survey & Soil Investigation,,,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
 ,,Survey Activities,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Survey Activities,,Topographical Survey,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Survey Activities,,Benchmark Fixing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Survey Activities,,Grid Coordinate Survey,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Survey Activities,,Underground Utility Detection,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Topographical Survey,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Benchmark Fixing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Grid Coordinate Survey,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Underground Utility Detection,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,Soil Investigation Activities,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Soil Investigation Activities,,Soil Investigation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Soil Investigation Activities,,Bore Log Analysis,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Soil Investigation Activities,,Geo-Technical Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Soil Investigation Activities,,Soil Resistivity Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Soil Investigation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Bore Log Analysis,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Geo-Technical Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Soil Resistivity Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,Site Assessment,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Site Assessment,,Hydrological / Flood Level Study,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Site Assessment,,Climatic Data Collection,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Hydrological / Flood Level Study,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Climatic Data Collection,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,Layout Engineering,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Layout Engineering,,AIS Yard Layout Finalization,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Layout Engineering,,GIS Building Layout Finalization,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Layout Engineering,,Hybrid Layout Approval,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,AIS Yard Layout Finalization,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,GIS Building Layout Finalization,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Hybrid Layout Approval,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 Engineering & Design,,,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
 ,,AIS Engineering,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,AIS Engineering,,Outdoor Bus Bar Layout Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Engineering,,Gantry Structure Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Engineering,,AIS Equipment Foundation Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Engineering,,Outdoor Equipment Layout,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Engineering,,Lightning Arrestor Layout,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Outdoor Bus Bar Layout Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Gantry Structure Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,AIS Equipment Foundation Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Outdoor Equipment Layout,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Lightning Arrestor Layout,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,GIS Engineering,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,GIS Engineering,,GIS Bay Layout Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,GIS Engineering,,Indoor GIS Hall Layout,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,GIS Engineering,,GIS Foundation Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,GIS Engineering,,SF6 Gas Zone Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,GIS Engineering,,Gas Monitoring Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,GIS Engineering,,GIS Hall Earthing Mesh / Faraday Cage Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,GIS Engineering,,EOT Crane Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,GIS Bay Layout Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Indoor GIS Hall Layout,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,GIS Foundation Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,SF6 Gas Zone Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Gas Monitoring Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,GIS Hall Earthing Mesh / Faraday Cage Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,EOT Crane Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,Interface Engineering,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Interface Engineering,,AIS-GIS Interface Bay Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Interface Engineering,,Bus Duct Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Interface Engineering,,Interface Bushing Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Interface Engineering,,AIS-GIS Interconnection Layout,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Interface Engineering,,Interface Protection Coordination Study,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,AIS-GIS Interface Bay Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Bus Duct Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Interface Bushing Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,AIS-GIS Interconnection Layout,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Interface Protection Coordination Study,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,Protection & Control Engineering,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Protection & Control Engineering,,Power System Studies,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Protection & Control Engineering,,Power System Studies,,Single Line Diagram (SLD),,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Protection & Control Engineering,,Power System Studies,,Short Circuit Study,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Protection & Control Engineering,,Power System Studies,,Load Flow Study,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Protection & Control Engineering,,Power System Studies,,Insulation Coordination Study,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Protection & Control Engineering,,Protection & SCADA Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Protection & Control Engineering,,Protection & SCADA Design,,Protection Philosophy Design,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Protection & Control Engineering,,Protection & SCADA Design,,Relay Coordination Study,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Protection & Control Engineering,,Protection & SCADA Design,,Interlocking Scheme Design,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Protection & Control Engineering,,Protection & SCADA Design,,Control & Relay Panel Layout,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Protection & Control Engineering,,Protection & SCADA Design,,SCADA Architecture Design,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Protection & Control Engineering,,Protection & SCADA Design,,RTU Design,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Protection & Control Engineering,,Protection & SCADA Design,,Metering Scheme Design,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Power System Studies,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
+,,,,,,Single Line Diagram (SLD),,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,,,Short Circuit Study,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,,,Load Flow Study,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,,,Insulation Coordination Study,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Protection & SCADA Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
+,,,,,,Protection Philosophy Design,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,,,Relay Coordination Study,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,,,Interlocking Scheme Design,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,,,Control & Relay Panel Layout,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,,,SCADA Architecture Design,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,,,RTU Design,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,,,Metering Scheme Design,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,Auxiliary Engineering,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Auxiliary Engineering,,Cable Trench Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Auxiliary Engineering,,Cable Tray Layout,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Auxiliary Engineering,,Cable Schedule Preparation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Auxiliary Engineering,,Battery Sizing Calculation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Auxiliary Engineering,,Cable Sizing Calculation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Auxiliary Engineering,,Earthing Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Auxiliary Engineering,,Lightning Protection Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Auxiliary Engineering,,HVAC Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Auxiliary Engineering,,Fire Protection Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Auxiliary Engineering,,Auxiliary AC/DC Distribution Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Auxiliary Engineering,,DG Backup Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Auxiliary Engineering,,Lighting Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Cable Trench Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Cable Tray Layout,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Cable Schedule Preparation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Battery Sizing Calculation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Cable Sizing Calculation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Earthing Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Lightning Protection Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,HVAC Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Fire Protection Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Auxiliary AC/DC Distribution Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,DG Backup Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Lighting Design,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,Engineering Documentation,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Engineering Documentation,,BOQ Preparation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Engineering Documentation,,BOM Preparation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Engineering Documentation,,Drawing Approval Process,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,BOQ Preparation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,BOM Preparation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Drawing Approval Process,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 Procurement & Supply,,,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
 ,,Procurement Management,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Procurement Management,,Vendor Finalization,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Procurement Management,,Vendor Drawing Approval,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Procurement Management,,TPIA Engagement,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Procurement Management,,Purchase Requisition (PR),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Procurement Management,,Purchase Order Release,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Procurement Management,,Manufacturing Follow-up,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Procurement Management,,Factory Acceptance Test (FAT),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Procurement Management,,Dispatch Clearance,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Procurement Management,,Customs Clearance (Imported Equipment),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Procurement Management,,Logistics Planning,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Procurement Management,,Transportation Arrangement,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Vendor Finalization,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Vendor Drawing Approval,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,TPIA Engagement,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Purchase Requisition (PR),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Purchase Order Release,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Manufacturing Follow-up,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Factory Acceptance Test (FAT),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Dispatch Clearance,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Customs Clearance (Imported Equipment),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Logistics Planning,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Transportation Arrangement,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,AIS Equipment Supply,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,AIS Equipment Supply,,Circuit Breaker,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Equipment Supply,,Current Transformer (CT),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Equipment Supply,,Potential Transformer (PT/CVT),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Equipment Supply,,Isolator,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Equipment Supply,,Lightning Arrestor,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Equipment Supply,,Bus Bar / Conductors,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Equipment Supply,,Structures / Gantry,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Circuit Breaker,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Current Transformer (CT),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Potential Transformer (PT/CVT),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Isolator,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Lightning Arrestor,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Bus Bar / Conductors,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Structures / Gantry,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,GIS Equipment Supply,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,GIS Equipment Supply,,GIS Switchgear Assembly,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,GIS Equipment Supply,,SF6 Gas Cylinders,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,GIS Equipment Supply,,Gas Density Monitor,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,GIS Equipment Supply,,SF6 Recovery Unit,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,GIS Equipment Supply,,GIS Bus Enclosure,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,GIS Equipment Supply,,Local Control Cubicle,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,GIS Switchgear Assembly,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,SF6 Gas Cylinders,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Gas Density Monitor,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,SF6 Recovery Unit,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,GIS Bus Enclosure,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Local Control Cubicle,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,Interface Equipment Supply,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Interface Equipment Supply,,Bus Duct,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Interface Equipment Supply,,Interface Bushings,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Interface Equipment Supply,,Interface Connectors,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Bus Duct,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Interface Bushings,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Interface Connectors,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,Common Equipment Supply,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Common Equipment Supply,,Power Transformer,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Equipment Supply,,Control & Relay Panels,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Equipment Supply,,SCADA / RTU Panels,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Equipment Supply,,Battery Bank,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Equipment Supply,,Battery Charger,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Equipment Supply,,UPS System,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Equipment Supply,,ACDB/DCDB Panels,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Equipment Supply,,Earthing Material,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Equipment Supply,,HVAC Equipment,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Equipment Supply,,Fire Protection System,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Equipment Supply,,EOT Crane (GIS Hall),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Equipment Supply,,"Tools, Tackles & Spares",,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Equipment Supply,,DG System (if applicable),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Equipment Supply,,Cables,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Power Transformer,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Control & Relay Panels,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,SCADA / RTU Panels,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Battery Bank,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Battery Charger,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,UPS System,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,ACDB/DCDB Panels,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Earthing Material,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,HVAC Equipment,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Fire Protection System,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,EOT Crane (GIS Hall),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,"Tools, Tackles & Spares",,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,DG System (if applicable),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Cables,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 Civil Works,,,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
 ,,AIS Civil Works,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,AIS Civil Works,,Site Grading & Leveling,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Civil Works,,Excavation Work,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Civil Works,,Anti-Termite / Soil Treatment,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Civil Works,,PCC Work,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Civil Works,,Reinforcement Work,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Civil Works,,RCC Work,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Civil Works,,AIS Equipment Foundations,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Civil Works,,Gantry Foundations,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Civil Works,,Yard Gravelling,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Site Grading & Leveling,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Excavation Work,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Anti-Termite / Soil Treatment,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,PCC Work,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Reinforcement Work,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,RCC Work,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,AIS Equipment Foundations,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Gantry Foundations,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Yard Gravelling,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,GIS Civil Works,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,GIS Civil Works,,GIS Building Construction,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,GIS Civil Works,,Dust-proof / Clean Room Provisions for GIS Hall,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,GIS Civil Works,,Indoor GIS Foundation Work,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,GIS Civil Works,,HVAC Room Construction,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,GIS Civil Works,,Fire Fighting Room Construction,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,GIS Civil Works,,Access Road / Heavy Unloading Bay (oversized GIS transport),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,GIS Civil Works,,Internal Building Finishing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,GIS Building Construction,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Dust-proof / Clean Room Provisions for GIS Hall,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Indoor GIS Foundation Work,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,HVAC Room Construction,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Fire Fighting Room Construction,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Access Road / Heavy Unloading Bay (oversized GIS transport),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Internal Building Finishing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,Interface Civil Works,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Interface Civil Works,,Interface Bay Foundation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Interface Civil Works,,Bus Duct Support Foundation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Interface Civil Works,,Interface Cable Trench / Duct,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Interface Bay Foundation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Bus Duct Support Foundation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Interface Cable Trench / Duct,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,Common Infrastructure,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Common Infrastructure,,Anti-Termite / Soil Treatment (Common Areas),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Infrastructure,,Transformer Foundation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Infrastructure,,Transformer Oil Pit,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Infrastructure,,Plinth Protection,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Infrastructure,,Fire Wall Construction,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Infrastructure,,Control Room Building,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Infrastructure,,Cable Basement / Trenches,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Infrastructure,,Cable Sealing End Yard (if cable-fed),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Infrastructure,,Boundary Wall,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Infrastructure,,Internal Roads,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Infrastructure,,Drainage System,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Infrastructure,,Rainwater Harvesting (if mandated),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Infrastructure,,Compound Gates,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Infrastructure,,Water Supply Arrangement,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Anti-Termite / Soil Treatment (Common Areas),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Transformer Foundation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Transformer Oil Pit,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Plinth Protection,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Fire Wall Construction,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Control Room Building,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Cable Basement / Trenches,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Cable Sealing End Yard (if cable-fed),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Boundary Wall,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Internal Roads,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Drainage System,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Rainwater Harvesting (if mandated),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Compound Gates,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Water Supply Arrangement,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 Erection & Installation,,,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
 ,,AIS Equipment Installation,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,AIS Equipment Installation,,Gantry Structure Erection,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Equipment Installation,,Alignment Checking,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Equipment Installation,,Bolt Tightening,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Equipment Installation,,Galvanization Touch-up / Painting,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Equipment Installation,,Structural Inspection,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Equipment Installation,,Circuit Breaker Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Equipment Installation,,CT Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Equipment Installation,,PT Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Equipment Installation,,Isolator Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Equipment Installation,,Lightning Arrestor Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Equipment Installation,,Bus Bar Erection,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Equipment Installation,,Jumper Connection,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Equipment Installation,,Connector Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Gantry Structure Erection,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Alignment Checking,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Bolt Tightening,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Galvanization Touch-up / Painting,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Structural Inspection,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Circuit Breaker Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,CT Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,PT Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Isolator Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Lightning Arrestor Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Bus Bar Erection,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Jumper Connection,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Connector Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,GIS Equipment Installation,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,GIS Equipment Installation,,GIS Bay Assembly,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,GIS Equipment Installation,,GIS Module Positioning,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,GIS Equipment Installation,,GIS Alignment Check,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,GIS Equipment Installation,,Bolting & Torque Tightening,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,GIS Equipment Installation,,Vacuum Drying / Moisture Treatment of GIS Joints (pre-gas-fill),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,GIS Equipment Installation,,SF6 Gas Filling,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,GIS Equipment Installation,,Gas Density Monitoring Setup,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,GIS Equipment Installation,,Gas Leakage Detection,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,GIS Equipment Installation,,EOT Crane Installation & Testing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,GIS Bay Assembly,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,GIS Module Positioning,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,GIS Alignment Check,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Bolting & Torque Tightening,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Vacuum Drying / Moisture Treatment of GIS Joints (pre-gas-fill),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,SF6 Gas Filling,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Gas Density Monitoring Setup,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Gas Leakage Detection,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,EOT Crane Installation & Testing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,Interface Installation,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Interface Installation,,AIS-GIS Interface Bay Connection,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Interface Installation,,Bus Duct Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Interface Installation,,Interface Connector Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Interface Installation,,AIS-GIS Mechanical Alignment,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Interface Installation,,Interconnection Torque Verification,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Interface Installation,,Interface Earthing Check,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,AIS-GIS Interface Bay Connection,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Bus Duct Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Interface Connector Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,AIS-GIS Mechanical Alignment,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Interconnection Torque Verification,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Interface Earthing Check,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,Common Electrical Installation,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Common Electrical Installation,,Transformer Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Electrical Installation,,Transformer Assembly,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Electrical Installation,,Transformer Oil Filtration,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Electrical Installation,,Control Panel Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Electrical Installation,,Marshalling Box Wiring,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Electrical Installation,,AC/DC Distribution Wiring,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Electrical Installation,,Cable Tray Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Electrical Installation,,Power Cable Laying,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Electrical Installation,,Control Cable Laying,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Electrical Installation,,Cable Ferruling & Glanding,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Electrical Installation,,Cable Termination,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Electrical Installation,,Cable Fireproofing & Sealing at Penetrations,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Electrical Installation,,Earthing Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Electrical Installation,,Earthing Strip Laying,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Electrical Installation,,Earth Pit Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Electrical Installation,,Battery Bank Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Electrical Installation,,Battery Charger Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Electrical Installation,,UPS Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Electrical Installation,,ACDB/DCDB Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Electrical Installation,,Lighting Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Electrical Installation,,Fiber Optic / PLCC Cable Laying,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Common Electrical Installation,,DG Installation (if applicable),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Transformer Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Transformer Assembly,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Transformer Oil Filtration,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Control Panel Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Marshalling Box Wiring,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,AC/DC Distribution Wiring,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Cable Tray Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Power Cable Laying,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Control Cable Laying,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Cable Ferruling & Glanding,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Cable Termination,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Cable Fireproofing & Sealing at Penetrations,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Earthing Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Earthing Strip Laying,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Earth Pit Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Battery Bank Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Battery Charger Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,UPS Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,ACDB/DCDB Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Lighting Installation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Fiber Optic / PLCC Cable Laying,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,DG Installation (if applicable),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 Testing & Commissioning,,,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
 ,,AIS Equipment Testing,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,AIS Equipment Testing,,Transformer Testing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Equipment Testing,,CT/PT Testing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Equipment Testing,,Circuit Breaker Testing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Equipment Testing,,Contact Resistance Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,AIS Equipment Testing,,Bus Bar Testing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Transformer Testing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,CT/PT Testing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Circuit Breaker Testing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Contact Resistance Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Bus Bar Testing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,GIS Equipment Testing,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,GIS Equipment Testing,,SF6 Gas Quality Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,GIS Equipment Testing,,SF6 Pressure Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,GIS Equipment Testing,,SF6 Leakage Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,GIS Equipment Testing,,SF6 Dew Point Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,GIS Equipment Testing,,Partial Discharge Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,GIS Equipment Testing,,GIS Mechanical Operation Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,SF6 Gas Quality Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,SF6 Pressure Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,SF6 Leakage Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,SF6 Dew Point Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Partial Discharge Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,GIS Mechanical Operation Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,Interface Testing,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Interface Testing,,AIS-GIS Continuity Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Interface Testing,,Bus Duct Testing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Interface Testing,,Interface Connection Testing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Interface Testing,,Mechanical Alignment Verification,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Interface Testing,,Interface Protection Scheme Testing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,AIS-GIS Continuity Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Bus Duct Testing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Interface Connection Testing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Mechanical Alignment Verification,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Interface Protection Scheme Testing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,Protection & System Testing,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Protection & System Testing,,Relay Testing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Protection & System Testing,,Primary Injection Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Protection & System Testing,,Secondary Injection Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Protection & System Testing,,Interlock Testing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Protection & System Testing,,Protection Scheme Verification,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Protection & System Testing,,Phasing / Vector Group Verification,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Protection & System Testing,,SCADA Testing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Protection & System Testing,,RTU Communication Testing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Relay Testing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Primary Injection Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Secondary Injection Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Interlock Testing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Protection Scheme Verification,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Phasing / Vector Group Verification,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,SCADA Testing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,RTU Communication Testing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,System Testing,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,System Testing,,Earthing Resistance Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,System Testing,,Battery Discharge Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,System Testing,,DC System Testing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,System Testing,,HV Cable Testing (VLF/PD Test),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,System Testing,,Fire Alarm/Detection System Testing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,System Testing,,Illumination Level Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Earthing Resistance Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Battery Discharge Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,DC System Testing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,HV Cable Testing (VLF/PD Test),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Fire Alarm/Detection System Testing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Illumination Level Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,Final Commissioning,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Final Commissioning,,Charging Permission from CEIG / Grid Authority,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Final Commissioning,,Synchronization Check,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Final Commissioning,,AIS Section Charging,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Final Commissioning,,GIS Section Charging,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Final Commissioning,,Transformer Charging,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Final Commissioning,,Charging,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Final Commissioning,,Integrated System Testing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Final Commissioning,,Trial Run,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Final Commissioning,,Load Trial,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Final Commissioning,,Reliability / Sustained Run,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Final Commissioning,,Final Commissioning,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Charging Permission from CEIG / Grid Authority,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Synchronization Check,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,AIS Section Charging,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,GIS Section Charging,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Transformer Charging,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Charging,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Integrated System Testing,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Trial Run,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Load Trial,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Reliability / Sustained Run,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Final Commissioning,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 Quality Assurance / Quality Control (QA/QC),,,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
 ,,Inspection Planning,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Inspection Planning,,Inspection Test Plan (ITP),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Inspection Planning,,Request for Inspection (RFI),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Inspection Test Plan (ITP),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Request for Inspection (RFI),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,Inspection & Verification,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Inspection & Verification,,Material Inspection,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Inspection & Verification,,Third-Party Inspection (TPI) Coordination,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Inspection & Verification,,Concrete Cube Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Inspection & Verification,,Welding Inspection,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Inspection & Verification,,Alignment Inspection,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Inspection & Verification,,Torque Verification,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Inspection & Verification,,Instrument Calibration Check,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Material Inspection,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Third-Party Inspection (TPI) Coordination,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Concrete Cube Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Welding Inspection,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Alignment Inspection,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Torque Verification,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Instrument Calibration Check,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,Non-Conformance Management,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Non-Conformance Management,,Document/QA Record Control,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Non-Conformance Management,,NCR Generation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Non-Conformance Management,,NCR Closure,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Document/QA Record Control,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,NCR Generation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,NCR Closure,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 Safety Management (EHS),,,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
 ,,Safety Induction & Training,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Safety Induction & Training,,Safety Induction,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Safety Induction & Training,,Toolbox Talk,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Safety Induction,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Toolbox Talk,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,Safety Procedures & PPE,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Safety Procedures & PPE,,PPE Distribution,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Safety Procedures & PPE,,Permit to Work System,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Safety Procedures & PPE,,Work at Height Safety,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Safety Procedures & PPE,,Confined Space Safety,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Safety Procedures & PPE,,SF6 Gas Handling Safety,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Safety Procedures & PPE,,Electrical Safety Procedure,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,PPE Distribution,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Permit to Work System,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Work at Height Safety,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Confined Space Safety,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,SF6 Gas Handling Safety,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Electrical Safety Procedure,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,Emergency & Incident Management,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Emergency & Incident Management,,Fire Safety Arrangement,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Emergency & Incident Management,,Emergency Response Plan,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Emergency & Incident Management,,Accident Reporting,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Fire Safety Arrangement,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Emergency Response Plan,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Accident Reporting,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,Environment & Audit,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Environment & Audit,,Environment Monitoring & Waste Management,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Environment & Audit,,Safety Audit,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Environment Monitoring & Waste Management,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Safety Audit,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 Project Monitoring & Control,,,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
 ,,Progress Reporting,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Progress Reporting,,Daily Progress Report (DPR),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Progress Reporting,,Weekly Progress Review,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Progress Reporting,,Client Review Meeting,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Daily Progress Report (DPR),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Weekly Progress Review,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Client Review Meeting,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,Schedule & Cost Control,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Schedule & Cost Control,,Schedule Monitoring,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Schedule & Cost Control,,Cost Monitoring,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Schedule & Cost Control,,Billing Milestone Tracking,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Schedule & Cost Control,,Invoice Submission & Approval Cycle,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Schedule & Cost Control,,Delay Analysis,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Schedule & Cost Control,,Recovery Plan,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Schedule Monitoring,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Cost Monitoring,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Billing Milestone Tracking,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Invoice Submission & Approval Cycle,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Delay Analysis,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Recovery Plan,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,Change & Document Control,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Change & Document Control,,Change/Variation Order Management,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Change & Document Control,,Interface Management Between AIS & GIS Contractors,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Change & Document Control,,Document Management System / Drawing Control,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Change & Document Control,,Resource Monitoring,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Change/Variation Order Management,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Interface Management Between AIS & GIS Contractors,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Document Management System / Drawing Control,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Resource Monitoring,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 Handover & Documentation,,,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
 ,,Closeout Activities,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Closeout Activities,,Punch Point Closure,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Closeout Activities,,Snag List Clearance,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Punch Point Closure,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Snag List Clearance,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,Documentation,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Documentation,,As-Built Drawings,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Documentation,,O&M Manual,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Documentation,,Warranty Documentation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,As-Built Drawings,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,O&M Manual,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Warranty Documentation,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,Asset Transfer,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Asset Transfer,,Spare Parts Handover,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Asset Transfer,,Client O&M Staff Training,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Spare Parts Handover,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Client O&M Staff Training,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,Project Closure,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Project Closure,,Performance Guarantee Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Project Closure,,Client Inspection,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Project Closure,,Completion Certificate,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Project Closure,,Final Invoice Submission,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Project Closure,,Material Reconciliation (Surplus/Scrap Return),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Project Closure,,Insurance Policy Closure,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Project Closure,,Final Sign-Off,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Performance Guarantee Test,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Client Inspection,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Completion Certificate,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Final Invoice Submission,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Material Reconciliation (Surplus/Scrap Return),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Insurance Policy Closure,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Final Sign-Off,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
 ,,Demobilization & Liability Tracking,,,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,
-,,Demobilization & Liability Tracking,,Equipment/Vehicle Demobilization,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Demobilization & Liability Tracking,,Taking Over Certificate (TOC),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Demobilization & Liability Tracking,,Defect Liability Period (DLP) Tracking Start,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
-,,Demobilization & Liability Tracking,,Site Demobilization,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Equipment/Vehicle Demobilization,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Taking Over Certificate (TOC),,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Defect Liability Period (DLP) Tracking Start,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
+,,,,Site Demobilization,,,,,,"Harsh,Shruti",25-Dec-2025|07-Jun-2026,,Hybrid,Binary
