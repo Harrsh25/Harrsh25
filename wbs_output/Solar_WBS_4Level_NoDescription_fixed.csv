@@ -1,0 +1,607 @@
+Level1,Level2,Level3,Level4
+Bid & Tender,,,
+,RFP/Tender Document Study,,
+,Technical Bid Preparation,,
+,Commercial Bid Preparation,,
+,Bid Bond / EMD Submission,,
+,Pre-bid Meeting & Clarifications,,
+,Bid Submission & Negotiation,,
+,LOA / Contract Signing,,
+,,Review and Negotiate LOA/EPC Contract Terms,
+,,Submit Performance Bank Guarantee,
+Project Initiation,,,
+,Internal Kick-off,,
+,,Conduct Internal Project Kick-off Meeting,
+,,Prepare Team Mobilization Plan,
+,,Define Project Organization Chart & Roles,
+,Project Charter & Baseline Setup,,
+,,Prepare Project Charter & Scope Baseline,
+,,Set Up Project Numbering & Filing Protocol,
+,Insurance & Risk Transfer Setup,,
+,,Issue CAR/EAR Insurance Policy,
+,,Issue Third-Party Liability Insurance Policy,
+,Feasibility,,
+,,Site Selection & Comparison,
+,,Solar Resource Assessment,
+,,,Install/Verify Solar Irradiance Monitoring Station
+,,,Validate Satellite Irradiance Data vs Ground Measurement
+,,Preliminary Shading & Topography Survey,
+,,Preliminary Soil Investigation,
+,,Water Availability Study,
+,Land Acquisition,,
+,,Title Due Diligence,
+,,,Verify Land Title/Encumbrance/Mutation Records
+,,,Conduct Revenue Record & Litigation Search
+,,,Obtain Legal Opinion on Title Clearance
+,,Lease/Purchase Agreement,
+,,,Negotiate & Execute Sale/Lease Deed
+,,,Register Land Documents with Revenue Authority
+,,Land Use Conversion,
+,,Right-of-Way (Transmission Corridor),
+,,Boundary Survey & Demarcation,
+,,,Conduct Topographic Boundary Survey
+,,,Install Boundary Marker Pillars
+,,,Resolve Encroachment/Right-of-Way Disputes
+,Permits,,
+,,Environmental Clearance,
+,,,Obtain Consent to Establish (CTE)
+,,,Obtain Factory/Electrical Inspectorate Registration
+,,,Obtain Fire NOC for Control Room/BESS Building
+,,Forest/Wildlife Clearance,
+,,PPA Negotiation,
+,,,Sign Power Purchase Agreement / Power Sale Agreement
+,,Grid Connectivity Approval,
+,,,Obtain Connectivity/Feasibility Approval from STU/CTU
+,,,Obtain Long Term Open Access (LTOA)/Transmission Approval
+,,Fire/Pollution/Civil Aviation NOCs,
+,,,Obtain Height Clearance (AAI/Defence)
+,,Building/Structural Approval,
+,,,Obtain Change of Land Use (CLU) Certificate
+,Financing,,
+,,CAPEX/OPEX Estimation,
+,,Debt/Equity Structuring,
+,,Insurance Planning,
+,,Contingency Planning,
+,Project Management,,
+,,Project Charter & WBS Baseline,
+,,Schedule Development,
+,,Cost Control & Budgeting,
+,,Stakeholder Management,
+,,Progress Reporting/MIS,
+"Survey, Geotechnical & Environmental Studies",,,
+,Topographic & Resource Survey,,
+,,Topographic Survey,
+,,,Conduct Drone/Total-Station Topographic Survey
+,,,Prepare Contour Map & Site Grading Plan
+,Geotechnical Investigation,,
+,,Geotechnical Testing,
+,,,Conduct Soil Boring & SPT Tests at Grid Locations
+,,,Conduct Soil Resistivity Test for Earthing Design
+,,,Issue Geotechnical Report with Foundation Recommendations
+,Environmental & Social Studies,,
+,,Environmental Impact Assessment,
+,,,Conduct Flora/Fauna & Ecological Baseline Study
+,,,Conduct ESIA (if required)
+,,,Prepare Environmental Management Plan (EMP)
+Engineering,,,
+,Detailed Engineering Survey,,
+,,Detailed Topographical Survey,
+,,Drone Survey,
+,,Soil Retesting & Validation,
+,,Detailed Shading Analysis,
+,Preliminary Engineering,,
+,,Layout Optimization,
+,,,Prepare Optimized Plant Layout (PVsyst/Helioscope)
+,,,Finalize Row Spacing and  GCR & Shading Analysis
+,,,Prepare Internal Road & Drainage Layout
+,Electrical Design,,
+,,SLD & Layout Design,
+,,,Prepare SLD for DC/AC/SCADA Systems
+,,DC/AC Sizing & Inverter Loading Ratio,
+,,Cable Sizing & Voltage Drop Calculation,
+,,Protection Coordination Study,
+,,,Prepare Relay Setting & Coordination Study
+,,Earthing/Lightning Protection Design,
+,,,Prepare Lightning & Earthing Design (IEEE 80 Grid)
+,,,Conduct Lightning Risk Assessment (IEC 62305)
+,Civil Design,,
+,,Site Grading & Drainage Design,
+,,Foundation/Pile Design,
+,,,Design Module Mounting Structure Foundation
+,,,Conduct Wind Load Analysis (IS 875/ASCE 7)
+,,Road & Culvert Design,
+,,Control Room/Substation Civil Drawings,
+,,,Design Inverter/Transformer Plinths
+,Mechanical Design,,
+,,Structural Design (Wind/Snow Load),
+,,Tracker/Fixed-Tilt Mounting Design,
+,,Module Layout Optimization,
+,SCADA Design,,
+,,SCADA Architecture & Network Design,
+,,Communication Protocol Selection,
+,,Weather Station & Metering Integration Design,
+,,Cybersecurity Hardening,
+,,,Configure Firewall/VPN/Access Control for SCADA Network
+,,,Implement Password Policy & Role-Based Access Control
+,Document Control,,
+,,Drawing Numbering & Revision Control,
+,,Document Submission/Approval Workflow,
+,,,Submit Drawings for Client/LIE Review
+,,,Incorporate Review Comments & Issue IFC Drawings
+,,Design Change Management,
+,,As-built Drawing Register,
+Procurement,,,
+,Vendor Management,,
+,,Vendor Pre-qualification,
+,,Technical Bid Evaluation,
+,,,Issue RFQ to Pre-Qualified Vendors
+,,,Conduct Technical Bid Evaluation & Factory Audit
+,,Vendor Performance Tracking,
+,Procurement,,
+,,PV Modules/Inverters/Transformers Procurement,
+,,,Place PO for PV Modules (Tier-1/Bankability Confirmation)
+,,,Place PO for Inverters/Trackers with Warranty Terms
+,,,Monitor Factory Manufacturing Schedule
+,,Mounting Structures/BOS/Cables Procurement,
+,,,Place PO for Cables and  Combiner Boxes and  Structures
+,,SCADA & Monitoring Equipment Procurement,
+,,Spares & Tools Procurement,
+,,,Place PO for Mandatory/Recommended Spares
+,,,Place PO for Special O&M Tools & Test Equipment
+,,Purchase Order Issuance,
+,Logistics,,
+,,Shipping & Freight Planning,
+,,,Plan Transportation Route & Oversized Cargo Permits
+,,,Arrange Marine/Transit Insurance
+,,Customs Clearance,
+,,Transportation to Site,
+,,,Track Shipment & Customs Clearance for Imported Items
+,Warehouse,,
+,,Site Store Setup,
+,,Inventory Tracking System,
+,,Material Issue/Receipt Control,
+,Material Inspection,,
+,,Factory Acceptance Test (FAT),
+,,Goods Receipt Inspection (GRI),
+,,Damage/Shortage Claims,
+,,Material Test Certificates Verification,
+Civil Construction,,,
+,Pre-Construction Survey & Setting Out,,
+,,Boundary Verification,
+,,Benchmark Establishment,
+,,Pile Marking,
+,,Layout Marking,
+,,Grid Alignment Marking,
+,,Foundation Centerline Marking,
+,,Benchmark Verification,
+,Temporary Facility,,
+,,Site Office & Labor Camp Setup,
+,,Temporary Power & Water Supply,
+,,Temporary Fencing & Signage,
+,,Construction Storage Yards,
+,Resource Mobilization,,
+,,Workforce Deployment,
+,,,Mobilize Skilled & Unskilled Workforce
+,,,Mobilize Construction Equipment (Cranes/Piling Rigs)
+,,,Conduct Site Induction & HSE Orientation Training
+,Temporary Internal Roads & Access,,
+,,Access Road Construction,
+,,,Construct Temporary Access & Haul Roads
+,,,Construct Approach Road from Public Highway
+,Material Handling,,
+,,Material Unloading,
+,,Internal Transportation,
+,,Storage Arrangement,
+,,Material Preservation,
+,Civil Work,,
+,,Site Clearing,
+,,,Site Clearing and  Grubbing & Topsoil Stripping
+,,Excavation,
+,,Grading,
+,,,Cut & Fill Grading per Design Contours
+,,Compaction,
+,,,Compaction Testing (Proctor Density Test)
+,,Internal Road Construction,
+,,,Construct WBM/Gravel Internal Roads
+,,Drainage Construction,
+,,,Construct Storm Water Drains & Culverts
+,,,Construct Retention/Detention Ponds
+,,Foundation Construction,
+,,,Pile/Foundation Installation
+,,,Pile Pull-out/Load Testing
+,,,Cast RCC Foundations for Inverter/Transformer Plinths
+,,Substation Civil Work,
+,,,Construct Control Room/O&M Building Civil Works
+,,,Construct Boundary Wall/Fence Foundation
+,Cable Infrastructure,,
+,,Trench Excavation,
+,,Cable Tray Installation,
+,,Backfilling,
+,,Route Marker Installation,
+Mechanical Installation,,,
+,Mounting Structure Erection,,
+,,Install MMS Piles/Legs,
+,,Assemble Purlins,
+,,, Rafters & Torque Tubes and 
+,Bolt Tightening,,
+,Torque Verification,,
+,Structure Alignment Verification,,
+,,Check Structure Alignment,
+,,, Level & Tilt Angle and 
+,Module Mounting,,
+,Module Clamping,,
+,Module Grounding,,
+,Module Serial Number Recording,,
+,,Record Module Serial Number vs GPS/Row-Position,
+,Tracker Mechanism Installation,,
+,,Install Tracker Motors/Drive Systems/Slew Bearings,
+,,Install Tracker Control Units & Row Controllers,
+,,Conduct Tracker Single-Axis Motion Test,
+Electrical Installation,,,
+,DC Stringing & Combiner Box Landing,,
+,,Connect Module-to-Module String Wiring (MC4),
+,,Conduct String Open-Circuit Voltage (Voc) Measurement,
+,,Conduct String Polarity & IR Check,
+,DC Cable Termination,,
+,SPD Installation,,
+,MCB/MCCB Installation,,
+,Fuse Installation,,
+,Inverter Installation,,
+,,Mount String/Central Inverters on Plinths/Skids,
+,,Terminate DC Input/AC Output Cabling at Inverter,
+,,Connect Inverter Communication (RS485/Ethernet) Wiring,
+,AC Cabling & Transformer Installation,,
+,,Lay LV AC Cables from Inverters to LV Panels,
+,,Lay MV (33/11kV) Cables to Switchyard,
+,AC Cable Termination,,
+,Ferruling and Labeling,,
+,Switchgear/HT Panel Installation,,
+,,Install & Align LV AC Distribution Panels,
+,,Terminate & Torque LV Panel Bus Connections,
+,Earthing & Lightning Protection Installation,,
+,,Lay Earthing Grid Conductor & Ground Rods,
+,,Connect Structure/Panel/Equipment Earthing to Grid,
+,,Install Lightning Masts/Air Termination System,
+,,Install Surge Arresters at Transformer/Switchyard,
+,Earth Pit Resistance Testing,,
+,String Continuity Testing,,
+,Polarity Testing,,
+,SCADA/Weather Station Wiring,,
+,Transmission Line,,
+,,Tower/Pole Foundation,
+,,Tower Erection,
+,,Conductor Stringing,
+,,Line Testing & Energization,
+,,Interconnection to Grid Substation,
+Power Transformers & Switchyard,,,
+,Transformer Installation,,
+,,Unload & Place Power/Inverter Duty Transformers,
+,,Install Radiators,
+,,, Conservator Tank & Buchholz Relay and 
+,,Conduct Oil Filling,
+,,, Vacuum & Oil Filtration and 
+,,Construct Oil Spill Containment Pit/Bund Wall,
+,Switchyard Equipment Installation,,
+,,Erect Switchyard Gantry & Support Structures,
+,,Install Circuit Breakers,
+,,, Isolators & CT/PT and 
+,,Install Bus Bars & HV Jumper Connections,
+,Transformer & Switchyard Testing,,
+,,Conduct Transformer Oil DGA/BDV/Tan Delta Tests,
+,,Conduct Transformer Ratio/IR/Winding Resistance Test,
+,,Conduct CB Timing & Contact Resistance Test,
+"SCADA, Communication & Metering",,,
+,SCADA System Installation,,
+,,Install SCADA Server and RTU and HMI Workstations,
+,,Configure SCADA Software & Mimic Screens,
+,,Integrate Inverter/Weather Station/Meter Data Points,
+,Communication Network,,
+,,Lay Fiber Optic Backbone Across Plant,
+,,Configure Network Switches & Communication Protocols,
+,Energy Metering,,
+,,Install Main & Check Energy Meters,
+,,Conduct Meter Calibration & Joint Meter Reading,
+Fencing & Perimeter Security,,,
+,Perimeter Fencing,,
+,,Erect Chain-Link/Barbed Fencing,
+,,Install Main & Emergency Access Gates,
+,,Install HV Warning & Danger Signage,
+,Security Systems,,
+,,Install CCTV Cameras & Intrusion Detection,
+,,Set Up Security Control Room Monitoring & Access Control,
+Fire Fighting System,,,
+,Fire Detection & Suppression,,
+,,Install Fire Hydrant Network & Water Storage Tank,
+,,Install Fire Detection/Alarm System,
+,,Install Fire Extinguishers,
+,Fire System Testing & Commissioning,,
+,,Conduct Fire Pump Performance & Hydrant Flow Test,
+,,Obtain Fire NOC & Conduct Mock Fire Drill,
+Water Management System,,,
+,Water Supply Infrastructure,,
+,,Drill Borewell & Install Pump,
+,,Construct Water Storage Tank,
+,Module Cleaning System,,
+,,Install Module Cleaning Water Distribution Piping,
+,,Install/Commission Robotic Dry-Cleaning System,
+QA/QC & HSE,,,
+,QA/QC,,
+,,Inspection Test Plan (ITP) Development,
+,,,Define Hold Points (H)
+,,,Define Witness Points (W)
+,,,Define Review Points (R)
+,,,Issue Inspection Notice to Client/LIE
+,,,Record Witness Attendance & Sign-off
+,,,Maintain ITP Completion Tracker
+,,Incoming Material Quality Inspection,
+,,,Verify PO vs Delivered Quantity
+,,,Check Manufacturer/Test Certificates
+,,,Inspect Physical Damage
+,,,Verify Calibration Validity of Instruments
+,,,Raise NCR for Non-Conformance
+,,,Approve Material Acceptance
+,,Foundation Inspection,
+,,,Concrete Cube Test (7/28-day Strength)
+,,,Inspect Foundation Dimensions & Rebar Placement (Hold Point)
+,,Structure Inspection,
+,,Module Installation Inspection,
+,,,Verify Torque Records (Calibrated Torque Wrench)
+,,,Inspect Module Alignment
+,,Cable Inspection,
+,,,Verify Cable Tagging & Routing
+,,Earthing Inspection,
+,,,Earthing Continuity & Resistance Test per Zone
+,,Thermal Imaging of Electrical Joints,
+,,Non-Conformance Report (NCR) Management,
+,,,Raise NCR
+,,,Assign Responsible Contractor
+,,,Conduct Root Cause Analysis
+,,,Perform Corrective Action
+,,,Perform Preventive Action
+,,,Reinspect Work
+,,,Close NCR Record
+,,Quality Audits,
+,,Calibration of Test Instruments,
+,Rework Management,,
+,,Defect Identification,
+,,Rework Assignment,
+,,Rework Execution,
+,,Re-inspection,
+,,Closure,
+,Resource Management,,
+,,Manpower Planning & Deployment,
+,,Equipment/Machinery Allocation,
+,,Subcontractor Coordination,
+,,Productivity Tracking,
+,HSE,,
+,,Site Safety Plan & Induction,
+,,PPE Management,
+,,Permit-to-Work System,
+,,,Issue Excavation Permit
+,,,Issue Lifting/Crane Operation Permit
+,,,Issue Electrical LOTO Permit
+,,,Issue Work-at-Height Permit
+,,,Issue Confined Space Entry Permit
+,,Toolbox Talks,
+,,Incident/Accident Reporting & Investigation,
+,,,Report Incident
+,,,Report Near-Miss/Unsafe Condition
+,,,Conduct Root Cause Analysis
+,,,Apply Corrective Action
+,,,Conduct Retraining
+,,,Close Incident Record
+,,,Publish Monthly HSE Statistics (LTIFR)
+,,Environmental Management,
+,,,Monitor Dust/Noise Levels vs EC Limits
+,,,Manage Construction Waste Segregation & Disposal
+,,Emergency Response Planning,
+,,,Prepare Emergency Response Plan
+,,,Conduct Mock Evacuation Drill
+,,,Set Up On-Site First Aid/Medical Facility
+,,Site Security Management,
+,,CCTV Monitoring,
+,,Theft Prevention,
+Testing & Commissioning,,,
+,Cleaning & Preparation,,
+,,Module Cleaning,
+,,Dust/Debris Removal,
+,,Combiner Box/Inverter Cleaning,
+,,Visual Cleaning Inspection,
+,Mechanical Completion,,
+,,Verify Structure Installation Completion,
+,,Verify Tracker Mechanical Commissioning,
+,,Verify Module Installation Completion,
+,,Module/Panel Surface Cleaning (Pre-Comm Wash),
+,,Raise Mechanical Completion Punch List (Round 1),
+,,Sign Mechanical Completion Certificate (Hold Point),
+,SCADA/Communication Network Bring-Up,,
+,,Commission Fiber/Communication Backbone,
+,,Commission RTU/Gateway Hardware,
+,,Verify Network Connectivity to Field Devices,
+,,Verify Weather Station/Met-Mast Data Feed,
+,Pre-Commissioning,,
+,,Visual Inspection,
+,,Continuity & IR (Megger) Testing,
+,,Voc/Polarity Check per String,
+,Functional Testing,,
+,,DC Electrical Tests,
+,,,Insulation Resistance Test
+,,,String Voltage Measurement
+,,,String IV Curve Test
+,,,Polarity Verification
+,,,Continuity Test
+,,,Thermal Scan of DC Connections
+,,AC Electrical Tests,
+,,,Megger Test AC Cables
+,,,HV Cable VLF/Partial Discharge Test
+,,,Transformer Ratio Test
+,,,Transformer Oil Test (DGA/Tan Delta/BDV)
+,,,Relay Protection Functional Trip Test
+,,,Breaker Functional & Timing Test
+,,Functional & Metering Testing,
+,,,Start Inverter & Check Alarms
+,,,Verify Communication with SCADA
+,,,SCADA I/O Point-to-Point Checkout
+,,,Validate Sensor Readings
+,,,Revenue Meter Calibration & Accuracy Verification
+,,,Energy Meter Sealing (Joint EPC-Utility Witness)
+,,,Fire Detection & Suppression Functional Test
+,SAT (Site Acceptance Test),,
+,,SCADA/DAS Functional Verification,
+,,Communication Network Test,
+,,Alarm/Trip Signal Verification,
+,,Client/Consultant Witness Sign-off,
+,Grid Synchronization,,
+,,Notify Utility Inspector,
+,,Perform Utility Witness Inspection,
+,,Grid Code Compliance Test (Ride-Through/Reactive Power/Ramp Rate),
+,,Anti-Islanding Protection Test,
+,,Obtain Synchronization Clearance,
+,,Trial Synchronization,
+,,Energize System,
+,,Reconcile Plant Meter vs Utility Meter,
+,,Start Full Power Export,
+,Performance Testing,,
+,,Calibrate/Verify DAS & Pyranometer Accuracy,
+,,Define Test Methodology (IEC 61724),
+,,Measure Plant Output & Irradiance,
+,,Calculate Performance Ratio (PR),
+,,Apply Weather-Window Retest if Required,
+,,Verify Generation Guarantee vs Contractual Baseline,
+,,Record Acceptance Result/Shortfall Calculation,
+,Punch Closure,,
+,,Punch List Generation,
+,,Category A/B Item Closure,
+,,Re-inspection & Sign-off,
+,Documentation,,
+,,As-built Drawings,
+,,Test Certificates Compilation,
+,,O&M Manual,
+,,Commissioning Report,
+Handover,,,
+,PAC (Provisional Acceptance Certificate),,
+,,Verify Punch List Status (No Critical Items Open),
+,,Submit Commissioning & Performance Documents,
+,,Conduct Final Walkthrough,
+,,Obtain PAC Signature,
+,,Declare Commercial Operation Date (COD),
+,,Release First Tranche of Retention/PBG,
+,,Activate DLP (Defect Liability Period),
+,Training (O&M Knowledge Transfer),,
+,,Classroom Training on SCADA Operation,
+,,Hands-on Field Training on Inverter Operation,
+,,Train Client on Maintenance Cycle & Module Cleaning,
+,,Train Client on Emergency Response & Electrical Safety,
+,,Conduct Competency Assessment/Certification,
+,,Record Training Completion,
+,Warranty Registration & Tracking,,
+,,Receive Warranty Complaint,
+,,Assign Service Engineer within SLA,
+,,Replace Defective Equipment,
+,,Coordinate OEM Warranty Claim Documentation,
+,,Close Warranty Case,
+,FAC (Final Acceptance Certificate),,
+,,Verify DLP Completion,
+,,Review Unresolved Defects,
+,,Obtain FAC Signoff,
+,,Release Final Retention/PBG,
+,Demobilization,,
+,,Temporary Facility Removal,
+,,Equipment Demobilization,
+,,Waste Clearance,
+,,Final Site Cleaning,
+,,Site Restoration Handover to Client,
+Operations & Maintenance,,,
+,Daily Operations,,
+,Weekly Inspection,,
+,Monthly Preventive Maintenance,,
+,Quarterly Preventive Maintenance,,
+,Annual Shutdown Maintenance,,
+,Inverter Maintenance,,
+,Transformer Maintenance,,
+,Module Cleaning Schedule,,
+,Vegetation Management,,
+,Security Monitoring,,
+,Performance Analytics,,
+,,Track Module/Inverter Degradation vs Guaranteed Curve,
+,,Conduct Periodic Plant Health-Check Inspection,
+,Breakdown Maintenance,,
+,Spare Inventory Management,,
+,Safety Compliance,,
+,AMC/Vendor Management,,
+,O&M Handover (Transition),,
+,,Transfer Spare Parts Inventory,
+,,Transfer Maintenance Schedule & Asset Register,
+,,Transfer Vendor Contact List,
+,,Transfer Software Licenses (SCADA/Weather/Historian),
+,,Transfer Security Systems (CCTV/Access Control),
+,,Conduct Shadow/Overlap Period with Incoming Team,
+Decommissioning,,,
+,End-of-Life Assessment,,
+,Dismantling (Modules/Inverters/Structures),,
+,Recycling & E-waste Compliance,,
+,Land Restoration,,
+,Repowering Feasibility Study,,
+Sub-Contractor Management,,,
+,Sub-Contractor Engagement,,
+,,Identify/Evaluate/Award Civil/Electrical Sub-Contracts,
+,,Execute Sub-Contract Agreements (SOW/SLA),
+,,Conduct Labor Compliance Audit (PF/ESI),
+,,Verify Contract Labor License & Registration,
+,Sub-Contractor Performance Monitoring,,
+,,Monitor Progress Against Schedule,
+,,Conduct Safety & Quality Audits,
+,,Process Billing & Certify Measurements,
+Risk Management,,,
+,Risk Identification & Assessment,,
+,,Identify & Log Project Risks,
+,,Conduct Quantitative Risk Assessment & Contingency Planning,
+,Risk Mitigation & Monitoring,,
+,,Implement Risk Mitigation Actions,
+,,Conduct Periodic Risk Review & Update Register,
+Stakeholder & Community Management,,,
+,Community Engagement,,
+,,Conduct Community Engagement & Grievance Redressal,
+,,Implement CSR Initiatives,
+,Statutory Liaison,,
+,,Maintain Liaison with District/Utility/Regulatory Authorities,
+Document Control & Change Management,,,
+,Document Management System,,
+,,Maintain Master Document Register & Revision Control,
+,,Maintain As-built Drawing & Red-Mark Tracking,
+,RFI Management,,
+,,Raise & Log RFI,
+,,Track RFI Response Turnaround & Close-out,
+,Change Management,,
+,,Process Engineering/Scope Change Requests,
+,,Maintain Change Order Log & Impact Assessment,
+Cost & Budget Management,,,
+,Cost Control,,
+,,Track Committed vs Actual Cost,
+,,Approve Change Order/Variation Cost Impact,
+,Invoicing & Payments,,
+,,Process Client Milestone Invoices,
+,,Process Vendor/Contractor Invoices,
+,,Track Payment Receipt & Follow Up on Overdue Invoices,
+Project Scheduling & Progress Monitoring,,,
+,Schedule Management,,
+,,Prepare & Baseline Master Schedule,
+,,Update Schedule & Identify Critical Path,
+,,Prepare Delay Analysis & Recovery Plan,
+,Progress Reporting,,
+,,Prepare Daily/Weekly/Monthly Progress Reports,
+,,Conduct Progress Review Meetings with Client/LIE,
+Project Closure,,,
+,Final Closeout,,
+,,Final Budget Reconciliation,
+,,Close Pending Invoices,
+,,Close Vendor Contracts,
+,,Resolve Claims & Disputes,
+,,Tax/Customs Duty Reconciliation,
+,,Obtain Final Environmental Compliance Closure Certificate,
+,,Archive Project Documents,
+,,Close CAR/Insurance Policy & Process Final Claims,
+,,Conduct Client Satisfaction Survey,
+,,Conduct Lessons Learned Session,
+,,Release Project Resources,
+,,Official Project Closure Approval,
