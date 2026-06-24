@@ -224,6 +224,18 @@
 </head>
 <body>
   <div id="root"></div>
+  <script>(function(){
+    function applyScale(){
+      var dw=document.documentElement.clientWidth;
+      var scale=dw/390;
+      if(scale>1.15)scale=1.15;
+      if(scale<0.75)scale=0.75;
+      document.getElementById("root").style.zoom=scale;
+    }
+    applyScale();
+    window.addEventListener("resize",applyScale);
+    window.addEventListener("orientationchange",function(){setTimeout(applyScale,150)});
+  })();</script>
   <script>(function(){const s=document.createElement("link").relList;if(s&&s.supports&&s.supports("modulepreload"))return;for(const r of document.querySelectorAll('link[rel="modulepreload"]'))a(r);new MutationObserver(r=>{for(const l of r)if(l.type==="childList")for(const o of l.addedNodes)o.tagName==="LINK"&&o.rel==="modulepreload"&&a(o)}).observe(document,{childList:!0,subtree:!0});function n(r){const l={};return r.integrity&&(l.integrity=r.integrity),r.referrerPolicy&&(l.referrerPolicy=r.referrerPolicy),r.crossOrigin==="use-credentials"?l.credentials="include":r.crossOrigin==="anonymous"?l.credentials="omit":l.credentials="same-origin",l}function a(r){if(r.ep)return;r.ep=!0;const l=n(r);fetch(r.href,l)}})();function ih(t){return t&&t.__esModule&&Object.prototype.hasOwnProperty.call(t,"default")?t.default:t}var m0={exports:{}},$l={},h0={exports:{}},Ie={};/**
  * @license React
  * react.production.min.js
