@@ -1,0 +1,812 @@
+// Vendor Management Module — data model
+// Covers the full lifecycle: registration -> qualification -> RFQ -> quotation ->
+// selection -> PO/contracts -> delivery -> invoicing -> payment -> scorecard.
+// Built for an EPC (Engineering, Procurement, Construction) WFM platform, so it
+// distinguishes material vendors from labor/subcontract vendors throughout.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum VendorType {
+  GOODS
+  SERVICES
+  LABOR
+}
+
+enum VendorStatus {
+  PROSPECTIVE
+  PENDING_APPROVAL
+  SPEND_AUTHORIZED
+  ON_HOLD
+  BLACKLISTED
+  DISABLED
+  DEACTIVATED
+}
+
+enum HoldType {
+  INVOICES
+  PAYMENTS
+  ALL
+}
+
+enum DocumentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// Generic reusable approval-workflow engine — the same engine drives vendor
+// approval, PO approval, and invoice hold/release rather than three bespoke
+// implementations.
+enum ApprovalEntityType {
+  VENDOR
+  PURCHASE_ORDER
+  INVOICE
+  CONTRACT_CHANGE_ORDER
+}
+
+enum ApprovalInstanceStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ApprovalDecision {
+  APPROVED
+  REJECTED
+}
+
+enum RfqType {
+  SINGLE_VENDOR
+  MULTI_VENDOR
+}
+
+enum RfqStatus {
+  DRAFT
+  SENT
+  RESPONSES_RECEIVED
+  CLOSED
+  CANCELLED
+}
+
+enum QuotationStatus {
+  SUBMITTED
+  ACCEPTED
+  PARTIALLY_ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum ContractType {
+  MASTER_AGREEMENT
+  SOW
+  BLANKET_PO
+  AMENDMENT
+}
+
+enum ContractStatus {
+  DRAFT
+  ACTIVE
+  EXPIRED
+  TERMINATED
+}
+
+enum MilestoneStatus {
+  PENDING
+  COMPLETED
+  ACCEPTED
+  INVOICED
+}
+
+enum POStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  PARTIALLY_RECEIVED
+  RECEIVED
+  CLOSED
+  CANCELLED
+}
+
+enum TimesheetStatus {
+  SUBMITTED
+  APPROVED
+  REJECTED
+  INVOICED
+}
+
+enum InvoiceStatus {
+  SUBMITTED
+  MATCHED
+  MISMATCHED
+  ON_HOLD
+  APPROVED
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  DISPUTED
+}
+
+enum InvoiceSource {
+  MANUAL
+  AUTO_TIMESHEET
+  AUTO_MILESTONE
+}
+
+enum CreditDebitType {
+  CREDIT
+  DEBIT
+}
+
+enum PaymentType {
+  PAY
+  RECEIVE
+}
+
+enum PaymentMode {
+  BANK_TRANSFER
+  CHECK
+  WIRE
+  CASH
+}
+
+enum CapStatus {
+  OPEN
+  IN_PROGRESS
+  CLOSED
+  FAILED
+}
+
+// ---------------------------------------------------------------------------
+// Module 1-3: Vendor Registration, Qualification, Master
+// ---------------------------------------------------------------------------
+
+model VendorGroup {
+  id       String        @id @default(cuid())
+  name     String
+  parentId String?
+  parent   VendorGroup?  @relation("GroupHierarchy", fields: [parentId], references: [id])
+  children VendorGroup[] @relation("GroupHierarchy")
+  isGroup  Boolean       @default(true)
+  vendors  Vendor[]
+}
+
+model Vendor {
+  id                 String       @id @default(cuid())
+  vendorCode         String       @unique // auto-generated, immutable
+  legalName          String
+  tradingAsName      String?
+  vendorType         VendorType
+  status             VendorStatus @default(PROSPECTIVE)
+  groupId            String?
+  group              VendorGroup? @relation(fields: [groupId], references: [id])
+
+  taxIdType          String? // GST / VAT / PAN / etc
+  taxIdNumber        String?
+  countryOfRegistration String?
+
+  currency           String       @default("INR")
+  paymentTermsTemplate String?
+  defaultTaxTemplate String?
+  withholdingTaxRate Decimal?     @db.Decimal(5, 2)
+
+  preferredSupplier  Boolean      @default(false)
+  isInternalSupplier Boolean      @default(false)
+  internalCompanyRef String?
+
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  contacts           VendorContact[]
+  bankAccounts       VendorBankAccount[]
+  documents          VendorDocument[]
+  holds              VendorHold[]
+  tradeTags          VendorTradeTag[]
+  rateCards          RateCard[]
+  quotations         VendorQuotation[]
+  rfqInvites         RfqVendorInvite[]
+  contracts          Contract[]
+  purchaseOrders     PurchaseOrder[]
+  invoices           Invoice[]
+  payments           Payment[]
+  scorecards         VendorScorecard[]
+  correctiveActions  CorrectiveActionPlan[]
+  workerProfiles     WorkerProfile[]
+  questionnaireResponses QuestionnaireResponse[]
+  jobPostingSubmissions CandidateSubmission[]
+
+  @@index([status])
+  @@index([vendorType])
+}
+
+// Multi-trade tagging: one vendor can carry several trade categories.
+model TradeCategory {
+  id     String           @id @default(cuid())
+  name   String           @unique
+  tags   VendorTradeTag[]
+}
+
+model VendorTradeTag {
+  id              String        @id @default(cuid())
+  vendorId        String
+  vendor          Vendor        @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  tradeCategoryId String
+  tradeCategory   TradeCategory @relation(fields: [tradeCategoryId], references: [id])
+
+  @@unique([vendorId, tradeCategoryId])
+}
+
+model VendorContact {
+  id        String  @id @default(cuid())
+  vendorId  String
+  vendor    Vendor  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  name      String
+  email     String
+  phone     String?
+  role      String?
+  isPrimary Boolean @default(false)
+}
+
+model VendorBankAccount {
+  id            String  @id @default(cuid())
+  vendorId      String
+  vendor        Vendor  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  bankName      String
+  accountNumber String
+  accountHolder String
+  ifscOrSwift   String
+  currency      String  @default("INR")
+  isDefault     Boolean @default(false)
+}
+
+model VendorDocument {
+  id             String         @id @default(cuid())
+  vendorId       String
+  vendor         Vendor         @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  docType        String // e.g. Insurance COI, Tax Certificate, PAN Card
+  fileUrl        String
+  status         DocumentStatus @default(PENDING)
+  uploadedByUserId String?
+  expiryDate     DateTime?
+  reviewedByUserId String?
+  rejectionReason String?
+  createdAt      DateTime       @default(now())
+}
+
+model VendorHold {
+  id          String   @id @default(cuid())
+  vendorId    String
+  vendor      Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  holdType    HoldType
+  reason      String
+  releaseDate DateTime?
+  active      Boolean  @default(true)
+  appliedByUserId String?
+  createdAt   DateTime @default(now())
+}
+
+// Qualification questionnaire — configurable question sets per vendor category.
+model QualificationQuestionnaire {
+  id        String                    @id @default(cuid())
+  name      String
+  vendorType VendorType?
+  questions QualificationQuestion[]
+  responses QuestionnaireResponse[]
+}
+
+model QualificationQuestion {
+  id              String                    @id @default(cuid())
+  questionnaireId String
+  questionnaire   QualificationQuestionnaire @relation(fields: [questionnaireId], references: [id], onDelete: Cascade)
+  text            String
+  qualificationArea String
+  answers         QuestionAnswer[]
+}
+
+model QuestionnaireResponse {
+  id              String                    @id @default(cuid())
+  vendorId        String
+  vendor          Vendor                    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  questionnaireId String
+  questionnaire   QualificationQuestionnaire @relation(fields: [questionnaireId], references: [id])
+  submittedAt     DateTime                  @default(now())
+  answers         QuestionAnswer[]
+}
+
+model QuestionAnswer {
+  id         String                @id @default(cuid())
+  responseId String
+  response   QuestionnaireResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  questionId String
+  question   QualificationQuestion @relation(fields: [questionId], references: [id])
+  answer     String
+  attachmentUrl String?
+}
+
+// ---------------------------------------------------------------------------
+// Generic Approval Workflow Engine (reused by vendor / PO / invoice / change-order)
+// ---------------------------------------------------------------------------
+
+model ApprovalWorkflow {
+  id         String              @id @default(cuid())
+  name       String
+  entityType ApprovalEntityType
+  stages     ApprovalStageDef[]
+  instances  ApprovalInstance[]
+}
+
+model ApprovalStageDef {
+  id           String           @id @default(cuid())
+  workflowId   String
+  workflow     ApprovalWorkflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  sequence     Int
+  name         String
+  approverRole String
+
+  @@unique([workflowId, sequence])
+}
+
+model ApprovalInstance {
+  id           String                 @id @default(cuid())
+  workflowId   String
+  workflow     ApprovalWorkflow       @relation(fields: [workflowId], references: [id])
+  entityType   ApprovalEntityType
+  entityId     String
+  status       ApprovalInstanceStatus @default(PENDING)
+  currentStage Int                    @default(1)
+  createdAt    DateTime               @default(now())
+  actions      ApprovalAction[]
+
+  @@index([entityType, entityId])
+}
+
+model ApprovalAction {
+  id             String           @id @default(cuid())
+  instanceId     String
+  instance       ApprovalInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  stageSequence  Int
+  approverUserId String
+  decision       ApprovalDecision
+  comments       String?
+  actedAt        DateTime         @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Module 4-6: RFQ, Quotation, Selection
+// ---------------------------------------------------------------------------
+
+model Rfq {
+  id              String            @id @default(cuid())
+  rfqNumber       String            @unique
+  title           String
+  type            RfqType
+  status          RfqStatus         @default(DRAFT)
+  responseDueDate DateTime?
+  deliveryDate    DateTime?
+  deliveryLocation String?
+  createdByUserId String?
+  createdAt       DateTime          @default(now())
+
+  items           RfqItem[]
+  invites         RfqVendorInvite[]
+  quotations      VendorQuotation[]
+}
+
+model RfqItem {
+  id       String  @id @default(cuid())
+  rfqId    String
+  rfq      Rfq     @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  itemName String
+  quantity Decimal @db.Decimal(14, 3)
+  uom      String
+
+  quotationLines QuotationLine[]
+  poItems        POItem[]
+}
+
+model RfqVendorInvite {
+  id       String @id @default(cuid())
+  rfqId    String
+  rfq      Rfq    @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  vendorId String
+  vendor   Vendor @relation(fields: [vendorId], references: [id])
+  status   String @default("INVITED") // INVITED, RESPONDED, DECLINED
+
+  @@unique([rfqId, vendorId])
+}
+
+model VendorQuotation {
+  id              String          @id @default(cuid())
+  quotationNumber String          @unique
+  rfqId           String
+  rfq             Rfq             @relation(fields: [rfqId], references: [id])
+  vendorId        String
+  vendor          Vendor          @relation(fields: [vendorId], references: [id])
+  currency        String          @default("INR")
+  validUntil      DateTime?
+  status          QuotationStatus @default(SUBMITTED)
+  submittedAt     DateTime        @default(now())
+
+  lines           QuotationLine[]
+  purchaseOrders  PurchaseOrder[]
+}
+
+model QuotationLine {
+  id           String          @id @default(cuid())
+  quotationId  String
+  quotation    VendorQuotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  rfqItemId    String
+  rfqItem      RfqItem         @relation(fields: [rfqItemId], references: [id])
+  unitPrice    Decimal         @db.Decimal(14, 2)
+  quantity     Decimal         @db.Decimal(14, 3)
+  deliveryDate DateTime?
+  accepted     Boolean         @default(false)
+}
+
+// Multi-criteria weighted scoring used at vendor-selection time.
+model NegotiationLogEntry {
+  id          String   @id @default(cuid())
+  rfqId       String?
+  poId        String?
+  actionType  String // OFFER, COUNTER_OFFER, AMENDMENT, AWARD
+  actorUserId String
+  notes       String?
+  createdAt   DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Module 4b: Labor Sourcing + Rate Cards (EPC-specific)
+// ---------------------------------------------------------------------------
+
+model JobPosting {
+  id           String   @id @default(cuid())
+  title        String
+  startDate    DateTime
+  endDate      DateTime?
+  siteLocation String
+  costCenter   String
+  currency     String   @default("INR")
+  description  String?
+  createdAt    DateTime @default(now())
+
+  submissions  CandidateSubmission[]
+}
+
+model CandidateSubmission {
+  id            String     @id @default(cuid())
+  jobPostingId  String
+  jobPosting    JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+  vendorId      String
+  vendor        Vendor     @relation(fields: [vendorId], references: [id])
+  candidateName String
+  proposedRate  Decimal    @db.Decimal(14, 2)
+  status        String     @default("SUBMITTED") // SUBMITTED, SHORTLISTED, REJECTED, SELECTED
+  submittedAt   DateTime   @default(now())
+}
+
+model RateCard {
+  id           String   @id @default(cuid())
+  vendorId     String
+  vendor       Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  role         String
+  siteLocation String
+  payRate      Decimal  @db.Decimal(14, 2)
+  currency     String   @default("INR")
+  effectiveFrom DateTime
+  effectiveTo   DateTime?
+
+  workerProfiles WorkerProfile[]
+}
+
+// ---------------------------------------------------------------------------
+// Module 7: Contracts / PO Creation
+// ---------------------------------------------------------------------------
+
+model Contract {
+  id                 String          @id @default(cuid())
+  contractNumber     String          @unique
+  vendorId           String
+  vendor             Vendor          @relation(fields: [vendorId], references: [id])
+  type               ContractType
+  title              String
+  status             ContractStatus  @default(DRAFT)
+  startDate          DateTime
+  endDate            DateTime?
+  renewalReminderDays Int[]          @default([90, 30])
+  fileUrl            String?
+  parentContractId   String?
+  parentContract     Contract?       @relation("ContractRevision", fields: [parentContractId], references: [id])
+  revisions          Contract[]      @relation("ContractRevision")
+  version            Int             @default(1)
+  createdAt          DateTime        @default(now())
+
+  milestones         SOWMilestone[]
+  purchaseOrders     PurchaseOrder[]
+}
+
+model SOWMilestone {
+  id           String          @id @default(cuid())
+  contractId   String
+  contract     Contract        @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  name         String
+  dueDate      DateTime
+  amount       Decimal         @db.Decimal(14, 2)
+  status       MilestoneStatus @default(PENDING)
+  acceptedByUserId String?
+  acceptedAt   DateTime?
+}
+
+model PurchaseOrder {
+  id               String          @id @default(cuid())
+  poNumber         String          @unique
+  vendorId         String
+  vendor           Vendor          @relation(fields: [vendorId], references: [id])
+  contractId       String?
+  contract         Contract?       @relation(fields: [contractId], references: [id])
+  quotationId      String?
+  quotation        VendorQuotation? @relation(fields: [quotationId], references: [id])
+  status           POStatus        @default(DRAFT)
+  currency         String          @default("INR")
+  deliveryDate     DateTime?
+  deliveryLocation String?
+  isDropship       Boolean         @default(false)
+  dropshipAddress  String?
+  overReceiptTolerancePct Decimal  @db.Decimal(5, 2) @default(0)
+  revisionNumber   Int             @default(1)
+  parentPoId       String?
+  parentPo         PurchaseOrder?  @relation("PoRevision", fields: [parentPoId], references: [id])
+  revisions        PurchaseOrder[] @relation("PoRevision")
+  createdAt        DateTime        @default(now())
+
+  items            POItem[]
+  goodsReceipts    GoodsReceipt[]
+  invoices         Invoice[]
+  subcontractingOrders SubcontractingOrder[]
+}
+
+model POItem {
+  id          String   @id @default(cuid())
+  poId        String
+  po          PurchaseOrder @relation(fields: [poId], references: [id], onDelete: Cascade)
+  rfqItemId   String?
+  rfqItem     RfqItem? @relation(fields: [rfqItemId], references: [id])
+  itemName    String
+  uom         String
+  orderedQty  Decimal  @db.Decimal(14, 3)
+  unitPrice   Decimal  @db.Decimal(14, 2)
+  receivedQty Decimal  @db.Decimal(14, 3) @default(0)
+
+  goodsReceiptItems GoodsReceiptItem[]
+  invoiceLines      InvoiceLine[]
+}
+
+// ---------------------------------------------------------------------------
+// Module 9: Delivery / Work Execution
+// ---------------------------------------------------------------------------
+
+model GoodsReceipt {
+  id            String   @id @default(cuid())
+  grNumber      String   @unique
+  poId          String
+  po            PurchaseOrder @relation(fields: [poId], references: [id])
+  receivedDate  DateTime @default(now())
+  receivedByUserId String?
+  warehouseOrCostCode String?
+
+  items         GoodsReceiptItem[]
+}
+
+model GoodsReceiptItem {
+  id                String       @id @default(cuid())
+  goodsReceiptId    String
+  goodsReceipt      GoodsReceipt @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
+  poItemId          String
+  poItem            POItem       @relation(fields: [poItemId], references: [id])
+  quantityDelivered Decimal      @db.Decimal(14, 3)
+  quantityAccepted  Decimal      @db.Decimal(14, 3)
+  quantityRejected  Decimal      @db.Decimal(14, 3) @default(0)
+  rejectionReason   String?
+  qualityInspectionResult String? // PASS, FAIL, N/A
+
+  returnsToVendor   ReturnToVendor[]
+}
+
+model SubcontractingOrder {
+  id               String   @id @default(cuid())
+  vendorId         String
+  poId             String
+  po               PurchaseOrder @relation(fields: [poId], references: [id])
+  bomRef           String?
+  reserveWarehouse String?
+  suppliedQty      Decimal  @db.Decimal(14, 3) @default(0)
+  consumedQty      Decimal  @db.Decimal(14, 3) @default(0)
+}
+
+model ReturnToVendor {
+  id                 String           @id @default(cuid())
+  goodsReceiptItemId String
+  goodsReceiptItem   GoodsReceiptItem @relation(fields: [goodsReceiptItemId], references: [id])
+  quantityReturned   Decimal          @db.Decimal(14, 3)
+  reason             String
+  debitNoteAmount    Decimal          @db.Decimal(14, 2)
+  createdAt          DateTime         @default(now())
+}
+
+model WorkerProfile {
+  id           String   @id @default(cuid())
+  vendorId     String
+  vendor       Vendor   @relation(fields: [vendorId], references: [id])
+  name         String
+  siteLocation String
+  costCenter   String
+  rateCardId   String?
+  rateCard     RateCard? @relation(fields: [rateCardId], references: [id])
+  billable     Boolean  @default(true)
+  startDate    DateTime
+  endDate      DateTime?
+
+  timesheets   Timesheet[]
+}
+
+model Timesheet {
+  id             String          @id @default(cuid())
+  workerId       String
+  worker         WorkerProfile   @relation(fields: [workerId], references: [id])
+  periodStart    DateTime
+  periodEnd      DateTime
+  hours          Decimal         @db.Decimal(6, 2)
+  status         TimesheetStatus @default(SUBMITTED)
+  approverUserId String?
+  approvedAt     DateTime?
+
+  invoiceLines   InvoiceLine[]
+}
+
+// ---------------------------------------------------------------------------
+// Module 10: Invoicing
+// ---------------------------------------------------------------------------
+
+model Invoice {
+  id             String        @id @default(cuid())
+  invoiceNumber  String        @unique
+  vendorId       String
+  vendor         Vendor        @relation(fields: [vendorId], references: [id])
+  poId           String?
+  po             PurchaseOrder? @relation(fields: [poId], references: [id])
+  invoiceDate    DateTime
+  dueDate        DateTime
+  currency       String        @default("INR")
+  subtotal       Decimal       @db.Decimal(14, 2)
+  taxAmount      Decimal       @db.Decimal(14, 2) @default(0)
+  totalAmount    Decimal       @db.Decimal(14, 2)
+  status         InvoiceStatus @default(SUBMITTED)
+  source         InvoiceSource @default(MANUAL)
+  holdReasonCode String?
+  createdAt      DateTime      @default(now())
+
+  lines          InvoiceLine[]
+  creditDebitNotes CreditDebitNote[]
+  paymentAllocations PaymentInvoiceAllocation[]
+}
+
+model InvoiceLine {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  poItemId    String?
+  poItem      POItem?  @relation(fields: [poItemId], references: [id])
+  timesheetId String?
+  timesheet   Timesheet? @relation(fields: [timesheetId], references: [id])
+  description String
+  quantity    Decimal  @db.Decimal(14, 3)
+  unitPrice   Decimal  @db.Decimal(14, 2)
+  amount      Decimal  @db.Decimal(14, 2)
+}
+
+model CreditDebitNote {
+  id        String          @id @default(cuid())
+  invoiceId String
+  invoice   Invoice         @relation(fields: [invoiceId], references: [id])
+  type      CreditDebitType
+  amount    Decimal         @db.Decimal(14, 2)
+  reason    String
+  createdAt DateTime        @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Module 11: Payment
+// ---------------------------------------------------------------------------
+
+model Payment {
+  id              String      @id @default(cuid())
+  paymentNumber   String      @unique
+  vendorId        String
+  vendor          Vendor      @relation(fields: [vendorId], references: [id])
+  paymentType     PaymentType @default(PAY)
+  amount          Decimal     @db.Decimal(14, 2)
+  modeOfPayment   PaymentMode
+  referenceNumber String?
+  paymentDate     DateTime    @default(now())
+  bankAccountId   String?
+
+  allocations     PaymentInvoiceAllocation[]
+  withholdingEntries WithholdingTaxEntry[]
+}
+
+model PaymentInvoiceAllocation {
+  id              String  @id @default(cuid())
+  paymentId       String
+  payment         Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  invoiceId       String
+  invoice         Invoice @relation(fields: [invoiceId], references: [id])
+  allocatedAmount Decimal @db.Decimal(14, 2)
+}
+
+model WithholdingTaxEntry {
+  id            String   @id @default(cuid())
+  paymentId     String
+  payment       Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  rate          Decimal  @db.Decimal(5, 2)
+  amount        Decimal  @db.Decimal(14, 2)
+  filingPeriod  String
+}
+
+// ---------------------------------------------------------------------------
+// Module 12: Vendor Performance Scorecard / Offboarding
+// ---------------------------------------------------------------------------
+
+model VendorScorecard {
+  id                   String   @id @default(cuid())
+  vendorId             String
+  vendor               Vendor   @relation(fields: [vendorId], references: [id])
+  evaluationPeriodStart DateTime
+  evaluationPeriodEnd   DateTime
+  compositeScore       Decimal  @db.Decimal(5, 2)
+  evaluatorUserId      String?
+  createdAt            DateTime @default(now())
+
+  metrics              ScorecardMetric[]
+}
+
+model ScorecardMetric {
+  id          String          @id @default(cuid())
+  scorecardId String
+  scorecard   VendorScorecard @relation(fields: [scorecardId], references: [id], onDelete: Cascade)
+  metricName  String // e.g. On-time Delivery %, Defect Rate, Responsiveness
+  weight      Decimal         @db.Decimal(5, 2)
+  score       Decimal         @db.Decimal(5, 2)
+}
+
+model CorrectiveActionPlan {
+  id               String    @id @default(cuid())
+  vendorId         String
+  vendor           Vendor    @relation(fields: [vendorId], references: [id])
+  issue            String
+  requiredActions  String
+  deadline         DateTime
+  status           CapStatus @default(OPEN)
+  createdAt        DateTime  @default(now())
+  closedAt         DateTime?
+}
+
+model AuditLogEntry {
+  id         String   @id @default(cuid())
+  entityType String
+  entityId   String
+  action     String
+  actorUserId String?
+  changes    Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+}

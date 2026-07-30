@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: vendor_admin
+      POSTGRES_PASSWORD: vendor_admin
+      POSTGRES_DB: vendor_management
+    ports:
+      - "5432:5432"
+    volumes:
+      - vendor_pg_data:/var/lib/postgresql/data
+
+volumes:
+  vendor_pg_data:
