@@ -8,7 +8,8 @@ const router = Router();
 router.post(
   "/job-postings",
   asyncHandler(async (req, res) => {
-    const posting = await prisma.jobPosting.create({ data: req.body });
+    const { endDate, ...rest } = req.body;
+    const posting = await prisma.jobPosting.create({ data: { ...rest, endDate: endDate || undefined } });
     res.status(201).json(posting);
   })
 );

@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 
+const { coerceDateStrings } = require("./middleware/coerceDates");
 const vendorsRouter = require("./routes/vendors");
 const approvalsRouter = require("./routes/approvals");
 const rfqsRouter = require("./routes/rfqs");
@@ -16,6 +17,7 @@ const scorecardsRouter = require("./routes/scorecards");
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(coerceDateStrings);
 
 app.get("/health", (req, res) => res.json({ ok: true }));
 

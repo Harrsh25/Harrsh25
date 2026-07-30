@@ -226,6 +226,12 @@ label {
   font-size: 13px;
 }
 
+.tab-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
 .stat-row {
   display: flex;
   gap: 12px;

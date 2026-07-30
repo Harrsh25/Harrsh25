@@ -93,9 +93,17 @@ two-tier promotion, document/hold management, generic approval workflow,
 RFQ → quotation → comparison → PO conversion, PO submission + goods
 receipt with accept/reject split, 3-way invoice matching, credit/debit
 notes, payment entry with auto bank-account fetch and withholding tax,
-batch payment runs, and weighted vendor scorecards with auto-block.
+batch payment runs, weighted vendor scorecards with auto-block, labor
+sourcing (job postings → candidates → shortlist/select), rate cards,
+worker profiles + timesheets → auto-invoice, and contracts (master
+agreement/SOW/blanket/amendment) with SOW milestones → complete → accept
+→ auto-invoice and 90/30-day renewal alerts.
 
 Modeled in the schema and exposed via API, but without a dedicated UI
-screen yet: labor sourcing (job postings/candidates), rate cards, worker
-profiles/timesheets, contracts/SOW milestones/change orders, and
-subcontracting orders. These are the natural next screens to build.
+screen yet: subcontracting orders (raw-material-out/finished-goods-back)
+and quality inspection records. These are the natural next screens to
+build.
+
+The current screens are functional-first, plain default styling — a
+placeholder to validate the flows, not a finished design. Expect this to
+be restyled once the intended UI direction is set.

@@ -5,8 +5,11 @@ import VendorRegister from "./pages/VendorRegister.jsx";
 import Approvals from "./pages/Approvals.jsx";
 import Rfqs from "./pages/Rfqs.jsx";
 import RfqDetail from "./pages/RfqDetail.jsx";
+import Contracts from "./pages/Contracts.jsx";
+import ContractDetail from "./pages/ContractDetail.jsx";
 import PurchaseOrders from "./pages/PurchaseOrders.jsx";
 import PurchaseOrderDetail from "./pages/PurchaseOrderDetail.jsx";
+import Labor from "./pages/Labor.jsx";
 import Invoices from "./pages/Invoices.jsx";
 import InvoiceDetail from "./pages/InvoiceDetail.jsx";
 import Payments from "./pages/Payments.jsx";
@@ -16,7 +19,9 @@ const NAV_ITEMS = [
   { to: "/vendors", label: "Vendors" },
   { to: "/approvals", label: "Approvals" },
   { to: "/rfqs", label: "RFQ & Quotations" },
+  { to: "/contracts", label: "Contracts" },
   { to: "/purchase-orders", label: "Purchase Orders" },
+  { to: "/labor", label: "Labor Sourcing" },
   { to: "/invoices", label: "Invoices" },
   { to: "/payments", label: "Payments" },
   { to: "/scorecards", label: "Scorecards" },
@@ -44,8 +49,11 @@ export default function App() {
           <Route path="/approvals" element={<Approvals />} />
           <Route path="/rfqs" element={<Rfqs />} />
           <Route path="/rfqs/:id" element={<RfqDetail />} />
+          <Route path="/contracts" element={<Contracts />} />
+          <Route path="/contracts/:id" element={<ContractDetail />} />
           <Route path="/purchase-orders" element={<PurchaseOrders />} />
           <Route path="/purchase-orders/:id" element={<PurchaseOrderDetail />} />
+          <Route path="/labor" element={<Labor />} />
           <Route path="/invoices" element={<Invoices />} />
           <Route path="/invoices/:id" element={<InvoiceDetail />} />
           <Route path="/payments" element={<Payments />} />
