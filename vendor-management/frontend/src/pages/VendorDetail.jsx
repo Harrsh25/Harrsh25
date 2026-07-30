@@ -49,7 +49,19 @@ export default function VendorDetail() {
         <div className="stat"><div className="value">{vendor.currency}</div><div className="label">Currency</div></div>
         <div className="stat"><div className="value">{vendor.paymentTermsTemplate || "—"}</div><div className="label">Payment Terms</div></div>
         <div className="stat"><div className="value">{vendor.withholdingTaxRate ? `${vendor.withholdingTaxRate}%` : "—"}</div><div className="label">Withholding Tax</div></div>
-        <div className="stat"><div className="value">{vendor.preferredSupplier ? "Yes" : "No"}</div><div className="label">Preferred Supplier</div></div>
+        <div className="stat">
+          <div className="value" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <label className="toggle">
+              <input
+                type="checkbox"
+                checked={vendor.preferredSupplier}
+                onChange={(e) => runAction(() => api.patch(`/vendors/${id}`, { preferredSupplier: e.target.checked }))}
+              />
+              <span className="track" />
+            </label>
+          </div>
+          <div className="label">Preferred Supplier</div>
+        </div>
       </div>
 
       {(vendor.status === "PROSPECTIVE" || vendor.status === "PENDING_APPROVAL") && (

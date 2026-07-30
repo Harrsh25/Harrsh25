@@ -3,9 +3,11 @@ import { Link } from "react-router-dom";
 import { api } from "../api.js";
 import { useApi } from "../useApi.js";
 import { Badge } from "../components/Badge.jsx";
+import { usePagination, TableFooter } from "../components/Pagination.jsx";
 
 export default function PurchaseOrders() {
   const { data: pos, error, loading, reload } = useApi(() => api.get("/purchase-orders"), []);
+  const { page, setPage, pageCount, total, start, pageItems } = usePagination(pos);
   const { data: vendors } = useApi(() => api.get("/vendors?status=SPEND_AUTHORIZED"), []);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ vendorId: "", itemName: "", uom: "", orderedQty: "", unitPrice: "", deliveryLocation: "" });
@@ -59,11 +61,11 @@ export default function PurchaseOrders() {
       )}
 
       {pos && (
-        <div className="card">
+        <div className="table-card">
           <table>
             <thead><tr><th>PO #</th><th>Vendor</th><th>Status</th><th>Lines</th></tr></thead>
             <tbody>
-              {pos.map((po) => (
+              {pageItems.map((po) => (
                 <tr key={po.id}>
                   <td><Link to={`/purchase-orders/${po.id}`}>{po.poNumber}</Link></td>
                   <td>{po.vendor.legalName}</td>
@@ -71,9 +73,10 @@ export default function PurchaseOrders() {
                   <td>{po.items.length}</td>
                 </tr>
               ))}
-              {pos.length === 0 && <tr><td colSpan={4} className="muted">No purchase orders yet.</td></tr>}
+              {total === 0 && <tr><td colSpan={4} className="muted">No purchase orders yet.</td></tr>}
             </tbody>
           </table>
+          <TableFooter page={page} setPage={setPage} pageCount={pageCount} total={total} start={start} />
         </div>
       )}
     </div>

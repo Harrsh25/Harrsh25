@@ -3,12 +3,14 @@ import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api.js";
 import { useApi } from "../useApi.js";
 import { Badge } from "../components/Badge.jsx";
+import { usePagination, TableFooter } from "../components/Pagination.jsx";
 
 const CONTRACT_TYPES = ["MASTER_AGREEMENT", "SOW", "BLANKET_PO", "AMENDMENT"];
 
 export default function Contracts() {
   const navigate = useNavigate();
   const { data: contracts, error, loading } = useApi(() => api.get("/contracts"), []);
+  const { page, setPage, pageCount, total, start, pageItems } = usePagination(contracts);
   const { data: vendors } = useApi(() => api.get("/vendors?status=SPEND_AUTHORIZED"), []);
   const { data: renewals } = useApi(() => api.get("/contracts/alerts/renewals"), []);
   const [showForm, setShowForm] = useState(false);
@@ -111,11 +113,11 @@ export default function Contracts() {
       )}
 
       {contracts && (
-        <div className="card">
+        <div className="table-card">
           <table>
             <thead><tr><th>Contract #</th><th>Title</th><th>Vendor</th><th>Type</th><th>Status</th><th>End Date</th></tr></thead>
             <tbody>
-              {contracts.map((c) => (
+              {pageItems.map((c) => (
                 <tr key={c.id}>
                   <td><Link to={`/contracts/${c.id}`}>{c.contractNumber}</Link></td>
                   <td>{c.title}</td>
@@ -125,9 +127,10 @@ export default function Contracts() {
                   <td>{c.endDate ? new Date(c.endDate).toLocaleDateString() : "—"}</td>
                 </tr>
               ))}
-              {contracts.length === 0 && <tr><td colSpan={6} className="muted">No contracts yet.</td></tr>}
+              {total === 0 && <tr><td colSpan={6} className="muted">No contracts yet.</td></tr>}
             </tbody>
           </table>
+          <TableFooter page={page} setPage={setPage} pageCount={pageCount} total={total} start={start} />
         </div>
       )}
     </div>

@@ -2,9 +2,11 @@ import { Link } from "react-router-dom";
 import { api } from "../api.js";
 import { useApi } from "../useApi.js";
 import { Badge } from "../components/Badge.jsx";
+import { usePagination, TableFooter } from "../components/Pagination.jsx";
 
 export default function Invoices() {
   const { data: invoices, error, loading } = useApi(() => api.get("/invoices"), []);
+  const { page, setPage, pageCount, total, start, pageItems } = usePagination(invoices);
 
   return (
     <div>
@@ -13,11 +15,11 @@ export default function Invoices() {
       {error && <div className="error-banner">{error}</div>}
       {loading && <p className="muted">Loading...</p>}
       {invoices && (
-        <div className="card">
+        <div className="table-card">
           <table>
             <thead><tr><th>Invoice #</th><th>Vendor</th><th>Status</th><th>Source</th><th>Total</th><th>Due</th></tr></thead>
             <tbody>
-              {invoices.map((inv) => (
+              {pageItems.map((inv) => (
                 <tr key={inv.id}>
                   <td><Link to={`/invoices/${inv.id}`}>{inv.invoiceNumber}</Link></td>
                   <td>{inv.vendor.legalName}</td>
@@ -27,9 +29,10 @@ export default function Invoices() {
                   <td>{new Date(inv.dueDate).toLocaleDateString()}</td>
                 </tr>
               ))}
-              {invoices.length === 0 && <tr><td colSpan={6} className="muted">No invoices yet.</td></tr>}
+              {total === 0 && <tr><td colSpan={6} className="muted">No invoices yet.</td></tr>}
             </tbody>
           </table>
+          <TableFooter page={page} setPage={setPage} pageCount={pageCount} total={total} start={start} />
         </div>
       )}
     </div>

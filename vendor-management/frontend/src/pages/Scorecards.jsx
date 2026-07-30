@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api.js";
 import { useApi } from "../useApi.js";
+import { usePagination, TableFooter } from "../components/Pagination.jsx";
 
 const DEFAULT_METRICS = [
   { metricName: "On-time Delivery %", weight: 40, score: "" },
@@ -11,6 +12,7 @@ const DEFAULT_METRICS = [
 
 export default function Scorecards() {
   const { data: scorecards, error, loading, reload } = useApi(() => api.get("/scorecards"), []);
+  const { page, setPage, pageCount, total, start, pageItems } = usePagination(scorecards);
   const { data: vendors } = useApi(() => api.get("/vendors"), []);
   const [vendorId, setVendorId] = useState("");
   const [periodStart, setPeriodStart] = useState("");
@@ -85,21 +87,21 @@ export default function Scorecards() {
 
       {loading && <p className="muted">Loading...</p>}
       {scorecards && (
-        <div className="card">
-          <h2>All Scorecards</h2>
+        <div className="table-card">
           <table>
             <thead><tr><th>Vendor</th><th>Period</th><th>Composite Score</th></tr></thead>
             <tbody>
-              {scorecards.map((s) => (
+              {pageItems.map((s) => (
                 <tr key={s.id}>
                   <td><Link to={`/vendors/${s.vendorId}`}>{s.vendor.legalName}</Link></td>
                   <td>{new Date(s.evaluationPeriodStart).toLocaleDateString()} – {new Date(s.evaluationPeriodEnd).toLocaleDateString()}</td>
                   <td>{Number(s.compositeScore).toFixed(1)}</td>
                 </tr>
               ))}
-              {scorecards.length === 0 && <tr><td colSpan={3} className="muted">No scorecards yet.</td></tr>}
+              {total === 0 && <tr><td colSpan={3} className="muted">No scorecards yet.</td></tr>}
             </tbody>
           </table>
+          <TableFooter page={page} setPage={setPage} pageCount={pageCount} total={total} start={start} />
         </div>
       )}
     </div>

@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { api } from "../api.js";
 import { useApi } from "../useApi.js";
+import { usePagination, TableFooter } from "../components/Pagination.jsx";
 
 export default function Payments() {
   const { data: payments, error, loading, reload } = useApi(() => api.get("/payments"), []);
+  const { page, setPage, pageCount, total, start, pageItems } = usePagination(payments);
   const { data: vendors } = useApi(() => api.get("/vendors"), []);
   const [vendorId, setVendorId] = useState("");
   const { data: openInvoices } = useApi(
@@ -101,12 +103,11 @@ export default function Payments() {
 
       {loading && <p className="muted">Loading...</p>}
       {payments && (
-        <div className="card">
-          <h2>Payment History</h2>
+        <div className="table-card">
           <table>
             <thead><tr><th>Payment #</th><th>Vendor</th><th>Amount</th><th>Mode</th><th>Date</th></tr></thead>
             <tbody>
-              {payments.map((p) => (
+              {pageItems.map((p) => (
                 <tr key={p.id}>
                   <td>{p.paymentNumber}</td>
                   <td>{p.vendor.legalName}</td>
@@ -115,9 +116,10 @@ export default function Payments() {
                   <td>{new Date(p.paymentDate).toLocaleDateString()}</td>
                 </tr>
               ))}
-              {payments.length === 0 && <tr><td colSpan={5} className="muted">No payments recorded yet.</td></tr>}
+              {total === 0 && <tr><td colSpan={5} className="muted">No payments recorded yet.</td></tr>}
             </tbody>
           </table>
+          <TableFooter page={page} setPage={setPage} pageCount={pageCount} total={total} start={start} />
         </div>
       )}
     </div>

@@ -3,9 +3,11 @@ import { Link } from "react-router-dom";
 import { api } from "../api.js";
 import { useApi } from "../useApi.js";
 import { Badge } from "../components/Badge.jsx";
+import { usePagination, TableFooter } from "../components/Pagination.jsx";
 
 export default function Rfqs() {
   const { data: rfqs, error, loading, reload } = useApi(() => api.get("/rfqs"), []);
+  const { page, setPage, pageCount, total, start, pageItems } = usePagination(rfqs);
   const { data: vendors } = useApi(() => api.get("/vendors?status=SPEND_AUTHORIZED"), []);
   const [form, setForm] = useState({ title: "", itemName: "", quantity: "", uom: "", vendorIds: [] });
   const [formError, setFormError] = useState(null);
@@ -71,11 +73,11 @@ export default function Rfqs() {
       )}
 
       {rfqs && (
-        <div className="card">
+        <div className="table-card">
           <table>
             <thead><tr><th>RFQ #</th><th>Title</th><th>Type</th><th>Status</th><th>Quotations</th></tr></thead>
             <tbody>
-              {rfqs.map((r) => (
+              {pageItems.map((r) => (
                 <tr key={r.id}>
                   <td><Link to={`/rfqs/${r.id}`}>{r.rfqNumber}</Link></td>
                   <td>{r.title}</td>
@@ -84,9 +86,10 @@ export default function Rfqs() {
                   <td>{r.quotations?.length || 0}</td>
                 </tr>
               ))}
-              {rfqs.length === 0 && <tr><td colSpan={5} className="muted">No RFQs yet.</td></tr>}
+              {total === 0 && <tr><td colSpan={5} className="muted">No RFQs yet.</td></tr>}
             </tbody>
           </table>
+          <TableFooter page={page} setPage={setPage} pageCount={pageCount} total={total} start={start} />
         </div>
       )}
     </div>
