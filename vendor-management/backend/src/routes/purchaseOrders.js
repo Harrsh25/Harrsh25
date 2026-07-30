@@ -44,6 +44,15 @@ router.post(
   asyncHandler(async (req, res) => {
     const { vendorId, contractId, currency, deliveryDate, deliveryLocation, isDropship, dropshipAddress, items } =
       req.body;
+
+    if (contractId) {
+      const contract = await prisma.contract.findUnique({ where: { id: contractId } });
+      if (!contract) return res.status(404).json({ error: "Contract not found" });
+      if (contract.vendorId !== vendorId) {
+        return res.status(400).json({ error: "PO vendor does not match the linked contract's vendor" });
+      }
+    }
+
     const poNumber = await nextNumber(prisma, "purchaseOrder", "PO");
     const po = await prisma.purchaseOrder.create({
       data: {
@@ -116,7 +125,19 @@ router.post(
       },
       include: { items: true },
     });
-    res.status(201).json(revised);
+
+    // Same re-approval gate as a fresh submission — a revision must not
+    // become spendable just because it skipped the queue.
+    const workflow = await prisma.approvalWorkflow.findFirst({
+      where: { entityType: "PURCHASE_ORDER" },
+    });
+    const approvalInstance = workflow
+      ? await prisma.approvalInstance.create({
+          data: { workflowId: workflow.id, entityType: "PURCHASE_ORDER", entityId: revised.id },
+        })
+      : null;
+
+    res.status(201).json({ ...revised, approvalInstance });
   })
 );
 

@@ -41,6 +41,15 @@ router.post(
   "/",
   asyncHandler(async (req, res) => {
     const { vendorId, poId, invoiceDate, dueDate, currency, lines, source } = req.body;
+
+    if (poId) {
+      const po = await prisma.purchaseOrder.findUnique({ where: { id: poId } });
+      if (!po) return res.status(404).json({ error: "Purchase order not found" });
+      if (po.vendorId !== vendorId) {
+        return res.status(400).json({ error: "Invoice vendor does not match the linked PO's vendor" });
+      }
+    }
+
     const subtotal = lines.reduce((sum, l) => sum + Number(l.amount), 0);
     const taxAmount = req.body.taxAmount || 0;
     const invoiceNumber = await nextNumber(prisma, "invoice", "INV");
