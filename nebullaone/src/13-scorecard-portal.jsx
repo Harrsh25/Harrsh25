@@ -194,9 +194,10 @@ function VendorPortalPage() {
   const st = useStore();
   const portalVendors = st.vendors.filter((v) => ["Active", "On Hold", "Pending Approval"].includes(v.status));
   const [vid, setVid] = y.useState(portalVendors[0]?.id);
-  const [tab, setTab] = y.useState("orders");
+  const [tab, setTab] = y.useState("rfq");
   const [tk, setTk] = y.useState({ subject: "", body: "" });
   const [reup, setReup] = y.useState(null);
+  const [quoteFor, setQuoteFor] = y.useState(null);
   const v = byId(st.vendors, vid);
   if (!v) return <Page title="Vendor Portal" icon={Icon.globe}><EmptyState icon={Icon.globe} title="No vendors with portal access" /></Page>;
   const pos = st.purchaseOrders.filter((p) => p.vendorId === vid);
@@ -204,6 +205,8 @@ function VendorPortalPage() {
   const bills = st.raBills.filter((b) => b.vendorId === vid);
   const docs = requiredDocs(v).map((n) => v.docs.find((d) => d.name === n) || { name: n, status: "Missing" });
   const tickets = st.tickets.filter((t) => t.vendorId === vid);
+  const rfqs = st.rfqs.filter((r) => r.vendorIds.includes(vid) && r.status !== "Draft");
+  const openRfqs = rfqs.filter((r) => ["Sent", "Quotes Received"].includes(r.status) && daysUntil(r.dueDate) >= 0);
   const pricelist = pos.flatMap((p) => p.lines.map((l) => ({ ...l, po: p.id, date: p.date })));
   return (
     <Page title="Vendor Portal" subtitle="Preview of the supplier self-service portal — what the vendor sees after login" icon={Icon.globe}
@@ -221,7 +224,15 @@ function VendorPortalPage() {
         <StatTile tone="amber" label="Amount due to you" value={inrShort(sum(invs, (i) => invoiceTotals(i).balance))} icon={Icon.rupee} />
         <StatTile tone="red" label="Documents to renew" value={docs.filter((d) => ["Missing", "Expired", "Expiring", "Rejected"].includes(docState(d))).length} icon={Icon.fileClock} />
       </StatGrid>
-      <TabBar active={tab} onChange={setTab} tabs={[{ id: "orders", label: "Orders & deliveries", icon: Icon.truck }, { id: "bills", label: "Invoices & payments", icon: Icon.receipt }, { id: "price", label: "My pricelist", icon: Icon.sheet }, { id: "docs", label: "Documents", icon: Icon.folderCheck }, { id: "help", label: `Queries (${tickets.length})`, icon: Icon.message }]} />
+      <TabBar active={tab} onChange={setTab} tabs={[{ id: "rfq", label: `RFQs (${openRfqs.filter((r) => !r.quotes.some((q) => q.vendorId === vid)).length} to quote)`, icon: Icon.scale }, { id: "orders", label: "Orders & deliveries", icon: Icon.truck }, { id: "bills", label: "Invoices & payments", icon: Icon.receipt }, { id: "price", label: "My pricelist", icon: Icon.sheet }, { id: "docs", label: "Documents", icon: Icon.folderCheck }, { id: "help", label: `Queries (${tickets.length})`, icon: Icon.message }]} />
+      {tab === "rfq" && <DataTable rows={rfqs} empty={<EmptyState icon={Icon.scale} title="No RFQs yet" text="Requests for quotation you're invited to will appear here." />} columns={[
+        { key: "id", label: "RFQ", className: "mono text-[12px]" }, { key: "title", label: "Requirement", className: "font-medium" }, { key: "project", label: "Project" },
+        { key: "n", label: "Lines", align: "center", render: (r) => r.items.length },
+        { key: "due", label: "Quotes due", render: (r) => <ExpiryCell iso={["Awarded", "Closed"].includes(r.status) ? null : r.dueDate} /> },
+        { key: "me", label: "My quote", render: (r) => { const q = r.quotes.find((x) => x.vendorId === vid); return q ? <span className="num">{q.currency} {num(sum(r.items, (it, i) => it.qty * q.rates[i]))}</span> : <span className="text-ink-faint">—</span>; } },
+        { key: "s", label: "Status", render: (r) => r.status === "Awarded" ? <Status tone={r.awardedTo === vid ? "green" : "gray"}>{r.awardedTo === vid ? "Awarded to you" : "Not awarded"}</Status> : r.quotes.some((q) => q.vendorId === vid) ? <Status tone="blue">Quoted</Status> : daysUntil(r.dueDate) < 0 ? <Status tone="red">Missed</Status> : <Status tone="amber">Awaiting your quote</Status> },
+        { key: "a", label: "", align: "right", render: (r) => openRfqs.includes(r) && <Btn size="sm" variant="primary" icon={Icon.send} onClick={() => setQuoteFor(r.id)}>{r.quotes.some((q) => q.vendorId === vid) ? "Revise quote" : "Submit quote"}</Btn> },
+      ]} />}
       {tab === "orders" && <DataTable rows={pos} empty={<EmptyState icon={Icon.package} title="No purchase orders" />} columns={[
         { key: "id", label: "PO", className: "mono text-[12px]" }, { key: "project", label: "Deliver to" },
         { key: "dd", label: "Delivery due", render: (p) => fmtDate(p.deliveryDate) },
@@ -268,6 +279,11 @@ function VendorPortalPage() {
             </div>
           </Section>
         </div>
+      )}
+      {quoteFor && (
+        <Modal open onClose={() => setQuoteFor(null)} width={900} title={`Submit quotation — ${byId(st.rfqs, quoteFor).title}`} subtitle={`${quoteFor} · due ${fmtDate(byId(st.rfqs, quoteFor).dueDate)}`}>
+          <VendorQuoteForm rfq={byId(st.rfqs, quoteFor)} vendorId={vid} onDone={Object.assign(() => setQuoteFor(null), { via: "Vendor portal" })} />
+        </Modal>
       )}
       {reup && (
         <Modal open onClose={() => setReup(null)} width={460} title={`Re-upload — ${reup.name}`}

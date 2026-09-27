@@ -60,7 +60,7 @@ const inrShort = (n) => {
   return inr(v);
 };
 const pct = (a, b) => (b ? Math.round((a / b) * 1000) / 10 : 0);
-const sum = (arr, f = (x) => x) => arr.reduce((s, x) => s + (Number(f(x)) || 0), 0);
+const sum = (arr, f = (x) => x) => arr.reduce((s, x, i) => s + (Number(f(x, i)) || 0), 0);
 const byId = (list, id) => list.find((x) => x.id === id);
 const nextId = (prefix, list, pad = 3) => {
   const n = list.reduce((m, x) => Math.max(m, parseInt(String(x.id).split("-").pop(), 10) || 0), 0) + 1;

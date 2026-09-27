@@ -26,7 +26,7 @@ if (code.includes("</script")) throw new Error("module code must not contain </s
 
 const JS_BEGIN = "/*NXV:BEGIN*/", JS_END = "/*NXV:END*/";
 const block =
-  `${JS_BEGIN}const NxVendor=(()=>{const h=y.createElement,Fragment=y.Fragment;\n${code}\nreturn{routes:NXV_ROUTES,nav:NXV_NAV};})();` +
+  `${JS_BEGIN}const NxVendor=(()=>{const h=y.createElement,Fragment=y.Fragment;\n${code}\nreturn{routes:NXV_ROUTES,nav:NXV_NAV,publicRoutes:NXV_PUBLIC,ApprovalMgmt:ApprovalManagementPage};})();` +
   `qx.groups.push(...NxVendor.nav);${JS_END}`;
 html = stripBetween(html, JS_BEGIN, JS_END);
 const anchor = 'const Xu="/productivity";function og(){';
@@ -42,6 +42,20 @@ html = html.replace(
   routeAnchor,
   () => routeAnchor + `${R_BEGIN}...NxVendor.routes.map(r=>l.jsx(A,{path:r.path,element:l.jsx(r.el,{})},r.path)),${R_END}`
 );
+
+// Public routes (self-registration, vendor quotation) next to /login
+const P_BEGIN = "/*NXV:P*/", P_END = "/*NXV:P-END*/";
+html = stripBetween(html, P_BEGIN, P_END);
+const loginRoute = 'l.jsx(A,{path:"/login",element:l.jsx(Jx,{})}),';
+must(html, loginRoute);
+html = html.replace(loginRoute, () => `${P_BEGIN}...NxVendor.publicRoutes.map(r=>l.jsx(A,{path:r.path,element:l.jsx(r.el,{})},r.path)),${P_END}` + loginRoute);
+
+// Approval Management: swap the original page (W0) for the extended one
+const AM_BEGIN = "/*NXV:AM*/", AM_END = "/*NXV:AM-END*/";
+html = html.replace(/\/\*NXV:AM\*\/[^]*?\/\*NXV:AM-END\*\//, "l.jsx(W0,{})");
+const amRoute = 'path:"approvals/approval-management",element:l.jsx(W0,{})';
+must(html, amRoute);
+html = html.replace(amRoute, () => `path:"approvals/approval-management",element:${AM_BEGIN}l.jsx(NxVendor.ApprovalMgmt,{})${AM_END}`);
 
 // ---- 2. CSS (only utilities the original bundle doesn't already ship) ----
 const C_BEGIN = "/*NXV:CSS*/", C_END = "/*NXV:CSS-END*/";

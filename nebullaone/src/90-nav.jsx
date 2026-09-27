@@ -27,3 +27,9 @@ const NXV_NAV = ["Vendor Management", "Contract & Labor"].map((label) => ({
   label,
   items: NXV_PAGES.filter((p) => p.group === label).map((p) => ({ label: p.label, to: `${p.base}/${p.path}`, icon: p.icon })),
 }));
+
+// Public (no-login) pages, mounted as top-level routes next to /login
+const NXV_PUBLIC = [
+  { path: "/vendor-register", el: SelfRegisterPage },
+  { path: "/vendor-quote/:rfqId/:vendorId", el: VendorQuotePage },
+];

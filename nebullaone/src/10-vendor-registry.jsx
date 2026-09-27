@@ -22,7 +22,7 @@ function CategoryChips({ list, max = 2 }) {
 
 // ---------------------------------------------------------------- registration
 const emptyVendor = () => ({
-  name: "", legalName: "", type: "Goods", isContractor: false, categories: [], tier: "Approved", regTier: "Spend Authorized",
+  uploads: {}, name: "", legalName: "", type: "Goods", isContractor: false, categories: [], tier: "Approved", regTier: "Spend Authorized",
   gstin: "", pan: "", contact: { name: "", email: "", phone: "" }, address: "", city: "", state: "Maharashtra", currency: "INR",
   paymentTerms: "Net 30", tds: "194Q", group: "", parentCompany: "", bank: { bank: "", account: "", ifsc: "" },
   contractor: { labourLicence: "", licenceExpiry: "", pfCode: "", esiCode: "", workforce: "", experienceYrs: "", pastProjects: "" },
@@ -40,7 +40,7 @@ function validateVendor(f) {
   return e;
 }
 
-function createVendor(f, submit) {
+function createVendor(f, submit, source = "Internal") {
   const st = getState();
   const id = nextId("VEN", st.vendors);
   const v = {
@@ -53,12 +53,17 @@ function createVendor(f, submit) {
     onboarding: f.isContractor || f.type === "Labor" ? { checklist: ONBOARD_CHECKLIST.map((item) => ({ item, done: false })), startedAt: todayISO() } : null,
   };
   delete v.bank;
-  v.docs = requiredDocs(v).map((name) => ({ name, status: "Missing", expiry: null }));
-  setState((s) => s.vendors.unshift(v), { entity: "Vendor", id, action: submit ? "Registered & submitted for approval" : "Registered as draft" });
+  delete v.uploads;
+  v.source = source;
+  v.docs = requiredDocs(v).map((name) => {
+    const u = (f.uploads || {})[name];
+    return u && u.file ? { name, status: "Pending", file: u.file, dataUrl: u.dataUrl || null, expiry: u.expiry || null, uploadedAt: todayISO() } : { name, status: "Missing", expiry: null };
+  });
+  setState((s) => s.vendors.unshift(v), { entity: "Vendor", id, action: `${source === "Self-registration" ? "Self-registered via portal" : "Registered"}${submit ? " & submitted for approval" : " as draft"}` });
   return id;
 }
 
-function VendorForm({ f, set, errors, contractorMode }) {
+function VendorForm({ f, set, errors, contractorMode, publicMode }) {
   const upd = (k, val) => set({ ...f, [k]: val });
   const updC = (k, val) => set({ ...f, contact: { ...f.contact, [k]: val } });
   const updB = (k, val) => set({ ...f, bank: { ...f.bank, [k]: val } });
@@ -75,9 +80,9 @@ function VendorForm({ f, set, errors, contractorMode }) {
           <Field label="Vendor type" required hint="Drives PO type, TDS section and approval routing">
             <Select value={f.type} onChange={(v) => set({ ...f, type: v, tds: v === "Goods" ? "194Q" : "194C-2", isContractor: v === "Labor" ? true : f.isContractor })} options={VENDOR_TYPES} />
           </Field>
-          <Field label="Registration tier" hint="Prospective vendors can quote but can't receive POs">
+          {!publicMode ? <Field label="Registration tier" hint="Prospective vendors can quote but can't receive POs">
             <Select value={f.regTier} onChange={(v) => upd("regTier", v)} options={["Spend Authorized", "Prospective"]} />
-          </Field>
+          </Field> : <Field label="Currency"><Select value={f.currency} onChange={(v) => upd("currency", v)} options={["INR", "USD", "EUR", "AED"]} /></Field>}
           <Field label="Trades / categories" required span={2}>
             <ChipPicker options={TRADES} value={f.categories} onChange={(v) => upd("categories", v)} />{err("categories")}
           </Field>
@@ -91,12 +96,14 @@ function VendorForm({ f, set, errors, contractorMode }) {
         <div className="grid grid-cols-3 gap-3">
           <Field label="GSTIN" required><TextInput value={f.gstin} onChange={(v) => upd("gstin", v.toUpperCase())} placeholder="27AAKCS4412M1Z3" maxLength={15} />{err("gstin")}</Field>
           <Field label="PAN" required><TextInput value={f.pan} onChange={(v) => upd("pan", v.toUpperCase())} placeholder="AAKCS4412M" maxLength={10} />{err("pan")}</Field>
-          <Field label="Currency"><Select value={f.currency} onChange={(v) => upd("currency", v)} options={["INR", "USD", "EUR", "AED"]} /></Field>
-          <Field label="Payment terms"><Select value={f.paymentTerms} onChange={(v) => upd("paymentTerms", v)} options={PAYMENT_TERMS} /></Field>
+          {!publicMode && <Field label="Currency"><Select value={f.currency} onChange={(v) => upd("currency", v)} options={["INR", "USD", "EUR", "AED"]} /></Field>}
+          <Field label={publicMode ? "Preferred payment terms" : "Payment terms"}><Select value={f.paymentTerms} onChange={(v) => upd("paymentTerms", v)} options={PAYMENT_TERMS} /></Field>
+          {!publicMode && <>
           <Field label="Withholding tax (TDS)" span={2}><Select value={f.tds} onChange={(v) => upd("tds", v)} options={TDS_SECTIONS} /></Field>
           <Field label="Supplier tier"><Select value={f.tier} onChange={(v) => upd("tier", v)} options={TIERS} /></Field>
           <Field label="Vendor group" hint="Parent › child, for roll-up reporting"><TextInput value={f.group} onChange={(v) => upd("group", v)} placeholder="Civil Contractors › Structural" /></Field>
           <Field label="Internal parent company" hint="Only for group companies"><TextInput value={f.parentCompany} onChange={(v) => upd("parentCompany", v)} placeholder="—" /></Field>
+          </>}
         </div>
       </div>
       <div>
@@ -131,6 +138,49 @@ function VendorForm({ f, set, errors, contractorMode }) {
           <Field label="IFSC"><TextInput value={f.bank.ifsc} onChange={(v) => updB("ifsc", v.toUpperCase())} maxLength={11} /></Field>
         </div>
       </div>
+      <div>
+        <p className="mb-2 flex items-center justify-between text-[12px] font-semibold uppercase tracking-wide text-ink-mute">
+          <span>Documents</span>
+          <span className="normal-case tracking-normal font-normal">{Object.values(f.uploads || {}).filter((u) => u.file).length} of {requiredDocs(f).length} uploaded · PDF / JPG / PNG</span>
+        </p>
+        <DocUploadList docs={requiredDocs(f)} uploads={f.uploads || {}} onChange={(u) => set({ ...f, uploads: u })} />
+        {errors.docs && <span className="mt-1 block text-[11px] text-red-600">{errors.docs}</span>}
+      </div>
+    </div>
+  );
+}
+
+// Per-document file picker used by internal registration and vendor self-registration
+function DocUploadList({ docs, uploads, onChange }) {
+  const [busy, setBusy] = y.useState(null);
+  const pick = async (name, file) => {
+    if (!file) return;
+    setBusy(name);
+    const att = await readAttachment(file);
+    setBusy(null);
+    onChange({ ...uploads, [name]: { ...(uploads[name] || {}), file: att.name, dataUrl: att.dataUrl } });
+  };
+  return (
+    <div className="divide-y divide-line rounded-lg border border-line">
+      {docs.map((name) => {
+        const u = uploads[name] || {};
+        const expires = /Policy|Licence|ISO|CAR|Certificate/.test(name) && !/GST|Registration/.test(name);
+        return (
+          <div key={name} className="grid grid-cols-[1fr_230px_150px] items-center gap-3 px-3 py-2">
+            <span className="flex items-center gap-2 text-[13px]">
+              {u.file ? <Icon.check size={15} className="text-green-600" /> : <Icon.file size={15} className="text-ink-faint" />}
+              {name}
+            </span>
+            <label className={cls("flex h-[30px] cursor-pointer items-center gap-2 truncate rounded-md border border-dashed px-2.5 text-[12.5px]", u.file ? "border-green-300 bg-green-50 text-green-700" : "border-gray-300 text-ink-soft hover:border-brand hover:text-brand")}>
+              <Icon.upload size={13} />
+              <span className="truncate">{busy === name ? "Reading…" : u.file || "Choose file"}</span>
+              <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => pick(name, e.target.files[0])} />
+            </label>
+            {expires ? <DateInput value={u.expiry || ""} onChange={(x) => onChange({ ...uploads, [name]: { ...u, expiry: x } })} title="Valid till" />
+              : <span className="text-[11.5px] text-ink-faint">No expiry</span>}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -326,7 +376,7 @@ function VendorDocs({ v }) {
     <Section title="Document checklist" icon={Icon.folderCheck} actions={<span className="text-[12px] text-ink-mute">Each item is verified individually before activation</span>}>
       <DataTable dense rows={docs} rowKey={(d) => d.name} columns={[
         { key: "name", label: "Document", className: "font-medium" },
-        { key: "file", label: "File", render: (d) => (d.file ? <span className="text-[12px] text-brand">{d.file}</span> : <span className="text-ink-mute">—</span>) },
+        { key: "file", label: "File", render: (d) => (d.file ? <FileLink name={d.file} dataUrl={d.dataUrl} /> : <span className="text-ink-mute">—</span>) },
         { key: "expiry", label: "Valid till", render: (d) => <ExpiryCell iso={d.expiry} /> },
         { key: "status", label: "Status", render: (d) => <Status>{docState(d)}</Status> },
         { key: "a", label: "", align: "right", render: (d) => (
@@ -341,11 +391,11 @@ function VendorDocs({ v }) {
       ]} />
       <Modal open={!!up} onClose={() => setUp(null)} title={`Upload — ${up?.name}`} width={480}
         footer={<><Btn onClick={() => setUp(null)}>Cancel</Btn><Btn variant="primary" disabled={!up?.file} onClick={() => {
-          mut(up.name, (x) => Object.assign(x, { status: "Pending", file: up.file, expiry: up.expiry || null, uploadedAt: todayISO() }), `${up.name} uploaded`);
+          mut(up.name, (x) => Object.assign(x, { status: "Pending", file: up.file, dataUrl: up.dataUrl || null, expiry: up.expiry || null, uploadedAt: todayISO() }), `${up.name} uploaded`);
           toast("Document uploaded — awaiting verification"); setUp(null);
         }}>Upload</Btn></>}>
         {up && <div className="space-y-3">
-          <Field label="File" required><input type="file" className="block w-full text-[13px]" onChange={(e) => setUp({ ...up, file: e.target.files[0]?.name || "" })} /></Field>
+          <Field label="File" required><input type="file" accept=".pdf,.jpg,.jpeg,.png" className="block w-full text-[13px]" onChange={async (e) => { const f0 = e.target.files[0]; if (f0) { const att = await readAttachment(f0); setUp((u) => ({ ...u, file: att.name, dataUrl: att.dataUrl })); } }} /></Field>
           <Field label="Valid till" hint="Leave empty for documents that don't expire"><DateInput value={up.expiry} onChange={(x) => setUp({ ...up, expiry: x })} /></Field>
         </div>}
       </Modal>
@@ -424,7 +474,7 @@ function AuditList({ items }) {
 function VendorRegistryPage() {
   const st = useStore();
   const [q, setQ] = y.useState(""), [type, setType] = y.useState("All"), [status, setStatus] = y.useState("All"), [tier, setTier] = y.useState("All");
-  const [open, setOpen] = y.useState(null), [reg, setReg] = y.useState(false);
+  const [open, setOpen] = y.useState(null), [reg, setReg] = y.useState(false), [share, setShare] = y.useState(false);
   const rows = st.vendors.filter((v) =>
     (type === "All" || v.type === type) && (status === "All" || v.status === status) && (tier === "All" || v.tier === tier) &&
     (!q || [v.name, v.id, v.gstin, v.city, ...v.categories].join(" ").toLowerCase().includes(q.toLowerCase())));
@@ -432,7 +482,7 @@ function VendorRegistryPage() {
   return (
     <Page title="Vendor Registry" subtitle="Vendor master — registration, classification and status" icon={Icon.building}
       actions={<>
-        <Btn icon={Icon.globe} onClick={() => { try { navigator.clipboard.writeText(location.origin + "/vendor-register"); } catch {} toast("Self-registration link copied"); }}>Self-registration link</Btn>
+        <Btn icon={Icon.globe} onClick={() => setShare(true)}>Self-registration link</Btn>
         <Btn variant="primary" icon={Icon.plus} onClick={() => setReg(true)}>Register vendor</Btn>
       </>}>
       <StatGrid cols={5}>
@@ -461,6 +511,8 @@ function VendorRegistryPage() {
       ]} />
       <PageFooter items={[{ value: rows.length, label: "vendors" }, { value: rows.filter((v) => v.preferred).length, label: "preferred", color: "text-amber-600" }]} />
       <RegisterVendorModal open={reg} onClose={() => setReg(false)} onCreated={(id) => setOpen(id)} />
+      {share && <ShareLinkModal title="Vendor self-registration link" url={appUrl("/vendor-register")} onClose={() => setShare(false)}
+        text="Send this link to prospective vendors. They fill in their company, tax and bank details and upload documents themselves — no login needed. Submissions arrive in Approval Management under “Vendor Registration”." />}
       {open && <VendorDrawer vendorId={open} onClose={() => setOpen(null)} />}
     </Page>
   );

@@ -1,6 +1,6 @@
 // Demo seed data. Dates are relative to "today" so expiry / renewal alerts
 // always have something to show. Bump SEED_VERSION when the shape changes.
-const SEED_VERSION = 4;
+const SEED_VERSION = 5;
 
 function buildSeed() {
   const D = (n) => shiftDays(n);
@@ -290,7 +290,7 @@ function buildSeed() {
 
   // ---------------------------------------------------- RFQs
   const rfqs = [
-    { id: "RFQ-001", title: "TMT steel Fe500D — 120 MT", project: PROJECTS[0], mode: "Call for Tenders", status: "Quotes Received", createdOn: D(-12), dueDate: D(-2), template: "Steel supply",
+    { id: "RFQ-001", title: "TMT steel Fe500D — 120 MT", project: PROJECTS[0], mode: "Call for Tenders", status: "Quotes Received", createdOn: D(-12), dueDate: D(4), template: "Steel supply",
       items: [{ desc: "TMT Fe500D 12 mm", unit: "MT", qty: 60 }, { desc: "TMT Fe500D 16 mm", unit: "MT", qty: 60 }],
       vendorIds: ["VEN-003", "VEN-011"], weights: { price: 60, quality: 25, delivery: 15 },
       quotes: [

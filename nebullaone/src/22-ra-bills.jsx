@@ -136,6 +136,16 @@ function advanceBill(bill, remark, st) {
   toast(next.status === "Approved" ? `${bill.id} approved — payable raised` : `${bill.id} ${next.status.toLowerCase()}`);
 }
 
+function rejectBill(id, remark) {
+  setState((s) => {
+    const b = byId(s.raBills, id);
+    b.status = "Rejected";
+    b.history.push({ status: "Rejected", by: currentUser(), at: new Date().toISOString(), remark });
+    b.mbIds.forEach((m) => (byId(s.measurements, m).billedIn = null)); // measurements return to the unbilled pool
+  }, { entity: "RA Bill", id, action: `Rejected — ${remark}` });
+  toast(`${id} rejected`, "red");
+}
+
 function RaBillDrawer({ id, onClose }) {
   const st = useStore();
   const bill = byId(st.raBills, id);
@@ -145,15 +155,7 @@ function RaBillDrawer({ id, onClose }) {
   const wo = byId(st.workOrders, bill.woId), c = byId(st.contracts, bill.contractId), v = byId(st.vendors, bill.vendorId);
   const idx = RA_FLOW.findIndex((f) => f.status === bill.status);
   const next = bill.status === "Rejected" ? null : RA_FLOW[idx + 1];
-  const reject = () => {
-    setState((s) => {
-      const b = byId(s.raBills, id);
-      b.status = "Rejected";
-      b.history.push({ status: "Rejected", by: currentUser(), at: new Date().toISOString(), remark });
-      b.mbIds.forEach((m) => (byId(s.measurements, m).billedIn = null)); // measurements return to the unbilled pool
-    }, { entity: "RA Bill", id, action: `Rejected — ${remark}` });
-    setRemark(""); toast(`${id} rejected`, "red");
-  };
+  const reject = () => { rejectBill(id, remark); setRemark(""); };
   return (
     <Drawer open onClose={onClose} width={1000} title={`${bill.id} · RA-${bill.seq} · ${wo.title}`}
       subtitle={<><Status>{bill.status}</Status><span>{v.name}</span><span>· {wo.id} ({wo.type})</span><span>· {c.id}</span><span>· period {fmtDate(bill.periodFrom)} – {fmtDate(bill.periodTo)}</span></>}

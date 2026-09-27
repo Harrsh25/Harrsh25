@@ -63,7 +63,7 @@ function QuoteModal({ rfq, onClose }) {
   return (
     <Modal open onClose={onClose} width={680} title={`Record quotation — ${rfq.id}`} subtitle="Vendor price / RFQ response"
       footer={<><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!ok} onClick={() => {
-        setState((s) => { const r = byId(s.rfqs, rfq.id); r.quotes = r.quotes.filter((q) => q.vendorId !== f.vendorId); r.quotes.push({ ...f, rates: f.rates.map(Number), submittedOn: todayISO() }); r.status = "Quotes Received"; },
+        setState((s) => { const r = byId(s.rfqs, rfq.id); r.quotes = r.quotes.filter((q) => q.vendorId !== f.vendorId); r.quotes.push({ ...f, rates: f.rates.map(Number), submittedOn: todayISO(), via: "Recorded by buyer" }); r.status = "Quotes Received"; },
           { entity: "RFQ", id: rfq.id, action: `Quote recorded from ${vendorName(st, f.vendorId)}` });
         toast("Quotation recorded"); onClose();
       }}>Save quotation</Btn></>}>
@@ -115,6 +115,7 @@ function RfqDrawer({ id, onClose }) {
   const [quote, setQuote] = y.useState(false);
   const [msg, setMsg] = y.useState({ vendorId: "", text: "" });
   const [award, setAward] = y.useState(null);
+  const [share, setShare] = y.useState(null);
   if (!rfq) return null;
   const ranked = rankQuotes(st, rfq);
   const best = ranked.find((r) => !r.expired);
@@ -123,9 +124,23 @@ function RfqDrawer({ id, onClose }) {
     <Drawer open onClose={onClose} width={960} title={rfq.title} subtitle={<><span className="mono">{rfq.id}</span><Status>{rfq.status}</Status><span>{rfq.mode}</span><span>· {rfq.project}</span><span>· due {fmtDate(rfq.dueDate)}</span></>}
       actions={<>
         {rfq.status === "Draft" && <Btn variant="primary" icon={Icon.send} onClick={() => setState((s) => (byId(s.rfqs, id).status = "Sent"), { entity: "RFQ", id, action: "Sent to vendors" })}>Send</Btn>}
-        {!["Awarded", "Closed", "Draft"].includes(rfq.status) && <Btn icon={Icon.plus} onClick={() => setQuote(true)}>Record quote</Btn>}
+        {!["Awarded", "Closed", "Draft"].includes(rfq.status) && <Btn icon={Icon.plus} onClick={() => setQuote(true)}>Record quote on vendor's behalf</Btn>}
       </>}>
       <div className="space-y-4 p-5">
+        {rfq.status === "Draft" && <Note>This RFQ is a draft. Press <b>Send</b> to invite vendors — each one gets a personal link to submit their quotation online.</Note>}
+        <Section title="Invited vendors & quote links" icon={Icon.send}>
+          <DataTable dense rows={rfq.vendorIds.map((vid) => ({ id: vid, q: rfq.quotes.find((x) => x.vendorId === vid) }))} columns={[
+            { key: "v", label: "Vendor", render: (r) => <span className="font-medium">{vendorName(st, r.id)}</span> },
+            { key: "e", label: "Email", className: "text-[12px] text-ink-soft", render: (r) => byId(st.vendors, r.id)?.contact.email },
+            { key: "s", label: "Response", render: (r) => (r.q ? <Status tone="green">{`Quoted ${fmtDate(r.q.submittedOn)}${r.q.via === "Vendor link" || r.q.via === "Vendor portal" ? " · online" : ""}`}</Status> : rfq.status === "Draft" ? <Status tone="gray">Not sent</Status> : <Status tone="amber">Awaiting quote</Status>) },
+            { key: "att", label: "Attachment", render: (r) => (r.q?.attachment ? <FileLink name={r.q.attachment.name} dataUrl={r.q.attachment.dataUrl} /> : <span className="text-ink-faint">—</span>) },
+            { key: "a", label: "", align: "right", render: (r) => rfq.status !== "Draft" && !["Awarded", "Closed"].includes(rfq.status) && (
+              <span className="flex justify-end gap-1">
+                <Btn size="sm" icon={Icon.globe} onClick={() => setShare(r.id)}>Quote link</Btn>
+                <Btn size="sm" icon={Icon.mail} onClick={() => { setState((s) => byId(s.rfqs, id).negotiation.push({ at: new Date().toISOString(), by: "System", vendorId: r.id, text: `RFQ link emailed to ${byId(s.vendors, r.id).contact.email}` }), { entity: "RFQ", id, action: `Reminder sent to ${vendorName(st, r.id)}` }); toast(`Link sent to ${byId(st.vendors, r.id)?.contact.email}`); }}>Email</Btn>
+              </span>) },
+          ]} />
+        </Section>
         <Section title="Vendor comparison sheet" icon={Icon.scale} actions={best && rfq.status !== "Awarded" && <Btn size="sm" variant="primary" icon={Icon.sparkles} onClick={() => setAward({ vendorId: best.q.vendorId, lines: rfq.items.map(() => true) })}>Auto-select best ({vendorName(st, best.q.vendorId)})</Btn>}>
           {rfq.quotes.length === 0 ? <p className="p-4 text-[13px] text-ink-mute">No quotations yet. {rfq.vendorIds.length} vendor(s) invited: {rfq.vendorIds.map((v) => vendorName(st, v)).join(", ")}.</p> : (
             <div className="overflow-x-auto">
@@ -178,6 +193,8 @@ function RfqDrawer({ id, onClose }) {
         </Section>
       </div>
       {quote && <QuoteModal rfq={rfq} onClose={() => setQuote(false)} />}
+      {share && <ShareLinkModal title={`Quotation link — ${vendorName(st, share)}`} url={appUrl(`/vendor-quote/${rfq.id}/${share}`)} onClose={() => setShare(null)}
+        text="This link is personal to the vendor. They see the RFQ lines, enter their rates, delivery and validity, attach their quotation and submit — it appears here in the comparison sheet immediately." />}
       {award && (
         <Modal open onClose={() => setAward(null)} width={560} title={`Award to ${vendorName(st, award.vendorId)}`} subtitle="Select the lines to accept (partial award is allowed). A draft PO is created for approval."
           footer={<><Btn onClick={() => setAward(null)}>Cancel</Btn><Btn variant="primary" disabled={!award.lines.some(Boolean) || !eligibleForPo(byId(st.vendors, award.vendorId))}

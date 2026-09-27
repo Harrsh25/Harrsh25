@@ -20,5 +20,6 @@ Tailwind classes the bundle doesn't already contain. Demo data lives in the brow
 | `src/01-logic.jsx` | compliance engine, RA bill maths, ledgers, 3-way match, scorecard |
 | `src/02-seed.jsx` | demo data |
 | `src/10`–`13` | Vendor Management pages |
+| `src/14-public-approvals.jsx` | public self-registration and vendor quotation pages, Approval Management |
 | `src/20`–`23` | Contract & Labor pages |
 | `src/90-nav.jsx` | sidebar groups and routes |
