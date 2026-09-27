@@ -1,0 +1,7 @@
+{
+  "name": "nebullaone-vendor-module",
+  "private": true,
+  "type": "module",
+  "scripts": { "build": "node build.mjs" },
+  "devDependencies": { "esbuild": "^0.24.0", "postcss": "^8.4.47", "tailwindcss": "^3.4.14" }
+}
