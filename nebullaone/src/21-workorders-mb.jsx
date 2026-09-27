@@ -19,7 +19,7 @@ function WorkOrderModal({ open, onClose, onCreated, contractId: presetContract }
   const ok = c && f.title && value > 0 && (f.type === "Lump Sum" ? wsum === 100 && f.milestones.every((m) => m.name) : f.items.every((i) => i.desc && i.qty > 0 && i.rate > 0));
   const save = (issue) => {
     const id = nextId("WO", st.workOrders);
-    const wo = { id, contractId: c.id, vendorId: c.vendorId, project: c.project, title: f.title, type: f.type, location: f.location, start: f.start, end: f.end, status: issue ? "Issued" : "Draft", issuedOn: issue ? todayISO() : null };
+    const wo = { id, contractId: c.id, vendorId: c.vendorId, project: c.project, title: f.title, type: f.type, location: f.location, start: f.start, end: f.end, status: issue ? "Issued" : "Draft", issuedOn: issue ? todayISO() : null, acceptance: issue ? { status: "Pending" } : null };
     if (f.type === "Lump Sum") Object.assign(wo, { lumpSum: Number(f.lumpSum), milestones: f.milestones.map((m, i) => ({ id: `M${i + 1}`, name: m.name, weight: Number(m.weight) })) });
     else wo.items = f.items.map((it, i) => ({ id: `${id.slice(-3)}-${i + 1}`, code: it.code, desc: it.desc, unit: it.unit, qty: Number(it.qty), rate: Number(it.rate) }));
     setState((s) => s.workOrders.unshift(wo), { entity: "Work Order", id, action: `${issue ? "Issued" : "Drafted"} under ${c.id} (${f.type})` });
@@ -87,15 +87,19 @@ function WorkOrderDrawer({ id, onClose }) {
   if (!wo) return null;
   const pos = woPosition(st, wo), pr = woProgress(st, wo);
   const bills = st.raBills.filter((b) => b.woId === id);
-  const mut = (status) => setState((s) => { const w = byId(s.workOrders, id); w.status = status; if (status === "Issued") w.issuedOn = todayISO(); }, { entity: "Work Order", id, action: `Status → ${status}` });
+  const mut = (status) => setState((s) => { const w = byId(s.workOrders, id); w.status = status; if (status === "Issued") { w.issuedOn = todayISO(); w.acceptance = { status: "Pending" }; } }, { entity: "Work Order", id, action: `Status → ${status}` });
   return (
     <Drawer open onClose={onClose} width={960} title={wo.title} subtitle={<><span className="mono">{wo.id}</span><Status>{wo.status}</Status><span>{wo.type}</span><span>· {vendorName(st, wo.vendorId)}</span><span>· {wo.contractId}</span><span>· {wo.location}</span></>}
       actions={<>
         {wo.status === "Draft" && <Btn variant="primary" onClick={() => mut("Issued")}>Issue</Btn>}
-        {["Issued", "In Progress"].includes(wo.status) && <Btn variant="primary" icon={Icon.ruler} onClick={() => setMb({ woId: id })}>Record measurement</Btn>}
+        {wo.status === "Issued" && wo.acceptance?.status !== "Accepted" && <Btn onClick={() => setState((s) => (byId(s.workOrders, id).acceptance = { status: "Accepted", by: `${currentUser()} (on contractor's signed copy)`, at: new Date().toISOString() }), { entity: "Work Order", id, action: "Acceptance recorded on contractor's behalf" })}>Record acceptance</Btn>}
+        {["Issued", "In Progress"].includes(wo.status) && <Btn variant="primary" icon={Icon.ruler} disabled={!woAccepted(wo)} title={woAccepted(wo) ? "" : "Contractor must accept the work order first"} onClick={() => setMb({ woId: id })}>Record measurement</Btn>}
         {["Issued", "In Progress"].includes(wo.status) && pr.physical >= 99.5 && <Btn variant="success" onClick={() => mut("Completed")}>Mark completed</Btn>}
       </>}>
       <div className="space-y-4 p-5">
+        {wo.acceptance?.status === "Pending" && <Note tone="amber">Waiting for the contractor to accept this work order in the supplier portal. Measurements open once it is accepted.</Note>}
+        {wo.acceptance?.status === "Declined" && <Note tone="red">Contractor declined: {wo.acceptance.reason}. Revise and re-issue.</Note>}
+        {woAccepted(wo) && <Note tone="green" icon={Icon.check}>Accepted by {wo.acceptance.by} on {fmtDate(wo.acceptance.at)}.</Note>}
         <div className="grid grid-cols-4 gap-3">
           <StatTile tone="blue" label="WO value" value={inrShort(pr.value)} icon={Icon.file} />
           <StatTile tone="purple" label="Planned progress" value={`${pr.planned.toFixed(0)}%`} sub={`${fmtDate(wo.start)} → ${fmtDate(wo.end)}`} icon={Icon.calendar} />
@@ -159,6 +163,7 @@ function WorkOrdersPage() {
         { key: "pl", label: "Planned", align: "right", num: true, render: (w) => `${woProgress(st, w).planned.toFixed(0)}%` },
         { key: "ph", label: "Physical", render: (w) => { const p = woProgress(st, w); return <Progress value={Math.round(p.physical)} color={p.spi >= 0.95 ? "bg-green-500" : p.spi >= 0.8 ? "bg-amber-500" : "bg-red-500"} />; } },
         { key: "end", label: "Finish", render: (w) => fmtDate(w.end) },
+        { key: "acc", label: "Contractor", render: (w) => <Status tone={{ Accepted: "green", Pending: "amber", Declined: "red" }[w.acceptance?.status] || "gray"}>{w.acceptance?.status === "Pending" ? "Awaiting acceptance" : w.acceptance?.status || "—"}</Status> },
         { key: "s", label: "Status", render: (w) => <Status>{w.status}</Status> },
       ]} />
       <WorkOrderModal open={create} contractId={presetContract} onClose={() => setCreate(false)} onCreated={setOpen} />
@@ -193,7 +198,7 @@ function MeasurementModal({ preset = {}, onClose }) {
       }}>Save to MB</Btn></>}>
       <div className="space-y-3">
         <div className="grid grid-cols-3 gap-3">
-          <Field label="Work order" required><Select value={f.woId} placeholder="Select…" onChange={(x) => setF({ ...f, woId: x, lineId: "" })} options={st.workOrders.filter((w) => ["Issued", "In Progress"].includes(w.status)).map((w) => ({ value: w.id, label: `${w.id} — ${w.title}` }))} /></Field>
+          <Field label="Work order" required><Select value={f.woId} placeholder="Select…" onChange={(x) => setF({ ...f, woId: x, lineId: "" })} options={st.workOrders.filter((w) => ["Issued", "In Progress"].includes(w.status) && woAccepted(w)).map((w) => ({ value: w.id, label: `${w.id} — ${w.title}` }))} /></Field>
           <Field label={wo?.type === "Lump Sum" ? "Milestone" : "BOQ item"} required span={2}><Select value={f.lineId} placeholder="Select…" onChange={(x) => setF({ ...f, lineId: x })} options={lines} /></Field>
           <Field label="Date"><DateInput value={f.date} onChange={(x) => setF({ ...f, date: x })} /></Field>
           <Field label="Location / grid / chainage" required span={2}><TextInput value={f.location} onChange={(x) => setF({ ...f, location: x })} placeholder="e.g. Slab L4, grid A1–A6" /></Field>

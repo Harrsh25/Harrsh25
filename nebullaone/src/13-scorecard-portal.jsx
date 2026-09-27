@@ -99,13 +99,13 @@ function ScorecardPage() {
         <StatTile tone="red" label={`Below ${st.scoreConfig.blockThreshold} (block)`} value={scored.filter((r) => r.score < st.scoreConfig.blockThreshold).length} icon={Icon.ban} />
         <StatTile tone="amber" label="Open CAPs" value={st.caps.filter((c) => c.status === "Open").length} icon={Icon.clipboardList} />
       </StatGrid>
-      <TabBar active={tab} onChange={setTab} tabs={[{ id: "scores", label: "Scorecard", icon: Icon.gauge }, { id: "bench", label: "Category benchmark", icon: Icon.chart }, { id: "caps", label: "Corrective actions", icon: Icon.clipboardList }, { id: "model", label: "Metric model", icon: Icon.sliders }]} />
+      <TabBar active={tab} onChange={setTab} tabs={[{ id: "scores", label: "Scorecard", icon: Icon.gauge }, { id: "trend", label: "Monthly scores", icon: Icon.calendar }, { id: "bench", label: "Category benchmark", icon: Icon.chart }, { id: "caps", label: "Corrective actions", icon: Icon.clipboardList }, { id: "model", label: "Metric model", icon: Icon.sliders }]} />
       {tab === "scores" && (
         <DataTable rows={rows.sort((a, b) => (b.score ?? -1) - (a.score ?? -1))} rowKey={(r) => r.v.id} onRow={(r) => setOpen(r.v.id)} columns={[
           { key: "name", label: "Vendor", render: (r) => <span className="font-medium">{r.v.name}</span> },
           { key: "cat", label: "Category", render: (r) => primaryCategory(r.v) },
           { key: "score", label: "Score", align: "center", render: (r) => <ScoreRing value={r.score} size={32} /> },
-          { key: "band", label: "Band", align: "center", render: (r) => <b>{scoreBand(r.score)}</b> },
+          { key: "band", label: "Standing", render: (r) => { const b = standingOf(st, r.v.id); return b ? <span className="flex flex-col"><Status tone={b.color === "blue" ? "blue" : b.color}>{b.name}</Status><span className="text-[10.5px] text-ink-mute">{[b.preventRfq && "no RFQ", b.preventPo && "no PO", !b.preventRfq && b.warnRfq && "warn RFQ", !b.preventPo && b.warnPo && "warn PO"].filter(Boolean).join(" · ") || "no restriction"}</span></span> : "—"; } },
           { key: "q", label: "Quality", align: "right", render: (r) => partCell(r.parts.quality) },
           { key: "t", label: "Timeliness", align: "right", render: (r) => partCell(r.parts.timeliness) },
           { key: "s", label: "Safety", align: "right", render: (r) => partCell(r.parts.safety) },
@@ -119,6 +119,21 @@ function ScorecardPage() {
             </span>) },
         ]} />
       )}
+      {tab === "trend" && (() => {
+        const months = lastMonths(6);
+        const lbl = (m) => new Date(m).toLocaleDateString("en-IN", { month: "short", year: "2-digit" });
+        const tone = (x) => (x == null ? "text-ink-faint" : x >= 80 ? "text-green-700" : x >= 65 ? "text-blue-700" : x >= 50 ? "text-amber-700" : "text-red-600");
+        return (
+          <>
+            <Toolbar left={<span className="text-[12.5px] text-ink-soft">Scored per month from the ratings and deliveries recorded in that month (ERPNext-style evaluation periods). “—” means no activity.</span>} />
+            <DataTable rows={rows.filter((r) => r.score != null)} rowKey={(r) => r.v.id} onRow={(r) => setOpen(r.v.id)} columns={[
+              { key: "n", label: "Vendor", render: (r) => <span className="font-medium">{r.v.name}</span> },
+              ...months.map((m) => ({ key: m, label: lbl(m), align: "center", render: (r) => { const x = periodScore(st, r.v.id, m); return <span className={cls("num font-medium", tone(x))}>{x == null ? "—" : Math.round(x)}</span>; } })),
+              { key: "c", label: "Current", align: "center", render: (r) => <ScoreRing value={r.score} size={30} /> },
+            ]} />
+          </>
+        );
+      })()}
       {tab === "bench" && (
         <div className="grid grid-cols-2 gap-4 p-4">
           <Section title="Average score by category" icon={Icon.chart}>
@@ -155,6 +170,24 @@ function ScorecardPage() {
               <p className="text-[12px] text-ink-mute">Weights total {sum(Object.values(cfg.weights))}%. Metrics without data for a vendor are skipped and the rest re-weighted.</p>
             </div>
           </Section>
+          <Section title="Standings (score bands)" icon={Icon.layers} className="col-span-2">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead><tr><Th>Standing</Th><Th align="right">Min %</Th><Th align="right">Max %</Th><Th align="center">Warn RFQ</Th><Th align="center">Warn PO</Th><Th align="center">Prevent RFQ</Th><Th align="center">Prevent PO</Th><Th align="right">Vendors</Th></tr></thead>
+                <tbody>
+                  {(cfg.standings || DEFAULT_STANDINGS).map((b, i) => (
+                    <tr key={i}>
+                      <Td><span className="flex items-center gap-2"><Status tone={b.color}>{b.name}</Status></span></Td>
+                      {["min", "max"].map((k) => <Td key={k} align="right"><div className="ml-auto w-20"><NumInput value={b[k]} onChange={(x) => setCfg({ ...cfg, standings: cfg.standings.map((z, j) => (j === i ? { ...z, [k]: x } : z)) })} /></div></Td>)}
+                      {["warnRfq", "warnPo", "preventRfq", "preventPo"].map((k) => <Td key={k} align="center"><input type="checkbox" className="h-4 w-4 accent-[#0b5ed7]" checked={!!b[k]} onChange={(e) => setCfg({ ...cfg, standings: cfg.standings.map((z, j) => (j === i ? { ...z, [k]: e.target.checked } : z)) })} /></Td>)}
+                      <Td align="right" className="num">{rows.filter((r) => standingOf({ ...st, scoreConfig: cfg }, r.v.id)?.name === b.name).length}</Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="border-t border-line px-4 py-2 text-[12px] text-ink-mute">“Prevent” removes the vendor from new RFQ invitations / PO creation; “Warn” shows a warning. Payment holds still follow the auto-block threshold below.</p>
+          </Section>
           <Section title="Thresholds" icon={Icon.target}>
             <div className="grid grid-cols-2 gap-3 p-4">
               <Field label="Auto-block below"><NumInput value={cfg.blockThreshold} onChange={(x) => setCfg({ ...cfg, blockThreshold: x })} /></Field>
@@ -189,114 +222,3 @@ function ScorecardPage() {
   );
 }
 
-// ---------------------------------------------------------------- vendor portal preview
-function VendorPortalPage() {
-  const st = useStore();
-  const portalVendors = st.vendors.filter((v) => ["Active", "On Hold", "Pending Approval"].includes(v.status));
-  const [vid, setVid] = y.useState(portalVendors[0]?.id);
-  const [tab, setTab] = y.useState("rfq");
-  const [tk, setTk] = y.useState({ subject: "", body: "" });
-  const [reup, setReup] = y.useState(null);
-  const [quoteFor, setQuoteFor] = y.useState(null);
-  const v = byId(st.vendors, vid);
-  if (!v) return <Page title="Vendor Portal" icon={Icon.globe}><EmptyState icon={Icon.globe} title="No vendors with portal access" /></Page>;
-  const pos = st.purchaseOrders.filter((p) => p.vendorId === vid);
-  const invs = st.invoices.filter((i) => i.vendorId === vid);
-  const bills = st.raBills.filter((b) => b.vendorId === vid);
-  const docs = requiredDocs(v).map((n) => v.docs.find((d) => d.name === n) || { name: n, status: "Missing" });
-  const tickets = st.tickets.filter((t) => t.vendorId === vid);
-  const rfqs = st.rfqs.filter((r) => r.vendorIds.includes(vid) && r.status !== "Draft");
-  const openRfqs = rfqs.filter((r) => ["Sent", "Quotes Received"].includes(r.status) && daysUntil(r.dueDate) >= 0);
-  const pricelist = pos.flatMap((p) => p.lines.map((l) => ({ ...l, po: p.id, date: p.date })));
-  return (
-    <Page title="Vendor Portal" subtitle="Preview of the supplier self-service portal — what the vendor sees after login" icon={Icon.globe}
-      actions={<label className="flex items-center gap-2 text-[12.5px] text-ink-soft">Viewing as
-        <select className="h-[28px] rounded-md border border-line bg-white px-2 text-[13px] text-ink" value={vid} onChange={(e) => setVid(e.target.value)}>
-          {portalVendors.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
-        </select></label>}>
-      <div className="flex items-center justify-between gap-4 border-b border-line bg-gradient-to-r from-brand-soft to-white px-5 py-3">
-        <div><p className="text-[15px] font-semibold">Welcome, {v.contact.name}</p><p className="text-[12.5px] text-ink-soft">{v.name} · {v.id}</p></div>
-        <div className="flex items-center gap-2"><Status>{v.status}</Status><Status>{complianceOf(v).status}</Status></div>
-      </div>
-      <StatGrid>
-        <StatTile tone="blue" label="Open POs" value={pos.filter((p) => poStatus(p) !== "Received").length} icon={Icon.package} />
-        <StatTile tone="purple" label="RA bills in process" value={bills.filter((b) => !["Paid", "Rejected"].includes(b.status)).length} icon={Icon.receipt} />
-        <StatTile tone="amber" label="Amount due to you" value={inrShort(sum(invs, (i) => invoiceTotals(i).balance))} icon={Icon.rupee} />
-        <StatTile tone="red" label="Documents to renew" value={docs.filter((d) => ["Missing", "Expired", "Expiring", "Rejected"].includes(docState(d))).length} icon={Icon.fileClock} />
-      </StatGrid>
-      <TabBar active={tab} onChange={setTab} tabs={[{ id: "rfq", label: `RFQs (${openRfqs.filter((r) => !r.quotes.some((q) => q.vendorId === vid)).length} to quote)`, icon: Icon.scale }, { id: "orders", label: "Orders & deliveries", icon: Icon.truck }, { id: "bills", label: "Invoices & payments", icon: Icon.receipt }, { id: "price", label: "My pricelist", icon: Icon.sheet }, { id: "docs", label: "Documents", icon: Icon.folderCheck }, { id: "help", label: `Queries (${tickets.length})`, icon: Icon.message }]} />
-      {tab === "rfq" && <DataTable rows={rfqs} empty={<EmptyState icon={Icon.scale} title="No RFQs yet" text="Requests for quotation you're invited to will appear here." />} columns={[
-        { key: "id", label: "RFQ", className: "mono text-[12px]" }, { key: "title", label: "Requirement", className: "font-medium" }, { key: "project", label: "Project" },
-        { key: "n", label: "Lines", align: "center", render: (r) => r.items.length },
-        { key: "due", label: "Quotes due", render: (r) => <ExpiryCell iso={["Awarded", "Closed"].includes(r.status) ? null : r.dueDate} /> },
-        { key: "me", label: "My quote", render: (r) => { const q = r.quotes.find((x) => x.vendorId === vid); return q ? <span className="num">{q.currency} {num(sum(r.items, (it, i) => it.qty * q.rates[i]))}</span> : <span className="text-ink-faint">—</span>; } },
-        { key: "s", label: "Status", render: (r) => r.status === "Awarded" ? <Status tone={r.awardedTo === vid ? "green" : "gray"}>{r.awardedTo === vid ? "Awarded to you" : "Not awarded"}</Status> : r.quotes.some((q) => q.vendorId === vid) ? <Status tone="blue">Quoted</Status> : daysUntil(r.dueDate) < 0 ? <Status tone="red">Missed</Status> : <Status tone="amber">Awaiting your quote</Status> },
-        { key: "a", label: "", align: "right", render: (r) => openRfqs.includes(r) && <Btn size="sm" variant="primary" icon={Icon.send} onClick={() => setQuoteFor(r.id)}>{r.quotes.some((q) => q.vendorId === vid) ? "Revise quote" : "Submit quote"}</Btn> },
-      ]} />}
-      {tab === "orders" && <DataTable rows={pos} empty={<EmptyState icon={Icon.package} title="No purchase orders" />} columns={[
-        { key: "id", label: "PO", className: "mono text-[12px]" }, { key: "project", label: "Deliver to" },
-        { key: "dd", label: "Delivery due", render: (p) => fmtDate(p.deliveryDate) },
-        { key: "r", label: "Delivered", render: (p) => { const r = poReceived(p); return <Progress value={Math.round(pct(sum(r, (x) => x.received), sum(r, (x) => x.qty)))} />; } },
-        { key: "s", label: "Status", render: (p) => <Status>{poStatus(p)}</Status> },
-      ]} />}
-      {tab === "bills" && <DataTable rows={[...invs.map((i) => ({ key: i.id, ref: i.number, what: i.source === "RA Bill" ? i.raBillId : i.poId, amt: invoiceTotals(i).payable, bal: invoiceTotals(i).balance, status: invoiceStatus(i), due: i.due })),
-        ...bills.filter((b) => !b.invoiceId).map((b) => ({ key: b.id, ref: b.id, what: `${b.woId} · RA ${b.seq}`, amt: b.net, bal: b.net, status: b.status, due: null }))]} rowKey={(r) => r.key} columns={[
-        { key: "ref", label: "Reference", className: "mono text-[12px]" }, { key: "what", label: "Against" },
-        { key: "amt", label: "Amount", align: "right", num: true, render: (r) => inr(r.amt) }, { key: "bal", label: "Balance", align: "right", num: true, render: (r) => inr(r.bal) },
-        { key: "due", label: "Due", render: (r) => fmtDate(r.due) }, { key: "status", label: "Status", render: (r) => <Status>{r.status}</Status> },
-      ]} />}
-      {tab === "price" && <DataTable rows={pricelist} rowKey={(r, i) => r.po + i} empty={<EmptyState icon={Icon.sheet} title="No agreed prices yet" />} columns={[
-        { key: "desc", label: "Item" }, { key: "unit", label: "Unit" }, { key: "rate", label: "Agreed rate", align: "right", num: true, render: (r) => inr(r.rate) }, { key: "po", label: "Last PO", className: "mono text-[12px]" }, { key: "date", label: "Since", render: (r) => fmtDate(r.date) },
-      ]} />}
-      {tab === "docs" && <DataTable rows={docs} rowKey={(d) => d.name} columns={[
-        { key: "name", label: "Document", className: "font-medium" }, { key: "e", label: "Valid till", render: (d) => <ExpiryCell iso={d.expiry} /> },
-        { key: "s", label: "Status", render: (d) => <Status>{docState(d)}</Status> },
-        { key: "a", label: "", align: "right", render: (d) => ["Missing", "Expired", "Expiring", "Rejected"].includes(docState(d)) && <Btn size="sm" icon={Icon.upload} onClick={() => setReup({ name: d.name, expiry: shiftDays(365), file: "" })}>Re-upload</Btn> },
-      ]} />}
-      {tab === "help" && (
-        <div className="grid grid-cols-[1fr_360px] gap-4 p-4">
-          <Section title="My queries & disputes" icon={Icon.message}>
-            <ul className="divide-y divide-line">
-              {tickets.length === 0 && <li className="p-4 text-[13px] text-ink-mute">No queries raised.</li>}
-              {tickets.map((t) => (
-                <li key={t.id} className="p-4 text-[13px]">
-                  <p className="flex items-center justify-between"><span className="font-medium"><span className="mono mr-2 text-[11.5px] text-ink-mute">{t.id}</span>{t.subject}</span><Status>{t.status}</Status></p>
-                  <p className="mt-1 text-ink-soft">{t.body}</p>
-                  {t.replies.map((r, i) => <p key={i} className="mt-2 rounded-md bg-gray-50 px-2 py-1 text-[12.5px]"><b>{r.by}:</b> {r.text}</p>)}
-                </li>
-              ))}
-            </ul>
-          </Section>
-          <Section title="Raise a query / dispute" icon={Icon.plus}>
-            <div className="space-y-3 p-4">
-              <Field label="Subject"><TextInput value={tk.subject} onChange={(x) => setTk({ ...tk, subject: x })} placeholder="e.g. Payment status of RA-3" /></Field>
-              <Field label="Details"><TextArea value={tk.body} onChange={(x) => setTk({ ...tk, body: x })} /></Field>
-              <Btn variant="primary" icon={Icon.send} disabled={!tk.subject || !tk.body} onClick={() => {
-                const id = nextId("TKT", st.tickets);
-                setState((s) => s.tickets.unshift({ id, vendorId: vid, ...tk, status: "Open", raisedOn: todayISO(), replies: [] }), { entity: "Ticket", id, action: `Raised by ${v.name}` });
-                setTk({ subject: "", body: "" }); toast(`${id} raised`);
-              }}>Submit</Btn>
-            </div>
-          </Section>
-        </div>
-      )}
-      {quoteFor && (
-        <Modal open onClose={() => setQuoteFor(null)} width={900} title={`Submit quotation — ${byId(st.rfqs, quoteFor).title}`} subtitle={`${quoteFor} · due ${fmtDate(byId(st.rfqs, quoteFor).dueDate)}`}>
-          <VendorQuoteForm rfq={byId(st.rfqs, quoteFor)} vendorId={vid} onDone={Object.assign(() => setQuoteFor(null), { via: "Vendor portal" })} />
-        </Modal>
-      )}
-      {reup && (
-        <Modal open onClose={() => setReup(null)} width={460} title={`Re-upload — ${reup.name}`}
-          footer={<><Btn onClick={() => setReup(null)}>Cancel</Btn><Btn variant="primary" disabled={!reup.file} onClick={() => {
-            setState((s) => { const x = byId(s.vendors, vid); let d = x.docs.find((dd) => dd.name === reup.name); if (!d) { d = { name: reup.name }; x.docs.push(d); } Object.assign(d, { status: "Pending", file: reup.file, expiry: reup.expiry, uploadedAt: todayISO() }); }, { entity: "Vendor", id: vid, action: `${reup.name} re-uploaded via portal` });
-            toast("Uploaded — the buyer will verify it"); setReup(null);
-          }}>Upload</Btn></>}>
-          <div className="space-y-3">
-            <Field label="File"><input type="file" className="block w-full text-[13px]" onChange={(e) => setReup({ ...reup, file: e.target.files[0]?.name || "" })} /></Field>
-            <Field label="New expiry date"><DateInput value={reup.expiry} onChange={(x) => setReup({ ...reup, expiry: x })} /></Field>
-          </div>
-        </Modal>
-      )}
-    </Page>
-  );
-}

@@ -187,6 +187,7 @@ function RaBillDrawer({ id, onClose }) {
           )}
           {bill.status === "Rejected" && <div className="border-t border-line p-4"><Note tone="red">Rejected — {bill.history[bill.history.length - 1].remark}. Its measurements are back in the unbilled pool for a corrected bill.</Note></div>}
         </Section>
+        {bill.claimId && <Note>Raised from contractor claim <b>{bill.claimId}</b> — claimed {inr(bill.claimedValue)}, certified {inr(bill.gross)}{bill.claimedValue > bill.gross + 1 ? ` (reduced by ${inr(bill.claimedValue - bill.gross)} at verification)` : ""}.</Note>}
         <Section title="Bill abstract" icon={Icon.sheet}><BillAbstract bill={bill} wo={wo} /></Section>
         <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-4">
           <Section title="Deductions & net payable" icon={Icon.percent}><BillSummary calc={bill} contract={c} vendor={v} /></Section>
@@ -206,6 +207,8 @@ function RaBillsPage() {
   const presetWo = new URLSearchParams(loc.search).get("wo");
   const [open, setOpen] = useQueryOpen();
   const [prep, setPrep] = y.useState(!!presetWo), [status, setStatus] = y.useState("All");
+  const [tab, setTab] = y.useState(new URLSearchParams(loc.search).get("tab") || "bills");
+  const newClaims = st.claims.filter((c) => c.status === "Submitted").length;
   const rows = st.raBills.filter((b) => status === "All" || b.status === status);
   const inCert = st.raBills.filter((b) => ["Submitted", "Verified", "Certified"].includes(b.status));
   return (
@@ -218,10 +221,13 @@ function RaBillsPage() {
         <StatTile tone="amber" label="Gross certified" value={inrShort(sum(st.raBills.filter((b) => ["Certified", "Approved", "Paid"].includes(b.status)), (b) => b.gross))} icon={Icon.receipt} />
         <StatTile tone="red" label="Total deductions" value={inrShort(sum(st.raBills.filter((b) => b.status !== "Rejected"), (b) => b.totalDed))} icon={Icon.percent} />
       </StatGrid>
+      <TabBar active={tab} onChange={setTab} tabs={[{ id: "bills", label: "RA bills", icon: Icon.receipt }, { id: "claims", label: `Contractor claims (${newClaims} to verify)`, icon: Icon.hardHat }]} />
+      {tab === "claims" && <ClaimsTab onBill={(id) => { setTab("bills"); setOpen(id); }} />}
+      {tab === "bills" && <>
       <Toolbar left={<FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Submitted", "Verified", "Certified", "Approved", "Paid", "Rejected"]} />} right={<span className="text-[12px]">{rows.length} bills</span>} />
       <DataTable rows={rows} onRow={(b) => setOpen(b.id)} columns={[
         { key: "id", label: "Bill", className: "mono text-[12px] text-ink-soft" },
-        { key: "seq", label: "RA no.", render: (b) => `RA-${b.seq}` },
+        { key: "seq", label: "RA no.", render: (b) => <span>RA-{b.seq}{b.claimId && <span className="ml-1 text-[11px] text-ink-mute">from {b.claimId}</span>}</span> },
         { key: "wo", label: "Work order", render: (b) => <span><span className="mono text-[12px]">{b.woId}</span> · {vendorName(st, b.vendorId)}</span> },
         { key: "t", label: "Type", render: (b) => byId(st.workOrders, b.woId).type },
         { key: "d", label: "Bill date", render: (b) => fmtDate(b.date) },
@@ -231,6 +237,7 @@ function RaBillsPage() {
         { key: "s", label: "Status", render: (b) => <Status>{b.status}</Status> },
       ]} />
       <PageFooter items={[{ value: rows.length, label: "bills" }, { value: inrShort(sum(rows.filter((b) => b.status !== "Rejected"), (b) => b.gross)), label: "gross" }, { value: inrShort(sum(rows.filter((b) => b.status !== "Rejected"), (b) => b.net)), label: "net" }]} />
+      </>}
       {prep && <PrepareBillModal woId={presetWo} onClose={() => setPrep(false)} onCreated={setOpen} />}
       {open && <RaBillDrawer id={open} onClose={() => setOpen(null)} />}
     </Page>

@@ -186,21 +186,26 @@ function contractLedger(st, c) {
 
 // ---- Procurement
 function quoteTotal(rfq, q) {
-  return sum(rfq.items, (it, i) => (Number(it.qty) || 0) * (Number(q.rates[i]) || 0)) * (Number(q.fx) || 1);
+  return sum(rfq.items, (it, i) => (Number(it.qty) || 0) * (lineRate(q, i) || 0));
 }
+// Weighted ranking. Partial bids are scored on the lines they priced and
+// scaled by coverage, so a vendor quoting 1 of 3 lines can't win outright.
 function rankQuotes(st, rfq) {
-  const valid = rfq.quotes.filter((q) => q.rates.every((r) => Number(r) > 0));
+  const valid = rfq.quotes.filter((q) => q.review !== "Returned" && quotedLines(rfq, q).length > 0);
   if (!valid.length) return [];
-  const totals = valid.map((q) => quoteTotal(rfq, q));
-  const minT = Math.min(...totals), minD = Math.min(...valid.map((q) => q.deliveryDays || 1));
+  const minRate = rfq.items.map((_, i) => Math.min(...valid.map((q) => lineRate(q, i) ?? Infinity)));
+  const avgLead = (q) => { const l = quotedLines(rfq, q).map((i) => Number(q.leadDays?.[i] ?? q.deliveryDays) || 1); return sum(l) / l.length; };
+  const minLead = Math.min(...valid.map(avgLead));
   const w = rfq.weights;
   return valid
-    .map((q, i) => {
-      const priceScore = (minT / totals[i]) * 100;
-      const deliveryScore = (minD / (q.deliveryDays || 1)) * 100;
+    .map((q) => {
+      const lines = quotedLines(rfq, q);
+      const coverage = lines.length / rfq.items.length;
+      const priceScore = (sum(lines, (i) => minRate[i] / lineRate(q, i)) / lines.length) * 100 * coverage;
+      const deliveryScore = (minLead / avgLead(q)) * 100;
       const qualityScore = vendorScore(st, q.vendorId).score ?? 70;
       const total = (priceScore * w.price + qualityScore * w.quality + deliveryScore * w.delivery) / (w.price + w.quality + w.delivery);
-      return { q, total: round2(total), priceScore, deliveryScore, qualityScore, amount: totals[i], expired: daysUntil(q.validUntil) < 0 };
+      return { q, total: round2(total), priceScore, deliveryScore, qualityScore, coverage, amount: quoteTotal(rfq, q), expired: daysUntil(q.validUntil) < 0 };
     })
     .sort((a, b) => b.total - a.total);
 }
@@ -231,27 +236,36 @@ function invoiceTotals(inv) {
 }
 function invoiceStatus(inv) {
   const t = invoiceTotals(inv);
-  if (inv.hold) return "On Hold";
   if (t.balance <= 0.5) return "Paid";
-  if (t.paid > 0) return daysUntil(inv.due) < 0 ? "Overdue" : "Partially Paid";
-  return daysUntil(inv.due) < 0 ? "Overdue" : "Unpaid";
+  if (inv.hold && (!inv.hold.until || daysUntil(inv.hold.until) >= 0)) return "On Hold";
+  // with instalments, "overdue" means an instalment past its due date is unpaid
+  const due = inv.schedule && inv.schedule.length > 1 ? (instalments(inv).find((x) => x.status !== "Paid") || {}).due : inv.due;
+  if (t.paid > 0) return daysUntil(due) < 0 ? "Overdue" : "Partially Paid";
+  return daysUntil(due) < 0 ? "Overdue" : "Unpaid";
 }
 function threeWay(st, inv) {
   if (inv.source === "RA Bill") {
     const b = byId(st.raBills, inv.raBillId);
     return { status: b && ["Approved", "Paid"].includes(b.status) ? "Matched" : "Awaiting certification", rows: [] };
   }
+  if (inv.source === "Direct") return { status: "Direct bill", rows: [] };
   const po = byId(st.purchaseOrders, inv.poId);
   if (!po) return { status: "No PO", rows: [] };
+  const tol = ((st.settings && st.settings.rateTolerancePct) || 0) / 100;
   const rec = poReceived(po);
   const rows = inv.lines.map((l) => {
     const p = rec[l.line];
-    const qtyOk = l.qty <= p.accepted + 0.001, rateOk = Math.abs(l.rate - p.rate) < 0.01;
+    const qtyOk = l.qty <= p.accepted + (st.settings && st.settings.billRejectedQty ? p.rejected : 0) + 0.001, rateOk = Math.abs(l.rate - p.rate) <= p.rate * tol + 0.01;
     return { desc: p.desc, poQty: p.qty, poRate: p.rate, grnQty: p.accepted, invQty: l.qty, invRate: l.rate, qtyOk, rateOk };
   });
   const ok = rows.every((r) => r.qtyOk && r.rateOk);
-  const hasNote = (inv.notes || []).length > 0;
-  return { status: ok ? "Matched" : hasNote ? "Variance — note raised" : "Mismatch", rows };
+  // A debit note that covers the excess quantity resolves the quantity variance
+  const excess = sum(rows, (r) => Math.max(0, r.invQty - r.grnQty) * r.invRate) * (1 + (inv.gstPct || 0) / 100);
+  const dn = sum((inv.notes || []).filter((n) => n.type === "Debit Note"), (n) => n.amount);
+  const qtyCovered = excess > 0 && dn >= excess - 1;
+  const rateOkAll = rows.every((r) => r.rateOk);
+  const status = ok ? "Matched" : qtyCovered && rateOkAll ? "Matched (debit note)" : (inv.notes || []).length ? "Variance — note raised" : "Mismatch";
+  return { status, rows, qtyCovered };
 }
 
 // ---- Performance scorecard (0-100)
@@ -296,7 +310,7 @@ function onboardingStage(v) {
     const done = (v.onboarding?.checklist || []).every((c) => c.done);
     return done ? "Onboarded" : "Mobilising";
   }
-  if (v.status === "Pending Approval") return "Under Review";
+  if (v.status === "Pending Approval" || v.status === "Changes Requested") return "Under Review";
   return "Documents";
 }
 const ONBOARD_STAGES = ["Documents", "Under Review", "Mobilising", "Onboarded"];

@@ -21,7 +21,10 @@ function CategoryChips({ list, max = 2 }) {
 }
 
 // ---------------------------------------------------------------- registration
+const SUPPLIER_TYPES = ["Company", "Partnership / LLP", "Individual / HUF", "Proprietorship"];
+const autoTds = (type, st) => (type === "Goods" ? "194Q" : /Individual|Proprietor/.test(st || "") ? "194C-1" : "194C-2");
 const emptyVendor = () => ({
+  supplierType: "Company", allowBillWithoutPO: false, allowBillWithoutReceipt: false, portalUsers: [], changeRequest: null,
   uploads: {}, name: "", legalName: "", type: "Goods", isContractor: false, categories: [], tier: "Approved", regTier: "Spend Authorized",
   gstin: "", pan: "", contact: { name: "", email: "", phone: "" }, address: "", city: "", state: "Maharashtra", currency: "INR",
   paymentTerms: "Net 30", tds: "194Q", group: "", parentCompany: "", bank: { bank: "", account: "", ifsc: "" },
@@ -55,15 +58,21 @@ function createVendor(f, submit, source = "Internal") {
   delete v.bank;
   delete v.uploads;
   v.source = source;
+  v.portalUsers = v.contact.email ? [{ name: v.contact.name, email: v.contact.email.toLowerCase(), active: true, role: "Admin", lastLogin: null }] : [];
+  v.changeRequest = null;
   v.docs = requiredDocs(v).map((name) => {
     const u = (f.uploads || {})[name];
     return u && u.file ? { name, status: "Pending", file: u.file, dataUrl: u.dataUrl || null, expiry: u.expiry || null, uploadedAt: todayISO() } : { name, status: "Missing", expiry: null };
   });
-  setState((s) => s.vendors.unshift(v), { entity: "Vendor", id, action: `${source === "Self-registration" ? "Self-registered via portal" : "Registered"}${submit ? " & submitted for approval" : " as draft"}` });
+  setState((s) => {
+    s.vendors.unshift(v);
+    const inv = f.inviteId && byId(s.invites, f.inviteId);
+    if (inv) Object.assign(inv, { status: "Registered", vendorId: id, registeredOn: todayISO() });
+  }, { entity: "Vendor", id, action: `${source === "Self-registration" ? "Self-registered via portal" : "Registered"}${f.inviteId ? ` (invite ${f.inviteId})` : ""}${submit ? " & submitted for approval" : " as draft"}` });
   return id;
 }
 
-function VendorForm({ f, set, errors, contractorMode, publicMode }) {
+function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
   const upd = (k, val) => set({ ...f, [k]: val });
   const updC = (k, val) => set({ ...f, contact: { ...f.contact, [k]: val } });
   const updB = (k, val) => set({ ...f, bank: { ...f.bank, [k]: val } });
@@ -78,7 +87,10 @@ function VendorForm({ f, set, errors, contractorMode, publicMode }) {
           <Field label="Company / trade name" required><TextInput value={f.name} onChange={(v) => upd("name", v)} placeholder="e.g. Shree Balaji Infra" />{err("name")}</Field>
           <Field label="Registered legal name"><TextInput value={f.legalName} onChange={(v) => upd("legalName", v)} placeholder="As on GST certificate" /></Field>
           <Field label="Vendor type" required hint="Drives PO type, TDS section and approval routing">
-            <Select value={f.type} onChange={(v) => set({ ...f, type: v, tds: v === "Goods" ? "194Q" : "194C-2", isContractor: v === "Labor" ? true : f.isContractor })} options={VENDOR_TYPES} />
+            <Select value={f.type} onChange={(v) => set({ ...f, type: v, tds: autoTds(v, f.supplierType), isContractor: v === "Labor" ? true : f.isContractor })} options={VENDOR_TYPES} />
+          </Field>
+          <Field label="Supplier type" hint="Individual / HUF contractors attract 1% TDS, others 2%">
+            <Select value={f.supplierType || "Company"} onChange={(v) => set({ ...f, supplierType: v, tds: autoTds(f.type, v) })} options={SUPPLIER_TYPES} />
           </Field>
           {!publicMode ? <Field label="Registration tier" hint="Prospective vendors can quote but can't receive POs">
             <Select value={f.regTier} onChange={(v) => upd("regTier", v)} options={["Spend Authorized", "Prospective"]} />
@@ -133,9 +145,9 @@ function VendorForm({ f, set, errors, contractorMode, publicMode }) {
       <div>
         <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-mute">Bank details</p>
         <div className="grid grid-cols-3 gap-3">
-          <Field label="Bank"><TextInput value={f.bank.bank} onChange={(v) => updB("bank", v)} /></Field>
-          <Field label="Account no."><TextInput value={f.bank.account} onChange={(v) => updB("account", v)} /></Field>
-          <Field label="IFSC"><TextInput value={f.bank.ifsc} onChange={(v) => updB("ifsc", v.toUpperCase())} maxLength={11} /></Field>
+          <Field label="Bank" hint={lockBank ? "Locked — only the vendor can change bank details" : ""}><TextInput value={f.bank.bank} disabled={lockBank} onChange={(v) => updB("bank", v)} /></Field>
+          <Field label="Account no."><TextInput value={f.bank.account} disabled={lockBank} onChange={(v) => updB("account", v)} /></Field>
+          <Field label="IFSC"><TextInput value={f.bank.ifsc} disabled={lockBank} onChange={(v) => updB("ifsc", v.toUpperCase())} maxLength={11} /></Field>
         </div>
       </div>
       <div>
@@ -228,6 +240,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview" }) {
     { id: "bank", label: "Bank", icon: Icon.wallet },
     { id: "qual", label: "Qualification", icon: Icon.listChecks },
     { id: "approval", label: "Approvals", icon: Icon.clipboardCheck },
+    { id: "users", label: `Portal users (${(v.portalUsers || []).length})`, icon: Icon.users },
     { id: "activity", label: "Activity", icon: Icon.activity },
   ];
   return (
@@ -243,6 +256,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview" }) {
         {tab === "qual" && <Questionnaire v={v} />}
         {tab === "approval" && <VendorApproval v={v} />}
         {tab === "activity" && <VendorActivity v={v} />}
+        {tab === "users" && <PortalUsersAdmin v={v} />}
       </div>
     </Drawer>
   );
@@ -259,7 +273,7 @@ function VendorOverview({ v, comp }) {
       {v.hold && v.status === "On Hold" && <Note tone="amber" icon={Icon.lock}><b>On hold ({v.hold.scope}):</b> {v.hold.reason}{v.hold.until ? ` — until ${fmtDate(v.hold.until)}` : ""}</Note>}
       <Section title="Vendor master" icon={Icon.building}>
         <KV items={[
-          ["Legal name", v.legalName], ["Vendor ID", <span className="mono">{v.id}</span>], ["Tier", v.tier],
+          ["Legal name", v.legalName], ["Vendor ID", <span className="mono">{v.id}</span>], ["Tier", v.tier], ["Supplier type", v.supplierType || "Company"], ["Source", v.source || "Internal"],
           ["GSTIN", <span className="mono">{v.gstin}</span>], ["PAN", <span className="mono">{v.pan}</span>], ["Currency", v.currency],
           ["Payment terms", v.paymentTerms], ["TDS", (TDS_SECTIONS.find((t) => t.value === v.tds) || {}).label], ["Vendor group", v.group || "—"],
           ["Internal parent", v.parentCompany || "—"], ["Registered", fmtDate(v.createdAt)], ["Categories", <CategoryChips list={v.categories} max={4} />],
@@ -311,6 +325,7 @@ function VendorFlags({ v }) {
       <Section title="Classification" icon={Icon.shapes}>
         <div className="grid grid-cols-3 gap-4 p-4">
           <Field label="Vendor type"><Select value={v.type} onChange={(t) => edit("type", t, `Type changed to ${t}`)} options={VENDOR_TYPES} /></Field>
+          <Field label="Supplier type" hint={`TDS ${(TDS_SECTIONS.find((t) => t.value === v.tds) || {}).label || ""}`}><Select value={v.supplierType || "Company"} onChange={(t) => mut((x) => { x.supplierType = t; x.tds = autoTds(x.type, t); }, `Supplier type → ${t}`)} options={SUPPLIER_TYPES} /></Field>
           <Field label="Supplier tier"><Select value={v.tier} onChange={(t) => edit("tier", t, `Tier changed to ${t}`)} options={TIERS} /></Field>
           <Field label="Registration tier">
             <Select value={v.regTier} onChange={(t) => edit("regTier", t, `Registration tier → ${t}`)} options={["Prospective", "Spend Authorized"]} />
@@ -324,6 +339,8 @@ function VendorFlags({ v }) {
         <div className="flex flex-wrap items-center gap-6 p-4">
           <Check checked={v.preferred} onChange={(b) => edit("preferred", b, b ? "Marked preferred supplier" : "Preferred flag removed")} label="Preferred supplier" />
           <Check checked={v.status !== "Disabled"} onChange={(b) => edit("status", b ? "Active" : "Disabled", b ? "Vendor enabled" : "Vendor disabled")} label="Enabled for new transactions" />
+          <Check checked={!!v.allowBillWithoutPO} onChange={(b) => edit("allowBillWithoutPO", b, b ? "Allowed bills without PO" : "PO required for bills")} label="Allow bills without PO" />
+          <Check checked={!!v.allowBillWithoutReceipt} onChange={(b) => edit("allowBillWithoutReceipt", b, b ? "Allowed bills before receipt" : "Receipt required before billing")} label="Allow bills before goods receipt" />
         </div>
       </Section>
       <Section title="Hold / block" icon={Icon.lock}>
@@ -474,7 +491,7 @@ function AuditList({ items }) {
 function VendorRegistryPage() {
   const st = useStore();
   const [q, setQ] = y.useState(""), [type, setType] = y.useState("All"), [status, setStatus] = y.useState("All"), [tier, setTier] = y.useState("All");
-  const [open, setOpen] = y.useState(null), [reg, setReg] = y.useState(false), [share, setShare] = y.useState(false);
+  const [open, setOpen] = y.useState(null), [reg, setReg] = y.useState(false), [share, setShare] = y.useState(false), [invite, setInvite] = y.useState(false), [view, setView] = y.useState("vendors");
   const rows = st.vendors.filter((v) =>
     (type === "All" || v.type === type) && (status === "All" || v.status === status) && (tier === "All" || v.tier === tier) &&
     (!q || [v.name, v.id, v.gstin, v.city, ...v.categories].join(" ").toLowerCase().includes(q.toLowerCase())));
@@ -483,6 +500,7 @@ function VendorRegistryPage() {
     <Page title="Vendor Registry" subtitle="Vendor master — registration, classification and status" icon={Icon.building}
       actions={<>
         <Btn icon={Icon.globe} onClick={() => setShare(true)}>Self-registration link</Btn>
+        <Btn icon={Icon.mail} onClick={() => setInvite(true)}>Invite vendor</Btn>
         <Btn variant="primary" icon={Icon.plus} onClick={() => setReg(true)}>Register vendor</Btn>
       </>}>
       <StatGrid cols={5}>
@@ -492,10 +510,13 @@ function VendorRegistryPage() {
         <StatTile tone="red" label="Held / blocked" value={st.vendors.filter((v) => ["On Hold", "Blacklisted", "Disabled"].includes(v.status)).length} icon={Icon.lock} />
         <StatTile tone="orange" label="Compliance issues" value={compIssues} sub="Active vendors" icon={Icon.warning} />
       </StatGrid>
+      <TabBar active={view} onChange={setView} tabs={[{ id: "vendors", label: "Vendors", icon: Icon.building }, { id: "invites", label: `Invitations (${st.invites.filter((i) => i.status === "Invited").length} open)`, icon: Icon.mail }]} />
+      {view === "invites" && <InvitesTable onOpenVendor={setOpen} />}
+      {view === "vendors" && <>
       <Toolbar left={<>
         <SearchBox value={q} onChange={setQ} placeholder="Search name, ID, GSTIN, trade" />
         <FilterSelect label="Type" value={type} onChange={setType} options={[{ value: "All", label: "All types" }, ...VENDOR_TYPES]} />
-        <FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Active", "Pending Approval", "Draft", "On Hold", "Blacklisted", "Disabled", "Rejected"]} />
+        <FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Active", "Pending Approval", "Changes Requested", "Draft", "On Hold", "Blacklisted", "Disabled", "Rejected"]} />
         <FilterSelect label="Tier" value={tier} onChange={setTier} options={[{ value: "All", label: "All tiers" }, ...TIERS]} />
       </>} right={<span className="text-[12px]">{rows.length} of {st.vendors.length}</span>} />
       <DataTable rows={rows} onRow={(v) => setOpen(v.id)} columns={[
@@ -504,12 +525,14 @@ function VendorRegistryPage() {
         { key: "type", label: "Type", render: (v) => <VendorTypeTag v={v} /> },
         { key: "cat", label: "Trades", render: (v) => <CategoryChips list={v.categories} /> },
         { key: "tier", label: "Tier" },
-        { key: "reg", label: "Registration", render: (v) => <Status>{v.regTier}</Status> },
+        { key: "reg", label: "Registration", render: (v) => <span className="flex flex-col"><Status>{v.regTier}</Status>{v.source === "Self-registration" && <span className="text-[10.5px] text-ink-mute">self-registered</span>}</span> },
         { key: "comp", label: "Compliance", render: (v) => <Status>{complianceOf(v).status}</Status> },
         { key: "score", label: "Score", align: "center", render: (v) => <ScoreRing value={vendorScore(st, v.id).score} size={30} /> },
         { key: "status", label: "Status", render: (v) => <Status>{v.status}</Status> },
       ]} />
       <PageFooter items={[{ value: rows.length, label: "vendors" }, { value: rows.filter((v) => v.preferred).length, label: "preferred", color: "text-amber-600" }]} />
+      </>}
+      {invite && <InviteVendorModal onClose={() => setInvite(false)} />}
       <RegisterVendorModal open={reg} onClose={() => setReg(false)} onCreated={(id) => setOpen(id)} />
       {share && <ShareLinkModal title="Vendor self-registration link" url={appUrl("/vendor-register")} onClose={() => setShare(false)}
         text="Send this link to prospective vendors. They fill in their company, tax and bank details and upload documents themselves — no login needed. Submissions arrive in Approval Management under “Vendor Registration”." />}

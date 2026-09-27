@@ -122,6 +122,7 @@ function resubmit(v) {
 
 function VendorApproval({ v }) {
   const [remark, setRemark] = y.useState("");
+  const [rc, setRc] = y.useState(false), [edit, setEdit] = y.useState(false);
   const stages = v.approval.stages;
   const pending = stages.find((s) => s.status === "Pending");
   const comp = complianceOf(v);
@@ -131,7 +132,7 @@ function VendorApproval({ v }) {
         <div className="p-5">
           <Stepper steps={stages.map((s) => ({
             label: s.dept,
-            status: s.status === "Approved" ? "done" : s.status === "Rejected" ? "rejected" : s.status === "Pending" ? "current" : "todo",
+            status: s.status === "Approved" ? "done" : s.status === "Rejected" ? "rejected" : s.status === "Pending" || s.status === "Changes Requested" ? "current" : "todo",
             meta: s.by ? `${s.by} · ${fmtDateTime(s.at)}${s.remark && s.remark !== "OK" ? ` — ${s.remark}` : ""}` : s.status === "Pending" ? "Awaiting decision" : "",
           }))} />
         </div>
@@ -140,11 +141,18 @@ function VendorApproval({ v }) {
             {comp.status === "Non-Compliant" && <Note tone="amber">Compliance gaps: {comp.issues.join(" · ")}. Approvers can still decide, but the vendor can't be paid until these close.</Note>}
             <Field label={`${pending.dept} decision remark`}><TextArea rows={2} value={remark} onChange={setRemark} placeholder="Required when rejecting" /></Field>
             <div className="flex justify-end gap-2">
-              <Btn variant="danger" disabled={!remark.trim()} onClick={() => { approvalAction(v, "Rejected", remark.trim()); setRemark(""); toast("Sent back for correction", "red"); }}>Reject & send back</Btn>
+              <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>
+              <Btn onClick={() => setRc(true)}>Request changes</Btn>
+              <Btn variant="danger" disabled={!remark.trim()} onClick={() => { approvalAction(v, "Rejected", remark.trim()); setRemark(""); toast("Registration rejected", "red"); }}>Reject</Btn>
               <Btn variant="success" icon={Icon.check} onClick={() => { approvalAction(v, "Approved", remark.trim()); setRemark(""); toast(`${pending.dept} approved`); }}>Approve as {pending.dept}</Btn>
             </div>
           </div>
         )}
+        {v.status === "Changes Requested" && v.changeRequest && (
+          <div className="border-t border-line p-4"><Note tone="amber"><b>Waiting for the vendor</b> — {v.changeRequest.by} ({v.changeRequest.dept}) asked on {fmtDate(v.changeRequest.at)} for: {v.changeRequest.items.map((i) => `${i.label}${i.note ? ` (${i.note})` : ""}`).join("; ")}. The vendor fixes these in the supplier portal and resubmits; approval resumes at {v.changeRequest.dept}.</Note></div>
+        )}
+        {rc && <RequestChangesModal v={v} onClose={() => setRc(false)} />}
+        {edit && <EditRegistrationModal v={v} onClose={() => setEdit(false)} />}
         {(v.status === "Rejected" || v.status === "Draft") && (
           <div className="flex items-center justify-between gap-3 border-t border-line p-4">
             <span className="text-[13px] text-ink-soft">{v.status === "Rejected" ? "Fix the issues raised and resubmit — earlier approvals are kept." : "Draft registration — submit when documents are ready."}</span>
@@ -173,7 +181,7 @@ function VendorApprovalsPage() {
   const st = useStore();
   const [tab, setTab] = y.useState("queue");
   const [open, setOpen] = y.useState(null);
-  const queue = st.vendors.filter((v) => ["Pending Approval", "Draft", "Rejected"].includes(v.status));
+  const queue = st.vendors.filter((v) => ["Pending Approval", "Draft", "Rejected", "Changes Requested"].includes(v.status));
   const byDept = APPROVAL_FLOW.map((d) => ({ d, n: st.vendors.filter((v) => v.approval.stages.some((s) => s.dept === d && s.status === "Pending")).length }));
   return (
     <Page title="Vendor Approvals" subtitle="Multi-stage approval, qualification rule sets and requalification" icon={Icon.clipboardCheck}>
@@ -191,7 +199,7 @@ function VendorApprovalsPage() {
             <span className="flex items-center gap-1">
               {v.approval.stages.map((s) => (
                 <span key={s.dept} title={`${s.dept}: ${s.status}`} className={cls("rounded px-1.5 py-[1px] text-[11px] font-medium",
-                  s.status === "Approved" ? "bg-green-100 text-green-700" : s.status === "Pending" ? "bg-blue-100 text-blue-700" : s.status === "Rejected" ? "bg-red-100 text-red-700" : "bg-gray-100 text-ink-mute")}>{s.dept}</span>
+                  s.status === "Approved" ? "bg-green-100 text-green-700" : s.status === "Pending" ? "bg-blue-100 text-blue-700" : s.status === "Changes Requested" ? "bg-amber-100 text-amber-800" : s.status === "Rejected" ? "bg-red-100 text-red-700" : "bg-gray-100 text-ink-mute")}>{s.dept}</span>
               ))}
             </span>) },
           { key: "docs", label: "Documents", render: (v) => { const n = requiredDocs(v).length, ok = v.docs.filter((d) => d.status === "Verified").length; return <Progress value={Math.round((ok / n) * 100)} color={ok === n ? "bg-green-500" : "bg-amber-500"} />; } },

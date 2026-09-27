@@ -67,7 +67,9 @@ function PublicShell({ title, subtitle, children, width = 920 }) {
 
 // ---------------------------------------------------------------- self-registration
 function SelfRegisterPage() {
-  const [f, setF] = y.useState(() => ({ ...emptyVendor(), regTier: "Prospective", tier: "Transactional" }));
+  const inviteId = new URLSearchParams(Ht().search).get("invite");
+  const invite = inviteId && byId(getState().invites, inviteId);
+  const [f, setF] = y.useState(() => ({ ...emptyVendor(), regTier: "Prospective", tier: "Transactional", ...(invite && invite.status === "Invited" ? { inviteId, name: invite.name, legalName: invite.name, categories: invite.category ? [invite.category] : [], contact: { name: invite.contact || "", email: invite.email, phone: "" } } : {}) }));
   const [errors, setErrors] = y.useState({});
   const [agree, setAgree] = y.useState(false);
   const [done, setDone] = y.useState(null);
@@ -100,7 +102,7 @@ function SelfRegisterPage() {
             <p className="mb-3 text-[13px] font-semibold">What happens next</p>
             <Stepper steps={[{ label: "Submitted", status: "done", meta: "Today" }, ...APPROVAL_FLOW.map((d, i) => ({ label: `${d} review`, status: i === 0 ? "current" : "todo" })), { label: "Activated", status: "todo", meta: "Portal login issued" }]} />
           </div>
-          <Note>If we need anything else (for example an expired certificate) we'll email you, and you can re-upload it from the supplier portal.</Note>
+          <Note>If we need anything else we'll e-mail you. Sign in to the <a className="font-medium text-brand" href={appUrl("/supplier/login")}>supplier portal</a> with <b>{v?.contact.email}</b> (one-time code) to track approval and fix anything we ask for.</Note>
           <Btn onClick={() => { setDone(null); setF({ ...emptyVendor(), regTier: "Prospective", tier: "Transactional" }); setAgree(false); }}>Register another company</Btn>
         </div>
       </PublicShell>
@@ -109,98 +111,14 @@ function SelfRegisterPage() {
   return (
     <PublicShell title="Supplier & contractor registration" subtitle="Register your company to receive RFQs, purchase orders and work orders. It takes about 10 minutes — keep your GST, PAN and bank documents handy.">
       <div className="p-6">
+        {invite && invite.status === "Invited" && <div className="mb-4"><Note tone="green" icon={Icon.mail}>You were invited by {invite.by} on {fmtDate(invite.sentOn)}. {invite.message}</Note></div>}
+        {invite && invite.status === "Registered" && <div className="mb-4"><Note>This invitation has already been used ({invite.vendorId}). <a className="font-medium text-brand" href={appUrl("/supplier/login")}>Sign in to the supplier portal</a> to check your status.</Note></div>}
         {Object.keys(errors).length > 0 && <div className="mb-4"><Note tone="red">Some details need attention: {Object.values(errors).join(" · ")}</Note></div>}
         <VendorForm f={f} set={setF} errors={errors} publicMode />
         <div className="mt-5 flex items-center justify-between gap-4 border-t border-line pt-4">
           <Check checked={agree} onChange={setAgree} label="I confirm the information and documents provided are true and valid." />
           <Btn variant="primary" icon={Icon.send} disabled={!agree} onClick={submit}>Submit registration</Btn>
         </div>
-      </div>
-    </PublicShell>
-  );
-}
-
-// ---------------------------------------------------------------- vendor quotation
-function VendorQuoteForm({ rfq, vendorId, onDone }) {
-  const prev = rfq.quotes.find((q) => q.vendorId === vendorId);
-  const [f, setF] = y.useState(() => prev
-    ? { rates: prev.rates.map(String), currency: prev.currency || "INR", fx: prev.fx || 1, deliveryDays: prev.deliveryDays, validUntil: prev.validUntil, note: prev.note || "", attachment: prev.attachment || null }
-    : { rates: rfq.items.map(() => ""), currency: "INR", fx: 1, deliveryDays: 7, validUntil: shiftDays(30), note: "", attachment: null });
-  const [agree, setAgree] = y.useState(false);
-  const total = sum(rfq.items, (it, i) => (Number(it.qty) || 0) * (Number(f.rates[i]) || 0));
-  const ok = f.rates.every((r) => Number(r) > 0) && Number(f.deliveryDays) > 0 && f.validUntil && agree;
-  const submit = () => {
-    const vName = vendorName(getState(), vendorId);
-    setState((s) => {
-      const r = byId(s.rfqs, rfq.id);
-      r.quotes = r.quotes.filter((q) => q.vendorId !== vendorId);
-      r.quotes.push({ vendorId, rates: f.rates.map(Number), currency: f.currency, fx: Number(f.fx) || 1, deliveryDays: Number(f.deliveryDays), validUntil: f.validUntil, note: f.note, attachment: f.attachment, submittedOn: todayISO(), via: onDone.via || "Vendor link" });
-      r.status = "Quotes Received";
-      r.negotiation.push({ at: new Date().toISOString(), by: vName, vendorId, text: `${prev ? "Revised" : "Submitted"} quotation online — ${f.currency} ${num(total)}${f.note ? ` · ${f.note}` : ""}` });
-    }, { entity: "RFQ", id: rfq.id, action: `Quotation ${prev ? "revised" : "submitted"} by ${vName}` });
-    toast(prev ? "Quotation revised" : "Quotation submitted");
-    onDone();
-  };
-  return (
-    <div className="space-y-4">
-      <div className="overflow-x-auto rounded-lg border border-line">
-        <table className="w-full">
-          <thead><tr><Th>#</Th><Th>Item</Th><Th align="right">Quantity</Th><Th align="right">Your rate ({f.currency})</Th><Th align="right">Amount</Th></tr></thead>
-          <tbody>
-            {rfq.items.map((it, i) => (
-              <tr key={i}>
-                <Td>{i + 1}</Td><Td className="whitespace-normal">{it.desc}</Td><Td align="right" className="num">{num(it.qty)} {it.unit}</Td>
-                <Td align="right"><div className="ml-auto w-36"><NumInput value={f.rates[i]} onChange={(x) => setF({ ...f, rates: f.rates.map((r, j) => (j === i ? x : r)) })} placeholder={`per ${it.unit}`} /></div></Td>
-                <Td align="right" className="num">{num((Number(it.qty) || 0) * (Number(f.rates[i]) || 0))}</Td>
-              </tr>
-            ))}
-            <tr className="bg-gray-50"><Td /><Td className="font-semibold">Total (excl. GST)</Td><Td /><Td /><Td align="right" className="num font-semibold">{f.currency} {num(total)}</Td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div className="grid grid-cols-4 gap-3">
-        <Field label="Currency"><Select value={f.currency} onChange={(x) => setF({ ...f, currency: x, fx: x === "INR" ? 1 : x === "USD" ? 83.2 : x === "EUR" ? 90.4 : 22.6 })} options={["INR", "USD", "EUR", "AED"]} /></Field>
-        <Field label="Delivery lead time (days)" required><NumInput value={f.deliveryDays} onChange={(x) => setF({ ...f, deliveryDays: x })} /></Field>
-        <Field label="Quote valid until" required><DateInput value={f.validUntil} onChange={(x) => setF({ ...f, validUntil: x })} /></Field>
-        <Field label="Quotation document">
-          <label className={cls("flex h-[32px] cursor-pointer items-center gap-2 truncate rounded-md border border-dashed px-2.5 text-[12.5px]", f.attachment ? "border-green-300 bg-green-50 text-green-700" : "border-gray-300 text-ink-soft hover:border-brand hover:text-brand")}>
-            <Icon.upload size={13} /><span className="truncate">{f.attachment ? f.attachment.name : "Attach PDF"}</span>
-            <input type="file" accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls" className="hidden" onChange={async (e) => { const a = await readAttachment(e.target.files[0]); a && setF((ff) => ({ ...ff, attachment: a })); }} />
-          </label>
-        </Field>
-        <Field label="Terms, exclusions or remarks" span={4}><TextArea rows={2} value={f.note} onChange={(x) => setF({ ...f, note: x })} placeholder="e.g. Ex-works Chakan, freight extra; mill test certificate with each lot" /></Field>
-      </div>
-      <div className="flex items-center justify-between gap-4 border-t border-line pt-4">
-        <Check checked={agree} onChange={setAgree} label="Prices are firm for the validity period and exclude GST." />
-        <Btn variant="primary" icon={Icon.send} disabled={!ok} onClick={submit}>{prev ? "Submit revised quotation" : "Submit quotation"}</Btn>
-      </div>
-    </div>
-  );
-}
-
-function VendorQuotePage() {
-  const st = useStore();
-  const [, , rfqId, vendorId] = Ht().pathname.split("/");
-  const [sent, setSent] = y.useState(false);
-  const rfq = byId(st.rfqs, rfqId), v = byId(st.vendors, vendorId);
-  const shell = (title, body) => <PublicShell title={title} width={760}><div className="p-6">{body}</div></PublicShell>;
-  if (!rfq || !v || !rfq.vendorIds.includes(vendorId)) return shell("Link not valid", <Note tone="red">This quotation link is not valid. Please use the link from the buyer's RFQ email or contact their procurement team.</Note>);
-  if (rfq.status === "Draft") return shell("RFQ not open yet", <Note>This request for quotation hasn't been released yet.</Note>);
-  if (["Awarded", "Closed"].includes(rfq.status)) return shell(`${rfq.id} is closed`, <Note>This RFQ has been {rfq.status.toLowerCase()}. Thank you for participating.</Note>);
-  const overdue = daysUntil(rfq.dueDate) < 0;
-  const mine = rfq.quotes.find((q) => q.vendorId === vendorId);
-  return (
-    <PublicShell width={980} title={`Request for quotation — ${rfq.title}`} subtitle={`${rfq.id} · for ${v.name} · project ${rfq.project}`}>
-      <div className="space-y-4 p-6">
-        <div className="grid grid-cols-4 gap-3">
-          <StatTile tone="blue" label="Lines" value={rfq.items.length} icon={Icon.listChecks} />
-          <StatTile tone={overdue ? "red" : "amber"} label="Quotes due" value={fmtDate(rfq.dueDate)} sub={overdue ? "closed" : `${daysUntil(rfq.dueDate)} days left`} icon={Icon.clock} />
-          <StatTile tone="purple" label="Sourcing" value={rfq.mode === "Single Vendor" ? "Direct" : "Tender"} icon={Icon.scale} />
-          <StatTile tone={mine ? "green" : "cyan"} label="Your response" value={mine ? "Submitted" : "Pending"} sub={mine ? fmtDate(mine.submittedOn) : ""} icon={Icon.send} />
-        </div>
-        {sent && <Note tone="green" icon={Icon.check}>Thank you — your quotation has been received. You can revise it until {fmtDate(rfq.dueDate)}.</Note>}
-        {overdue ? <Note tone="amber">The submission window closed on {fmtDate(rfq.dueDate)}. Contact the buyer if you need an extension.</Note>
-          : <VendorQuoteForm key={mine ? mine.submittedOn + (mine.rates || []).join() : "new"} rfq={rfq} vendorId={vendorId} onDone={Object.assign(() => setSent(true), { via: "Vendor link" })} />}
       </div>
     </PublicShell>
   );
@@ -220,13 +138,13 @@ function decideChangeOrder(contractId, coId, approve) {
 
 function approvalRows(st, module) {
   if (module === "Vendor Registration")
-    return st.vendors.filter((v) => ["Pending Approval", "Rejected"].includes(v.status)).map((v) => {
-      const i = v.approval.stages.findIndex((s) => s.status === "Pending" || s.status === "Rejected");
+    return st.vendors.filter((v) => ["Pending Approval", "Rejected", "Changes Requested"].includes(v.status)).map((v) => {
+      const i = v.approval.stages.findIndex((s) => ["Pending", "Rejected", "Changes Requested"].includes(s.status));
       const stage = v.approval.stages[i];
       return {
         ref: v.id, title: v.name, sub: `${v.type}${v.isContractor ? " · contractor" : ""} · ${v.source === "Self-registration" ? "self-registered" : "internal"}`,
         by: v.source === "Self-registration" ? v.contact.name : "Procurement", date: fmtDate(v.createdAt),
-        level: `L${i + 1} / ${v.approval.stages.length} · ${stage?.dept || ""}`, status: v.status === "Rejected" ? "Rejected" : "Pending",
+        level: `L${i + 1} / ${v.approval.stages.length} · ${stage?.dept || ""}`, status: v.status === "Rejected" ? "Rejected" : v.status === "Changes Requested" ? "Changes Requested" : "Pending", vendor: v,
         extra: `${v.docs.filter((d) => d.status !== "Missing").length}/${requiredDocs(v).length} docs`,
         approve: (r) => { approvalAction(v, "Approved", r); toast(`${v.name} — ${stage.dept} approved`); },
         reject: (r) => { approvalAction(v, "Rejected", r); toast("Sent back to vendor", "red"); },
@@ -272,6 +190,7 @@ function ApprovalManagementPage() {
   const [local, setLocal] = y.useState({}); // decisions on the original demo queues
   const [reject, setReject] = y.useState(null);
   const [open, setOpen] = y.useState(null);
+  const [rc, setRc] = y.useState(null);
   const isNew = NXV_APPROVAL_MODULES.includes(module);
   const count = (m) => (NXV_APPROVAL_MODULES.includes(m) ? approvalRows(st, m).filter((r) => r.status === "Pending").length : p0.filter((i) => i.module === m && (local[i.ref] || i.status) === "Pending").length);
   const rows = isNew ? approvalRows(st, module)
@@ -308,6 +227,7 @@ function ApprovalManagementPage() {
               <span className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                 <button className="rounded bg-green-600 px-2 py-0.5 text-[12px] text-white hover:bg-green-700" onClick={() => r.approve("")}>Approve</button>
                 <button className="rounded border border-red-200 px-2 py-0.5 text-[12px] text-red-600 hover:bg-red-50" onClick={() => (isNew ? setReject(r) : r.reject())}>Reject</button>
+                {r.vendor && <button className="rounded border border-amber-300 px-2 py-0.5 text-[12px] text-amber-800 hover:bg-amber-50" onClick={() => setRc(r.vendor)}>Request changes</button>}
                 {r.open && <button className="rounded border border-line px-2 py-0.5 text-[12px] text-ink-soft hover:bg-gray-50" onClick={() => setOpen(r.open)}>Review</button>}
               </span>
             ) : r.open ? <button className="text-[12px] font-medium text-brand" onClick={(e) => { e.stopPropagation(); setOpen(r.open); }}>Open</button> : "—") },
@@ -320,6 +240,7 @@ function ApprovalManagementPage() {
           <Field label="Reason" required><TextArea value={reject.reason || ""} onChange={(x) => setReject({ ...reject, reason: x })} placeholder="e.g. GST certificate is not legible — please re-upload" /></Field>
         </Modal>
       )}
+      {rc && <RequestChangesModal v={rc} onClose={() => setRc(null)} />}
       {open?.kind === "vendor" && <VendorDrawer vendorId={open.id} initialTab="approval" onClose={() => setOpen(null)} />}
       {open?.kind === "ra" && <RaBillDrawer id={open.id} onClose={() => setOpen(null)} />}
       {open?.kind === "contract" && <ContractDrawer id={open.id} onClose={() => setOpen(null)} />}
