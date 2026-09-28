@@ -16,6 +16,24 @@ function vendorRfqBadge(st, vid, what) {
   return null;
 }
 
+// RFQ templates: picking one fills the title (if empty) and the full line-item list
+const RFQ_TEMPLATES = [
+  { name: "Steel supply", days: 14, items: [["TMT Fe500D 8 mm", "MT"], ["TMT Fe500D 10 mm", "MT"], ["TMT Fe500D 12 mm", "MT"], ["TMT Fe500D 16 mm", "MT"], ["TMT Fe500D 20 mm", "MT"], ["TMT Fe500D 25 mm", "MT"], ["TMT Fe500D 32 mm", "MT"], ["Binding wire 18 SWG", "kg"]] },
+  { name: "Cement supply", days: 7, items: [["OPC 53 grade cement (50 kg bag)", "bag"], ["OPC 43 grade cement (50 kg bag)", "bag"], ["PPC cement (50 kg bag)", "bag"], ["PSC cement (50 kg bag)", "bag"], ["White cement (40 kg bag)", "bag"], ["Wall putty (40 kg bag)", "bag"]] },
+  { name: "Aggregates & sand", days: 7, items: [["Coarse aggregate 20 mm", "cum"], ["Coarse aggregate 10 mm", "cum"], ["Manufactured sand (M-sand) — concrete", "cum"], ["Plaster sand (P-sand)", "cum"], ["Granular sub-base (GSB)", "cum"], ["Wet mix macadam (WMM)", "cum"]] },
+  { name: "Ready-mix concrete", days: 5, items: [["RMC M20 grade", "cum"], ["RMC M25 grade", "cum"], ["RMC M30 grade", "cum"], ["RMC M35 grade", "cum"], ["RMC M40 grade", "cum"], ["Concrete pumping charges (boom / line)", "cum"]] },
+  { name: "Blocks & bricks", days: 10, items: [["AAC block 600×200×100 mm", "cum"], ["AAC block 600×200×150 mm", "cum"], ["AAC block 600×200×200 mm", "cum"], ["Red clay bricks (first class)", "nos"], ["Fly ash bricks", "nos"], ["Block jointing adhesive (40 kg)", "bag"]] },
+  { name: "Hardware", days: 7, items: [["Anchor fasteners M12", "nos"], ["Chemical anchors M16", "nos"], ["Nails assorted", "kg"], ["MS binding wire", "kg"], ["Cutting discs 4\"", "nos"], ["Grinding discs 4\"", "nos"], ["Welding electrodes 3.15 mm", "pkt"], ["PVC cover blocks 25 mm", "nos"]] },
+  { name: "Electrical materials", days: 14, items: [["FR copper wire 1.5 sq mm (90 m coil)", "coil"], ["FR copper wire 2.5 sq mm (90 m coil)", "coil"], ["FR copper wire 4 sq mm (90 m coil)", "coil"], ["Armoured cable 4C × 25 sq mm Al", "m"], ["PVC conduit 25 mm", "nos"], ["MCB SP 16 A", "nos"], ["8-way SPN distribution board", "nos"], ["LED panel 2×2 36 W", "nos"], ["Modular switches & sockets", "nos"]] },
+  { name: "Plumbing & sanitary", days: 14, items: [["CPVC pipe 25 mm (3 m)", "nos"], ["CPVC pipe 20 mm (3 m)", "nos"], ["CPVC fittings assorted", "lot"], ["UPVC pipe 110 mm SWR", "m"], ["UPVC pipe 75 mm SWR", "m"], ["Ball valve 25 mm", "nos"], ["Floor trap 100 mm", "nos"], ["EWC with seat cover", "nos"], ["Wash basin with pedestal", "nos"]] },
+  { name: "Waterproofing & chemicals", days: 10, items: [["Integral waterproofing compound", "kg"], ["Polymer-modified cementitious coating", "kg"], ["APP membrane 3 mm", "sqm"], ["Crystalline waterproofing slurry", "kg"], ["PU sealant (600 ml)", "nos"], ["Concrete admixture (superplasticiser)", "ltr"], ["Curing compound", "ltr"]] },
+  { name: "Formwork & shuttering", days: 10, items: [["Shuttering plywood 12 mm (8×4)", "nos"], ["Film-faced plywood 18 mm (8×4)", "nos"], ["Telescopic props 3.2 m", "nos"], ["MS channel 75 mm", "m"], ["H-frame scaffolding set", "set"], ["Tie rods & wing nuts", "set"], ["Shuttering oil", "ltr"]] },
+  { name: "Labour — item rate", days: 21, items: [["Earthwork excavation in soil up to 3 m", "cum"], ["PCC M15 in foundations", "cum"], ["RCC M25 in columns, beams & slabs (labour)", "cum"], ["Reinforcement — cut, bend & place", "MT"], ["Shuttering for slabs & beams", "sqm"], ["Brick / block masonry 230 mm", "cum"], ["Internal plaster 12 mm", "sqm"], ["External plaster 20 mm", "sqm"]] },
+  { name: "Equipment hire", days: 3, items: [["Backhoe loader (JCB 3DX) with operator", "hr"], ["Hydra crane 14 T", "day"], ["Transit mixer 6 cum", "trip"], ["Concrete pump (stationary)", "day"], ["DG set 125 kVA with fuel", "day"], ["Tower crane (monthly hire)", "month"], ["Tipper 10 cum", "trip"]] },
+  { name: "Safety & PPE", days: 7, items: [["Safety helmet with chin strap", "nos"], ["Safety shoes (steel toe)", "pair"], ["Full-body harness with lanyard", "nos"], ["Reflective safety jacket", "nos"], ["Cotton hand gloves", "pair"], ["Safety goggles", "nos"], ["Safety net 3×6 m", "nos"], ["Barricading tape (300 m)", "roll"]] },
+];
+const templateItems = (name) => { const t = RFQ_TEMPLATES.find((x) => x.name === name); return t && t.items.map(([desc, unit]) => ({ desc, unit, qty: "", requiredBy: shiftDays(t.days) })); };
+
 // ---------------------------------------------------------------- create RFQ
 function NewRfqModal({ open, onClose, onCreated }) {
   const st = useStore();
@@ -26,11 +44,13 @@ function NewRfqModal({ open, onClose, onCreated }) {
   y.useEffect(() => { if (open) setF(blank()); }, [open]);
   const vendors = st.vendors.filter(eligibleForRfq);
   const setItem = (i, k, v) => setF({ ...f, items: f.items.map((x, j) => (j === i ? { ...x, [k]: v } : x)) });
-  const ok = f.title && f.items.every((i) => i.desc && Number(i.qty) > 0) && f.vendorIds.length >= (f.mode === "Single Vendor" ? 1 : 2) && (f.mode !== "Single Vendor" || f.vendorIds.length === 1);
+  // lines left without a quantity are skipped, so a template can be trimmed just by leaving qty empty
+  const lines = f.items.filter((i) => i.desc && Number(i.qty) > 0);
+  const ok = f.title && lines.length > 0 && f.vendorIds.length >= (f.mode === "Single Vendor" ? 1 : 2) && (f.mode !== "Single Vendor" || f.vendorIds.length === 1);
   const save = () => {
     const id = nextId("RFQ", st.rfqs);
     setState((s) => s.rfqs.unshift({ ...f, id, status: "Draft", createdOn: todayISO(), quotes: [], negotiation: [], awards: [], emails: [], awardedTo: null,
-      responses: Object.fromEntries(f.vendorIds.map((v) => [v, { status: "Not sent" }])), items: f.items.map((i) => ({ ...i, qty: Number(i.qty) })) }),
+      responses: Object.fromEntries(f.vendorIds.map((v) => [v, { status: "Not sent" }])), items: lines.map((i) => ({ ...i, qty: Number(i.qty) })) }),
       { entity: "RFQ", id, action: "Created" });
     toast(`${id} created — compose the e-mail to send it`);
     onClose(); onCreated && onCreated(id, true);
@@ -48,14 +68,14 @@ function NewRfqModal({ open, onClose, onCreated }) {
       <div className="space-y-4">
         <div className="grid grid-cols-3 gap-3">
           <Field label="Title" required span={2}><TextInput value={f.title} onChange={(x) => setF({ ...f, title: x })} placeholder="e.g. TMT steel Fe500D — 120 MT" /></Field>
-          <Field label="Template"><Select value={f.template} placeholder="Blank" onChange={(x) => setF({ ...f, template: x, items: x === "Steel supply" ? [{ desc: "TMT Fe500D 12 mm", unit: "MT", qty: "", requiredBy: shiftDays(14) }, { desc: "TMT Fe500D 16 mm", unit: "MT", qty: "", requiredBy: shiftDays(14) }] : x === "Cement supply" ? [{ desc: "OPC 53 grade cement (50 kg bag)", unit: "bag", qty: "", requiredBy: shiftDays(7) }] : f.items })} options={st.rfqTemplates} /></Field>
+          <Field label="Template" hint={f.template ? `${f.items.length} line items loaded — edit or remove as needed` : "Loads a ready list of line items"}><Select value={f.template} placeholder="Blank" onChange={(x) => setF({ ...f, template: x, title: f.title || (x ? `${x} — ${f.project}` : ""), items: templateItems(x) || [{ desc: "", unit: "nos", qty: "", requiredBy: shiftDays(14) }] })} options={RFQ_TEMPLATES.map((t) => ({ value: t.name, label: `${t.name} (${t.items.length} items)` }))} /></Field>
           <Field label="Project"><Select value={f.project} onChange={(x) => setF({ ...f, project: x })} options={PROJECTS} /></Field>
           <Field label="Source (BOQ / material request)"><TextInput value={f.sourceRef} onChange={(x) => setF({ ...f, sourceRef: x })} placeholder="e.g. BOQ-2026-002 · Structural steel" /></Field>
           <Field label="Sourcing mode"><Select value={f.mode} onChange={(x) => setF({ ...f, mode: x, vendorIds: x === "Single Vendor" ? f.vendorIds.slice(0, 1) : f.vendorIds })} options={["Call for Tenders", "Single Vendor"]} /></Field>
           <Field label="Quotes due (order deadline)"><DateInput value={f.dueDate} onChange={(x) => setF({ ...f, dueDate: x })} /></Field>
           <Field label="Incoterm"><Select value={f.incoterm} onChange={(x) => setF({ ...f, incoterm: x })} options={INCOTERMS} /></Field>
         </div>
-        <Section title="Line items" actions={<Btn size="sm" icon={Icon.plus} onClick={() => setF({ ...f, items: [...f.items, { desc: "", unit: "nos", qty: "", requiredBy: shiftDays(14) }] })}>Add line</Btn>}>
+        <Section title={`Line items — ${lines.length} of ${f.items.length} with quantity`} actions={<Btn size="sm" icon={Icon.plus} onClick={() => setF({ ...f, items: [...f.items, { desc: "", unit: "nos", qty: "", requiredBy: shiftDays(14) }] })}>Add line</Btn>}>
           <div className="space-y-2 p-3">
             <div className="grid grid-cols-[1fr_90px_110px_150px_28px] gap-2 text-[11.5px] font-medium text-ink-mute"><span>Description</span><span>Unit</span><span>Quantity</span><span>Required by</span><span /></div>
             {f.items.map((it, i) => (

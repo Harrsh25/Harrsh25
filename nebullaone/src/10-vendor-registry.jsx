@@ -237,7 +237,6 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
   y.useEffect(() => setTab(initialTab), [vendorId]);
   if (!v) return null;
   const comp = complianceOf(v);
-  const sc = vendorScore(st, v.id);
   const locked = mode === "registry" && v.status === "Pending Approval";
   const canEdit = mode === "registry" && EDITABLE_STATUSES.includes(v.status);
   const tabs = [
@@ -252,7 +251,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
   return (
     <Drawer open onClose={onClose} width={880} title={<span className="flex items-center gap-2">{v.name}<PreferredStar v={v} size={16} always /></span>}
       subtitle={<><span className="mono text-[12px] text-ink-mute">{v.id}</span><span className="text-ink-faint">·</span><VendorTypeTag v={v} /><Status>{v.status}</Status><Status>{v.regTier}</Status><Status>{comp.status}</Status></>}
-      actions={<>{canEdit && <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>}<span className="flex items-center gap-2 pr-1 text-[12px] text-ink-soft">Score <ScoreRing value={sc.score} size={36} /></span></>}
+      actions={<>{canEdit && <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>}</>}
       tabs={{ tabs, active: tab, onChange: setTab }}>
       <div className="space-y-4 px-6 py-5">
         {locked && tab !== "activity" && <Note tone="amber" icon={Icon.lock}>Submitted for approval — details are locked until the approvers decide. {v.status === "Pending Approval" ? "If it is rejected or sent back, you can edit and resubmit." : ""}</Note>}
@@ -534,7 +533,7 @@ function VendorRegistryPage() {
       </>} right={<span className="text-[12px]">{rows.length} of {st.vendors.length}</span>} />
       <DataTable rows={rows} onRow={(v) => setOpen(v.id)} columns={[
         { key: "id", label: "Vendor ID", className: "mono text-[12px] text-ink-soft" },
-        { key: "name", label: "Vendor", render: (v) => <span className="flex items-center gap-1.5 font-medium">{v.name}<PreferredStar v={v} size={13} /></span> },
+        { key: "name", label: "Vendor", render: (v) => <span className="flex items-center justify-between gap-3 font-medium"><span>{v.name}</span><PreferredStar v={v} size={14} /></span> },
         { key: "type", label: "Type", render: (v) => <VendorTypeTag v={v} /> },
         { key: "cat", label: "Trades", render: (v) => <CategoryChips list={v.categories} /> },
         { key: "tier", label: "Tier" },
