@@ -226,11 +226,11 @@ function PortalBody({ vid, vendorMode }) {
         {tab === "price" && <DataTable rows={pricelist} onRow={(r) => open("po", r.po)} rowKey={(r, i) => r.po + i} empty={<EmptyState icon={Icon.sheet} title="No agreed prices yet" />} columns={[
           { key: "desc", label: "Item" }, { key: "unit", label: "Unit" }, { key: "rate", label: "Agreed rate", align: "right", num: true, render: (r) => inr(r.rate) }, { key: "po", label: "Last PO", className: "mono text-[12px]" }, { key: "date", label: "Since", render: (r) => fmtDate(r.date) },
         ]} />}
-        {tab === "docs" && <DataTable rows={docs} rowKey={(d) => d.name} onRow={(d) => open("doc", d.name)} columns={[
+        {tab === "docs" && <><DataTable rows={docs} rowKey={(d) => d.name} onRow={(d) => open("doc", d.name)} columns={[
           { key: "name", label: "Document", className: "font-medium" }, { key: "e", label: "Valid till", render: (d) => <ExpiryCell iso={d.expiry} /> },
-          { key: "s", label: "Status", render: (d) => <Status>{docState(d)}</Status> },
+          { key: "s", label: "Status", render: (d) => <span className="flex flex-col"><Status>{docState(d)}</Status>{d.status === "Rejected" && d.remark && <span className="max-w-[260px] whitespace-normal text-[11px] text-red-600">{d.remark}</span>}</span> },
           { key: "a", label: "", align: "right", render: (d) => ["Missing", "Expired", "Expiring", "Rejected"].includes(docState(d)) && <span onClick={stop}><Btn size="sm" icon={Icon.upload} onClick={() => setReup({ name: d.name, expiry: shiftDays(365), file: "", dataUrl: null })}>Upload</Btn></span> },
-        ]} />}
+        ]} /><div className="p-4"><InsurancePolicies v={v} portal locked={false} /></div></>}
         {tab === "help" && (
           <div className="grid grid-cols-[1fr_360px] gap-4 p-4">
             <Section title="My queries & disputes" icon={Icon.message}>
@@ -302,7 +302,7 @@ function PortalBody({ vid, vendorMode }) {
       {reup && (
         <Modal open onClose={() => setReup(null)} width={460} title={`Upload — ${reup.name}`}
           footer={<><Btn onClick={() => setReup(null)}>Cancel</Btn><Btn variant="primary" disabled={!reup.file} onClick={() => {
-            setState((s) => { const x = byId(s.vendors, vid); let d = x.docs.find((dd) => dd.name === reup.name); if (!d) { d = { name: reup.name }; x.docs.push(d); } Object.assign(d, { status: "Pending", file: reup.file, dataUrl: reup.dataUrl, expiry: reup.expiry, uploadedAt: todayISO() }); }, { entity: "Vendor", id: vid, action: `${reup.name} uploaded via portal` });
+            setState((s) => { const x = byId(s.vendors, vid); let d = x.docs.find((dd) => dd.name === reup.name); if (!d) { d = { name: reup.name }; x.docs.push(d); } Object.assign(d, { status: "Pending", remark: "", file: reup.file, dataUrl: reup.dataUrl, expiry: reup.expiry, uploadedAt: todayISO() }); }, { entity: "Vendor", id: vid, action: `${reup.name} uploaded via portal` });
             toast("Uploaded — the buyer will verify it"); setReup(null);
           }}>Upload</Btn></>}>
           <div className="space-y-3">

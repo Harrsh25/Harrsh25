@@ -329,7 +329,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
         {tab === "overview" && <VendorOverview v={v} comp={comp} />}
         <fieldset disabled={locked} className="contents">
           {tab === "flags" && <VendorFlags v={v} />}
-          {tab === "docs" && <VendorDocs v={v} mode={mode} locked={locked} />}
+          {tab === "docs" && <><VendorDocs v={v} mode={mode} locked={locked} /><InsurancePolicies v={v} mode={mode} locked={locked} /></>}
           {tab === "bank" && <VendorBanks v={v} />}
           {tab === "qual" && <Questionnaire v={v} />}
         </fieldset>
@@ -461,7 +461,7 @@ function VendorFlags({ v }) {
 }
 
 function VendorDocs({ v, mode = "registry", locked }) {
-  const [up, setUp] = y.useState(null);
+  const [up, setUp] = y.useState(null), [rej, setRej] = y.useState(null);
   const other = up && up.other;
   const docs = requiredDocs(v).map((name) => v.docs.find((d) => d.name === name) || { name, status: "Missing" });
   const extra = v.docs.filter((d) => !requiredDocs(v).includes(d.name));
@@ -478,20 +478,21 @@ function VendorDocs({ v, mode = "registry", locked }) {
         { key: "name", label: "Document", className: "font-medium" },
         { key: "file", label: "File", render: (d) => (d.file ? <FileLink name={d.file} dataUrl={d.dataUrl} /> : <span className="text-ink-mute">—</span>) },
         { key: "expiry", label: "Valid till", render: (d) => <ExpiryCell iso={d.expiry} /> },
-        { key: "status", label: "Status", render: (d) => <Status>{docState(d)}</Status> },
+        { key: "status", label: "Status", render: (d) => <span className="flex flex-col"><Status>{docState(d)}</Status>{d.status === "Rejected" && d.remark && <span className="max-w-[220px] whitespace-normal text-[11px] text-red-600">{d.remark}</span>}</span> },
         { key: "a", label: "", align: "right", render: (d) => (
           <span className="flex justify-end gap-1">
             {!locked && <Btn size="sm" icon={Icon.upload} onClick={() => setUp({ name: d.name, expiry: d.expiry || "", file: "" })}>{d.status === "Missing" ? "Upload" : "Replace"}</Btn>}
             {mode === "approval" && d.status === "Pending" && <>
-              <Btn size="sm" variant="success" onClick={() => mut(d.name, (x) => (x.status = "Verified"), `${d.name} verified`)}>Verify</Btn>
-              <Btn size="sm" variant="danger" onClick={() => mut(d.name, (x) => (x.status = "Rejected"), `${d.name} rejected`)}>Reject</Btn>
+              <Btn size="sm" variant="success" onClick={() => mut(d.name, (x) => { x.status = "Verified"; x.remark = ""; }, `${d.name} verified`)}>Verify</Btn>
+              <Btn size="sm" variant="danger" onClick={() => setRej(d.name)}>Reject</Btn>
             </>}
           </span>
         ) },
       ]} />
+      {rej && <RejectReasonModal title={`Reject — ${rej}`} onClose={() => setRej(null)} onReject={(reason) => mut(rej, (x) => { x.status = "Rejected"; x.remark = reason; }, `${rej} rejected — ${reason}`)} />}
       <Modal open={!!up} onClose={() => setUp(null)} title={`Upload — ${up?.name}`} width={480}
         footer={<><Btn onClick={() => setUp(null)}>Cancel</Btn><Btn variant="primary" disabled={!up?.file || !up?.name?.trim()} onClick={() => {
-          mut(up.name, (x) => Object.assign(x, { status: "Pending", file: up.file, dataUrl: up.dataUrl || null, expiry: up.expiry || null, uploadedAt: todayISO() }), `${up.name} uploaded`);
+          mut(up.name, (x) => Object.assign(x, { status: "Pending", remark: "", file: up.file, dataUrl: up.dataUrl || null, expiry: up.expiry || null, uploadedAt: todayISO() }), `${up.name} uploaded`);
           toast("Document uploaded — awaiting verification"); setUp(null);
         }}>Upload</Btn></>}>
         {up && <div className="space-y-3">

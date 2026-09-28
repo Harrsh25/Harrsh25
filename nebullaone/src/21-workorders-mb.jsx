@@ -41,6 +41,7 @@ function WorkOrderModal({ open, onClose, onCreated, contractId: presetContract }
           <Field label="Title / scope" required span={2}><TextInput value={f.title} onChange={(x) => setF({ ...f, title: x })} /></Field>
           <div className="grid grid-cols-2 gap-2"><Field label="Start"><DateInput value={f.start} onChange={(x) => setF({ ...f, start: x })} /></Field><Field label="Finish"><DateInput value={f.end} onChange={(x) => setF({ ...f, end: x })} /></Field></div>
         </div>
+        {c && (() => { const cv = byId(st.vendors, c.vendorId), cc = cv && complianceOf(cv); return cc && cc.blocking.length > 0 ? <Note tone="amber" icon={Icon.shieldCheck}><b>{cv.name} is not compliant:</b> {cc.blocking.join(" · ")}. Payments against this work order will be held until it is fixed.</Note> : null; })()}
         {c && <Note>Contract terms applied to bills under this WO: retention {c.retentionPct}%, advance recovery {c.advanceRecoveryPct || 0}%, cess {c.cessPct}%, GST {c.gstPct}%.</Note>}
         {f.type === "Item-Rate" ? (
           <Section title="Schedule of items (BOQ)" actions={<Btn size="sm" icon={Icon.plus} onClick={() => setF({ ...f, items: [...f.items, { id: `I${f.items.length + 1}`, code: "", desc: "", unit: "cum", qty: "", rate: "" }] })}>Add item</Btn>}>

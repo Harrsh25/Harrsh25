@@ -25,6 +25,35 @@ const DEFAULT_SETTINGS = {
   ],
   // Our own group companies — vendors linked to one are inter-company suppliers
   groupCompanies: ["NebullaOne Equipment Pvt Ltd", "NebullaOne Precast Ltd", "NebullaOne Realty Ltd"],
+  // Compliance requirements (Procore-style insurance requirements + Ariba/Oracle-style document rules).
+  // applies: all | goods | services (non-contractor) | contractor | strategic-contractor
+  complianceDocs: [
+    { name: "PAN Card", applies: "all", expires: false, blocks: true },
+    { name: "GST Certificate", applies: "all", expires: false, blocks: true },
+    { name: "Cancelled Cheque / Bank Letter", applies: "all", expires: false, blocks: true },
+    { name: "Company Registration / MSME", applies: "all", expires: false, blocks: false },
+    { name: "ISO / Quality Certificate", applies: "goods", expires: true, blocks: false },
+    { name: "Professional Indemnity / CAR Policy", applies: "services", expires: true, blocks: false },
+    { name: "Labour Licence (CLRA)", applies: "contractor", expires: true, blocks: true },
+    { name: "PF Registration", applies: "contractor", expires: false, blocks: true },
+    { name: "ESI Registration", applies: "contractor", expires: false, blocks: true },
+    { name: "Workmen Compensation Policy", applies: "contractor", expires: true, blocks: true },
+    { name: "HSE / Safety Plan", applies: "contractor", expires: false, blocks: false },
+  ],
+  complianceIns: [
+    { type: "Workmen Compensation", applies: "contractor", min: 5000000, blocks: true },
+    { type: "Contractor's All Risk", applies: "strategic-contractor", min: 25000000, blocks: true },
+  ],
+  expiryWarnDays: 30,          // "Expiring" window
+  reminderDays: [30, 15, 7],   // renewal reminders before expiry (and weekly once expired / missing)
+};
+const APPLIES = [
+  { value: "all", label: "All vendors" }, { value: "goods", label: "Goods suppliers" }, { value: "services", label: "Service vendors (not on site)" },
+  { value: "contractor", label: "Contractors & labour" }, { value: "strategic-contractor", label: "Strategic contractors" },
+];
+const appliesTo = (rule, v) => {
+  const con = v.type === "Labor" || !!v.isContractor;
+  return { all: true, goods: v.type === "Goods", services: v.type === "Services" && !con, contractor: con, "strategic-contractor": con && v.tier === "Strategic" }[rule.applies] ?? false;
 };
 const ROLES = ["Procurement Executive", "Procurement Head", "Project Manager", "Finance Controller"];
 const settingsOf = (st) => ({ ...DEFAULT_SETTINGS, ...(st.settings || {}) });

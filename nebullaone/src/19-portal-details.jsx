@@ -348,7 +348,7 @@ function PortalDocDrawer({ vid, name, onClose, onUpload }) {
     <Drawer open onClose={onClose} width={640} title={name} subtitle={<><Status>{state}</Status>{d.expiry && <span>valid till {fmtDate(d.expiry)}</span>}</>}
       actions={<Btn variant={needs ? "primary" : "secondary"} icon={Icon.upload} onClick={() => onUpload(d)}>{d.file ? "Upload new version" : "Upload"}</Btn>}>
       <div className="space-y-4 px-6 py-5">
-        {state === "Rejected" && <Note tone="red">The buyer rejected this document. Please upload a corrected copy.</Note>}
+        {state === "Rejected" && <Note tone="red">The buyer rejected this document{d.remark ? `: ${d.remark}` : ""}. Please upload a corrected copy.</Note>}
         {state === "Expired" && <Note tone="red">This document has expired. Upload the renewed copy to avoid a hold on POs and payments.</Note>}
         {state === "Expiring" && <Note tone="amber">Expires in {daysUntil(d.expiry)} days — upload the renewal in advance.</Note>}
         {state === "Pending" && <Note>Uploaded — waiting for the buyer to verify.</Note>}

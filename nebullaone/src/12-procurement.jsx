@@ -58,6 +58,7 @@ function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket }) {
         </div>
         {gate.block && <Note tone="red">{v.name} is in the <b>{gate.standing.name}</b> scorecard standing — new POs are prevented.</Note>}
         {!gate.block && gate.warn && <Note tone="amber">{v.name} is in the <b>{gate.standing.name}</b> scorecard standing — check performance before ordering.</Note>}
+        {v && complianceOf(v).blocking.length > 0 && <Note tone={settingsOf(st).complianceGate === "Stop" ? "red" : "amber"} icon={Icon.shieldCheck}><b>Compliance:</b> {complianceOf(v).blocking.join(" · ")} — the PO can be issued, but payments {settingsOf(st).complianceGate === "Stop" ? "will be blocked" : "will be flagged"} until this is fixed.</Note>}
         {isGroupCompany(v) && <Note tone="blue" icon={Icon.building}><b>Group company</b> ({v.parentCompany}) — inter-company purchase: no RFQ or competitive quotes needed. Spend is reported separately under Vendor Scorecard → Spend by group.</Note>}
         {v && v.preferred && !bo && <Note tone="green" icon={Icon.star}>Preferred supplier — pricelist rates from earlier POs are suggested below.</Note>}
         <Section title={bo ? `Lines from ${bo.id} (allowance ${set0.blanketAllowancePct}%)` : "Lines"} actions={!bo && <Btn size="sm" icon={Icon.plus} onClick={() => setF({ ...f, lines: [...f.lines, { desc: "", unit: "nos", qty: "", rate: "" }] })}>Add line</Btn>}>
@@ -377,7 +378,8 @@ function paymentGate(st, inv) {
   const stops = [], warns = [];
   const add = (mode, text) => (mode === "Stop" ? stops : mode === "Warn" ? warns : null)?.push(text);
   if (isBlockedFor(v, "Payments")) stops.push(`Vendor ${v.status.toLowerCase()}${v.hold ? ` (${v.hold.scope})` : ""}`);
-  if (complianceOf(v).status === "Non-Compliant") add(set0.complianceGate, "Vendor non-compliant (insurance / documents)");
+  const comp = complianceOf(v);
+  if (comp.blocking.length) add(set0.complianceGate, `Compliance: ${comp.blocking.slice(0, 2).join("; ")}${comp.blocking.length > 2 ? ` +${comp.blocking.length - 2} more` : ""}`);
   if (inv.hold && (!inv.hold.until || daysUntil(inv.hold.until) >= 0)) stops.push(`Invoice on hold — ${inv.hold.reason}${inv.hold.until ? ` until ${fmtDate(inv.hold.until)}` : ""}`);
   if (!v.bankAccounts.some((b) => b.isDefault)) stops.push("No default bank account");
   if (inv.source === "Purchase Order") {

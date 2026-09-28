@@ -39,21 +39,10 @@ const RULE_SETS = [
 ];
 const ruleSetsFor = (v) => RULE_SETS.filter((r) => r.applies(v));
 
-// Minimum insurance cover required, by vendor type
-const INSURANCE_RULES = [
-  { type: "Workmen Compensation", appliesTo: (v) => v.isContractor || v.type === "Labor", min: 5000000 },
-  { type: "Contractor's All Risk", appliesTo: (v) => v.isContractor && v.tier === "Strategic", min: 25000000 },
-];
+// Insurance requirements come from Compliance Center → Requirements (settings.complianceIns)
 function insuranceCheck(v) {
-  return INSURANCE_RULES.filter((r) => r.appliesTo(v)).map((r) => {
-    const p = v.insurance.find((i) => i.type === r.type);
-    let status = "Compliant", note = "";
-    if (!p) { status = "Missing"; note = "No policy on file"; }
-    else if (daysUntil(p.expiry) < 0) { status = "Expired"; note = `Expired ${fmtDate(p.expiry)}`; }
-    else if (p.cover < r.min) { status = "Non-Compliant"; note = `Cover ${inrShort(p.cover)} below minimum ${inrShort(r.min)}`; }
-    else if (daysUntil(p.expiry) <= 30) { status = "Expiring"; note = `${daysUntil(p.expiry)} days left`; }
-    return { rule: r, policy: p, status, note };
-  });
+  return complianceItems(v).filter((i) => i.kind === "Insurance").map((i) => ({ rule: { ...i.rule, min: i.rule.min }, policy: i.policy, level: i.level,
+    status: i.level === 0 ? "Compliant" : i.level === 1 ? (i.note === "Awaiting verification" ? "Pending" : "Expiring") : !i.policy ? "Missing" : i.note.startsWith("Expired") ? "Expired" : "Non-Compliant", note: i.note }));
 }
 
 function Questionnaire({ v }) {
@@ -242,56 +231,3 @@ function VendorApprovalsPage() {
   );
 }
 
-// ---------------------------------------------------------------- compliance centre
-function CompliancePage() {
-  const st = useStore();
-  const [tab, setTab] = y.useState("docs");
-  const [open, setOpen] = y.useState(null);
-  const live = st.vendors.filter((v) => !["Blacklisted", "Disabled", "Rejected"].includes(v.status));
-  const docRows = live.flatMap((v) => v.docs.filter((d) => d.expiry || d.status !== "Verified").map((d) => ({ v, d, s: docState(d), key: v.id + d.name })))
-    .filter((r) => r.s !== "Verified" || daysUntil(r.d.expiry) <= 90)
-    .sort((a, b) => (daysUntil(a.d.expiry) ?? -999) - (daysUntil(b.d.expiry) ?? -999));
-  const ins = live.flatMap((v) => insuranceCheck(v).map((c) => ({ v, ...c, key: v.id + c.rule.type })));
-  const counts = { Compliant: 0, Expiring: 0, "Non-Compliant": 0 };
-  live.forEach((v) => counts[complianceOf(v).status]++);
-  return (
-    <Page title="Compliance Center" subtitle="Document expiry, insurance validation and the payment compliance gate" icon={Icon.shieldCheck}>
-      <StatGrid>
-        <StatTile tone="green" label="Compliant" value={counts.Compliant} icon={Icon.shieldCheck} />
-        <StatTile tone="amber" label="Expiring ≤ 30 days" value={counts.Expiring} icon={Icon.clock} />
-        <StatTile tone="red" label="Non-compliant" value={counts["Non-Compliant"]} sub="Payments gated" icon={Icon.warning} />
-        <StatTile tone="purple" label="Insurance exceptions" value={ins.filter((i) => i.status !== "Compliant").length} icon={Icon.shield} />
-      </StatGrid>
-      <TabBar active={tab} onChange={setTab} tabs={[{ id: "docs", label: "Document expiry", icon: Icon.fileClock }, { id: "ins", label: "Insurance compliance report", icon: Icon.shield }, { id: "status", label: "Compliance status by vendor", icon: Icon.shieldCheck }]} />
-      {tab === "docs" && (
-        <DataTable rows={docRows} rowKey={(r) => r.key} onRow={(r) => setOpen(r.v.id)} columns={[
-          { key: "v", label: "Vendor", render: (r) => <span className="font-medium">{r.v.name}</span> },
-          { key: "d", label: "Document", render: (r) => r.d.name },
-          { key: "e", label: "Valid till", render: (r) => <ExpiryCell iso={r.d.expiry} /> },
-          { key: "s", label: "State", render: (r) => <Status>{r.s}</Status> },
-          { key: "a", label: "", align: "right", render: (r) => <Btn size="sm" icon={Icon.mail} onClick={(e) => { e.stopPropagation(); setState((s) => byId(s.vendors, r.v.id).notes.unshift({ at: new Date().toISOString(), by: "System", text: `Renewal reminder sent for ${r.d.name}` }), { entity: "Vendor", id: r.v.id, action: `Renewal reminder sent (${r.d.name})` }); toast(`Reminder sent to ${r.v.contact.email}`); }}>Remind vendor</Btn> },
-        ]} />
-      )}
-      {tab === "ins" && (
-        <DataTable rows={ins} rowKey={(r) => r.key} onRow={(r) => setOpen(r.v.id)} columns={[
-          { key: "v", label: "Vendor", render: (r) => <span className="font-medium">{r.v.name}</span> },
-          { key: "t", label: "Required coverage", render: (r) => r.rule.type },
-          { key: "m", label: "Minimum", align: "right", num: true, render: (r) => inrShort(r.rule.min) },
-          { key: "c", label: "On file", align: "right", num: true, render: (r) => (r.policy ? inrShort(r.policy.cover) : "—") },
-          { key: "e", label: "Expiry", render: (r) => <ExpiryCell iso={r.policy?.expiry} /> },
-          { key: "s", label: "Status", render: (r) => <Status tone={r.status === "Compliant" ? "green" : r.status === "Expiring" ? "amber" : "red"}>{r.status}</Status> },
-          { key: "n", label: "Note", render: (r) => <span className="text-[12px] text-ink-soft">{r.note}</span> },
-        ]} />
-      )}
-      {tab === "status" && (
-        <DataTable rows={live} onRow={(v) => setOpen(v.id)} columns={[
-          { key: "name", label: "Vendor", className: "font-medium" },
-          { key: "s", label: "Overall", render: (v) => <Status>{complianceOf(v).status}</Status> },
-          { key: "i", label: "Open items", render: (v) => <span className="whitespace-normal text-[12px] text-ink-soft">{complianceOf(v).issues.join(" · ") || "—"}</span> },
-          { key: "g", label: "Payment gate", render: (v) => (complianceOf(v).status === "Non-Compliant" || isBlockedFor(v, "Payments") ? <Status tone="red">Blocked</Status> : <Status tone="green">Open</Status>) },
-        ]} />
-      )}
-      {open && <VendorDrawer vendorId={open} initialTab="docs" mode="approval" onClose={() => setOpen(null)} />}
-    </Page>
-  );
-}

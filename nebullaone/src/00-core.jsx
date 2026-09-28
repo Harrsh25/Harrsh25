@@ -116,6 +116,8 @@ function getState() {
   if (!state) state = loadState();
   return state;
 }
+// Settings without forcing a load — safe to call while the seed is being built
+const currentSettings = () => settingsOf(state || {});
 function setState(mutator, audit) {
   const next = structuredClone(getState());
   mutator(next);

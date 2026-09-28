@@ -28,27 +28,46 @@ const HOLD_REASONS = ["Price mismatch", "Quantity mismatch", "Missing GRN / rece
 const PAY_MODES = ["NEFT", "RTGS", "Cheque", "UPI", "Wire (SWIFT)"];
 
 function requiredDocs(v) {
-  const base = ["PAN Card", "GST Certificate", "Cancelled Cheque / Bank Letter", "Company Registration / MSME"];
-  if (v.type === "Labor" || v.isContractor)
-    return [...base, "Labour Licence (CLRA)", "PF Registration", "ESI Registration", "Workmen Compensation Policy", "HSE / Safety Plan"];
-  if (v.type === "Goods") return [...base, "ISO / Quality Certificate"];
-  return [...base, "Professional Indemnity / CAR Policy"];
+  return currentSettings().complianceDocs.filter((r) => appliesTo(r, v)).map((r) => r.name);
 }
 
 // Compliance status engine: rolls every document + insurance check into one status
-function complianceOf(v) {
-  const issues = [];
-  let worst = 0; // 0 compliant, 1 expiring, 2 non-compliant
-  for (const name of requiredDocs(v)) {
-    const d = (v.docs || []).find((x) => x.name === name);
-    if (!d || d.status === "Missing") { issues.push(`${name} missing`); worst = 2; continue; }
-    if (d.status === "Rejected") { issues.push(`${name} rejected`); worst = 2; continue; }
-    if (d.status === "Pending") { issues.push(`${name} awaiting verification`); worst = Math.max(worst, 1); }
-    const left = daysUntil(d.expiry);
-    if (left !== null && left < 0) { issues.push(`${name} expired ${fmtDate(d.expiry)}`); worst = 2; }
-    else if (left !== null && left <= 30) { issues.push(`${name} expires in ${left} days`); worst = Math.max(worst, 1); }
+// One engine for documents + insurance. Each item: level 0 ok, 1 attention (expiring / awaiting verification), 2 failing.
+// "blocking" = failing items whose requirement is set to block payments.
+function complianceItems(v) {
+  const set = currentSettings(), warn = set.expiryWarnDays;
+  const items = [];
+  for (const r of set.complianceDocs.filter((x) => appliesTo(x, v))) {
+    const d = (v.docs || []).find((x) => x.name === r.name);
+    const left = d ? daysUntil(d.expiry) : null;
+    let level = 0, note = "Verified";
+    if (!d || d.status === "Missing" || !d.file && d.status !== "Verified") { level = 2; note = "Missing"; }
+    else if (d.status === "Rejected") { level = 2; note = `Rejected${d.remark ? ` — ${d.remark}` : ""}`; }
+    else if (left !== null && left < 0) { level = 2; note = `Expired ${fmtDate(d.expiry)}`; }
+    else if (d.status === "Pending") { level = 1; note = "Awaiting verification"; }
+    else if (r.expires && !d.expiry) { level = 1; note = "No expiry date recorded"; }
+    else if (left !== null && left <= warn) { level = 1; note = `Expires in ${left} day${left === 1 ? "" : "s"}`; }
+    items.push({ kind: "Document", key: "doc:" + r.name, name: r.name, level, note, blocks: r.blocks, expiry: d?.expiry || null, doc: d, rule: r });
   }
-  return { status: ["Compliant", "Expiring", "Non-Compliant"][worst], issues };
+  for (const r of set.complianceIns.filter((x) => appliesTo(x, v))) {
+    const ps = (v.insurance || []).filter((p) => p.type === r.type && p.status !== "Rejected").sort((a, b) => (b.expiry || "").localeCompare(a.expiry || ""));
+    const p = ps[0], left = p ? daysUntil(p.expiry) : null;
+    let level = 0, note = `${inrShort(p?.cover)} cover`;
+    if (!p) { level = 2; note = "No policy on file"; }
+    else if (left !== null && left < 0) { level = 2; note = `Expired ${fmtDate(p.expiry)}`; }
+    else if (Number(p.cover) < r.min) { level = 2; note = `Cover ${inrShort(p.cover)} below minimum ${inrShort(r.min)}`; }
+    else if (p.status === "Pending") { level = 1; note = "Awaiting verification"; }
+    else if (left !== null && left <= warn) { level = 1; note = `Expires in ${left} day${left === 1 ? "" : "s"}`; }
+    items.push({ kind: "Insurance", key: "ins:" + r.type, name: `${r.type} insurance`, level, note, blocks: r.blocks, expiry: p?.expiry || null, policy: p, rule: r });
+  }
+  return items;
+}
+function complianceOf(v) {
+  const items = complianceItems(v);
+  const worst = Math.max(0, ...items.map((i) => i.level));
+  return { status: ["Compliant", "Expiring", "Non-Compliant"][worst], items,
+    issues: items.filter((i) => i.level > 0).map((i) => `${i.name}: ${i.note.toLowerCase()}`),
+    blocking: items.filter((i) => i.level === 2 && i.blocks).map((i) => `${i.name} — ${i.note.toLowerCase()}`) };
 }
 
 const docState = (d) => {
