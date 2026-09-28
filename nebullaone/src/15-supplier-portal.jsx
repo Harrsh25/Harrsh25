@@ -134,6 +134,9 @@ function PortalBody({ vid, vendorMode }) {
   const [tk, setTk] = y.useState({ subject: "", body: "" });
   const [reup, setReup] = y.useState(null);
   const [newUser, setNewUser] = y.useState({ name: "", email: "" });
+  const [detail, setDetail] = y.useState(null);
+  const open = (kind, id) => setDetail({ kind, id });
+  const stop = (e) => e.stopPropagation();
   const pos = st.purchaseOrders.filter((p) => p.vendorId === vid && p.status !== "Draft");
   const invs = st.invoices.filter((i) => i.vendorId === vid);
   const bills = st.raBills.filter((b) => b.vendorId === vid);
@@ -178,7 +181,7 @@ function PortalBody({ vid, vendorMode }) {
       <TabBar active={tab} onChange={setTab} tabs={tabs} />
       <div className={cls(tab === "reg" && "p-5")}>
         {tab === "reg" && <RegistrationFix v={v} />}
-        {tab === "rfq" && <DataTable rows={rfqs} empty={<EmptyState icon={Icon.scale} title="No RFQs yet" text="Requests for quotation you're invited to will appear here." />} columns={[
+        {tab === "rfq" && <DataTable rows={rfqs} onRow={(r) => setQuoteFor(r.id)} empty={<EmptyState icon={Icon.scale} title="No RFQs yet" text="Requests for quotation you're invited to will appear here." />} columns={[
           { key: "id", label: "RFQ", className: "mono text-[12px]" }, { key: "title", label: "Requirement", className: "font-medium" }, { key: "project", label: "Project" },
           { key: "n", label: "Lines", align: "center", render: (r) => r.items.length },
           { key: "due", label: "Quotes due", render: (r) => <ExpiryCell iso={["Awarded", "Closed"].includes(r.status) ? null : r.dueDate} /> },
@@ -186,7 +189,7 @@ function PortalBody({ vid, vendorMode }) {
           { key: "me", label: "My quotation", render: (r) => { const q = r.quotes.find((x) => x.vendorId === vid); return q ? <span className="flex flex-col"><span className="num">{inrShort(quoteTotal(r, q))}</span><Status>{quoteStatus(r, q)}</Status></span> : <span className="text-ink-faint">—</span>; } },
           { key: "a", label: "", align: "right", render: (r) => <Btn size="sm" variant={toQuote.includes(r) ? "primary" : "secondary"} icon={Icon.eye} onClick={() => setQuoteFor(r.id)}>{toQuote.includes(r) ? "Respond" : "View"}</Btn> },
         ]} />}
-        {tab === "orders" && <DataTable rows={pos} empty={<EmptyState icon={Icon.package} title="No purchase orders" />} columns={[
+        {tab === "orders" && <DataTable rows={pos} onRow={(p) => open("po", p.id)} empty={<EmptyState icon={Icon.package} title="No purchase orders" />} columns={[
           { key: "id", label: "PO", className: "mono text-[12px]" }, { key: "project", label: "Deliver to" },
           { key: "v", label: "Value", align: "right", num: true, render: (p) => inrShort(poValue(p)) },
           { key: "dd", label: "Delivery due", render: (p) => fmtDate(p.deliveryDate) },
@@ -195,38 +198,38 @@ function PortalBody({ vid, vendorMode }) {
           { key: "b", label: "Billing", render: (p) => <Status tone="blue">{poBillingStatus(st, p)}</Status> },
           { key: "s", label: "Status", render: (p) => <Status>{poStatus(p)}</Status> },
         ]} />}
-        {tab === "wo" && <DataTable rows={wos} empty={<EmptyState icon={Icon.clipboardList} title="No work orders" />} columns={[
+        {tab === "wo" && <DataTable rows={wos} onRow={(w) => open("wo", w.id)} empty={<EmptyState icon={Icon.clipboardList} title="No work orders" />} columns={[
           { key: "id", label: "WO", className: "mono text-[12px]" }, { key: "title", label: "Scope", className: "font-medium" }, { key: "type", label: "Type" },
           { key: "val", label: "Value", align: "right", num: true, render: (w) => inrShort(woValue(w)) },
           { key: "d", label: "Period", render: (w) => `${fmtDate(w.start)} → ${fmtDate(w.end)}` },
           { key: "p", label: "Progress", render: (w) => <Progress value={Math.round(woProgress(st, w).physical)} /> },
           { key: "acc", label: "Acceptance", render: (w) => <Status tone={{ Accepted: "green", Pending: "amber", Declined: "red" }[w.acceptance?.status] || "gray"}>{w.acceptance?.status || "—"}</Status> },
           { key: "a", label: "", align: "right", render: (w) => w.acceptance?.status === "Pending" ? (
-            <span className="flex justify-end gap-1"><Btn size="sm" variant="success" onClick={() => actWo(w, "Accepted")}>Accept</Btn><Btn size="sm" variant="danger" onClick={() => setWoDecline({ wo: w, reason: "" })}>Decline</Btn></span>
-          ) : woAccepted(w) && ["Issued", "In Progress"].includes(w.status) ? <Btn size="sm" icon={Icon.receipt} onClick={() => setClaimFor(w.id)}>Submit RA claim</Btn> : null },
+            <span className="flex justify-end gap-1" onClick={stop}><Btn size="sm" variant="success" onClick={() => actWo(w, "Accepted")}>Accept</Btn><Btn size="sm" variant="danger" onClick={() => setWoDecline({ wo: w, reason: "" })}>Decline</Btn></span>
+          ) : woAccepted(w) && ["Issued", "In Progress"].includes(w.status) ? <span onClick={stop}><Btn size="sm" icon={Icon.receipt} onClick={() => setClaimFor(w.id)}>Submit RA claim</Btn></span> : null },
         ]} />}
-        {tab === "claims" && <DataTable rows={claims.slice().reverse()} empty={<EmptyState icon={Icon.receipt} title="No claims yet" text="Submit a running-account claim from the Work orders tab." />} columns={[
+        {tab === "claims" && <DataTable rows={claims.slice().reverse()} onRow={(c) => open("claim", c.id)} empty={<EmptyState icon={Icon.receipt} title="No claims yet" text="Submit a running-account claim from the Work orders tab." />} columns={[
           { key: "id", label: "Claim", className: "mono text-[12px]" }, { key: "wo", label: "Work order", render: (c) => `${c.woId} · ${byId(st.workOrders, c.woId).title}` },
           { key: "d", label: "Submitted", render: (c) => fmtDate(c.date) },
           { key: "v", label: "Claimed value", align: "right", num: true, render: (c) => inr(claimValue(st, c)) },
           { key: "s", label: "Status", render: (c) => <span className="flex flex-col"><Status tone={{ Submitted: "blue", Verified: "green", Returned: "red" }[c.status]}>{c.status}</Status>{c.status === "Returned" && <span className="max-w-[260px] whitespace-normal text-[11px] text-red-600">{c.history[c.history.length - 1].remark}</span>}</span> },
           { key: "b", label: "RA bill", render: (c) => (c.raBillId ? `${c.raBillId} · ${byId(st.raBills, c.raBillId)?.status}` : "—") },
-          { key: "a", label: "", align: "right", render: (c) => c.status === "Returned" && <Btn size="sm" onClick={() => setClaimFor({ woId: c.woId, from: c.id })}>Revise & resubmit</Btn> },
+          { key: "a", label: "", align: "right", render: (c) => c.status === "Returned" && <span onClick={stop}><Btn size="sm" onClick={() => setClaimFor({ woId: c.woId, from: c.id })}>Revise & resubmit</Btn></span> },
         ]} />}
         {tab === "att" && <AttendanceSheet vendorId={vid} portal />}
-        {tab === "bills" && <DataTable rows={[...invs.map((i) => ({ key: i.id, ref: i.number, what: i.source === "RA Bill" ? i.raBillId : i.poId, amt: invoiceTotals(i).payable, bal: invoiceTotals(i).balance, status: invoiceStatus(i), due: i.due })),
-          ...bills.filter((b) => !b.invoiceId).map((b) => ({ key: b.id, ref: b.id, what: `${b.woId} · RA ${b.seq}`, amt: b.net, bal: b.net, status: b.status, due: null }))]} rowKey={(r) => r.key} columns={[
+        {tab === "bills" && <DataTable rows={[...invs.map((i) => ({ key: i.id, kind: "inv", ref: i.number, what: i.source === "RA Bill" ? i.raBillId : i.poId, amt: invoiceTotals(i).payable, bal: invoiceTotals(i).balance, status: invoiceStatus(i), due: i.due })),
+          ...bills.filter((b) => !b.invoiceId).map((b) => ({ key: b.id, kind: "bill", ref: b.id, what: `${b.woId} · RA ${b.seq}`, amt: b.net, bal: b.net, status: b.status, due: null }))]} rowKey={(r) => r.key} onRow={(r) => open(r.kind, r.key)} columns={[
           { key: "ref", label: "Reference", className: "mono text-[12px]" }, { key: "what", label: "Against" },
           { key: "amt", label: "Amount", align: "right", num: true, render: (r) => inr(r.amt) }, { key: "bal", label: "Balance", align: "right", num: true, render: (r) => inr(r.bal) },
           { key: "due", label: "Due", render: (r) => fmtDate(r.due) }, { key: "status", label: "Status", render: (r) => <Status>{r.status}</Status> },
         ]} />}
-        {tab === "price" && <DataTable rows={pricelist} rowKey={(r, i) => r.po + i} empty={<EmptyState icon={Icon.sheet} title="No agreed prices yet" />} columns={[
+        {tab === "price" && <DataTable rows={pricelist} onRow={(r) => open("po", r.po)} rowKey={(r, i) => r.po + i} empty={<EmptyState icon={Icon.sheet} title="No agreed prices yet" />} columns={[
           { key: "desc", label: "Item" }, { key: "unit", label: "Unit" }, { key: "rate", label: "Agreed rate", align: "right", num: true, render: (r) => inr(r.rate) }, { key: "po", label: "Last PO", className: "mono text-[12px]" }, { key: "date", label: "Since", render: (r) => fmtDate(r.date) },
         ]} />}
-        {tab === "docs" && <DataTable rows={docs} rowKey={(d) => d.name} columns={[
+        {tab === "docs" && <DataTable rows={docs} rowKey={(d) => d.name} onRow={(d) => open("doc", d.name)} columns={[
           { key: "name", label: "Document", className: "font-medium" }, { key: "e", label: "Valid till", render: (d) => <ExpiryCell iso={d.expiry} /> },
           { key: "s", label: "Status", render: (d) => <Status>{docState(d)}</Status> },
-          { key: "a", label: "", align: "right", render: (d) => ["Missing", "Expired", "Expiring", "Rejected"].includes(docState(d)) && <Btn size="sm" icon={Icon.upload} onClick={() => setReup({ name: d.name, expiry: shiftDays(365), file: "", dataUrl: null })}>Upload</Btn> },
+          { key: "a", label: "", align: "right", render: (d) => ["Missing", "Expired", "Expiring", "Rejected"].includes(docState(d)) && <span onClick={stop}><Btn size="sm" icon={Icon.upload} onClick={() => setReup({ name: d.name, expiry: shiftDays(365), file: "", dataUrl: null })}>Upload</Btn></span> },
         ]} />}
         {tab === "help" && (
           <div className="grid grid-cols-[1fr_360px] gap-4 p-4">
@@ -234,10 +237,11 @@ function PortalBody({ vid, vendorMode }) {
               <ul className="divide-y divide-line">
                 {tickets.length === 0 && <li className="p-4 text-[13px] text-ink-mute">No queries raised.</li>}
                 {tickets.map((t) => (
-                  <li key={t.id} className="p-4 text-[13px]">
+                  <li key={t.id} className="cursor-pointer p-4 text-[13px] hover:bg-gray-50" onClick={() => open("ticket", t.id)}>
                     <p className="flex items-center justify-between"><span className="font-medium"><span className="mono mr-2 text-[11.5px] text-ink-mute">{t.id}</span>{t.subject}</span><Status>{t.status}</Status></p>
                     <p className="mt-1 text-ink-soft">{t.body}</p>
-                    {t.replies.map((r, i) => <p key={i} className="mt-2 rounded-md bg-gray-50 px-2 py-1 text-[12.5px]"><b>{r.by}:</b> {r.text}</p>)}
+                    {t.replies.length > 0 && <p className="mt-2 rounded-md bg-gray-50 px-2 py-1 text-[12.5px]"><b>{t.replies[t.replies.length - 1].vendor ? "You" : t.replies[t.replies.length - 1].by}:</b> {t.replies[t.replies.length - 1].text}</p>}
+                    <p className="mt-2 text-[12px] font-medium text-brand">Open thread ({t.replies.length} {t.replies.length === 1 ? "reply" : "replies"}) →</p>
                   </li>
                 ))}
               </ul>
@@ -276,6 +280,13 @@ function PortalBody({ vid, vendorMode }) {
           </div>
         )}
       </div>
+      {detail?.kind === "po" && <PortalPoDrawer key={detail.id} id={detail.id} open={open} onClose={() => setDetail(null)} />}
+      {detail?.kind === "wo" && <PortalWoDrawer key={detail.id} id={detail.id} open={open} onClose={() => setDetail(null)} onAccept={(w) => actWo(w, "Accepted")} onDecline={(w) => setWoDecline({ wo: w, reason: "" })} onClaim={(wid) => setClaimFor(wid)} />}
+      {detail?.kind === "claim" && <PortalClaimDrawer key={detail.id} id={detail.id} open={open} onClose={() => setDetail(null)} onRevise={(c) => setClaimFor({ woId: c.woId, from: c.id })} />}
+      {detail?.kind === "bill" && <PortalRaBillDrawer key={detail.id} id={detail.id} open={open} onClose={() => setDetail(null)} />}
+      {detail?.kind === "inv" && <PortalInvoiceDrawer key={detail.id} id={detail.id} open={open} onClose={() => setDetail(null)} />}
+      {detail?.kind === "doc" && <PortalDocDrawer vid={vid} name={detail.id} onClose={() => setDetail(null)} onUpload={(d) => setReup({ name: d.name, expiry: d.expiry && daysUntil(d.expiry) > 30 ? d.expiry : shiftDays(365), file: "", dataUrl: null })} />}
+      {detail?.kind === "ticket" && <PortalTicketDrawer id={detail.id} author={vendorMode ? getVendorSession()?.email || v.contact.name : v.contact.name} onClose={() => setDetail(null)} />}
       {quoteFor && (
         <Modal open onClose={() => setQuoteFor(null)} width={1100} title={byId(st.rfqs, quoteFor).title} subtitle={`${quoteFor} · due ${fmtDate(byId(st.rfqs, quoteFor).dueDate)} · ${byId(st.rfqs, quoteFor).incoterm}`}>
           <div className="mb-3"><Note icon={Icon.file}><b>Buyer's terms:</b> {byId(st.rfqs, quoteFor).tnc} <button className="ml-1 font-medium text-brand" onClick={() => printRfq(byId(st.rfqs, quoteFor), v)}>Download RFQ (PDF)</button></Note></div>
