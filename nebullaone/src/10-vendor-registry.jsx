@@ -9,9 +9,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function VendorTypeTag({ v }) {
   const c = { Goods: "bg-sky-50 text-sky-700 border-sky-200", Services: "bg-violet-50 text-violet-700 border-violet-200", Labor: "bg-orange-50 text-orange-700 border-orange-200" }[v.type];
-  const tipText = { Goods: "Goods — supplies material (cement, steel, hardware…). Bought through purchase orders.", Services: "Services — provides a service (hire, testing, consultancy, installation…).", Labor: "Labour — supplies workers / manpower." }[v.type]
-    + (v.isContractor ? "\n\nContractor — executes work on site. Managed in Contract & Labor: contracts, work orders, measurement book, RA bills, retention and attendance." : "\n\nNot a contractor — bought through POs / bills only.");
-  return <span data-tip={tipText} className={cls("rounded border px-1.5 py-[1px] text-[11px] font-medium", c)}>{v.type}{v.isContractor ? " · Contractor" : ""}</span>;
+  return <span className={cls("rounded border px-1.5 py-[1px] text-[11px] font-medium", c)}>{v.type}{v.isContractor ? " · Contractor" : ""}</span>;
 }
 const TIER_HELP = {
   Strategic: "Strategic — critical long-term partner; high spend or hard to replace. Reviewed by senior management.",
@@ -29,7 +27,7 @@ function CategoryChips({ list, max = 2 }) {
   return (
     <span className="flex items-center gap-1">
       {list.slice(0, max).map((c) => <span key={c} className="rounded bg-gray-100 px-1.5 py-[1px] text-[11px] text-ink-soft">{c}</span>)}
-      {list.length > max && <span data-tip={`All trades:\n${list.join("\n")}`} className="cursor-default rounded px-1 text-[11px] text-ink-mute hover:bg-gray-100">+{list.length - max}</span>}
+      {list.length > max && <span data-tip={list.slice(max).join("\n")} className="cursor-default rounded px-1 text-[11px] text-ink-mute hover:bg-gray-100">+{list.length - max}</span>}
     </span>
   );
 }
@@ -224,8 +222,8 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
       {!publicMode && (
         <FormSection n={++n} title="Internal classification" desc="Only visible to your team — not shown to the vendor" done>
           <div className="grid grid-cols-2 gap-3">
-            <Field label={<span data-tip={TIER_TIP}>Supplier tier ⓘ</span>}><Select value={f.tier} onChange={(v) => upd("tier", v)} options={TIERS} /></Field>
-            <Field label={<span data-tip={REG_TIP}>Registration tier ⓘ</span>} hint="Prospective vendors can quote but can't receive POs"><Select value={f.regTier} onChange={(v) => upd("regTier", v)} options={["Spend Authorized", "Prospective"]} /></Field>
+            <Field label="Supplier tier"><Select value={f.tier} onChange={(v) => upd("tier", v)} options={TIERS} /></Field>
+            <Field label="Registration tier" hint="Prospective vendors can quote but can't receive POs"><Select value={f.regTier} onChange={(v) => upd("regTier", v)} options={["Spend Authorized", "Prospective"]} /></Field>
             <Field label="Vendor group" hint="Used for filters and spend-by-group reports"><Select value={f.group} placeholder="— not grouped —" onChange={(v) => upd("group", v)} options={withCurrent(settingsOf(getState()).vendorGroups, f.group)} /></Field>
             <Field label="Internal parent company" hint="Only if this vendor is one of our group companies"><Select value={f.parentCompany} placeholder="— external vendor —" onChange={(v) => upd("parentCompany", v)} options={withCurrent(settingsOf(getState()).groupCompanies, f.parentCompany)} /></Field>
           </div>
@@ -626,11 +624,11 @@ function VendorRegistryPage() {
           { value: "__none", label: "Not grouped" }, { value: "__intra", label: "Group companies" }]} />
       </>} right={<span className="text-[12px]">{rows.length} of {st.vendors.length}</span>} />
       <DataTable rows={rows} onRow={(v) => setOpen(v.id)} columns={[
-        { key: "name", label: "Vendor", render: (v) => <span className="flex items-center justify-between gap-3 font-medium"><span className="truncate" data-tip={v.group ? `${v.name}\nGroup: ${v.group}` : undefined}>{v.name}</span><PreferredStar v={v} size={14} /></span> },
+        { key: "name", label: "Vendor", render: (v) => <span className="flex items-center justify-between gap-3 font-medium"><span className="truncate">{v.name}</span><PreferredStar v={v} size={14} /></span> },
         { key: "type", label: "Type", render: (v) => <span className="flex flex-wrap items-center gap-1"><VendorTypeTag v={v} /><GroupCoTag v={v} /></span> },
         { key: "cat", label: "Trades", render: (v) => <CategoryChips list={v.categories} /> },
-        { key: "tier", label: <span data-tip={TIER_TIP}>Tier</span>, render: (v) => <span data-tip={TIER_HELP[v.tier]}>{v.tier}</span> },
-        { key: "reg", label: <span data-tip={REG_TIP}>Registration</span>, render: (v) => <span data-tip={REG_HELP[v.regTier] + (v.source === "Self-registration" ? "\n\nSelf-registered via the portal." : "")}><Status>{v.regTier}</Status></span> },
+        { key: "tier", label: "Tier" },
+        { key: "reg", label: "Registration", render: (v) => <Status>{v.regTier}</Status> },
         { key: "comp", label: "Compliance", render: (v) => <Status>{complianceOf(v).status}</Status> },
         { key: "score", label: "Score", render: (v) => <ScoreBadge value={vendorScore(st, v.id).score} /> },
         { key: "status", label: "Status", render: (v) => <Status>{v.status}</Status> },

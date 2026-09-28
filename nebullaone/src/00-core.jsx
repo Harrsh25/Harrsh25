@@ -500,10 +500,10 @@ function ScoreRing({ value, size = 44 }) {
 
 // Score in table cells — same bar + value style as the Progress columns
 function ScoreBadge({ value }) {
-  if (value == null) return <span className="text-[12px] text-ink-faint" title="Not rated yet">—</span>;
+  if (value == null) return <span className="text-[12px] text-ink-faint">—</span>;
   const v = Math.max(0, Math.min(100, Math.round(value)));
   return (
-    <span className="flex items-center gap-2 whitespace-nowrap" title={`Score ${v} / 100`}>
+    <span className="flex items-center gap-2 whitespace-nowrap">
       <span className="h-1.5 w-16 overflow-hidden rounded-full bg-gray-200"><span className="block h-full rounded-full bg-brand" style={{ width: `${v}%` }} /></span>
       <span className="num w-7 text-right text-[12px] text-ink-soft">{v}</span>
     </span>
@@ -598,7 +598,7 @@ function RefLink({ to, children }) {
 
 // ---------------------------------------------------------------- global tooltip
 // Hovering any text that is cut off (ellipsis / overflow hidden / long input value) shows the full
-// content; elements with data-tip show that explanation. Works across the whole app, host pages too.
+// content; elements with data-tip (e.g. "+2" chips) list the hidden items. Works across the whole app.
 (function installTooltips() {
   if (typeof document === "undefined" || window.__nxTip) return;
   window.__nxTip = true;

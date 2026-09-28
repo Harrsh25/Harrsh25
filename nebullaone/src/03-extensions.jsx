@@ -42,7 +42,7 @@ function billAgainst(st, i) {
   const p = byId(st.purchaseOrders, i.poId); return [p ? itemsSummary(p.lines) : "Purchase order", p ? `Purchase order · ${p.project}` : "Purchase order"];
 }
 // List cells stay single-line (Project Center style); the secondary detail is shown on hover
-const TwoLine = ({ a, b }) => <span className="block max-w-[300px] truncate" data-tip={b ? `${a}\n${b}` : undefined}>{a}</span>;
+const TwoLine = ({ a }) => <span className="block max-w-[300px] truncate">{a}</span>;
 const groupRoot = (g) => (g || "").split(" › ")[0];
 const inGroup = (v, g) => !!v.group && (v.group === g || v.group.startsWith(g + " › "));
 const isGroupCompany = (v) => !!(v && v.parentCompany);
@@ -50,7 +50,7 @@ const isGroupCompany = (v) => !!(v && v.parentCompany);
 const withCurrent = (list, cur) => (cur && !list.includes(cur) ? [...list, cur] : list);
 function GroupCoTag({ v }) {
   if (!isGroupCompany(v)) return null;
-  return <span title={`Group company of ${v.parentCompany} — inter-company supplier`} className="rounded border border-teal-200 bg-teal-50 px-1.5 py-[1px] text-[11px] font-medium text-teal-700">Group co.</span>;
+  return <span className="rounded border border-teal-200 bg-teal-50 px-1.5 py-[1px] text-[11px] font-medium text-teal-700">Group co.</span>;
 }
 
 const DEFAULT_STANDINGS = [
