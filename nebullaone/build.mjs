@@ -90,7 +90,10 @@ root.walkAtRules((a) => {
   if (a.nodes && a.nodes.length === 0) a.remove();
 });
 const extraCss = root.toString().replace(/\/\*[^]*?\*\//g, "").replace(/\s*\n\s*/g, "");
-html = html.slice(0, styleEnd) + C_BEGIN + extraCss + C_END + html.slice(styleEnd);
+// Hand-written tweaks for host components rendered inside detail panels / dialogs:
+// keep stat values on one line and let the sub-label drop below instead.
+const RAW_CSS = "[role=dialog] .mono{white-space:nowrap}[role=dialog] p.flex.items-baseline{flex-wrap:wrap;row-gap:0}";
+html = html.slice(0, styleEnd) + C_BEGIN + extraCss + RAW_CSS + C_END + html.slice(styleEnd);
 
 writeFileSync(HTML, html);
 console.log(`built: ${files.length} files, js ${(block.length / 1024).toFixed(1)} KB, css +${(extraCss.length / 1024).toFixed(1)} KB`);

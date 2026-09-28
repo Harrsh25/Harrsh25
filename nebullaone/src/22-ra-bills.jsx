@@ -160,7 +160,7 @@ function RaBillDrawer({ id, onClose }) {
     <Drawer open onClose={onClose} width={1000} title={`${bill.id} · RA-${bill.seq} · ${wo.title}`}
       subtitle={<><Status>{bill.status}</Status><span>{v.name}</span><span>· {wo.id} ({wo.type})</span><span>· {c.id}</span><span>· period {fmtDate(bill.periodFrom)} – {fmtDate(bill.periodTo)}</span></>}
       actions={<Btn icon={Icon.download} onClick={() => window.print()}>Print certificate</Btn>}>
-      <div className="space-y-4 p-5">
+      <div className="space-y-4 px-6 py-5">
         <Section title="Certification workflow" icon={Icon.clipboardCheck}>
           <div className="p-5">
             <Stepper steps={RA_FLOW.map((f, i) => {

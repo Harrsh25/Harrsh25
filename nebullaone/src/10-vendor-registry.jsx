@@ -234,21 +234,21 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview" }) {
   const comp = complianceOf(v);
   const sc = vendorScore(st, v.id);
   const tabs = [
-    { id: "overview", label: "Overview", icon: Icon.info },
-    { id: "flags", label: "Status & flags", icon: Icon.flag },
-    { id: "docs", label: `Documents (${v.docs.filter((d) => d.status === "Verified").length}/${requiredDocs(v).length})`, icon: Icon.folderCheck },
-    { id: "bank", label: "Bank", icon: Icon.wallet },
-    { id: "qual", label: "Qualification", icon: Icon.listChecks },
-    { id: "approval", label: "Approvals", icon: Icon.clipboardCheck },
-    { id: "users", label: `Portal users (${(v.portalUsers || []).length})`, icon: Icon.users },
-    { id: "activity", label: "Activity", icon: Icon.activity },
+    { id: "overview", label: "Overview" },
+    { id: "flags", label: "Status & flags" },
+    { id: "docs", label: "Documents", count: `${v.docs.filter((d) => d.status === "Verified").length}/${requiredDocs(v).length}` },
+    { id: "bank", label: "Bank", count: v.bankAccounts.length || null },
+    { id: "qual", label: "Qualification" },
+    { id: "approval", label: "Approvals" },
+    { id: "users", label: "Portal users", count: (v.portalUsers || []).length },
+    { id: "activity", label: "Activity" },
   ];
   return (
     <Drawer open onClose={onClose} width={880} title={<span className="flex items-center gap-2">{v.name}{v.preferred && <Icon.star size={14} className="text-amber-400" fill="currentColor" />}</span>}
-      subtitle={<><span className="mono">{v.id}</span><VendorTypeTag v={v} /><Status>{v.status}</Status><Status>{v.regTier}</Status><Status>{comp.status}</Status></>}
-      actions={<span className="flex items-center gap-2 pr-1 text-[12px] text-ink-soft">Score <ScoreRing value={sc.score} size={36} /></span>}>
-      <TabBar tabs={tabs} active={tab} onChange={setTab} />
-      <div className="space-y-4 p-5">
+      subtitle={<><span className="mono text-[12px] text-ink-mute">{v.id}</span><span className="text-ink-faint">·</span><VendorTypeTag v={v} /><Status>{v.status}</Status><Status>{v.regTier}</Status><Status>{comp.status}</Status></>}
+      actions={<span className="flex items-center gap-2 pr-1 text-[12px] text-ink-soft">Score <ScoreRing value={sc.score} size={36} /></span>}
+      tabs={{ tabs, active: tab, onChange: setTab }}>
+      <div className="space-y-4 px-6 py-5">
         {tab === "overview" && <VendorOverview v={v} comp={comp} />}
         {tab === "flags" && <VendorFlags v={v} />}
         {tab === "docs" && <VendorDocs v={v} />}

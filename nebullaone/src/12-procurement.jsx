@@ -182,7 +182,7 @@ function PoDrawer({ id, onClose }) {
         {["Waiting Bills", "Partially Billed"].includes(bstatus) && <Btn icon={Icon.receipt} onClick={() => setBill(true)}>Create bill</Btn>}
         {!["Closed", "Cancelled"].includes(po.status) && <Btn icon={Icon.pencil} onClick={() => setAmend({ deliveryDate: po.deliveryDate, lines: po.lines.map((l) => ({ ...l })), note: "" })}>Amend</Btn>}
       </>}>
-      <div className="space-y-4 p-5">
+      <div className="space-y-4 px-6 py-5">
         <div className="grid grid-cols-4 gap-3">
           <StatTile tone="blue" label="PO value" value={inrShort(poValue(po))} sub="excl. GST" icon={Icon.package} />
           <StatTile tone="green" label="Accepted" value={`${pct(sum(rec, (l) => l.accepted), sum(rec, (l) => l.qty))}%`} icon={Icon.check} />
@@ -321,7 +321,7 @@ function BlanketOrdersPage() {
         <Drawer open onClose={() => setOpen(null)} width={880} title={bo.title} subtitle={<><span className="mono">{bo.id}</span><Status>{blanketStatus(st, bo)}</Status><span>{vendorName(st, bo.vendorId)}</span><span>· {fmtDate(bo.start)} → {fmtDate(bo.deadline)}</span></>}
           actions={<>{blanketStatus(st, bo) === "Active" && <Btn variant="primary" icon={Icon.plus} onClick={() => setCalloff(bo.id)}>Create call-off PO</Btn>}
             {bo.status !== "Closed" && <Btn onClick={() => setState((s) => (byId(s.blanketOrders, bo.id).status = "Closed"), { entity: "Blanket Order", id: bo.id, action: "Closed" })}>Close agreement</Btn>}</>}>
-          <div className="space-y-4 p-5">
+          <div className="space-y-4 px-6 py-5">
             <Section title="Agreed lines" icon={Icon.listChecks}>
               <DataTable dense rows={blanketUsage(st, bo)} rowKey={(_, i) => i} columns={[
                 { key: "desc", label: "Item", className: "font-medium" }, { key: "rate", label: "Agreed rate", align: "right", num: true, render: (l) => inr(l.rate) },
@@ -560,7 +560,7 @@ function InvoiceDrawer({ id, onClose }) {
     <Drawer open onClose={onClose} width={920} title={`${inv.id} · ${vendorName(st, inv.vendorId)}`}
       subtitle={<><Status>{status}</Status><span>{inv.source}{inv.poId ? ` ${inv.poId}` : inv.raBillId ? ` ${inv.raBillId}` : ""}</span><span>· vendor ref {inv.number}</span><span>· due {fmtDate(inv.due)}</span><span>· should be paid: <b className={cls(sbp === "No" ? "text-red-600" : sbp === "Exception" ? "text-amber-700" : "text-green-700")}>{sbp}</b></span></>}
       actions={t.balance > 0.5 && <Btn variant="primary" icon={Icon.rupee} onClick={() => setPay(true)}>Record payment</Btn>}>
-      <div className="space-y-4 p-5">
+      <div className="space-y-4 px-6 py-5">
         <div className="grid grid-cols-4 gap-3">
           <StatTile tone="blue" label="Bill amount" value={inr(t.gross)} sub={inv.source === "RA Bill" ? "net of deductions" : `incl. GST ${inv.gstPct}%`} icon={Icon.receipt} />
           <StatTile tone="purple" label="Credit / debit notes" value={inr(t.notes)} icon={Icon.file} />

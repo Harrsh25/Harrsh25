@@ -96,7 +96,7 @@ function WorkOrderDrawer({ id, onClose }) {
         {["Issued", "In Progress"].includes(wo.status) && <Btn variant="primary" icon={Icon.ruler} disabled={!woAccepted(wo)} title={woAccepted(wo) ? "" : "Contractor must accept the work order first"} onClick={() => setMb({ woId: id })}>Record measurement</Btn>}
         {["Issued", "In Progress"].includes(wo.status) && pr.physical >= 99.5 && <Btn variant="success" onClick={() => mut("Completed")}>Mark completed</Btn>}
       </>}>
-      <div className="space-y-4 p-5">
+      <div className="space-y-4 px-6 py-5">
         {wo.acceptance?.status === "Pending" && <Note tone="amber">Waiting for the contractor to accept this work order in the supplier portal. Measurements open once it is accepted.</Note>}
         {wo.acceptance?.status === "Declined" && <Note tone="red">Contractor declined: {wo.acceptance.reason}. Revise and re-issue.</Note>}
         {woAccepted(wo) && <Note tone="green" icon={Icon.check}>Accepted by {wo.acceptance.by} on {fmtDate(wo.acceptance.at)}.</Note>}

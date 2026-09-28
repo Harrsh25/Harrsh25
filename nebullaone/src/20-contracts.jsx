@@ -67,7 +67,7 @@ function OnboardingDrawer({ vendorId, onClose, onFull }) {
   return (
     <Drawer open onClose={onClose} width={720} title={v.name} subtitle={<><span className="mono">{v.id}</span><Status>{stage}</Status><Status>{complianceOf(v).status}</Status></>}
       actions={<Btn icon={Icon.eye} onClick={() => onFull("overview")}>Full vendor record</Btn>}>
-      <div className="space-y-4 p-5">
+      <div className="space-y-4 px-6 py-5">
         <Section><div className="p-5"><Stepper steps={ONBOARD_STAGES.map((s, i) => ({ label: s, status: stage === "Rejected" ? (i === 1 ? "rejected" : i < 1 ? "done" : "todo") : i < idx ? "done" : i === idx ? (s === "Onboarded" ? "done" : "current") : "todo" }))} /></div></Section>
         <Section title="Statutory documents" icon={Icon.folderCheck} actions={<Btn size="sm" onClick={() => onFull("docs")}>Manage documents</Btn>}>
           <ul className="grid grid-cols-2 gap-x-6 gap-y-1.5 p-4">
@@ -163,7 +163,7 @@ function ContractDrawer({ id, onClose }) {
         {c.status !== "Draft" && c.status !== "Closed" && <Btn icon={Icon.calendar} onClick={() => setExt({ end: shiftDays(90, c.end), note: "" })}>Extend / renew</Btn>}
         {c.status !== "Closed" && ["Completed", "In DLP"].includes(status) && led.retentionBalance <= 0 && <Btn onClick={() => mut((x) => (x.status = "Closed"), "Contract closed")}>Close contract</Btn>}
       </>}>
-      <div className="space-y-4 p-5">
+      <div className="space-y-4 px-6 py-5">
         {status === "Expiring" && <Note tone="amber" icon={Icon.calendarClock}>Completion date {fmtDate(c.end)} is in <b>{daysUntil(c.end)} days</b>. Decide on extension or renewal.</Note>}
         {c.bgExpiry && daysUntil(c.bgExpiry) <= 30 && <Note tone="red">Performance bank guarantee {c.bgNo} expires {fmtDate(c.bgExpiry)} — ask the contractor to extend it.</Note>}
         <div className="grid grid-cols-4 gap-3">

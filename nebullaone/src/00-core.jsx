@@ -241,22 +241,44 @@ function Modal({ open, title, subtitle, onClose, footer, width = 640, children }
   );
 }
 
-function Drawer({ open, title, subtitle, onClose, actions, width = 760, children }) {
+// Detail-panel tabs (Project Center style): plain text, single line, blue when active
+function DetailTabs({ tabs, active, onChange }) {
+  return (
+    <div role="tablist" className="flex gap-7 overflow-x-auto border-b border-line px-6">
+      {tabs.map((t) => {
+        const on = t.id === active;
+        return (
+          <button key={t.id} type="button" role="tab" aria-selected={on} onClick={() => onChange(t.id)}
+            className={cls("-mb-px flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 pb-3 pt-1 text-[14px]",
+              on ? "border-brand font-medium text-brand" : "border-transparent text-ink hover:text-brand")}>
+            {t.label}
+            {t.count != null && <span className={cls("rounded-full px-1.5 text-[11px] font-medium", on ? "bg-brand-soft text-brand" : "bg-gray-100 text-ink-mute")}>{t.count}</span>}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function Drawer({ open, title, subtitle, onClose, actions, width = 760, tabs, children }) {
   useEscape(open, onClose);
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-[55] flex justify-end bg-gray-900/25" onMouseDown={onClose}>
-      <div role="dialog" aria-modal="true" aria-label={title} className="flex h-full w-full flex-col bg-white shadow-2xl" style={{ maxWidth: width }}
+      <div role="dialog" aria-modal="true" aria-label={typeof title === "string" ? title : undefined} className="flex h-full w-full flex-col bg-white shadow-2xl" style={{ maxWidth: width }}
         onMouseDown={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between gap-3 border-b border-line px-5 py-3">
-          <div className="min-w-0">
-            <h2 className="truncate text-[15.5px] font-semibold">{title}</h2>
-            {subtitle && <div className="mt-1 flex flex-wrap items-center gap-2 text-[12.5px] text-ink-soft">{subtitle}</div>}
+        <div className={cls("shrink-0", !tabs && "border-b border-line")}>
+          <div className={cls("flex items-start justify-between gap-4 px-6 pt-5", tabs ? "pb-5" : "pb-4")}>
+            <div className="min-w-0">
+              <h2 className="truncate text-[17px] font-semibold leading-tight tracking-tight">{title}</h2>
+              {subtitle && <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-ink-soft">{subtitle}</div>}
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              {actions}
+              <IconBtn icon={Icon.x} title="Close" onClick={onClose} />
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            {actions}
-            <IconBtn icon={Icon.x} title="Close" onClick={onClose} />
-          </div>
+          {tabs && <DetailTabs {...tabs} />}
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
       </div>

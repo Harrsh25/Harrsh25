@@ -443,7 +443,7 @@ function RfqDrawer({ id, onClose, compose }) {
         {rfq.status === "Draft" && <Btn variant="primary" icon={Icon.send} onClick={() => setSend({ all: true })}>Compose & send</Btn>}
         {open && rfq.status !== "Draft" && <Btn icon={Icon.plus} onClick={() => setRecord(rfq.vendorIds.find((v) => !rfq.quotes.some((q) => q.vendorId === v)) || rfq.vendorIds[0])}>Record quote on vendor's behalf</Btn>}
       </>}>
-      <div className="space-y-4 p-5">
+      <div className="space-y-4 px-6 py-5">
         {rfq.status === "Draft" && <Note>Draft — press <b>Compose & send</b> to e-mail the invitation. Vendors sign in to the supplier portal with a one-time code to respond.</Note>}
         <Section title="Invited vendors" icon={Icon.send}>
           <DataTable dense rows={rfq.vendorIds.map((vid) => ({ id: vid, q: rfq.quotes.find((x) => x.vendorId === vid), r: resp[vid] || { status: "Not sent" }, mails: (rfq.emails || []).filter((m) => m.to === vid) }))} columns={[
