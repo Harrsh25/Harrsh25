@@ -485,6 +485,19 @@ function SearchBox({ value, onChange, placeholder = "Search..." }) {
 // Filter dropdown (popover menu): uppercase heading, status-coloured dots, tick on the selected option
 const DOT = { green: "bg-green-500", blue: "bg-blue-500", amber: "bg-amber-500", red: "bg-red-500", purple: "bg-violet-500", cyan: "bg-cyan-500", orange: "bg-orange-500", gray: "bg-gray-400" };
 const EXTRA_DOT = { "attention needed": "amber", "payments blocked": "red", "not grouped": "gray", "group companies": "cyan", ongoing: "blue", "not started": "gray" };
+// Icon for each filter (by its label); status-like filters use a plain dot, as in Project Center
+const FILTER_ICONS = {
+  type: "shapes", tier: "star", registration: "clipboardCheck", compliance: "shieldCheck", vendor: "building", contractor: "hardHat",
+  project: "folder", "deliver to": "truck", source: "branch", billing: "receipt", "bill type": "file", match: "scale", "should pay": "wallet",
+  stage: "activity", mode: "users", category: "layers", standing: "gauge", insurance: "shield", "required coverage": "shield", "payment gate": "lock",
+  "blocks payment": "lock", "work order": "clipboardList", jms: "listChecks", region: "globe", "wage zone": "globe", skill: "wrench", trade: "hardHat",
+  trades: "hardHat", "rule sets": "listChecks", result: "target", owner: "user", level: "layers", "submitted by": "user", "rated by": "user",
+  acceptance: "check", basis: "file", period: "calendar", invitation: "mail", group: "layers",
+};
+const filterIcon = (label) => {
+  const k = FILTER_ICONS[String(label || "").toLowerCase()];
+  return k && Icon[k] ? h(Icon[k], { size: 16, className: "shrink-0" }) : <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-current opacity-60" />;
+};
 function FilterSelect({ value, onChange, options, label }) {
   const [open, setOpen] = y.useState(false);
   const [fq, setFq] = y.useState("");
@@ -511,9 +524,12 @@ function FilterSelect({ value, onChange, options, label }) {
   const dot = (o) => { const t = tone(o); return <span className={cls("h-2 w-2 shrink-0 rounded-full", t ? DOT[t] : "border border-gray-300 bg-white")} />; };
   return (
     <div ref={ref} className="relative min-w-0 shrink">
-      <button type="button" aria-label={label} aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((o) => !o)}
-        className={cls("flex h-[28px] w-full max-w-[260px] items-center gap-2 rounded-md border bg-white px-2.5 text-[13px] text-ink", open ? "border-brand ring-2 ring-brand/15" : "border-line hover:border-gray-300")}>
-        {dot(cur)}<span className="truncate">{String(cur.label).trim()}</span>{h(Icon.chevronDown, { size: 13, className: "shrink-0 text-ink-mute" })}
+      {/* Compact icon button (Project Center style); once a value is picked it shows that value */}
+      <button type="button" aria-label={label} data-tip={cur === opts[0] ? label : `${label}: ${String(cur.label).trim()}`} aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((o) => !o)}
+        className={cls("flex h-8 min-w-8 max-w-[180px] items-center justify-center gap-1.5 rounded-md text-[13px] transition-colors",
+          cur !== opts[0] ? "bg-brand-soft px-2 font-medium text-brand" : open ? "bg-gray-100 text-ink" : "text-ink-soft hover:bg-gray-100 hover:text-ink")}>
+        {filterIcon(label)}
+        {cur !== opts[0] && <><span className="truncate">{String(cur.label).trim()}</span>{h(Icon.chevronDown, { size: 12, className: "shrink-0" })}</>}
       </button>
       {open && (
         <div ref={menu} role="listbox" className={cls("absolute z-50 mt-1 max-h-[320px] min-w-full w-max max-w-[min(340px,calc(100vw-24px))] overflow-y-auto rounded-lg border border-line bg-white py-1 shadow-lg", flip ? "right-0" : "left-0")}>
