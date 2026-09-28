@@ -113,16 +113,16 @@ function RequestChangesModal({ v, onClose }) {
   );
 }
 
-function EditRegistrationModal({ v, onClose }) {
+function EditRegistrationModal({ v, onClose, owner }) {
   const [f, setF] = y.useState(() => vendorToForm(v));
   const [reason, setReason] = y.useState("");
   return (
-    <Modal open onClose={onClose} width={880} title={`Edit registration — ${v.name}`} subtitle="Approvers may correct details during review. Bank details are locked; only the vendor can change them."
-      footer={<><Field label=""><TextInput value={reason} onChange={setReason} placeholder="Reason for edit (logged)" /></Field><span className="flex-1" /><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!reason} onClick={() => {
-        setState((s) => applyForm(byId(s.vendors, v.id), f, { lockBank: true }), { entity: "Vendor", id: v.id, action: `Registration edited by approver — ${reason}` });
+    <Modal open onClose={onClose} width={880} title={`Edit registration — ${v.name}`} subtitle={owner ? `${v.status} — you can change any detail, then submit for approval.` : "Approvers may correct details during review. Bank details are locked; only the vendor can change them."}
+      footer={<>{!owner && <Field label=""><TextInput value={reason} onChange={setReason} placeholder="Reason for edit (logged)" /></Field>}<span className="flex-1" /><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!owner && !reason} onClick={() => {
+        setState((s) => applyForm(byId(s.vendors, v.id), f, { lockBank: !owner }), { entity: "Vendor", id: v.id, action: owner ? "Registration details edited" : `Registration edited by approver — ${reason}` });
         toast("Registration updated"); onClose();
       }}>Save changes</Btn></>}>
-      <VendorForm f={f} set={setF} errors={{}} lockBank />
+      <VendorForm f={f} set={setF} errors={{}} lockBank={!owner} />
     </Modal>
   );
 }

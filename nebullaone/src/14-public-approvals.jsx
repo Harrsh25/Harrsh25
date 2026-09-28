@@ -241,7 +241,7 @@ function ApprovalManagementPage() {
         </Modal>
       )}
       {rc && <RequestChangesModal v={rc} onClose={() => setRc(null)} />}
-      {open?.kind === "vendor" && <VendorDrawer vendorId={open.id} initialTab="approval" onClose={() => setOpen(null)} />}
+      {open?.kind === "vendor" && <VendorDrawer vendorId={open.id} initialTab="approval" mode="approval" onClose={() => setOpen(null)} />}
       {open?.kind === "ra" && <RaBillDrawer id={open.id} onClose={() => setOpen(null)} />}
       {open?.kind === "contract" && <ContractDrawer id={open.id} onClose={() => setOpen(null)} />}
       <Toaster />

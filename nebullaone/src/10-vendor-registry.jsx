@@ -225,14 +225,21 @@ function RegisterVendorModal({ open, onClose, onCreated, contractorMode }) {
 }
 
 // ---------------------------------------------------------------- vendor drawer
-function VendorDrawer({ vendorId, onClose, initialTab = "overview" }) {
+// mode "registry": the requester's view — edit while Draft / Rejected / Changes Requested,
+// read-only while Pending Approval, no approval decisions.
+// mode "approval": opened from Vendor Approvals / Approval Management — decisions allowed.
+const EDITABLE_STATUSES = ["Draft", "Rejected", "Changes Requested"];
+function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "registry" }) {
   const st = useStore();
   const v = byId(st.vendors, vendorId);
   const [tab, setTab] = y.useState(initialTab);
+  const [edit, setEdit] = y.useState(false);
   y.useEffect(() => setTab(initialTab), [vendorId]);
   if (!v) return null;
   const comp = complianceOf(v);
   const sc = vendorScore(st, v.id);
+  const locked = mode === "registry" && v.status === "Pending Approval";
+  const canEdit = mode === "registry" && EDITABLE_STATUSES.includes(v.status);
   const tabs = [
     { id: "overview", label: "Overview" },
     { id: "flags", label: "Status & flags" },
@@ -240,24 +247,26 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview" }) {
     { id: "bank", label: "Bank", count: v.bankAccounts.length || null },
     { id: "qual", label: "Qualification" },
     { id: "approval", label: "Approvals" },
-    { id: "users", label: "Portal users", count: (v.portalUsers || []).length },
     { id: "activity", label: "Activity" },
   ];
   return (
     <Drawer open onClose={onClose} width={880} title={<span className="flex items-center gap-2">{v.name}{v.preferred && <Icon.star size={14} className="text-amber-400" fill="currentColor" />}</span>}
       subtitle={<><span className="mono text-[12px] text-ink-mute">{v.id}</span><span className="text-ink-faint">·</span><VendorTypeTag v={v} /><Status>{v.status}</Status><Status>{v.regTier}</Status><Status>{comp.status}</Status></>}
-      actions={<span className="flex items-center gap-2 pr-1 text-[12px] text-ink-soft">Score <ScoreRing value={sc.score} size={36} /></span>}
+      actions={<>{canEdit && <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>}<span className="flex items-center gap-2 pr-1 text-[12px] text-ink-soft">Score <ScoreRing value={sc.score} size={36} /></span></>}
       tabs={{ tabs, active: tab, onChange: setTab }}>
       <div className="space-y-4 px-6 py-5">
+        {locked && tab !== "activity" && <Note tone="amber" icon={Icon.lock}>Submitted for approval — details are locked until the approvers decide. {v.status === "Pending Approval" ? "If it is rejected or sent back, you can edit and resubmit." : ""}</Note>}
         {tab === "overview" && <VendorOverview v={v} comp={comp} />}
-        {tab === "flags" && <VendorFlags v={v} />}
-        {tab === "docs" && <VendorDocs v={v} />}
-        {tab === "bank" && <VendorBanks v={v} />}
-        {tab === "qual" && <Questionnaire v={v} />}
-        {tab === "approval" && <VendorApproval v={v} />}
+        <fieldset disabled={locked} className="contents">
+          {tab === "flags" && <VendorFlags v={v} />}
+          {tab === "docs" && <VendorDocs v={v} mode={mode} locked={locked} />}
+          {tab === "bank" && <VendorBanks v={v} />}
+          {tab === "qual" && <Questionnaire v={v} />}
+        </fieldset>
+        {tab === "approval" && <VendorApproval v={v} mode={mode} />}
         {tab === "activity" && <VendorActivity v={v} />}
-        {tab === "users" && <PortalUsersAdmin v={v} />}
       </div>
+      {edit && <EditRegistrationModal v={v} owner onClose={() => setEdit(false)} />}
     </Drawer>
   );
 }
@@ -379,9 +388,11 @@ function VendorFlags({ v }) {
   );
 }
 
-function VendorDocs({ v }) {
+function VendorDocs({ v, mode = "registry", locked }) {
   const [up, setUp] = y.useState(null);
+  const other = up && up.other;
   const docs = requiredDocs(v).map((name) => v.docs.find((d) => d.name === name) || { name, status: "Missing" });
+  const extra = v.docs.filter((d) => !requiredDocs(v).includes(d.name));
   const mut = (name, fn, action) =>
     setState((s) => {
       const x = byId(s.vendors, v.id);
@@ -390,16 +401,16 @@ function VendorDocs({ v }) {
       fn(d);
     }, { entity: "Vendor", id: v.id, action });
   return (
-    <Section title="Document checklist" icon={Icon.folderCheck} actions={<span className="text-[12px] text-ink-mute">Each item is verified individually before activation</span>}>
-      <DataTable dense rows={docs} rowKey={(d) => d.name} columns={[
+    <Section title="Document checklist" icon={Icon.folderCheck} actions={!locked && <Btn size="sm" variant="primary" icon={Icon.upload} onClick={() => setUp({ name: docs.find((d) => docState(d) !== "Verified")?.name || docs[0].name, expiry: "", file: "", pick: true })}>Upload document</Btn>}>
+      <DataTable dense rows={extra.length ? [...docs, ...extra] : docs} rowKey={(d) => d.name} columns={[
         { key: "name", label: "Document", className: "font-medium" },
         { key: "file", label: "File", render: (d) => (d.file ? <FileLink name={d.file} dataUrl={d.dataUrl} /> : <span className="text-ink-mute">—</span>) },
         { key: "expiry", label: "Valid till", render: (d) => <ExpiryCell iso={d.expiry} /> },
         { key: "status", label: "Status", render: (d) => <Status>{docState(d)}</Status> },
         { key: "a", label: "", align: "right", render: (d) => (
           <span className="flex justify-end gap-1">
-            <Btn size="sm" icon={Icon.upload} onClick={() => setUp({ name: d.name, expiry: d.expiry || "", file: "" })}>{d.status === "Missing" ? "Upload" : "Replace"}</Btn>
-            {d.status === "Pending" && <>
+            {!locked && <Btn size="sm" icon={Icon.upload} onClick={() => setUp({ name: d.name, expiry: d.expiry || "", file: "" })}>{d.status === "Missing" ? "Upload" : "Replace"}</Btn>}
+            {mode === "approval" && d.status === "Pending" && <>
               <Btn size="sm" variant="success" onClick={() => mut(d.name, (x) => (x.status = "Verified"), `${d.name} verified`)}>Verify</Btn>
               <Btn size="sm" variant="danger" onClick={() => mut(d.name, (x) => (x.status = "Rejected"), `${d.name} rejected`)}>Reject</Btn>
             </>}
@@ -407,11 +418,13 @@ function VendorDocs({ v }) {
         ) },
       ]} />
       <Modal open={!!up} onClose={() => setUp(null)} title={`Upload — ${up?.name}`} width={480}
-        footer={<><Btn onClick={() => setUp(null)}>Cancel</Btn><Btn variant="primary" disabled={!up?.file} onClick={() => {
+        footer={<><Btn onClick={() => setUp(null)}>Cancel</Btn><Btn variant="primary" disabled={!up?.file || !up?.name?.trim()} onClick={() => {
           mut(up.name, (x) => Object.assign(x, { status: "Pending", file: up.file, dataUrl: up.dataUrl || null, expiry: up.expiry || null, uploadedAt: todayISO() }), `${up.name} uploaded`);
           toast("Document uploaded — awaiting verification"); setUp(null);
         }}>Upload</Btn></>}>
         {up && <div className="space-y-3">
+          {up.pick && <Field label="Document" required><Select value={other ? "__other" : up.name} onChange={(x) => setUp({ ...up, name: x === "__other" ? "" : x, other: x === "__other" })} options={[...docs.map((d) => ({ value: d.name, label: `${d.name} — ${docState(d)}` })), { value: "__other", label: "Other document…" }]} /></Field>}
+          {other && <Field label="Document name" required><TextInput value={up.name} onChange={(x) => setUp({ ...up, name: x })} placeholder="e.g. ISO 9001 certificate" /></Field>}
           <Field label="File" required><input type="file" accept=".pdf,.jpg,.jpeg,.png" className="block w-full text-[13px]" onChange={async (e) => { const f0 = e.target.files[0]; if (f0) { const att = await readAttachment(f0); setUp((u) => ({ ...u, file: att.name, dataUrl: att.dataUrl })); } }} /></Field>
           <Field label="Valid till" hint="Leave empty for documents that don't expire"><DateInput value={up.expiry} onChange={(x) => setUp({ ...up, expiry: x })} /></Field>
         </div>}

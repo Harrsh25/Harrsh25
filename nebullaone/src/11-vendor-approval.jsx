@@ -114,13 +114,16 @@ function approvalAction(v, decision, remark) {
 function resubmit(v) {
   setState((s) => {
     const x = byId(s.vendors, v.id);
-    const i = x.approval.stages.findIndex((st) => st.status === "Rejected" || st.status === "Waiting");
-    x.approval.stages.forEach((st, j) => { if (j >= Math.max(0, i)) Object.assign(st, { status: j === Math.max(0, i) ? "Pending" : "Waiting", by: null, at: null, remark: "" }); });
+    // approvals already given are kept; routing resumes at the first stage not yet approved
+    const i = Math.max(0, x.approval.stages.findIndex((st) => st.status !== "Approved"));
+    x.approval.stages.forEach((st, j) => { if (j >= i) Object.assign(st, { status: j === i ? "Pending" : "Waiting", by: null, at: null, remark: "" }); });
+    if (x.changeRequest && !x.changeRequest.resolvedAt) x.changeRequest = { ...x.changeRequest, resolvedAt: new Date().toISOString() };
     x.status = "Pending Approval";
   }, { entity: "Vendor", id: v.id, action: v.status === "Draft" ? "Submitted for approval" : "Corrected and resubmitted" });
 }
 
-function VendorApproval({ v }) {
+function VendorApproval({ v, mode = "approval" }) {
+  const decide = mode === "approval";
   const [remark, setRemark] = y.useState("");
   const [rc, setRc] = y.useState(false), [edit, setEdit] = y.useState(false);
   const stages = v.approval.stages;
@@ -136,7 +139,13 @@ function VendorApproval({ v }) {
             meta: s.by ? `${s.by} · ${fmtDateTime(s.at)}${s.remark && s.remark !== "OK" ? ` — ${s.remark}` : ""}` : s.status === "Pending" ? "Awaiting decision" : "",
           }))} />
         </div>
-        {pending && (
+        {pending && !decide && v.status === "Pending Approval" && (
+          <div className="flex items-center justify-between gap-3 border-t border-line p-4">
+            <span className="text-[13px] text-ink-soft">Waiting for <b>{pending.dept}</b>. Approvers record their decision in Vendor Approvals or Approval Management — this view is read-only.</span>
+            <span className="shrink-0 whitespace-nowrap text-[13px]"><RefLink to={`${VM_BASE}/approvals?open=${v.id}`}>Open in Vendor Approvals →</RefLink></span>
+          </div>
+        )}
+        {pending && decide && v.status === "Pending Approval" && (
           <div className="space-y-3 border-t border-line p-4">
             {comp.status === "Non-Compliant" && <Note tone="amber">Compliance gaps: {comp.issues.join(" · ")}. Approvers can still decide, but the vendor can't be paid until these close.</Note>}
             <Field label={`${pending.dept} decision remark`}><TextArea rows={2} value={remark} onChange={setRemark} placeholder="Required when rejecting" /></Field>
@@ -153,13 +162,13 @@ function VendorApproval({ v }) {
         )}
         {rc && <RequestChangesModal v={v} onClose={() => setRc(false)} />}
         {edit && <EditRegistrationModal v={v} onClose={() => setEdit(false)} />}
-        {(v.status === "Rejected" || v.status === "Draft") && (
+        {!decide && EDITABLE_STATUSES.includes(v.status) && (
           <div className="flex items-center justify-between gap-3 border-t border-line p-4">
-            <span className="text-[13px] text-ink-soft">{v.status === "Rejected" ? "Fix the issues raised and resubmit — earlier approvals are kept." : "Draft registration — submit when documents are ready."}</span>
-            <Btn variant="primary" icon={Icon.send} onClick={() => { resubmit(v); toast("Submitted for approval"); }}>{v.status === "Rejected" ? "Resubmit" : "Submit for approval"}</Btn>
+            <span className="text-[13px] text-ink-soft">{v.status === "Draft" ? "Draft registration — use Edit details and upload documents, then submit. Details lock once submitted." : "Sent back by the approver — you can edit the details again (Edit details), then resubmit. Earlier approvals are kept."}</span>
+            <Btn variant="primary" icon={Icon.send} onClick={() => { resubmit(v); toast("Submitted for approval"); }}>{v.status === "Draft" ? "Submit for approval" : "Resubmit"}</Btn>
           </div>
         )}
-        {v.status === "Active" && v.regTier === "Prospective" && (
+        {decide && v.status === "Active" && v.regTier === "Prospective" && (
           <div className="flex items-center justify-between gap-3 border-t border-line p-4">
             <span className="text-[13px] text-ink-soft">Prospective vendors can take part in RFQs only. Authorize to allow POs, contracts and payments.</span>
             <Btn variant="primary" disabled={!v.bankAccounts.length || comp.status === "Non-Compliant"}
@@ -168,7 +177,7 @@ function VendorApproval({ v }) {
         )}
       </Section>
       <Section title="Background & financial checks" icon={Icon.shieldCheck}
-        actions={<Btn size="sm" icon={Icon.refresh} onClick={() => setState((s) => (byId(s.vendors, v.id).background = { credit: ["A", "A-", "B+"][Math.floor(Math.random() * 3)], litigation: "Clear", watchlist: "Clear", checkedAt: todayISO() }), { entity: "Vendor", id: v.id, action: "Background check refreshed" })}>Run check</Btn>}>
+        actions={decide && <Btn size="sm" icon={Icon.refresh} onClick={() => setState((s) => (byId(s.vendors, v.id).background = { credit: ["A", "A-", "B+"][Math.floor(Math.random() * 3)], litigation: "Clear", watchlist: "Clear", checkedAt: todayISO() }), { entity: "Vendor", id: v.id, action: "Background check refreshed" })}>Run check</Btn>}>
         {v.background ? <KV cols={4} items={[["Credit rating", v.background.credit], ["Litigation", v.background.litigation], ["Watchlist / sanctions", v.background.watchlist], ["Checked on", fmtDate(v.background.checkedAt)]]} />
           : <p className="p-4 text-[13px] text-ink-mute">Not run yet.</p>}
       </Section>
@@ -180,7 +189,7 @@ function VendorApproval({ v }) {
 function VendorApprovalsPage() {
   const st = useStore();
   const [tab, setTab] = y.useState("queue");
-  const [open, setOpen] = y.useState(null);
+  const [open, setOpen] = useQueryOpen();
   const queue = st.vendors.filter((v) => ["Pending Approval", "Draft", "Rejected", "Changes Requested"].includes(v.status));
   const byDept = APPROVAL_FLOW.map((d) => ({ d, n: st.vendors.filter((v) => v.approval.stages.some((s) => s.dept === d && s.status === "Pending")).length }));
   return (
@@ -229,7 +238,7 @@ function VendorApprovalsPage() {
           { key: "at", label: "Assessed", render: (v) => fmtDate(v.qualification.at || v.createdAt) },
         ]} />
       )}
-      {open && <VendorDrawer vendorId={open} initialTab="approval" onClose={() => setOpen(null)} />}
+      {open && <VendorDrawer vendorId={open} initialTab="approval" mode="approval" onClose={() => setOpen(null)} />}
     </Page>
   );
 }
@@ -283,7 +292,7 @@ function CompliancePage() {
           { key: "g", label: "Payment gate", render: (v) => (complianceOf(v).status === "Non-Compliant" || isBlockedFor(v, "Payments") ? <Status tone="red">Blocked</Status> : <Status tone="green">Open</Status>) },
         ]} />
       )}
-      {open && <VendorDrawer vendorId={open} initialTab="docs" onClose={() => setOpen(null)} />}
+      {open && <VendorDrawer vendorId={open} initialTab="docs" mode="approval" onClose={() => setOpen(null)} />}
     </Page>
   );
 }
