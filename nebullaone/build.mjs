@@ -114,7 +114,15 @@ const extraCss = root.toString().replace(/\/\*[^]*?\*\//g, "").replace(/\s*\n\s*
 const RAW_CSS = "[role=dialog] .mono{white-space:nowrap}[role=dialog] p.flex.items-baseline{flex-wrap:wrap;row-gap:0}" +
   ".nx-list td{font-size:14px;padding-top:9px;padding-bottom:9px}:where(.nx-list) td{color:#111827}" +
   ".nx-list td.mono,.nx-list td .mono{font-family:inherit;font-size:14px;letter-spacing:0}.nx-list td button{font-size:13px}" +
-  ".nx-list td.text-ink-soft,.nx-list td.text-\\[12px\\],.nx-list td .text-\\[12px\\]{font-size:14px}";
+  ".nx-list td.text-ink-soft,.nx-list td.text-\\[12px\\],.nx-list td .text-\\[12px\\]{font-size:14px}" +
+  // Clean list look (Project Center): white header, no column dividers, roomier rows, larger soft pills
+  ".nx-list th{background:#fff;border-right-width:0;font-size:13px;font-weight:500;color:#6b7280;letter-spacing:0;padding:12px}" +
+  ".nx-list td{border-right-width:0;padding:11px 12px;border-color:#eef0f3}.nx-list th{border-color:#e5e7eb}" +
+  ".nx-list tbody tr:hover{background:#f9fafb}" +
+  ".nx-list td span.rounded-md.border.text-\\[11\\.5px\\]{font-size:12.5px;padding:2px 7px;gap:5px}" +
+  ".nx-list td span.rounded.text-\\[11px\\]{font-size:12px;padding:2px 7px}" +
+  // Stacked cards always get breathing room, even inside wrappers that don't space their children
+  ":not(.grid):not(.flex)>.nx-section+.nx-section{margin-top:16px}";
 html = html.slice(0, styleEnd) + C_BEGIN + extraCss + RAW_CSS + C_END + html.slice(styleEnd);
 
 writeFileSync(HTML, html);

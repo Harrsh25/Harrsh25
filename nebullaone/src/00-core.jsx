@@ -637,7 +637,7 @@ function StatGrid({ children, cols = 4 }) {
 
 function Section({ title, icon, actions, children, className }) {
   return (
-    <section className={cls("rounded-xl border border-line bg-white", className)}>
+    <section className={cls("nx-section rounded-xl border border-line bg-white", className)}>
       {(title || actions) && (
         <div className="flex min-h-[40px] items-center justify-between gap-2 border-b border-line px-4 py-2">
           <h3 className="flex items-center gap-2 text-[13.5px] font-semibold">
