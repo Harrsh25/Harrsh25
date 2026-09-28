@@ -438,19 +438,21 @@ function DataTable({ columns, rows, onRow, rowKey = (r) => r.id, empty, footer, 
 
 // Classes used by host patches in build.mjs (kept here so Tailwind generates them):
 // mt-8 max-w-[680px] gap-4 rounded-xl px-4 py-4 h-9 w-9 rounded-lg mt-3 text-[15px] mt-2
-// Compact KPI card (dashboard style) — also replaces the host's summary card on every page
+// Summary card (original tinted style) — the host's card on every page renders this too
 const CARD_TONE = {
-  blue: "from-blue-500 to-blue-600", green: "from-emerald-500 to-green-600", amber: "from-amber-500 to-orange-500", red: "from-rose-500 to-red-600",
-  purple: "from-violet-500 to-indigo-500", cyan: "from-teal-500 to-cyan-600", orange: "from-orange-500 to-orange-600", gray: "from-slate-500 to-slate-600",
+  blue: "border-blue-200 bg-blue-50/70 text-blue-700", purple: "border-violet-200 bg-violet-50/70 text-violet-700", amber: "border-amber-200 bg-amber-50/70 text-amber-700",
+  green: "border-green-200 bg-green-50/70 text-green-700", red: "border-red-200 bg-red-50/70 text-red-600", orange: "border-orange-200 bg-orange-50/70 text-orange-600",
+  cyan: "border-cyan-200 bg-cyan-50/70 text-cyan-700", gray: "border-slate-200 bg-slate-50/80 text-slate-700",
 };
+const CARD_DOT = { blue: "bg-blue-500", purple: "bg-violet-500", amber: "bg-amber-500", green: "bg-green-500", red: "bg-red-500", orange: "bg-orange-500", cyan: "bg-cyan-500", gray: "bg-slate-500" };
 function StatTile({ label, value, sub, icon, tone = "blue" }) {
   return (
-    <div className={cls("flex min-w-0 items-center gap-2.5 rounded-lg bg-gradient-to-br px-3 py-2 text-white shadow-sm", CARD_TONE[tone] || CARD_TONE.blue)}>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-[11px] font-medium text-white/85">{label}</p>
-        <p className="mt-0.5 flex min-w-0 items-baseline gap-1.5"><span className="num whitespace-nowrap text-[17px] font-bold leading-tight">{value}</span>{sub && <span className="truncate text-[11px] text-white/75">{sub}</span>}</p>
+    <div className={cls("flex min-w-0 items-start justify-between rounded-xl border px-4 py-3", CARD_TONE[tone] || CARD_TONE.blue)}>
+      <div className="min-w-0">
+        <p className="flex items-center gap-1.5 text-[11.5px] font-semibold"><span className={cls("h-1.5 w-1.5 shrink-0 rounded-full", CARD_DOT[tone] || CARD_DOT.blue)} /><span className="truncate">{label}</span></p>
+        <p className="mt-0.5 flex min-w-0 items-baseline gap-1.5"><span className="mono whitespace-nowrap text-[18px] font-bold">{value}</span>{sub && <span className="truncate text-[11.5px] opacity-70">{sub}</span>}</p>
       </div>
-      {icon && <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-white/20">{h(icon, { size: 14 })}</span>}
+      {icon && <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white/60">{h(icon, { size: 15 })}</span>}
     </div>
   );
 }
