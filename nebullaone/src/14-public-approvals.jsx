@@ -198,7 +198,7 @@ function ApprovalManagementPage() {
   const total = [...d0, ...NXV_APPROVAL_MODULES].reduce((n, m) => n + count(m), 0);
   return (
     <Card>
-      <PageHeader title="Approval Management" subtitle={`${total} item(s) waiting across all modules`} actions={<>{h(tr)}{h(ve, { value: project, onChange: setProject })}</>} />
+      <PageHeader title="Approval Management" actions={<>{h(tr)}{h(ve, { value: project, onChange: setProject })}</>} />
       <Toolbar left={<>
         <div className="w-[260px]"><Select label="Module" value={module} onChange={setModule} placeholder="Select module" options={[
           { header: true, value: "__h1", label: "Vendor & contracts" }, ...NXV_APPROVAL_MODULES.map((m) => ({ value: m, label: `${m} (${count(m)})` })),

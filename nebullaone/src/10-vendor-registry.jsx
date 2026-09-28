@@ -600,7 +600,7 @@ function VendorRegistryPage() {
         <FilterSelect label="Tier" value={tier} onChange={setTier} options={[{ value: "All", label: "All tiers" }, ...TIERS]} />
       </>}
         rows={rows} onRow={(v) => setOpen(v.id)} columns={[
-        { key: "name", label: "Vendor", render: (v) => <span className="flex items-center justify-between gap-3 font-medium"><span className="truncate">{v.name}</span><PreferredStar v={v} size={14} /></span> },
+        { key: "name", label: "Vendor", filterLabel: "Preferred", filterAll: "All vendors", filter: (v) => (v.preferred ? "Preferred" : "Not preferred"), render: (v) => <span className="flex items-center justify-between gap-3 font-medium"><span className="truncate">{v.name}</span><PreferredStar v={v} size={14} /></span> },
         { key: "type", label: "Type", render: (v) => <span className="flex flex-wrap items-center gap-1"><VendorTypeTag v={v} /><GroupCoTag v={v} /></span> },
         { key: "cat", label: "Trades", render: (v) => <CategoryChips list={v.categories} /> },
         { key: "tier", label: "Tier" },

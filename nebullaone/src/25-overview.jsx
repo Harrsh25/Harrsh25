@@ -350,7 +350,6 @@ function VendorOverviewPage() {
   return (
     <Page title="Vendor Overview" subtitle="Vendors, compliance, sourcing, purchase orders and payables at a glance" icon={Icon.grid} actions={<OverviewFilters f={f} setF={setF} st={st} />}>
       <div className="space-y-3 bg-gray-50/70 p-3">
-        <p className="text-[11.5px] text-ink-mute">{showing(st, f, "vendors")}</p>
         <div className="grid grid-cols-6 gap-2.5">
           <StatTile tone="purple" label="Vendors" value={d.vendors.length} sub={`${d.vendors.filter((v) => v.status === "Active").length} active`} icon={Icon.building} />
           <StatTile tone="red" label="Compliance issues" value={comp.filter((x) => x === "Non-Compliant").length} sub={`${d.live.filter((v) => complianceOf(v).blocking.length).length} payments held`} icon={Icon.shieldCheck} />
@@ -470,7 +469,6 @@ function ContractOverviewPage() {
   return (
     <Page title="Contract & Labour Overview" subtitle="Contracts, work orders, measurement, RA billing, retention and site labour at a glance" icon={Icon.grid} actions={<OverviewFilters f={f} setF={setF} st={st} contractorsOnly />}>
       <div className="space-y-3 bg-gray-50/70 p-3">
-        <p className="text-[11.5px] text-ink-mute">{showing(st, f, "contractors")}</p>
         <div className="grid grid-cols-6 gap-2.5">
           <StatTile tone="purple" label="Contracts" value={d.contracts.filter((c) => ["Active", "Expiring"].includes(contractStatus(c))).length} sub={`${inrShort(sum(d.contracts, contractValue))} value`} icon={Icon.file} />
           <StatTile tone="blue" label="Live work orders" value={inrShort(sum(d.liveWOs, woValue))} sub={`${d.liveWOs.length} WOs`} icon={Icon.clipboardList} />
