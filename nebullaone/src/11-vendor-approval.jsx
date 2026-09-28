@@ -212,7 +212,7 @@ function VendorApprovalsPage() {
               ))}
             </span>) },
           { key: "docs", label: "Documents", render: (v) => { const n = requiredDocs(v).length, ok = v.docs.filter((d) => d.status === "Verified").length; return <Progress value={Math.round((ok / n) * 100)} color={ok === n ? "bg-green-500" : "bg-amber-500"} />; } },
-          { key: "q", label: "Qualification", align: "center", render: (v) => (v.qualification ? <ScoreRing value={v.qualification.score} size={30} /> : <span className="text-ink-mute">—</span>) },
+          { key: "q", label: "Qualification", align: "center", render: (v) => (v.qualification ? <ScoreBadge value={v.qualification.score} /> : <span className="text-ink-mute">—</span>) },
           { key: "since", label: "Registered", render: (v) => fmtDate(v.createdAt) },
           { key: "status", label: "Status", render: (v) => <Status>{v.status}</Status> },
         ]} />
@@ -233,7 +233,7 @@ function VendorApprovalsPage() {
         <DataTable rows={st.vendors.filter((v) => v.qualification)} onRow={(v) => setOpen(v.id)} columns={[
           { key: "name", label: "Vendor", className: "font-medium" },
           { key: "sets", label: "Rule sets", render: (v) => <span className="text-[12px] text-ink-soft">{v.qualification.ruleSet}</span> },
-          { key: "score", label: "Score", align: "center", render: (v) => <ScoreRing value={v.qualification.score} size={30} /> },
+          { key: "score", label: "Score", align: "center", render: (v) => <ScoreBadge value={v.qualification.score} /> },
           { key: "res", label: "Result", render: (v) => <Status tone={v.qualification.score >= 70 ? "green" : "red"}>{v.qualification.score >= 70 ? "Qualified" : "Not qualified"}</Status> },
           { key: "at", label: "Assessed", render: (v) => fmtDate(v.qualification.at || v.createdAt) },
         ]} />

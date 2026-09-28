@@ -493,7 +493,20 @@ function ScoreRing({ value, size = 44 }) {
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={col} strokeWidth="5" strokeLinecap="round"
           strokeDasharray={`${(v / 100) * c} ${c}`} />
       </svg>
-      <span className="num absolute text-[11.5px] font-bold" style={{ color: col }}>{Math.round(v)}</span>
+      <span className="num absolute font-bold" style={{ color: col, fontSize: Math.max(10, Math.round(size * 0.27)) }}>{Math.round(v)}</span>
+    </span>
+  );
+}
+
+// Compact score for table cells: number + thin bar, coloured by band (no overlap at 100)
+function ScoreBadge({ value }) {
+  if (value == null) return <span className="text-[12px] text-ink-faint" title="Not rated yet">—</span>;
+  const v = Math.max(0, Math.min(100, Math.round(value)));
+  const tone = v >= 80 ? ["#15803d", "#16a34a"] : v >= 60 ? ["#b45309", "#f59e0b"] : ["#b91c1c", "#ef4444"];
+  return (
+    <span className="inline-flex items-center gap-2" title={`Score ${v} / 100`}>
+      <span className="num w-[26px] text-right text-[13px] font-semibold" style={{ color: tone[0] }}>{v}</span>
+      <span className="h-1.5 w-12 overflow-hidden rounded-full bg-gray-100"><span className="block h-full rounded-full" style={{ width: `${v}%`, background: tone[1] }} /></span>
     </span>
   );
 }

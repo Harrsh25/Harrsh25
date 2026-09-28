@@ -104,7 +104,7 @@ function ScorecardPage() {
         <DataTable rows={rows.sort((a, b) => (b.score ?? -1) - (a.score ?? -1))} rowKey={(r) => r.v.id} onRow={(r) => setOpen(r.v.id)} columns={[
           { key: "name", label: "Vendor", render: (r) => <span className="font-medium">{r.v.name}</span> },
           { key: "cat", label: "Category", render: (r) => primaryCategory(r.v) },
-          { key: "score", label: "Score", align: "center", render: (r) => <ScoreRing value={r.score} size={32} /> },
+          { key: "score", label: "Score", align: "center", render: (r) => <ScoreBadge value={r.score} /> },
           { key: "band", label: "Standing", render: (r) => { const b = standingOf(st, r.v.id); return b ? <span className="flex flex-col"><Status tone={b.color === "blue" ? "blue" : b.color}>{b.name}</Status><span className="text-[10.5px] text-ink-mute">{[b.preventRfq && "no RFQ", b.preventPo && "no PO", !b.preventRfq && b.warnRfq && "warn RFQ", !b.preventPo && b.warnPo && "warn PO"].filter(Boolean).join(" · ") || "no restriction"}</span></span> : "—"; } },
           { key: "q", label: "Quality", align: "right", render: (r) => partCell(r.parts.quality) },
           { key: "t", label: "Timeliness", align: "right", render: (r) => partCell(r.parts.timeliness) },
@@ -129,7 +129,7 @@ function ScorecardPage() {
             <DataTable rows={rows.filter((r) => r.score != null)} rowKey={(r) => r.v.id} onRow={(r) => setOpen(r.v.id)} columns={[
               { key: "n", label: "Vendor", render: (r) => <span className="font-medium">{r.v.name}</span> },
               ...months.map((m) => ({ key: m, label: lbl(m), align: "center", render: (r) => { const x = periodScore(st, r.v.id, m); return <span className={cls("num font-medium", tone(x))}>{x == null ? "—" : Math.round(x)}</span>; } })),
-              { key: "c", label: "Current", align: "center", render: (r) => <ScoreRing value={r.score} size={30} /> },
+              { key: "c", label: "Current", align: "center", render: (r) => <ScoreBadge value={r.score} /> },
             ]} />
           </>
         );

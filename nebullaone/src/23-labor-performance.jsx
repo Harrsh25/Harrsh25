@@ -198,7 +198,7 @@ function PerformancePage() {
         { key: "mp", label: "Manpower", render: (r) => stars(r.manpower) },
         { key: "inc", label: "Incidents", align: "center", render: (r) => (r.incidents ? <span className="font-semibold text-red-600">{r.incidents}</span> : "0") },
         { key: "dis", label: "JMS disputes", align: "right", render: (r) => `${r.disputes}%` },
-        { key: "sc", label: "Score", align: "center", render: (r) => <ScoreRing value={r.score} size={32} /> },
+        { key: "sc", label: "Score", align: "center", render: (r) => <ScoreBadge value={r.score} /> },
         { key: "cap", label: "", render: (r) => (r.caps ? <Status tone="amber">{`${r.caps} open CAP`}</Status> : null) },
         { key: "a", label: "", align: "right", render: (r) => <Btn size="sm" icon={Icon.star} onClick={(e) => { e.stopPropagation(); setRate({ vendorId: r.v.id }); }}>Rate</Btn> },
       ]} />}
