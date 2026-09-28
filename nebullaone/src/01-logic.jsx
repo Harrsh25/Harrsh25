@@ -320,7 +320,6 @@ function vendorScore(st, vendorId) {
   }
   return { score: tw ? round2(ts / tw) : null, parts };
 }
-const scoreBand = (s) => (s == null ? "—" : s >= 80 ? "A" : s >= 65 ? "B" : s >= 50 ? "C" : "D");
 
 // Onboarding stage for a contractor
 function onboardingStage(v) {

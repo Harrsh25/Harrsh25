@@ -402,22 +402,6 @@ function Check({ checked, onChange, label }) {
     </label>
   );
 }
-function ChipPicker({ options, value = [], onChange }) {
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {options.map((o) => {
-        const on = value.includes(o);
-        return (
-          <button key={o} type="button" onClick={() => onChange(on ? value.filter((x) => x !== o) : [...value, o])}
-            className={cls("rounded-full border px-2.5 py-[3px] text-[12px]",
-              on ? "border-brand bg-brand-soft font-medium text-brand" : "border-line bg-white text-ink-soft hover:bg-gray-50")}>
-            {o}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 
 const TRADE_GROUPS = [
   { label: "Civil & structure", items: ["Civil", "RCC / Structural", "Formwork", "Masonry", "Excavation", "Waterproofing", "Scaffolding", "Painting & Finishing"] },
@@ -805,9 +789,6 @@ function Note({ tone = "blue", icon, children }) {
   );
 }
 
-function PageFooter({ items }) {
-  return <FooterBar items={items} updated={new Date().toLocaleString("en-IN")} />;
-}
 
 // Reset-demo action shown in page headers
 function DemoMenu() {

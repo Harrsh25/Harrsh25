@@ -11,18 +11,6 @@ function VendorTypeTag({ v }) {
   const c = { Goods: "bg-sky-50 text-sky-700 border-sky-200", Services: "bg-violet-50 text-violet-700 border-violet-200", Labor: "bg-orange-50 text-orange-700 border-orange-200" }[v.type];
   return <span className={cls("rounded border px-1.5 py-[1px] text-[11px] font-medium", c)}>{v.type}{v.isContractor ? " · Contractor" : ""}</span>;
 }
-const TIER_HELP = {
-  Strategic: "Strategic — critical long-term partner; high spend or hard to replace. Reviewed by senior management.",
-  Preferred: "Preferred — proven vendor, first choice for its category.",
-  Approved: "Approved — qualified and allowed to trade; no special preference.",
-  Transactional: "Transactional — occasional / low-value purchases only.",
-};
-const TIER_TIP = "Supplier tier — how important the relationship is:\n• Strategic — critical partner\n• Preferred — first choice in its category\n• Approved — qualified, normal vendor\n• Transactional — occasional, low value";
-const REG_HELP = {
-  Prospective: "Prospective — registered but not yet authorised to spend: can be invited to RFQs and quote, but cannot get POs, contracts or payments.",
-  "Spend Authorized": "Spend Authorized — fully approved with bank details and compliance: can receive POs, work orders, contracts and payments.",
-};
-const REG_TIP = "Registration tier — what the vendor is allowed to do:\n• Prospective — can quote on RFQs only\n• Spend Authorized — can get POs, contracts and payments";
 function CategoryChips({ list, max = 2 }) {
   return (
     <span className="flex items-center gap-1">

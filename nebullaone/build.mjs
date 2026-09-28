@@ -13,20 +13,27 @@ let html = readFileSync(HTML, "utf8");
 
 // ---- 1. JS --------------------------------------------------------------
 const files = readdirSync(SRC).filter((f) => f.endsWith(".jsx")).sort();
-const source = files.map((f) => `// ---- ${f}\n` + readFileSync(new URL(f, SRC), "utf8")).join("\n");
-const { code } = transformSync(source, {
+const source = "const h=y.createElement,Fragment=y.Fragment;\n" +
+  files.map((f) => `// ---- ${f}\n` + readFileSync(new URL(f, SRC), "utf8")).join("\n") +
+  "\nexport { NXV_ROUTES as routes, NXV_NAV as nav, NXV_PUBLIC as publicRoutes, ApprovalManagementPage as ApprovalMgmt, StatTile };";
+// Size: wrapped as one module so esbuild can shorten every internal name and drop anything unused
+const { code: rawCode } = transformSync(source, {
   loader: "jsx",
   jsxFactory: "h",
   jsxFragment: "Fragment",
   target: "es2020",
-  minifyWhitespace: true,
-  minifySyntax: true,
+  format: "iife",
+  globalName: "NxVendor",
+  treeShaking: true,
+  minify: true,
+  legalComments: "none",
 });
+const code = rawCode.trim().replace(/^var NxVendor=/, "const NxVendor=");
 if (code.includes("</script")) throw new Error("module code must not contain </script");
 
 const JS_BEGIN = "/*NXV:BEGIN*/", JS_END = "/*NXV:END*/";
 const block =
-  `${JS_BEGIN}const NxVendor=(()=>{const h=y.createElement,Fragment=y.Fragment;\n${code}\nreturn{routes:NXV_ROUTES,nav:NXV_NAV,publicRoutes:NXV_PUBLIC,ApprovalMgmt:ApprovalManagementPage,StatTile};})();` +
+  `${JS_BEGIN}${code}${code.endsWith(";") ? "" : ";"}` +
   `qx.groups.push(...NxVendor.nav);${JS_END}`;
 html = stripBetween(html, JS_BEGIN, JS_END);
 const anchor = 'const Xu="/productivity";function og(){';
@@ -81,6 +88,23 @@ for (const [from, to] of HOST_PATCHES) {
 // ---- 2. CSS (only utilities the original bundle doesn't already ship) ----
 const C_BEGIN = "/*NXV:CSS*/", C_END = "/*NXV:CSS-END*/";
 html = stripBetween(html, C_BEGIN, C_END);
+// Size: drop the app's CSS rules whose classes appear nowhere in the page (markup or scripts).
+// Conservative: a rule stays if every class it needs is found anywhere in the text; alignment classes are built at runtime.
+{
+  const sEnd = html.lastIndexOf("</style>"), sStart = html.lastIndexOf("<style", sEnd), sBody = html.indexOf(">", sStart) + 1;
+  const text = html.slice(0, sStart).replace(/<style[^>]*>[^]*?<\/style>/g, "") + html.slice(sEnd);
+  const keep = new Set(["text-left", "text-right", "text-center"]);
+  const seen = new Map(), used = (c) => { if (!seen.has(c)) seen.set(c, keep.has(c) || text.includes(c)); return seen.get(c); };
+  const root = postcss.parse(html.slice(sBody, sEnd));
+  root.walkRules((r) => {
+    if (r.parent && r.parent.type === "atrule" && /keyframes/i.test(r.parent.name)) return;
+    const sels = r.selectors.filter((sel) => [...sel.matchAll(/\.((?:\\.|[\w-])+)/g)].every((m) => used(m[1].replace(/\\(.)/g, "$1"))));
+    if (!sels.length) r.remove(); else if (sels.length !== r.selectors.length) r.selectors = sels;
+  });
+  root.walkAtRules((a) => { if (/media|supports/i.test(a.name) && a.nodes && !a.nodes.length) a.remove(); });
+  const purged = root.toString().replace(/\n\s*/g, "");
+  html = html.slice(0, sBody) + purged + html.slice(sEnd);
+}
 const styleEnd = html.lastIndexOf("</style>");
 const styleStart = html.lastIndexOf("<style", styleEnd);
 const originalCss = html.slice(styleStart, styleEnd);

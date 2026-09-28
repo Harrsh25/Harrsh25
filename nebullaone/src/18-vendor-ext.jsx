@@ -3,26 +3,6 @@
 // reject (ServiceNow / Procore "Revise & Resubmit"), approver edits with bank
 // details locked (Oracle).
 
-function PortalUsersAdmin({ v }) {
-  const st = useStore();
-  const [nu, setNu] = y.useState({ name: "", email: "" });
-  const mut = (fn, action) => setState((s) => fn(byId(s.vendors, v.id)), { entity: "Vendor", id: v.id, action });
-  return (
-    <Section title="Supplier portal users" icon={Icon.users} actions={<Btn size="sm" icon={Icon.globe} onClick={() => window.open(appUrl("/supplier/login"), "_blank")}>Open portal sign-in</Btn>}>
-      <DataTable dense rows={v.portalUsers || []} rowKey={(u) => u.email} empty={<p className="p-4 text-[13px] text-ink-mute">No portal users — the vendor can't sign in.</p>} columns={[
-        { key: "name", label: "Name", className: "font-medium" }, { key: "email", label: "E-mail" }, { key: "role", label: "Role" },
-        { key: "l", label: "Last sign-in", render: (u) => (u.lastLogin ? fmtDateTime(u.lastLogin) : "Never") },
-        { key: "s", label: "Status", render: (u) => <Status tone={u.active ? "green" : "gray"}>{u.active ? "Active" : "Disabled"}</Status> },
-        { key: "a", label: "", align: "right", render: (u) => <Btn size="sm" onClick={() => mut((x) => { const p = x.portalUsers.find((q) => q.email === u.email); p.active = !p.active; }, `Portal user ${u.email} ${u.active ? "disabled" : "enabled"}`)}>{u.active ? "Disable" : "Enable"}</Btn> },
-      ]} />
-      <div className="grid grid-cols-[1fr_1fr_auto] gap-2 border-t border-line p-3">
-        <TextInput value={nu.name} onChange={(x) => setNu({ ...nu, name: x })} placeholder="Name" />
-        <TextInput value={nu.email} onChange={(x) => setNu({ ...nu, email: x })} placeholder="user@vendor.com" />
-        <Btn variant="primary" icon={Icon.userPlus} disabled={!nu.name || !EMAIL_RE.test(nu.email) || !!findPortalUser(st, nu.email)} onClick={() => { mut((x) => (x.portalUsers = [...(x.portalUsers || []), { ...nu, email: nu.email.toLowerCase(), active: true, role: "User", lastLogin: null }]), `Portal user added: ${nu.email}`); setNu({ name: "", email: "" }); }}>Add user</Btn>
-      </div>
-    </Section>
-  );
-}
 
 // ---------------------------------------------------------------- invitations
 function InviteVendorModal({ onClose }) {

@@ -337,7 +337,6 @@ function OverviewFilters({ f, setF, st, contractorsOnly }) {
     <FilterSelect label={contractorsOnly ? "Contractor" : "Vendor"} value={f.vendor} onChange={(x) => setF({ ...f, vendor: x })} options={[{ value: "All", label: contractorsOnly ? "All contractors" : "All vendors" }, ...vs.map((v) => ({ value: v.id, label: v.name, tone: "gray" }))]} />
   </>);
 }
-const showing = (st, f, what) => `Showing ${f.project === "All" ? "all projects" : f.project} · ${f.vendor === "All" ? `all ${what}` : vendorName(st, f.vendor)} · activity ${f.period === "all" ? "all time" : `since ${fmtDate(shiftDays(-Number(f.period)))}`}`;
 
 // ---------------------------------------------------------------- Vendor Management overview
 function VendorOverviewPage() {
