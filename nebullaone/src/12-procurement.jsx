@@ -180,7 +180,7 @@ function PoDrawer({ id, onClose }) {
         {po.status === "Draft" && <Btn variant="primary" onClick={() => setState((s) => (byId(s.purchaseOrders, id).status = "Issued"), { entity: "PO", id, action: "Approved & issued" })}>Approve & issue</Btn>}
         {!["Draft", "Closed", "Cancelled"].includes(po.status) && status !== "Received" && <Btn variant="primary" icon={Icon.truck} disabled={isBlockedFor(v, "All")} onClick={() => setGrn(true)}>Receive goods</Btn>}
         {["Waiting Bills", "Partially Billed"].includes(bstatus) && <Btn icon={Icon.receipt} onClick={() => setBill(true)}>Create bill</Btn>}
-        {!["Closed", "Cancelled"].includes(po.status) && <Btn icon={Icon.pencil} onClick={() => setAmend({ deliveryDate: po.deliveryDate, lines: po.lines.map((l) => ({ ...l })), note: "" })}>Amend</Btn>}
+        {!["Closed", "Cancelled"].includes(po.status) && <Btn icon={Icon.pencil} onClick={() => setAmend({ deliveryDate: po.deliveryDate, lines: po.lines.map((l) => ({ ...l })), note: "" })}>Edit</Btn>}
       </>}>
       <div className="space-y-4 px-6 py-5">
         <div className="grid grid-cols-4 gap-3">
@@ -226,17 +226,17 @@ function PoDrawer({ id, onClose }) {
             { key: "a", label: "Amount", align: "right", num: true, render: (i) => inr(invoiceTotals(i).payable) }, { key: "s", label: "Status", render: (i) => <Status>{invoiceStatus(i)}</Status> },
           ]} />
         </Section>
-        <Section title="Amendment / revision history" icon={Icon.branch}>
+        <Section title="Edit / revision history" icon={Icon.branch}>
           <AuditList items={po.revisions.slice().reverse().map((r) => ({ id: `Rev ${r.rev}`, action: r.note, by: r.by, at: r.at }))} />
         </Section>
       </div>
       {grn && <GrnModal po={po} onClose={() => setGrn(false)} />}
       {bill && <NewBillModal open presetPoId={po.id} onClose={() => setBill(false)} />}
       {amend && (
-        <Modal open onClose={() => setAmend(null)} width={720} title={`Amend ${po.id} — revision ${po.revisions.length}`} subtitle="The original is kept; each change is versioned."
+        <Modal open onClose={() => setAmend(null)} width={720} title={`Edit ${po.id} — revision ${po.revisions.length}`} subtitle="The original is kept; each change is versioned."
           footer={<><Btn onClick={() => setAmend(null)}>Cancel</Btn><Btn variant="primary" disabled={!amend.note || overOrder(amend)} onClick={() => {
-            setState((s) => { const p = byId(s.purchaseOrders, id); p.deliveryDate = amend.deliveryDate; p.lines = amend.lines.map((l) => ({ ...l, qty: Number(l.qty), rate: Number(l.rate) })); p.revisions.push({ rev: p.revisions.length, at: new Date().toISOString(), by: currentUser(), note: amend.note }); }, { entity: "PO", id, action: `Amended — ${amend.note}` });
-            toast("PO amended"); setAmend(null);
+            setState((s) => { const p = byId(s.purchaseOrders, id); p.deliveryDate = amend.deliveryDate; p.lines = amend.lines.map((l) => ({ ...l, qty: Number(l.qty), rate: Number(l.rate) })); p.revisions.push({ rev: p.revisions.length, at: new Date().toISOString(), by: currentUser(), note: amend.note }); }, { entity: "PO", id, action: `Edited — ${amend.note}` });
+            toast("PO updated"); setAmend(null);
           }}>Save revision</Btn></>}>
           <div className="space-y-3">
             <Field label="Delivery by"><DateInput value={amend.deliveryDate} onChange={(x) => setAmend({ ...amend, deliveryDate: x })} /></Field>
