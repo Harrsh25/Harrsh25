@@ -389,7 +389,7 @@ function DataTable({ columns, rows, onRow, rowKey = (r) => r.id, empty, footer, 
         </thead>
         <tbody>
           {rows.map((r, i) => (
-            <tr key={rowKey(r, i)} onClick={onRow ? () => onRow(r) : undefined} className={cls("hover:bg-gray-50", onRow && "cursor-pointer")}>
+            <tr key={rowKey(r, i)} onClick={onRow ? () => onRow(r) : undefined} className={cls("group hover:bg-gray-50", onRow && "cursor-pointer")}>
               {columns.map((c) => (
                 <Td key={c.key} align={c.align} className={cls(c.num && "num", dense && "py-[5px]", c.className)}>
                   {c.render ? c.render(r, i) : r[c.key]}
@@ -498,16 +498,30 @@ function ScoreRing({ value, size = 44 }) {
   );
 }
 
-// Compact score for table cells: number + thin bar, coloured by band (no overlap at 100)
+// Score in table cells — same bar + value style as the Progress columns
 function ScoreBadge({ value }) {
   if (value == null) return <span className="text-[12px] text-ink-faint" title="Not rated yet">—</span>;
   const v = Math.max(0, Math.min(100, Math.round(value)));
-  const tone = v >= 80 ? ["#15803d", "#16a34a"] : v >= 60 ? ["#b45309", "#f59e0b"] : ["#b91c1c", "#ef4444"];
   return (
-    <span className="inline-flex items-center gap-2" title={`Score ${v} / 100`}>
-      <span className="num w-[26px] text-right text-[13px] font-semibold" style={{ color: tone[0] }}>{v}</span>
-      <span className="h-1.5 w-12 overflow-hidden rounded-full bg-gray-100"><span className="block h-full rounded-full" style={{ width: `${v}%`, background: tone[1] }} /></span>
+    <span className="flex items-center gap-2 whitespace-nowrap" title={`Score ${v} / 100`}>
+      <span className="h-1.5 w-16 overflow-hidden rounded-full bg-gray-200"><span className="block h-full rounded-full bg-brand" style={{ width: `${v}%` }} /></span>
+      <span className="num w-7 text-right text-[12px] text-ink-soft">{v}</span>
     </span>
+  );
+}
+
+// Row star: filled when preferred; outline appears on row hover; click toggles
+function PreferredStar({ v, size = 14, always }) {
+  const toggle = (e) => {
+    e.stopPropagation();
+    setState((s) => { const x = byId(s.vendors, v.id); x.preferred = !x.preferred; }, { entity: "Vendor", id: v.id, action: v.preferred ? "Removed from preferred suppliers" : "Marked preferred supplier" });
+    toast(v.preferred ? `${v.name} removed from preferred suppliers` : `${v.name} marked as preferred supplier`);
+  };
+  return (
+    <button type="button" onClick={toggle} title={v.preferred ? "Preferred supplier — click to remove" : "Mark as preferred supplier"}
+      className={cls("inline-flex rounded p-0.5 transition-opacity hover:bg-amber-50", v.preferred ? "text-amber-400" : always ? "text-gray-300 hover:text-amber-400" : "text-gray-300 opacity-0 hover:text-amber-400 focus:opacity-100 group-hover:opacity-100")}>
+      {h(Icon.star, { size, fill: v.preferred ? "currentColor" : "none" })}
+    </button>
   );
 }
 

@@ -250,7 +250,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
     { id: "activity", label: "Activity" },
   ];
   return (
-    <Drawer open onClose={onClose} width={880} title={<span className="flex items-center gap-2">{v.name}{v.preferred && <span title="Preferred supplier" className="inline-flex"><Icon.star size={14} className="text-amber-400" fill="currentColor" /></span>}</span>}
+    <Drawer open onClose={onClose} width={880} title={<span className="flex items-center gap-2">{v.name}<PreferredStar v={v} size={16} always /></span>}
       subtitle={<><span className="mono text-[12px] text-ink-mute">{v.id}</span><span className="text-ink-faint">·</span><VendorTypeTag v={v} /><Status>{v.status}</Status><Status>{v.regTier}</Status><Status>{comp.status}</Status></>}
       actions={<>{canEdit && <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>}<span className="flex items-center gap-2 pr-1 text-[12px] text-ink-soft">Score <ScoreRing value={sc.score} size={36} /></span></>}
       tabs={{ tabs, active: tab, onChange: setTab }}>
@@ -534,13 +534,13 @@ function VendorRegistryPage() {
       </>} right={<span className="text-[12px]">{rows.length} of {st.vendors.length}</span>} />
       <DataTable rows={rows} onRow={(v) => setOpen(v.id)} columns={[
         { key: "id", label: "Vendor ID", className: "mono text-[12px] text-ink-soft" },
-        { key: "name", label: "Vendor", render: (v) => <span className="flex items-center gap-1.5 font-medium">{v.name}{v.preferred && <span title="Preferred supplier" className="inline-flex"><Icon.star size={12} className="text-amber-400" fill="currentColor" /></span>}</span> },
+        { key: "name", label: "Vendor", render: (v) => <span className="flex items-center gap-1.5 font-medium">{v.name}<PreferredStar v={v} size={13} /></span> },
         { key: "type", label: "Type", render: (v) => <VendorTypeTag v={v} /> },
         { key: "cat", label: "Trades", render: (v) => <CategoryChips list={v.categories} /> },
         { key: "tier", label: "Tier" },
         { key: "reg", label: "Registration", render: (v) => <span className="flex flex-col"><Status>{v.regTier}</Status>{v.source === "Self-registration" && <span className="text-[10.5px] text-ink-mute">self-registered</span>}</span> },
         { key: "comp", label: "Compliance", render: (v) => <Status>{complianceOf(v).status}</Status> },
-        { key: "score", label: "Score", align: "center", render: (v) => <ScoreBadge value={vendorScore(st, v.id).score} /> },
+        { key: "score", label: "Score", render: (v) => <ScoreBadge value={vendorScore(st, v.id).score} /> },
         { key: "status", label: "Status", render: (v) => <Status>{v.status}</Status> },
       ]} />
       <PageFooter items={[{ value: rows.length, label: "vendors" }, { value: rows.filter((v) => v.preferred).length, label: "preferred", color: "text-amber-600" }]} />
