@@ -69,6 +69,9 @@ const HOST_PATCHES = [
   ['l.jsx("span",{className:`grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br ${r.grad} text-white`,children:l.jsx(r.icon,{size:20})}),l.jsx("h2",{className:"mt-4 text-[16px] font-semibold",children:r.name}),',
    'l.jsx("span",{className:`grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br ${r.grad} text-white`,children:l.jsx(r.icon,{size:17})}),l.jsx("h2",{className:"mt-3 text-[15px] font-semibold",children:r.name}),'],
   ['l.jsxs("span",{className:"mt-4 inline-flex items-center gap-1 text-[13px] font-medium text-brand",children:["Open ",l.jsx(Mp,', 'l.jsxs("span",{className:"mt-2 inline-flex items-center gap-1 text-[13px] font-medium text-brand",children:["Open ",l.jsx(Mp,'],
+  // Sidebar groups start collapsed when the orbit opens on its landing page (Project Center); later navigation still expands the right group
+  ['r=e.items.some(a=>n.startsWith(a.to)),[s,i]=y.useState(r);return y.useEffect(()=>{r&&i(!0)},[r]),',
+   'r=e.items.some(a=>n.startsWith(a.to)),nxL=/\\/project-planning\\/project\\/?$/.test(n),[s,i]=y.useState(r&&!nxL);return y.useEffect(()=>{r&&!nxL&&i(!0)},[r,nxL]),'],
 ];
 for (const [from, to] of HOST_PATCHES) {
   if (html.includes(from)) html = html.replace(from, () => to);

@@ -230,10 +230,10 @@ function CompliancePage() {
         <DataTable noun="vendors" filters={<FilterSelect label="Status" value={flt} onChange={setFlt} options={[{ value: "All", label: "All statuses" }, "Compliant", { value: "Expiring", label: "Attention needed" }, "Non-Compliant", { value: "Blocked", label: "Payments blocked" }]} />} rows={vendorRows} rowKey={(r) => r.v.id} onRow={(r) => setOpen(r.v.id)} columns={[
           { key: "n", label: "Vendor", className: "font-medium", render: (r) => r.v.name },
           { key: "s", label: "Status", render: (r) => <Status>{r.c.status}</Status> },
-          { key: "i", label: "Insurance", filter: (r) => { const d = r.c.items.filter((i) => i.kind === "Insurance"); return !d.length ? "Not required" : d.some((i) => i.level === 2) ? "Failing" : d.some((i) => i.level === 1) ? "Expiring" : "Met"; }, render: (r) => { const d = r.c.items.filter((i) => i.kind === "Insurance"); if (!d.length) return <span className="text-ink-faint">Not required</span>; const bad = d.filter((i) => i.level === 2).length, att = d.filter((i) => i.level === 1).length; return <Status tone={bad ? "red" : att ? "amber" : "green"}>{bad ? `${bad} failing` : att ? `${att} expiring` : "Met"}</Status>; } },
+          { key: "i", label: "Insurance", filterOptions: FO.insurance, filter: (r) => { const d = r.c.items.filter((i) => i.kind === "Insurance"); return !d.length ? "Not required" : d.some((i) => i.level === 2) ? "Failing" : d.some((i) => i.level === 1) ? "Expiring" : "Met"; }, render: (r) => { const d = r.c.items.filter((i) => i.kind === "Insurance"); if (!d.length) return <span className="text-ink-faint">Not required</span>; const bad = d.filter((i) => i.level === 2).length, att = d.filter((i) => i.level === 1).length; return <Status tone={bad ? "red" : att ? "amber" : "green"}>{bad ? `${bad} failing` : att ? `${att} expiring` : "Met"}</Status>; } },
           { key: "o", label: "Open items", render: (r) => <span className="block max-w-[240px] truncate">{r.c.issues.join(" · ") || "—"}</span> },
           { key: "x", label: "Next expiry", render: (r) => <ExpiryCell iso={r.next} /> },
-          { key: "g", label: "Payment gate", filter: (r) => (r.c.blocking.length ? (set0.complianceGate === "Stop" ? "Blocked" : set0.complianceGate === "Warn" ? "Flagged" : "Open (gate off)") : "Open"), render: gateTag },
+          { key: "g", label: "Payment gate", filterOptions: FO.gate, filter: (r) => (r.c.blocking.length ? (set0.complianceGate === "Stop" ? "Blocked" : set0.complianceGate === "Warn" ? "Flagged" : "Open (gate off)") : "Open"), render: gateTag },
           { key: "a", label: "", align: "right", render: (r) => r.due.length > 0 && <span onClick={(e) => e.stopPropagation()}><Btn size="sm" icon={Icon.mail} onClick={() => sendReminders(r.due.map((item) => ({ v: r.v, item })))}>Remind ({r.due.length})</Btn></span> },
         ]} />
       </>}
@@ -241,21 +241,21 @@ function CompliancePage() {
         <DataTable noun="items" filters={<div className="flex gap-1.5">{["All", "Expired", "≤ 30 days", "31–60 days", "61–90 days"].map((b) => {
           const n = b === "All" ? null : allItems.filter((x) => x.item.expiry && bucketOf(daysUntil(x.item.expiry)) === b).length;
           return <button key={b} onClick={() => setBucket(b)} className={cls("rounded-full border px-3 py-1 text-[12.5px]", bucket === b ? "border-brand bg-brand-soft text-brand" : "border-line text-ink-soft hover:border-gray-300")}>{b}{n !== null ? ` · ${n}` : ""}</button>; })}</div>} rows={expRows} rowKey={(x) => x.key} onRow={(x) => setOpen(x.v.id)} empty={<EmptyState icon={Icon.check} title="Nothing expiring in this window" />} columns={[
-          { key: "v", label: "Vendor", filter: (x) => x.v.name, className: "font-medium", render: (x) => x.v.name },
+          { key: "v", label: "Vendor", filterOptions: FO.vendors, filter: (x) => x.v.name, className: "font-medium", render: (x) => x.v.name },
           { key: "n", label: "Document / policy", render: (x) => x.item.name },
-          { key: "k", label: "Type", filter: (x) => x.item.kind, render: (x) => x.item.kind },
+          { key: "k", label: "Type", filterOptions: FO.kind, filter: (x) => x.item.kind, render: (x) => x.item.kind },
           { key: "e", label: "Valid till", render: (x) => fmtDate(x.item.expiry) },
           { key: "d", label: "Days left", align: "right", render: (x) => { const d = daysUntil(x.item.expiry); return <span className={cls("num", d < 0 ? "text-red-600" : d <= 30 ? "text-amber-700" : "")}>{d < 0 ? `${-d} overdue` : d}</span>; } },
-          { key: "b", label: "Blocks payment", filterAll: "Blocks payment: any", filter: (x) => (x.item.blocks ? "Yes" : "No"), render: (x) => (x.item.blocks ? "Yes" : "No") },
+          { key: "b", label: "Blocks payment", filterOptions: FO.yesNo, filterAll: "Blocks payment: any", filter: (x) => (x.item.blocks ? "Yes" : "No"), render: (x) => (x.item.blocks ? "Yes" : "No") },
           { key: "r", label: "Last reminder", render: (x) => { const r = lastReminder(x.v, x.item.key); return r ? fmtDate(r.at) : <span className="text-ink-faint">Not sent</span>; } },
           { key: "a", label: "", align: "right", render: (x) => <span onClick={(e) => e.stopPropagation()}><Btn size="sm" icon={Icon.mail} onClick={() => sendReminders([{ v: x.v, item: x.item }])}>Remind</Btn></span> },
         ]} />
       </>}
       {tab === "verify" && (
         <DataTable noun="uploads" rows={queue} rowKey={(x) => x.key} onRow={(x) => setOpen(x.v.id)} empty={<EmptyState icon={Icon.check} title="Nothing waiting for verification" text="New uploads from vendors and your team appear here." />} columns={[
-          { key: "v", label: "Vendor", filter: (x) => x.v.name, className: "font-medium", render: (x) => x.v.name },
+          { key: "v", label: "Vendor", filterOptions: FO.vendors, filter: (x) => x.v.name, className: "font-medium", render: (x) => x.v.name },
           { key: "n", label: "Document / policy", render: (x) => x.name },
-          { key: "k", label: "Type", filter: (x) => x.kind, render: (x) => x.kind },
+          { key: "k", label: "Type", filterOptions: FO.kind, filter: (x) => x.kind, render: (x) => x.kind },
           { key: "det", label: "Details", render: (x) => (x.p ? `${x.p.insurer} · ${inrShort(x.p.cover)}` : "—") },
           { key: "e", label: "Valid till", render: (x) => <ExpiryCell iso={x.d ? x.d.expiry : x.p.expiry} /> },
           { key: "u", label: "Uploaded", render: (x) => fmtDate((x.d || x.p).uploadedAt) },
@@ -269,13 +269,13 @@ function CompliancePage() {
       )}
       {tab === "ins" && (
         <DataTable noun="requirements" rows={insRows} rowKey={(r) => r.key} onRow={(r) => setOpen(r.v.id)} empty={<EmptyState icon={Icon.shield} title="No insurance requirements apply" />} columns={[
-          { key: "v", label: "Vendor", filter: (r) => r.v.name, className: "font-medium", render: (r) => r.v.name },
-          { key: "t", label: "Required coverage", filter: (r) => r.ins.rule.type, render: (r) => r.ins.rule.type },
+          { key: "v", label: "Vendor", filterOptions: FO.vendors, filter: (r) => r.v.name, className: "font-medium", render: (r) => r.v.name },
+          { key: "t", label: "Required coverage", filterOptions: FO.coverage, filter: (r) => r.ins.rule.type, render: (r) => r.ins.rule.type },
           { key: "m", label: "Minimum", align: "right", num: true, render: (r) => inrShort(r.ins.rule.min) },
           { key: "c", label: "On file", align: "right", num: true, render: (r) => (r.ins.policy ? <span className={cls(Number(r.ins.policy.cover) < r.ins.rule.min && "text-red-600")}>{inrShort(r.ins.policy.cover)}</span> : "—") },
           { key: "p", label: "Policy", render: (r) => (r.ins.policy ? `${r.ins.policy.insurer} · ${r.ins.policy.policy}` : "—") },
           { key: "e", label: "Expiry", render: (r) => <ExpiryCell iso={r.ins.policy?.expiry} /> },
-          { key: "s", label: "Status", filter: (r) => r.ins.status, render: (r) => <Status tone={r.ins.level === 0 ? "green" : r.ins.level === 1 ? "amber" : "red"}>{r.ins.status}</Status> },
+          { key: "s", label: "Status", filterOptions: FO.insStatus, filter: (r) => r.ins.status, render: (r) => <Status tone={r.ins.level === 0 ? "green" : r.ins.level === 1 ? "amber" : "red"}>{r.ins.status}</Status> },
           { key: "n", label: "Note", render: (r) => <span className="block max-w-[260px] truncate text-ink-soft">{r.ins.note}</span> },
         ]} />
       )}

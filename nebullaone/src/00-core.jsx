@@ -486,6 +486,7 @@ function SearchBox({ value, onChange, placeholder = "Search..." }) {
 const DOT = { green: "bg-green-500", blue: "bg-blue-500", amber: "bg-amber-500", red: "bg-red-500", purple: "bg-violet-500", cyan: "bg-cyan-500", orange: "bg-orange-500", gray: "bg-gray-400" };
 const EXTRA_DOT = { "attention needed": "amber", "payments blocked": "red", "not grouped": "gray", "group companies": "cyan", ongoing: "blue", "not started": "gray" };
 // Icon for each filter (by its label); status-like filters use a plain dot, as in Project Center
+const FILTER_PALETTE = ["blue", "purple", "cyan", "orange", "green", "amber", "red"];
 const FILTER_ICONS = {
   type: "shapes", tier: "chart", preferred: "star", registration: "clipboardCheck", compliance: "shieldCheck", vendor: "building", contractor: "hardHat",
   project: "folder", "deliver to": "truck", source: "branch", billing: "receipt", "bill type": "file", match: "scale", "should pay": "wallet",
@@ -520,7 +521,8 @@ function FilterSelect({ value, onChange, options, label }) {
   const opts = options.map((o) => (typeof o === "object" ? o : { value: o, label: o }));
   const cur = opts.find((o) => String(o.value) === String(value)) || opts[0];
   const isAll = (o) => o === opts[0] && /^(all|any)\b/i.test(String(o.label));
-  const tone = (o) => (isAll(o) ? null : o.tone || TONE[String(o.label).toLowerCase()] || TONE[String(o.value).toLowerCase()] || EXTRA_DOT[String(o.label).toLowerCase()] || "gray");
+  // Every option gets a colour: its status colour when it has one, otherwise a distinct colour from the palette
+  const tone = (o) => (isAll(o) ? null : o.tone || EXTRA_DOT[String(o.label).toLowerCase()] || TONE[String(o.label).toLowerCase()] || TONE[String(o.value).toLowerCase()] || FILTER_PALETTE[Math.max(0, opts.indexOf(o) - 1) % FILTER_PALETTE.length]);
   const dot = (o) => { const t = tone(o); return <span className={cls("h-2 w-2 shrink-0 rounded-full", t ? DOT[t] : "border border-gray-300 bg-white")} />; };
   return (
     <div ref={ref} className="relative min-w-0 shrink">
@@ -581,8 +583,11 @@ function DataTable({ columns, rows, onRow, rowKey = (r) => r.id, empty, footer, 
   const active = q.trim() || fcols.some((c) => cf[c.key] && cf[c.key] !== "__all");
   const colSelects = fcols.map((c) => {
     const name = c.filterLabel || (typeof c.label === "string" ? c.label : c.key);
-    const vals = c.filterOptions || [...new Set(rows.flatMap((r) => fval(c, r)))].sort((a, b) => a.localeCompare(b, "en", { numeric: true }));
-    if (!c.filterOptions && vals.length < 1 && !(cf[c.key] && cf[c.key] !== "__all")) return null;
+    // Full list of possible values (filterOptions) plus anything else present in the data
+    const dom = (typeof c.filterOptions === "function" ? c.filterOptions() : c.filterOptions || []).map(String);
+    const extra = [...new Set(rows.flatMap((r) => fval(c, r)))].filter((v) => !dom.includes(v)).sort((a, b) => a.localeCompare(b, "en", { numeric: true }));
+    const vals = [...dom, ...extra];
+    if (vals.length < 1 && !(cf[c.key] && cf[c.key] !== "__all")) return null;
     return <FilterSelect key={"cf-" + c.key} label={name} value={cf[c.key] || "__all"} onChange={(v) => setCf((o) => ({ ...o, [c.key]: v }))}
       options={[{ value: "__all", label: c.filterAll || `All ${pluralWord(name.toLowerCase())}` }, ...vals.map((v) => (typeof v === "object" ? v : { value: v, label: v }))]} />;
   });

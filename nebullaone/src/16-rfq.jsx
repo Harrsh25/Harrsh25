@@ -585,12 +585,12 @@ function RfqPage() {
       actions={<Btn variant="primary" icon={Icon.plus} onClick={() => setCreate(true)}>New RFQ</Btn>}>
       <DataTable noun="RFQs" filters={<FilterSelect label="Stage" value={filter} onChange={setFilter} options={[{ value: "All", label: "All stages" }, { value: "To Send", label: "To send", tone: "blue" }, { value: "Waiting", label: "Waiting", tone: "amber" }, { value: "Late", label: "Late", tone: "red" }, { value: "Done", label: "Awarded / closed", tone: "green" }]} />} rows={rows} onRow={(r) => { setCompose(false); setOpen(r.id); }} columns={[
         { key: "title", label: "Requirement", className: "font-medium" },
-        { key: "project", label: "Project", filter: true },
-        { key: "mode", label: "Mode", filter: (r) => modeLabel(r.mode), render: (r) => modeLabel(r.mode) },
+        { key: "project", label: "Project", filterOptions: FO.projects, filter: true },
+        { key: "mode", label: "Mode", filterOptions: FO.rfqMode, filter: (r) => modeLabel(r.mode), render: (r) => modeLabel(r.mode) },
         { key: "resp", label: "Responses", render: (r) => { const R = Object.values(r.responses || {}); return <span className="text-[12px]">{r.quotes.length} quoted · {R.filter((x) => x.status === "Declined").length} declined · {r.vendorIds.length} invited</span>; } },
         { key: "best", label: "Lowest total", align: "right", num: true, render: (r) => (r.quotes.length ? inrShort(Math.min(...r.quotes.map((q) => quoteTotal(r, q)))) : "—") },
         { key: "due", label: "Due", render: (r) => <span className={cls(bucket(r) === "Late" && "font-medium text-red-600")}>{fmtDate(r.dueDate)}</span> },
-        { key: "s", label: "Status", filter: (r) => r.status, render: (r) => <Status>{r.status}</Status> },
+        { key: "s", label: "Status", filterOptions: FO.rfqStatus, filter: (r) => r.status, render: (r) => <Status>{r.status}</Status> },
       ]} />
       <NewRfqModal open={create} onClose={() => setCreate(false)} onCreated={(id) => { setCompose(true); setOpen(id); }} />
       {open && <RfqDrawer key={open} id={open} compose={compose} onClose={() => { setOpen(null); setCompose(false); }} />}

@@ -16,13 +16,13 @@ function OnboardingPage() {
         filters={<FilterSelect label="Stage" value={stageF} onChange={setStageF} options={[{ value: "All", label: "All stages" }, ...ONBOARD_STAGES.map((x, k) => ({ value: x, label: x, tone: ["amber", "blue", "purple", "green"][k] }))]} />}
         rows={list.filter((v) => stageF === "All" || onboardingStage(v) === stageF)} onRow={(v) => setOpen(v.id)} columns={[
         { key: "n", label: "Contractor", className: "font-medium", render: (v) => v.name },
-        { key: "t", label: "Trades", filter: (v) => v.categories, render: (v) => <CategoryChips list={v.categories} /> },
+        { key: "t", label: "Trades", filterOptions: FO.trades, filter: (v) => v.categories, render: (v) => <CategoryChips list={v.categories} /> },
         { key: "st", label: "Stage", render: (v) => { const s0 = onboardingStage(v); return <Status tone={{ Documents: "amber", "Under Review": "blue", Mobilising: "purple", Onboarded: "green", Rejected: "red" }[s0]}>{s0}</Status>; } },
         { key: "d", label: "Documents", render: (v) => { const ok = v.docs.filter((d) => d.status === "Verified").length, n = requiredDocs(v).length; return <span className="flex items-center gap-2"><span className="h-1.5 w-16 overflow-hidden rounded-full bg-gray-200"><span className={cls("block h-full rounded-full", ok >= n ? "bg-green-500" : "bg-amber-500")} style={{ width: `${(ok / (n || 1)) * 100}%` }} /></span><span className="num text-[12px] text-ink-soft">{ok}/{n}</span></span>; } },
         { key: "a", label: "Approval", render: (v) => { const pnd = v.approval.stages.find((x) => x.status === "Pending"); return pnd ? <span>With <b className="font-medium text-blue-700">{pnd.dept}</b></span> : v.status === "Active" || v.status === "On Hold" ? <span className="text-green-700">Approved</span> : <span className="text-ink-mute">{v.status}</span>; } },
         { key: "c", label: "Mobilisation checklist", render: (v) => { const ck = v.onboarding?.checklist || []; const done = ck.filter((x) => x.done).length; return ck.length ? <span className="flex items-center gap-2"><span className="h-1.5 w-16 overflow-hidden rounded-full bg-gray-200"><span className="block h-full rounded-full bg-violet-500" style={{ width: `${(done / ck.length) * 100}%` }} /></span><span className="num text-[12px] text-ink-soft">{done}/{ck.length}</span></span> : <span className="text-ink-faint">—</span>; } },
         { key: "w", label: "Workforce", align: "right", num: true, render: (v) => v.contractor?.workforce || "—" },
-        { key: "cp", label: "Compliance", filter: (v) => complianceOf(v).status, render: (v) => <Status>{complianceOf(v).status}</Status> },
+        { key: "cp", label: "Compliance", filterOptions: FO.compliance, filter: (v) => complianceOf(v).status, render: (v) => <Status>{complianceOf(v).status}</Status> },
       ]} />
       <RegisterVendorModal open={reg} contractorMode onClose={() => setReg(false)} onCreated={setOpen} />
       {open && <OnboardingDrawer vendorId={open} onClose={() => setOpen(null)} onFull={(tab) => { setFull({ id: open, tab }); setOpen(null); }} />}
@@ -234,8 +234,8 @@ function ContractsPage() {
       <DataTable noun="contracts" filters={<FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Draft", "Active", "Expiring", "In DLP", "Completed", "Closed"]} />} rows={rows} onRow={(c) => setOpen(c.id)} columns={[
         { key: "id", label: "Contract", className: "mono text-[12px] text-ink-soft" },
         { key: "title", label: "Title", className: "font-medium" },
-        { key: "v", label: "Contractor", filter: (x) => vendorName(st, x.vendorId), render: (c) => vendorName(st, c.vendorId) },
-        { key: "type", label: "Type", filter: true },
+        { key: "v", label: "Contractor", filterOptions: FO.contractors, filter: (x) => vendorName(st, x.vendorId), render: (c) => vendorName(st, c.vendorId) },
+        { key: "type", label: "Type", filterOptions: FO.contractType, filter: true },
         { key: "val", label: "Value", align: "right", num: true, render: (c) => inrShort(contractValue(c)) },
         { key: "b", label: "Billed", render: (c) => <Progress value={Math.round(pct(contractLedger(st, c).gross, contractValue(c)))} /> },
         { key: "end", label: "Completion", render: (c) => fmtDate(c.end) },

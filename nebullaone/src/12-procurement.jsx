@@ -265,14 +265,14 @@ function PurchaseOrdersPage() {
     <Page title="Purchase Orders" subtitle="PO generation, partial deliveries, goods receipt, returns & billing status" icon={Icon.package}
       actions={<Btn variant="primary" icon={Icon.plus} onClick={() => setCreate(true)}>New PO</Btn>}>
       <DataTable noun="purchase orders" rows={st.purchaseOrders} onRow={(p) => setOpen(p.id)} columns={[
-        { key: "v", label: "Vendor", filter: (x) => vendorName(st, x.vendorId), render: (p) => <span className="font-medium">{vendorName(st, p.vendorId)}</span> },
-        { key: "items", label: "Items · project", filter: (p) => p.project, filterLabel: "Project", render: (p) => <TwoLine a={itemsSummary(p.lines)} b={p.project} /> },
-        { key: "src", label: "Source", filter: (p) => poSourceText(st, p)[0], render: (p) => { const [a, b] = poSourceText(st, p); return <TwoLine a={a} b={b} />; } },
+        { key: "v", label: "Vendor", filterOptions: FO.vendors, filter: (x) => vendorName(st, x.vendorId), render: (p) => <span className="font-medium">{vendorName(st, p.vendorId)}</span> },
+        { key: "items", label: "Items · project", filterOptions: FO.projects, filter: (p) => p.project, filterLabel: "Project", render: (p) => <TwoLine a={itemsSummary(p.lines)} b={p.project} /> },
+        { key: "src", label: "Source", filterOptions: FO.poSource, filter: (p) => poSourceText(st, p)[0], render: (p) => { const [a, b] = poSourceText(st, p); return <TwoLine a={a} b={b} />; } },
         { key: "val", label: "Value", align: "right", num: true, render: (p) => inrShort(poValue(p)) },
         { key: "rec", label: "Received", render: (p) => { const r = poReceived(p); return <Progress value={Math.round(pct(sum(r, (x) => x.received), sum(r, (x) => x.qty)))} />; } },
         { key: "dd", label: "Delivery by", render: (p) => <span className={cls(poStatus(p) !== "Received" && daysUntil(p.deliveryDate) < 0 && "text-red-600")}>{fmtDate(p.deliveryDate)}</span> },
-        { key: "b", label: "Billing", filter: (p) => poBillingStatus(st, p), render: (p) => <Status>{poBillingStatus(st, p)}</Status> },
-        { key: "s", label: "Status", filter: (p) => poStatus(p), render: (p) => <Status>{poStatus(p)}</Status> },
+        { key: "b", label: "Billing", filterOptions: FO.poBilling, filter: (p) => poBillingStatus(st, p), render: (p) => <Status>{poBillingStatus(st, p)}</Status> },
+        { key: "s", label: "Status", filterOptions: FO.poStatus, filter: (p) => poStatus(p), render: (p) => <Status>{poStatus(p)}</Status> },
       ]} />
       <NewPoModal open={create} onClose={() => setCreate(false)} onCreated={setOpen} />
       {open && <PoDrawer id={open} onClose={() => setOpen(null)} />}
@@ -298,12 +298,12 @@ function BlanketOrdersPage() {
       actions={<Btn variant="primary" icon={Icon.plus} onClick={() => { setF(blank); setCreate(true); }}>New blanket order</Btn>}>
       <DataTable noun="agreements" rows={st.blanketOrders} onRow={(b) => setOpen(b.id)} empty={<EmptyState icon={Icon.layers} title="No blanket orders" text="Create one for materials you buy repeatedly from the same vendor." />} columns={[
         { key: "title", label: "Agreement", className: "font-medium" },
-        { key: "v", label: "Vendor", filter: (x) => vendorName(st, x.vendorId), render: (b) => vendorName(st, b.vendorId) },
+        { key: "v", label: "Vendor", filterOptions: FO.vendors, filter: (x) => vendorName(st, x.vendorId), render: (b) => vendorName(st, b.vendorId) },
         { key: "val", label: "Value", align: "right", num: true, render: (b) => inrShort(value(b)) },
         { key: "u", label: "Consumed", render: (b) => <Progress value={Math.round(pct(used(b), value(b)))} /> },
         { key: "pos", label: "Call-offs", align: "center", render: (b) => st.purchaseOrders.filter((p) => p.blanketId === b.id).length },
         { key: "d", label: "Valid till", render: (b) => <ExpiryCell iso={b.deadline} /> },
-        { key: "s", label: "Status", filter: (b) => blanketStatus(st, b), render: (b) => <Status>{blanketStatus(st, b)}</Status> },
+        { key: "s", label: "Status", filterOptions: FO.blanket, filter: (b) => blanketStatus(st, b), render: (b) => <Status>{blanketStatus(st, b)}</Status> },
       ]} />
       {bo && (
         <Drawer open onClose={() => setOpen(null)} width={880} title={bo.title} subtitle={<><span className="mono">{bo.id}</span><Status>{blanketStatus(st, bo)}</Status><span>{vendorName(st, bo.vendorId)}</span><span>· {fmtDate(bo.start)} → {fmtDate(bo.deadline)}</span></>}
@@ -681,14 +681,14 @@ function InvoicesPage() {
       </>}>
       <DataTable noun="bills" summary={(r) => [{ value: inrShort(sum(r, (i) => invoiceTotals(i).balance)), label: "outstanding" }, { value: inrShort(sum(st.vendorAdvances, (a) => a.amount - sum(a.allocated, (x) => x.amount))), label: "unadjusted advances" }]} filters={<><FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Unpaid", "Partially Paid", "Overdue", "On Hold", "Paid"]} /></>} rows={rows} onRow={(i) => setOpen(i.id)} columns={[
         { key: "sel", label: "", render: (i) => invoiceStatus(i) !== "Paid" && <input type="checkbox" className="h-4 w-4 accent-[#0b5ed7]" checked={sel.includes(i.id)} onClick={(e) => e.stopPropagation()} onChange={(e) => setSel(e.target.checked ? [...sel, i.id] : sel.filter((x) => x !== i.id))} /> },
-        { key: "v", label: "Vendor", filter: (x) => vendorName(st, x.vendorId), render: (i) => <span className="font-medium">{vendorName(st, i.vendorId)}</span> },
-        { key: "src", label: "Against", filterLabel: "Bill type", filter: (i) => (i.source === "RA Bill" ? "RA bill" : i.source === "Direct" ? "Direct bill" : "Purchase order"), render: (i) => { const [a, b] = billAgainst(st, i); return <TwoLine a={a} b={b} />; } },
+        { key: "v", label: "Vendor", filterOptions: FO.vendors, filter: (x) => vendorName(st, x.vendorId), render: (i) => <span className="font-medium">{vendorName(st, i.vendorId)}</span> },
+        { key: "src", label: "Against", filterOptions: FO.billType, filterLabel: "Bill type", filter: (i) => (i.source === "RA Bill" ? "RA bill" : i.source === "Direct" ? "Direct bill" : "Purchase order"), render: (i) => { const [a, b] = billAgainst(st, i); return <TwoLine a={a} b={b} />; } },
         { key: "number", label: "Vendor bill no.", className: "text-[12px]", render: (i) => (i.source === "RA Bill" ? <span className="text-ink-mute">Auto (from RA bill)</span> : i.number || <span className="text-ink-faint">—</span>) },
         { key: "amt", label: "Amount", align: "right", num: true, render: (i) => inr(invoiceTotals(i).payable) },
         { key: "bal", label: "Balance", align: "right", num: true, render: (i) => inr(invoiceTotals(i).balance) },
         { key: "due", label: "Next due", render: (i) => fmtDate((nextInstalment(i) || {}).due || i.due) },
-        { key: "m", label: "Match", filter: (i) => threeWay(st, i).status, render: (i) => { const s = threeWay(st, i).status; return <Status tone={s.startsWith("Matched") ? "green" : s === "Mismatch" ? "red" : "amber"}>{s}</Status>; } },
-        { key: "sbp", label: "Should pay", filterAll: "Should pay: any", filter: (i) => shouldBePaid(st, i), render: (i) => <Status tone={{ Yes: "green", No: "gray", Exception: "amber" }[shouldBePaid(st, i)]}>{shouldBePaid(st, i)}</Status> },
+        { key: "m", label: "Match", filterOptions: FO.match, filter: (i) => threeWay(st, i).status, render: (i) => { const s = threeWay(st, i).status; return <Status tone={s.startsWith("Matched") ? "green" : s === "Mismatch" ? "red" : "amber"}>{s}</Status>; } },
+        { key: "sbp", label: "Should pay", filterOptions: FO.shouldPay, filterAll: "Should pay: any", filter: (i) => shouldBePaid(st, i), render: (i) => <Status tone={{ Yes: "green", No: "gray", Exception: "amber" }[shouldBePaid(st, i)]}>{shouldBePaid(st, i)}</Status> },
         { key: "s", label: "Status", render: (i) => <Status>{invoiceStatus(i)}</Status> },
       ]} />
       {run && <PayModal invIds={sel} onClose={() => { setRun(false); setSel([]); }} />}

@@ -165,12 +165,12 @@ function ClaimsTab({ onBill }) {
     <>
       <DataTable noun="claims" rows={rows} onRow={(c) => c.status === "Submitted" && setRev(c.id)} empty={<EmptyState icon={Icon.receipt} title="No contractor claims" text="Contractors submit RA claims from the supplier portal (Work orders → Submit RA claim)." />} columns={[
         { key: "id", label: "Claim", className: "mono text-[12px]" },
-        { key: "v", label: "Contractor", filter: (x) => vendorName(st, x.vendorId), render: (c) => <span className="font-medium">{vendorName(st, c.vendorId)}</span> },
+        { key: "v", label: "Contractor", filterOptions: FO.contractors, filter: (x) => vendorName(st, x.vendorId), render: (c) => <span className="font-medium">{vendorName(st, c.vendorId)}</span> },
         { key: "wo", label: "Work order", render: (c) => `${c.woId} · ${byId(st.workOrders, c.woId)?.type}` },
         { key: "p", label: "Period", render: (c) => `${fmtDate(c.periodFrom)} – ${fmtDate(c.periodTo)}` },
         { key: "val", label: "Claimed", align: "right", num: true, render: (c) => inr(claimValue(st, c)) },
         { key: "cert", label: "Certified", align: "right", num: true, render: (c) => (c.raBillId ? inr(byId(st.raBills, c.raBillId)?.gross) : "—") },
-        { key: "s", label: "Status", filter: (c) => c.status, render: (c) => <Status tone={{ Submitted: "blue", Verified: "green", Returned: "red" }[c.status]}>{c.status}{c.resubmittedAs ? ` → ${c.resubmittedAs}` : ""}</Status> },
+        { key: "s", label: "Status", filterOptions: FO.claimStatus, filter: (c) => c.status, render: (c) => <Status tone={{ Submitted: "blue", Verified: "green", Returned: "red" }[c.status]}>{c.status}{c.resubmittedAs ? ` → ${c.resubmittedAs}` : ""}</Status> },
         { key: "a", label: "", align: "right", render: (c) => c.status === "Submitted" ? <Btn size="sm" variant="primary" onClick={(e) => { e.stopPropagation(); setRev(c.id); }}>Verify</Btn> : c.raBillId ? <Btn size="sm" onClick={(e) => { e.stopPropagation(); onBill(c.raBillId); }}>Open {c.raBillId}</Btn> : null },
       ]} />
       {rev && <ClaimReviewModal id={rev} onClose={() => setRev(null)} onBill={onBill} />}
@@ -330,11 +330,11 @@ function LabourAttendancePage() {
         </div>
       )}
       {tab === "workers" && <DataTable noun="workers" rows={st.workers} columns={[
-        { key: "id", label: "ID", className: "mono text-[12px]" }, { key: "name", label: "Worker", className: "font-medium" }, { key: "v", label: "Contractor", filter: (x) => vendorName(st, x.vendorId), render: (w) => vendorName(st, w.vendorId) },
-        { key: "trade", label: "Trade", filter: true }, { key: "skill", label: "Skill", filter: true }, { key: "gatePass", label: "Gate pass", className: "mono text-[12px]" },
+        { key: "id", label: "ID", className: "mono text-[12px]" }, { key: "name", label: "Worker", className: "font-medium" }, { key: "v", label: "Contractor", filterOptions: FO.contractors, filter: (x) => vendorName(st, x.vendorId), render: (w) => vendorName(st, w.vendorId) },
+        { key: "trade", label: "Trade", filterOptions: FO.labourTrades, filter: true }, { key: "skill", label: "Skill", filterOptions: FO.skills, filter: true }, { key: "gatePass", label: "Gate pass", className: "mono text-[12px]" },
         { key: "ind", label: "Safety induction", render: (w) => fmtDate(w.inductionOn) },
         { key: "d", label: "Days (14d)", align: "right", render: (w) => num(sum(st.attendance.filter((a) => a.workerId === w.id && a.date >= shiftDays(-14)), manDays)) },
-        { key: "s", label: "Status", filter: (w) => (w.active ? "Active" : "Inactive"), render: (w) => <Status tone={w.active ? "green" : "gray"}>{w.active ? "Active" : "Inactive"}</Status> },
+        { key: "s", label: "Status", filterOptions: FO.workerStatus, filter: (w) => (w.active ? "Active" : "Inactive"), render: (w) => <Status tone={w.active ? "green" : "gray"}>{w.active ? "Active" : "Inactive"}</Status> },
       ]} />}
     </Page>
   );

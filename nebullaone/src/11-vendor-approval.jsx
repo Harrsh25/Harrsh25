@@ -187,8 +187,8 @@ function VendorApprovalsPage() {
       {tab === "queue" && (
         <DataTable noun="vendors" rows={queue} onRow={(v) => setOpen(v.id)} empty={<EmptyState icon={Icon.check} title="Approval queue is clear" text="New registrations will show up here." />} columns={[
           { key: "name", label: "Vendor", className: "font-medium" },
-          { key: "type", label: "Type", filter: (v) => v.type + (v.isContractor ? " · Contractor" : ""), render: (v) => <VendorTypeTag v={v} /> },
-          { key: "stage", label: "Routing", filter: (v) => (v.approval?.stages || []).find((s) => s.status === "Pending")?.dept || "—", filterLabel: "Stage", render: (v) => (
+          { key: "type", label: "Type", filterOptions: FO.vendorType, filter: (v) => v.type + (v.isContractor ? " · Contractor" : ""), render: (v) => <VendorTypeTag v={v} /> },
+          { key: "stage", label: "Routing", filterOptions: FO.stage, filter: (v) => (v.approval?.stages || []).find((s) => s.status === "Pending")?.dept || "—", filterLabel: "Stage", render: (v) => (
             <span className="flex items-center gap-1">
               {v.approval.stages.map((s) => (
                 <span key={s.dept} title={`${s.dept}: ${s.status}`} className={cls("rounded px-1.5 py-[1px] text-[11px] font-medium",
@@ -196,7 +196,7 @@ function VendorApprovalsPage() {
               ))}
             </span>) },
           { key: "since", label: "Registered", render: (v) => fmtDate(v.createdAt) },
-          { key: "status", label: "Status", filter: (v) => v.status, render: (v) => <Status>{v.status}</Status> },
+          { key: "status", label: "Status", filterOptions: FO.vendorStatus, filter: (v) => v.status, render: (v) => <Status>{v.status}</Status> },
         ]} />
       )}
       {tab === "rules" && (
@@ -214,9 +214,9 @@ function VendorApprovalsPage() {
       {tab === "scores" && (
         <DataTable noun="vendors" rows={st.vendors.filter((v) => v.qualification)} onRow={(v) => setOpen(v.id)} columns={[
           { key: "name", label: "Vendor", className: "font-medium" },
-          { key: "sets", label: "Rule sets", filter: (v) => v.qualification.ruleSet, render: (v) => <span className="text-[12px] text-ink-soft">{v.qualification.ruleSet}</span> },
+          { key: "sets", label: "Rule sets", filterOptions: FO.ruleSets, filter: (v) => v.qualification.ruleSet, render: (v) => <span className="text-[12px] text-ink-soft">{v.qualification.ruleSet}</span> },
           { key: "score", label: "Score", render: (v) => <ScoreBadge value={v.qualification.score} /> },
-          { key: "res", label: "Result", filter: (v) => (v.qualification.score >= 70 ? "Qualified" : "Not qualified"), render: (v) => <Status tone={v.qualification.score >= 70 ? "green" : "red"}>{v.qualification.score >= 70 ? "Qualified" : "Not qualified"}</Status> },
+          { key: "res", label: "Result", filterOptions: FO.qualResult, filter: (v) => (v.qualification.score >= 70 ? "Qualified" : "Not qualified"), render: (v) => <Status tone={v.qualification.score >= 70 ? "green" : "red"}>{v.qualification.score >= 70 ? "Qualified" : "Not qualified"}</Status> },
           { key: "at", label: "Assessed", render: (v) => fmtDate(v.qualification.at || v.createdAt) },
         ]} />
       )}

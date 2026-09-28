@@ -220,7 +220,7 @@ function ApprovalManagementPage() {
             { key: "by", label: "Submitted By", filterAll: "Anyone", filter: true },
             { key: "date", label: "Date" },
             { key: "level", label: "Level", filter: true },
-            { key: "status", label: "Status", filter: true, render: (r) => <Status>{r.status}</Status> },
+            { key: "status", label: "Status", filterOptions: FO.approvalStatus, filter: true, render: (r) => <Status>{r.status}</Status> },
             { key: "action", label: "Action", render: (r) => (r.status === "Pending" ? (
               <span className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                 <button className="rounded bg-green-600 px-2 py-0.5 text-[12px] text-white hover:bg-green-700" onClick={() => r.approve("")}>Approve</button>

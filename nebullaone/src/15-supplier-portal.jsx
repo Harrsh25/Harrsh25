@@ -180,28 +180,28 @@ function PortalBody({ vid, vendorMode }) {
       <div className={cls(tab === "reg" && "p-5")}>
         {tab === "reg" && <RegistrationFix v={v} />}
         {tab === "rfq" && <DataTable rows={rfqs} onRow={(r) => setQuoteFor(r.id)} empty={<EmptyState icon={Icon.scale} title="No RFQs yet" text="Requests for quotation you're invited to will appear here." />} columns={[
-          { key: "title", label: "Requirement", className: "font-medium" }, { key: "project", label: "Project", filter: true },
+          { key: "title", label: "Requirement", className: "font-medium" }, { key: "project", label: "Project", filterOptions: FO.projects, filter: true },
           { key: "n", label: "Lines", align: "center", render: (r) => r.items.length },
           { key: "due", label: "Quotes due", render: (r) => <ExpiryCell iso={["Awarded", "Closed"].includes(r.status) ? null : r.dueDate} /> },
-          { key: "inv", label: "Invitation", filter: (r) => (r.responses?.[vid] || {}).status || "Invited", render: (r) => <Status>{(r.responses?.[vid] || {}).status || "Invited"}</Status> },
+          { key: "inv", label: "Invitation", filterOptions: FO.invitation, filter: (r) => (r.responses?.[vid] || {}).status || "Invited", render: (r) => <Status>{(r.responses?.[vid] || {}).status || "Invited"}</Status> },
           { key: "me", label: "My quotation", render: (r) => { const q = r.quotes.find((x) => x.vendorId === vid); return q ? <span className="flex flex-col"><span className="num">{inrShort(quoteTotal(r, q))}</span><Status>{quoteStatus(r, q)}</Status></span> : <span className="text-ink-faint">—</span>; } },
           { key: "a", label: "", align: "right", render: (r) => <Btn size="sm" variant={toQuote.includes(r) ? "primary" : "secondary"} icon={Icon.eye} onClick={() => setQuoteFor(r.id)}>{toQuote.includes(r) ? "Respond" : "View"}</Btn> },
         ]} />}
         {tab === "orders" && <DataTable rows={pos} onRow={(p) => open("po", p.id)} empty={<EmptyState icon={Icon.package} title="No purchase orders" />} columns={[
-          { key: "id", label: "PO", className: "mono text-[12px]" }, { key: "project", label: "Deliver to", filter: true },
+          { key: "id", label: "PO", className: "mono text-[12px]" }, { key: "project", label: "Deliver to", filterOptions: FO.projects, filter: true },
           { key: "v", label: "Value", align: "right", num: true, render: (p) => inrShort(poValue(p)) },
           { key: "dd", label: "Delivery due", render: (p) => fmtDate(p.deliveryDate) },
           { key: "r", label: "Delivered", render: (p) => { const r = poReceived(p); return <Progress value={Math.round(pct(sum(r, (x) => x.received), sum(r, (x) => x.qty)))} />; } },
           { key: "ret", label: "Returned", align: "right", render: (p) => (p.returns?.length ? <span className="text-red-600">{num(sum(p.returns, (x) => x.qty))}</span> : "—") },
-          { key: "b", label: "Billing", filter: (p) => poBillingStatus(st, p), render: (p) => <Status tone="blue">{poBillingStatus(st, p)}</Status> },
-          { key: "s", label: "Status", filter: (p) => poStatus(p), render: (p) => <Status>{poStatus(p)}</Status> },
+          { key: "b", label: "Billing", filterOptions: FO.poBilling, filter: (p) => poBillingStatus(st, p), render: (p) => <Status tone="blue">{poBillingStatus(st, p)}</Status> },
+          { key: "s", label: "Status", filterOptions: FO.poStatus, filter: (p) => poStatus(p), render: (p) => <Status>{poStatus(p)}</Status> },
         ]} />}
         {tab === "wo" && <DataTable rows={wos} onRow={(w) => open("wo", w.id)} empty={<EmptyState icon={Icon.clipboardList} title="No work orders" />} columns={[
-          { key: "id", label: "WO", className: "mono text-[12px]" }, { key: "title", label: "Scope", className: "font-medium" }, { key: "type", label: "Type", filter: true },
+          { key: "id", label: "WO", className: "mono text-[12px]" }, { key: "title", label: "Scope", className: "font-medium" }, { key: "type", label: "Type", filterOptions: FO.woType, filter: true },
           { key: "val", label: "Value", align: "right", num: true, render: (w) => inrShort(woValue(w)) },
           { key: "d", label: "Period", render: (w) => `${fmtDate(w.start)} → ${fmtDate(w.end)}` },
           { key: "p", label: "Progress", render: (w) => <Progress value={Math.round(woProgress(st, w).physical)} /> },
-          { key: "acc", label: "Acceptance", filter: (w) => w.acceptance?.status || "—", render: (w) => <Status tone={{ Accepted: "green", Pending: "amber", Declined: "red" }[w.acceptance?.status] || "gray"}>{w.acceptance?.status || "—"}</Status> },
+          { key: "acc", label: "Acceptance", filterOptions: FO.acceptance, filter: (w) => w.acceptance?.status || "—", render: (w) => <Status tone={{ Accepted: "green", Pending: "amber", Declined: "red" }[w.acceptance?.status] || "gray"}>{w.acceptance?.status || "—"}</Status> },
           { key: "a", label: "", align: "right", render: (w) => w.acceptance?.status === "Pending" ? (
             <span className="flex justify-end gap-1" onClick={stop}><Btn size="sm" variant="success" onClick={() => actWo(w, "Accepted")}>Accept</Btn><Btn size="sm" variant="danger" onClick={() => setWoDecline({ wo: w, reason: "" })}>Decline</Btn></span>
           ) : woAccepted(w) && ["Issued", "In Progress"].includes(w.status) ? <span onClick={stop}><Btn size="sm" icon={Icon.receipt} onClick={() => setClaimFor(w.id)}>Submit RA claim</Btn></span> : null },
@@ -210,7 +210,7 @@ function PortalBody({ vid, vendorMode }) {
           { key: "id", label: "Claim", className: "mono text-[12px]" }, { key: "wo", label: "Work order", render: (c) => `${c.woId} · ${byId(st.workOrders, c.woId).title}` },
           { key: "d", label: "Submitted", render: (c) => fmtDate(c.date) },
           { key: "v", label: "Claimed value", align: "right", num: true, render: (c) => inr(claimValue(st, c)) },
-          { key: "s", label: "Status", filter: (c) => c.status, render: (c) => <span className="flex flex-col"><Status tone={{ Submitted: "blue", Verified: "green", Returned: "red" }[c.status]}>{c.status}</Status>{c.status === "Returned" && <span className="max-w-[260px] whitespace-normal text-[11px] text-red-600">{c.history[c.history.length - 1].remark}</span>}</span> },
+          { key: "s", label: "Status", filterOptions: FO.claimStatus, filter: (c) => c.status, render: (c) => <span className="flex flex-col"><Status tone={{ Submitted: "blue", Verified: "green", Returned: "red" }[c.status]}>{c.status}</Status>{c.status === "Returned" && <span className="max-w-[260px] whitespace-normal text-[11px] text-red-600">{c.history[c.history.length - 1].remark}</span>}</span> },
           { key: "b", label: "RA bill", render: (c) => (c.raBillId ? `${c.raBillId} · ${byId(st.raBills, c.raBillId)?.status}` : "—") },
           { key: "a", label: "", align: "right", render: (c) => c.status === "Returned" && <span onClick={stop}><Btn size="sm" onClick={() => setClaimFor({ woId: c.woId, from: c.id })}>Revise & resubmit</Btn></span> },
         ]} />}
@@ -226,7 +226,7 @@ function PortalBody({ vid, vendorMode }) {
         ]} />}
         {tab === "docs" && <><DataTable rows={docs} rowKey={(d) => d.name} onRow={(d) => open("doc", d.name)} columns={[
           { key: "name", label: "Document", className: "font-medium" }, { key: "e", label: "Valid till", render: (d) => <ExpiryCell iso={d.expiry} /> },
-          { key: "s", label: "Status", filter: (d) => docState(d), render: (d) => <span className="flex flex-col"><Status>{docState(d)}</Status>{d.status === "Rejected" && d.remark && <span className="max-w-[260px] whitespace-normal text-[11px] text-red-600">{d.remark}</span>}</span> },
+          { key: "s", label: "Status", filterOptions: FO.docState, filter: (d) => docState(d), render: (d) => <span className="flex flex-col"><Status>{docState(d)}</Status>{d.status === "Rejected" && d.remark && <span className="max-w-[260px] whitespace-normal text-[11px] text-red-600">{d.remark}</span>}</span> },
           { key: "a", label: "", align: "right", render: (d) => ["Missing", "Expired", "Expiring", "Rejected"].includes(docState(d)) && <span onClick={stop}><Btn size="sm" icon={Icon.upload} onClick={() => setReup({ name: d.name, expiry: shiftDays(365), file: "", dataUrl: null })}>Upload</Btn></span> },
         ]} /><div className="p-4"><InsurancePolicies v={v} portal locked={false} /></div></>}
         {tab === "help" && (
