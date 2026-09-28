@@ -9,13 +9,27 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function VendorTypeTag({ v }) {
   const c = { Goods: "bg-sky-50 text-sky-700 border-sky-200", Services: "bg-violet-50 text-violet-700 border-violet-200", Labor: "bg-orange-50 text-orange-700 border-orange-200" }[v.type];
-  return <span className={cls("rounded border px-1.5 py-[1px] text-[11px] font-medium", c)}>{v.type}{v.isContractor ? " · Contractor" : ""}</span>;
+  const tipText = { Goods: "Goods — supplies material (cement, steel, hardware…). Bought through purchase orders.", Services: "Services — provides a service (hire, testing, consultancy, installation…).", Labor: "Labour — supplies workers / manpower." }[v.type]
+    + (v.isContractor ? "\n\nContractor — executes work on site. Managed in Contract & Labor: contracts, work orders, measurement book, RA bills, retention and attendance." : "\n\nNot a contractor — bought through POs / bills only.");
+  return <span data-tip={tipText} className={cls("rounded border px-1.5 py-[1px] text-[11px] font-medium", c)}>{v.type}{v.isContractor ? " · Contractor" : ""}</span>;
 }
+const TIER_HELP = {
+  Strategic: "Strategic — critical long-term partner; high spend or hard to replace. Reviewed by senior management.",
+  Preferred: "Preferred — proven vendor, first choice for its category.",
+  Approved: "Approved — qualified and allowed to trade; no special preference.",
+  Transactional: "Transactional — occasional / low-value purchases only.",
+};
+const TIER_TIP = "Supplier tier — how important the relationship is:\n• Strategic — critical partner\n• Preferred — first choice in its category\n• Approved — qualified, normal vendor\n• Transactional — occasional, low value";
+const REG_HELP = {
+  Prospective: "Prospective — registered but not yet authorised to spend: can be invited to RFQs and quote, but cannot get POs, contracts or payments.",
+  "Spend Authorized": "Spend Authorized — fully approved with bank details and compliance: can receive POs, work orders, contracts and payments.",
+};
+const REG_TIP = "Registration tier — what the vendor is allowed to do:\n• Prospective — can quote on RFQs only\n• Spend Authorized — can get POs, contracts and payments";
 function CategoryChips({ list, max = 2 }) {
   return (
     <span className="flex items-center gap-1">
       {list.slice(0, max).map((c) => <span key={c} className="rounded bg-gray-100 px-1.5 py-[1px] text-[11px] text-ink-soft">{c}</span>)}
-      {list.length > max && <span className="text-[11px] text-ink-mute">+{list.length - max}</span>}
+      {list.length > max && <span data-tip={`All trades:\n${list.join("\n")}`} className="cursor-default rounded px-1 text-[11px] text-ink-mute hover:bg-gray-100">+{list.length - max}</span>}
     </span>
   );
 }
@@ -542,8 +556,8 @@ function VendorRegistryPage() {
         { key: "name", label: "Vendor", render: (v) => <span className="flex items-center justify-between gap-3 font-medium"><span className="flex flex-col"><span>{v.name}</span>{v.group && <span className="text-[11px] font-normal text-ink-mute">{v.group}</span>}</span><PreferredStar v={v} size={14} /></span> },
         { key: "type", label: "Type", render: (v) => <span className="flex flex-wrap items-center gap-1"><VendorTypeTag v={v} /><GroupCoTag v={v} /></span> },
         { key: "cat", label: "Trades", render: (v) => <CategoryChips list={v.categories} /> },
-        { key: "tier", label: "Tier" },
-        { key: "reg", label: "Registration", render: (v) => <span className="flex flex-col"><Status>{v.regTier}</Status>{v.source === "Self-registration" && <span className="text-[10.5px] text-ink-mute">self-registered</span>}</span> },
+        { key: "tier", label: <span data-tip={TIER_TIP}>Tier</span>, render: (v) => <span data-tip={TIER_HELP[v.tier]}>{v.tier}</span> },
+        { key: "reg", label: <span data-tip={REG_TIP}>Registration</span>, render: (v) => <span className="flex flex-col" data-tip={REG_HELP[v.regTier]}><Status>{v.regTier}</Status>{v.source === "Self-registration" && <span className="text-[10.5px] text-ink-mute">self-registered</span>}</span> },
         { key: "comp", label: "Compliance", render: (v) => <Status>{complianceOf(v).status}</Status> },
         { key: "score", label: "Score", render: (v) => <ScoreBadge value={vendorScore(st, v.id).score} /> },
         { key: "status", label: "Status", render: (v) => <Status>{v.status}</Status> },

@@ -595,3 +595,47 @@ function RefLink({ to, children }) {
     </RouterLink>
   );
 }
+
+// ---------------------------------------------------------------- global tooltip
+// Hovering any text that is cut off (ellipsis / overflow hidden / long input value) shows the full
+// content; elements with data-tip show that explanation. Works across the whole app, host pages too.
+(function installTooltips() {
+  if (typeof document === "undefined" || window.__nxTip) return;
+  window.__nxTip = true;
+  const tip = document.createElement("div");
+  tip.setAttribute("role", "tooltip");
+  Object.assign(tip.style, { position: "fixed", zIndex: 99999, maxWidth: "420px", background: "#111827", color: "#fff", font: "12px/1.45 Inter, system-ui, sans-serif",
+    padding: "6px 9px", borderRadius: "6px", pointerEvents: "none", boxShadow: "0 6px 20px rgba(0,0,0,.18)", whiteSpace: "pre-line", wordBreak: "break-word", display: "none" });
+  const attach = () => document.body && !tip.isConnected && document.body.appendChild(tip);
+  attach(); document.addEventListener("DOMContentLoaded", attach);
+  let cur = null;
+  const clipped = (el) => {
+    if (el.tagName === "INPUT") return el.type !== "checkbox" && el.type !== "radio" && el.scrollWidth > el.clientWidth + 1;
+    if (!el.clientWidth || el.children.length > 3) return false;
+    const cs = getComputedStyle(el);
+    const hides = cs.overflowX !== "visible" || cs.textOverflow === "ellipsis" || cs.webkitLineClamp !== "none";
+    return hides && (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 2);
+  };
+  const find = (t) => {
+    for (let el = t, i = 0; el && el !== document.body && i < 5; el = el.parentElement, i++) {
+      if (!(el instanceof HTMLElement) || el === tip) continue;
+      if (el.dataset && el.dataset.tip) return [el, el.dataset.tip];
+      if (el.hasAttribute("title")) return null; // native tooltip already covers it
+      if (clipped(el)) { const txt = (el.tagName === "INPUT" ? el.value : el.innerText || "").trim(); if (txt) return [el, txt]; }
+    }
+    return null;
+  };
+  const place = (x, y) => {
+    const w = tip.offsetWidth, hgt = tip.offsetHeight;
+    tip.style.left = Math.max(8, Math.min(x + 12, window.innerWidth - w - 8)) + "px";
+    tip.style.top = (y + 18 + hgt > window.innerHeight ? y - hgt - 10 : y + 18) + "px";
+  };
+  document.addEventListener("mouseover", (e) => {
+    const hit = find(e.target);
+    if (!hit) { if (cur && !cur.contains(e.target)) { cur = null; tip.style.display = "none"; } return; }
+    cur = hit[0]; attach(); tip.textContent = hit[1]; tip.style.display = "block"; place(e.clientX, e.clientY);
+  }, true);
+  document.addEventListener("mousemove", (e) => { if (cur) place(e.clientX, e.clientY); }, true);
+  document.addEventListener("mouseout", (e) => { if (cur && (!e.relatedTarget || !cur.contains(e.relatedTarget))) { cur = null; tip.style.display = "none"; } }, true);
+  document.addEventListener("scroll", () => { cur = null; tip.style.display = "none"; }, true);
+})();
