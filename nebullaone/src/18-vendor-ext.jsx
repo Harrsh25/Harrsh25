@@ -51,27 +51,68 @@ function InviteVendorModal({ onClose }) {
   );
 }
 
+const remindInvite = (i) => { setState((s) => { const x = byId(s.invites, i.id); x.sentOn = todayISO(); x.reminders = [...(x.reminders || []), { at: new Date().toISOString(), by: currentUser() }]; }, { entity: "Invite", id: i.id, action: `Reminder sent to ${i.email}` }); toast(`Reminder sent to ${i.email}`); };
+const cancelInvite = (i) => { setState((s) => (byId(s.invites, i.id).status = "Cancelled"), { entity: "Invite", id: i.id, action: "Cancelled" }); toast("Invitation cancelled", "red"); };
+
 function InvitesTable({ onOpenVendor }) {
   const st = useStore();
   const [share, setShare] = y.useState(null);
+  const [open, setOpen] = y.useState(null);
+  const stop = (e) => e.stopPropagation();
   return (
     <>
-      <DataTable rows={st.invites} empty={<EmptyState icon={Icon.mail} title="No invitations yet" text="Use “Invite vendor” to send a personal registration link." />} columns={[
-        { key: "id", label: "Invite", className: "mono text-[12px]" },
+      <DataTable rows={st.invites} onRow={(i) => setOpen(i.id)} empty={<EmptyState icon={Icon.mail} title="No invitations yet" text="Use “Invite vendor” to send a personal registration link." />} columns={[
         { key: "name", label: "Company", className: "font-medium" },
         { key: "email", label: "E-mail" },
         { key: "category", label: "Trade", render: (i) => i.category || "—" },
         { key: "sent", label: "Sent", render: (i) => `${fmtDate(i.sentOn)} · ${i.by}` },
         { key: "s", label: "Status", render: (i) => <Status>{i.status}</Status> },
-        { key: "a", label: "", align: "right", render: (i) => i.vendorId ? <Btn size="sm" onClick={() => onOpenVendor(i.vendorId)}>Open {i.vendorId}</Btn> : (
-          <span className="flex justify-end gap-1">
+        { key: "a", label: "", align: "right", render: (i) => i.vendorId ? <span onClick={stop}><Btn size="sm" onClick={() => onOpenVendor(i.vendorId)}>Open vendor</Btn></span> : i.status === "Invited" ? (
+          <span className="flex justify-end gap-1" onClick={stop}>
             <Btn size="sm" icon={Icon.globe} onClick={() => setShare(i)}>Link</Btn>
-            <Btn size="sm" icon={Icon.mail} onClick={() => { setState((s) => (byId(s.invites, i.id).sentOn = todayISO()), { entity: "Invite", id: i.id, action: `Reminder sent to ${i.email}` }); toast(`Reminder sent to ${i.email}`); }}>Remind</Btn>
-            <Btn size="sm" variant="ghost" onClick={() => setState((s) => (byId(s.invites, i.id).status = "Cancelled"), { entity: "Invite", id: i.id, action: "Cancelled" })}>Cancel</Btn>
-          </span>) },
+            <Btn size="sm" icon={Icon.mail} onClick={() => remindInvite(i)}>Remind</Btn>
+            <Btn size="sm" variant="ghost" onClick={() => cancelInvite(i)}>Cancel</Btn>
+          </span>) : null },
       ]} />
+      {open && <InviteDrawer id={open} onClose={() => setOpen(null)} onShare={setShare} onOpenVendor={(vid) => { setOpen(null); onOpenVendor(vid); }} />}
       {share && <ShareLinkModal title={`Registration link — ${share.name}`} url={appUrl(`/vendor-register?invite=${share.id}`)} onClose={() => setShare(null)} text="Personal link; the form opens pre-filled for this company." />}
     </>
+  );
+}
+
+function InviteDrawer({ id, onClose, onShare, onOpenVendor }) {
+  const st = useStore();
+  const i = byId(st.invites, id);
+  if (!i) return null;
+  const v = i.vendorId && byId(st.vendors, i.vendorId);
+  const trail = st.audit.filter((a) => a.id === i.id || (v && a.id === v.id && /Registration submitted|self-registration/i.test(a.action)));
+  const steps = [
+    { label: "Invited", status: "done", meta: `${fmtDate(i.sentOn)} · ${i.by}` },
+    { label: "Registered", status: i.status === "Registered" ? "done" : i.status === "Cancelled" ? "rejected" : "current", meta: v ? fmtDate(v.createdAt) : i.status === "Cancelled" ? "Cancelled" : "Waiting for vendor" },
+    { label: "Approved", status: v && v.status === "Active" ? "done" : v ? "current" : "todo", meta: v ? v.status : "" },
+  ];
+  return (
+    <Drawer open onClose={onClose} width={720} title={i.name}
+      subtitle={<><span className="mono">{i.id}</span><Status>{i.status}</Status><span>{i.email}</span>{i.category && <span>· {i.category}</span>}</>}
+      actions={v ? <Btn variant="primary" onClick={() => onOpenVendor(v.id)}>Open vendor</Btn> : i.status === "Invited" ? <>
+        <Btn variant="ghost" onClick={() => cancelInvite(i)}>Cancel invitation</Btn>
+        <Btn icon={Icon.mail} onClick={() => remindInvite(i)}>Send reminder</Btn>
+        <Btn variant="primary" icon={Icon.globe} onClick={() => onShare(i)}>Copy link</Btn></> : null}>
+      <div className="space-y-4 px-6 py-5">
+        <Section title="Progress" icon={Icon.clipboardCheck}><div className="p-5"><Stepper steps={steps} /></div></Section>
+        <Section title="Invitation" icon={Icon.mail}>
+          <KV items={[["Company", i.name], ["Contact person", i.contact || "—"], ["E-mail", i.email], ["Trade / category", i.category || "Any"], ["Sent on", fmtDate(i.sentOn)], ["Sent by", i.by],
+            ["Reminders", (i.reminders || []).length ? `${i.reminders.length} (last ${fmtDate(i.reminders[i.reminders.length - 1].at)})` : "None"], ["Status", i.status], ["Vendor record", v ? v.name : "Not registered yet"]]} />
+          {i.message && <p className="border-t border-line px-4 py-3 text-[13px] text-ink-soft"><span className="mr-1 font-medium text-ink">Message:</span>{i.message}</p>}
+        </Section>
+        {v && (
+          <Section title="Registered vendor" icon={Icon.building}>
+            <KV items={[["Vendor", v.name], ["Status", <Status>{v.status}</Status>], ["Registration", <Status>{v.regTier}</Status>], ["GSTIN", <span className="mono">{v.gstin}</span>], ["Contact", v.contact.name], ["Registered on", fmtDate(v.createdAt)]]} />
+          </Section>
+        )}
+        <Section title="Activity" icon={Icon.fileClock}><AuditList items={trail} /></Section>
+      </div>
+    </Drawer>
   );
 }
 

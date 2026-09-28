@@ -234,7 +234,7 @@ function MeasurementModal({ preset = {}, onClose }) {
 function MeasurementBookPage() {
   const st = useStore();
   const [wo, setWo] = y.useState("All"), [jms, setJms] = y.useState("All"), [tab, setTab] = y.useState("mb");
-  const [add, setAdd] = y.useState(false), [sign, setSign] = y.useState(null), [sel, setSel] = y.useState([]);
+  const [add, setAdd] = y.useState(false), [sign, setSign] = y.useState(null), [sel, setSel] = y.useState([]), [openMb, setOpenMb] = y.useState(null);
   const lineName = (m) => {
     const w = byId(st.workOrders, m.woId);
     if (w.type === "Lump Sum") { const ms = w.milestones.find((x) => x.id === m.lineId); return ms ? ms.name : m.lineId; }
@@ -262,7 +262,7 @@ function MeasurementBookPage() {
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "mb", label: "Measurement book", icon: Icon.book }, { id: "jms", label: `Joint measurement sheets (${pendingRows.length})`, icon: Icon.users }, { id: "abs", label: "Abstract by item", icon: Icon.sheet }]} />
       {tab === "mb" && <>
         <Toolbar left={<><FilterSelect label="Work order" value={wo} onChange={setWo} options={woOpts} /><FilterSelect label="JMS" value={jms} onChange={setJms} options={[{ value: "All", label: "All JMS status" }, "Pending", "Signed", "Disputed"]} /></>} right={<span className="text-[12px]">{rows.length} entries</span>} />
-        <DataTable rows={rows} columns={[
+        <DataTable rows={rows} onRow={(m) => setOpenMb(m.id)} columns={[
           { key: "id", label: "MB no.", className: "mono text-[12px]" },
           { key: "date", label: "Date", render: (m) => fmtDate(m.date) },
           { key: "wo", label: "WO", className: "mono text-[12px]", render: (m) => m.woId },
@@ -277,14 +277,14 @@ function MeasurementBookPage() {
       {tab === "jms" && <>
         <Toolbar left={<span className="text-[12.5px] text-ink-soft">Engineer and contractor representative sign together; disputed entries can be re-measured with a corrected quantity.</span>}
           right={<Btn variant="primary" size="sm" icon={Icon.check} disabled={!sel.length} onClick={() => setSign({ ids: sel, rep: "", eng: currentUser() })}>Sign selected ({sel.length})</Btn>} />
-        <DataTable rows={pendingRows} empty={<EmptyState icon={Icon.check} title="All measurements are jointly signed" />} columns={[
-          { key: "sel", label: "", render: (m) => <input type="checkbox" className="h-4 w-4 accent-[#0b5ed7]" checked={sel.includes(m.id)} onChange={(e) => setSel(e.target.checked ? [...sel, m.id] : sel.filter((x) => x !== m.id))} /> },
+        <DataTable rows={pendingRows} onRow={(m) => setOpenMb(m.id)} empty={<EmptyState icon={Icon.check} title="All measurements are jointly signed" />} columns={[
+          { key: "sel", label: "", render: (m) => <input type="checkbox" className="h-4 w-4 accent-[#0b5ed7]" checked={sel.includes(m.id)} onClick={(e) => e.stopPropagation()} onChange={(e) => setSel(e.target.checked ? [...sel, m.id] : sel.filter((x) => x !== m.id))} /> },
           { key: "id", label: "MB no.", className: "mono text-[12px]" }, { key: "wo", label: "WO", render: (m) => `${m.woId} · ${vendorName(st, byId(st.workOrders, m.woId).vendorId)}` },
           { key: "item", label: "Item", className: "max-w-[240px] truncate", render: (m) => lineName(m) }, { key: "loc", label: "Location", className: "max-w-[180px] truncate", render: (m) => m.location },
           { key: "qty", label: "Engineer qty", align: "right", num: true, render: (m) => qtyText(m) },
           { key: "s", label: "Status", render: (m) => <span className="flex flex-col"><Status>{m.jms.status}</Status>{m.jms.remark && <span className="mt-0.5 max-w-[220px] whitespace-normal text-[11px] text-red-600">{m.jms.remark}</span>}</span> },
           { key: "a", label: "", align: "right", render: (m) => (
-            <span className="flex justify-end gap-1">
+            <span className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
               <Btn size="sm" variant="success" onClick={() => setSign({ ids: [m.id], rep: "", eng: currentUser(), qty: m.jms.status === "Disputed" ? (m.pct ?? m.qty) : undefined, disputed: m.jms.status === "Disputed", isPct: m.pct !== null })}>{m.jms.status === "Disputed" ? "Re-measure & sign" : "Sign"}</Btn>
               {m.jms.status === "Pending" && <Btn size="sm" variant="danger" onClick={() => setSign({ ids: [m.id], dispute: true, remark: "" })}>Dispute</Btn>}
             </span>) },
@@ -306,6 +306,32 @@ function MeasurementBookPage() {
         </div>
       )}
       {add && <MeasurementModal preset={{ woId: wo !== "All" ? wo : "" }} onClose={() => setAdd(false)} />}
+      {openMb && (() => {
+        const m = byId(st.measurements, openMb); if (!m) return null;
+        const w = byId(st.workOrders, m.woId);
+        return (
+          <Drawer open onClose={() => setOpenMb(null)} width={720} title={lineName(m)}
+            subtitle={<><span className="mono">{m.id}</span><Status>{m.jms.status}</Status><span>{w.title}</span><span>· {vendorName(st, w.vendorId)}</span></>}
+            actions={m.jms.status !== "Signed" && <>
+              {m.jms.status === "Pending" && <Btn variant="danger" onClick={() => setSign({ ids: [m.id], dispute: true, remark: "" })}>Dispute</Btn>}
+              <Btn variant="success" icon={Icon.check} onClick={() => setSign({ ids: [m.id], rep: "", eng: currentUser(), qty: m.jms.status === "Disputed" ? (m.pct ?? m.qty) : undefined, disputed: m.jms.status === "Disputed", isPct: m.pct !== null && m.pct !== undefined })}>Sign JMS</Btn></>}>
+            <div className="space-y-4 px-6 py-5">
+              {m.jms.status === "Disputed" && <Note tone="red">Disputed: {m.jms.remark}</Note>}
+              <Section title="Measurement" icon={Icon.ruler}>
+                <KV items={[["Date", fmtDate(m.date)], ["Location", m.location || "—"], ["Quantity", <b>{qtyText(m)}</b>],
+                  ["N × L × B × D", m.l || m.b || m.d ? [m.nos || 1, m.l ?? "–", m.b ?? "–", m.d ?? "–"].join(" × ") : "—"], ["Recorded by", m.recordedBy || "—"], ["Remarks", m.remarks || "—"]]} />
+              </Section>
+              <Section title="Joint measurement (JMS)" icon={Icon.users}>
+                <KV items={[["Status", <Status>{m.jms.status}</Status>], ["Contractor representative", m.jms.contractorRep || "—"], ["Site engineer", m.jms.engineer || "—"], ["Signed on", m.jms.at && m.jms.status === "Signed" ? fmtDateTime(m.jms.at) : "—"]]} />
+              </Section>
+              <Section title="Work order & billing" icon={Icon.receipt}>
+                <KV items={[["Work order", <RefLink to={`${CL_BASE}/work-orders?open=${w.id}`}>{w.title}</RefLink>], ["Type", w.type], ["Contractor", vendorName(st, w.vendorId)],
+                  ["Billed in", m.billedIn ? <RefLink to={`${CL_BASE}/ra-bills?open=${m.billedIn}`}>RA bill {byId(st.raBills, m.billedIn)?.seq ?? ""}</RefLink> : m.jms.status === "Signed" ? "Ready to bill" : "Not billable until JMS is signed"]]} />
+              </Section>
+            </div>
+          </Drawer>
+        );
+      })()}
       {sign && !sign.dispute && (
         <Modal open onClose={() => setSign(null)} width={500} title={`Joint measurement sign-off — ${sign.ids.length} entr${sign.ids.length > 1 ? "ies" : "y"}`}
           footer={<><Btn onClick={() => setSign(null)}>Cancel</Btn><Btn variant="primary" disabled={!sign.rep || !sign.eng} onClick={() => {
