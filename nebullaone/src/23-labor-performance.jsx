@@ -90,7 +90,7 @@ function LaborRatesPage() {
         <StatTile tone="red" label="Below minimum wage" value={below.length} sub="Statutory risk" icon={Icon.warning} />
         <StatTile tone="green" label="Avg. margin over min. wage" value={`${(sum(active, margin) / (active.length || 1)).toFixed(1)}%`} icon={Icon.trending} />
       </StatGrid>
-      <TabBar active={tab} onChange={setTab} tabs={[{ id: "cards", label: "Rate cards", icon: Icon.sheet }, { id: "pending", label: `Pending approval (${pending.length})`, icon: Icon.clipboardCheck }, { id: "check", label: "Work order rate check", icon: Icon.scale }, { id: "hist", label: "Revision history", icon: Icon.fileClock }]} />
+      <TabBar active={tab} onChange={setTab} tabs={[{ id: "cards", label: "Rate cards", icon: Icon.sheet }, { id: "pending", label: "Pending approval", icon: Icon.clipboardCheck }, { id: "check", label: "Work order rate check", icon: Icon.scale }, { id: "hist", label: "Revision history", icon: Icon.fileClock }]} />
       {(tab === "cards" || tab === "hist") && (
         <Toolbar left={<>
           <FilterSelect label="Region" value={region} onChange={setRegion} options={[{ value: "All", label: "All regions" }, ...REGIONS]} />
@@ -206,7 +206,7 @@ function PerformancePage() {
         <StatTile tone="red" label="Delayed" value={live.filter((x) => progressStatus(x.p) === "Delayed").length} sub="SPI < 0.80" icon={Icon.clock} />
         <StatTile tone="purple" label="Work done, unbilled" value={inrShort(sum(live, (x) => x.p.measured - x.p.billed))} icon={Icon.fileClock} />
       </StatGrid>
-      <TabBar active={tab} onChange={setTab} tabs={[{ id: "progress", label: "Work order progress", icon: Icon.trending }, { id: "chart", label: "Planned vs actual", icon: Icon.chart }, { id: "score", label: "Contractor scorecard", icon: Icon.gauge }, { id: "log", label: `Ratings log (${st.ratings.length})`, icon: Icon.star }]} />
+      <TabBar active={tab} onChange={setTab} tabs={[{ id: "progress", label: "Work order progress", icon: Icon.trending }, { id: "chart", label: "Planned vs actual", icon: Icon.chart }, { id: "score", label: "Contractor scorecard", icon: Icon.gauge }, { id: "log", label: "Ratings log", icon: Icon.star }]} />
       {tab === "progress" && <DataTable rows={live} rowKey={(x) => x.wo.id} onRow={(x) => setOpen(x.wo.id)} columns={[
         { key: "id", label: "WO", className: "mono text-[12px] text-ink-soft", render: (x) => x.wo.id },
         { key: "t", label: "Scope", className: "max-w-[240px] truncate font-medium", render: (x) => <span title={x.wo.title}>{x.wo.title}</span> },

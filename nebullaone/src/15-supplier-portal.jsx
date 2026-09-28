@@ -149,14 +149,14 @@ function PortalBody({ vid, vendorMode }) {
   const pricelist = pos.flatMap((p) => p.lines.map((l) => ({ ...l, po: p.id, date: p.date })));
   const tabs = [
     ...(v.status !== "Active" && v.status !== "On Hold" ? [{ id: "reg", label: v.status === "Changes Requested" ? "Registration — action needed" : "Registration", icon: Icon.clipboardCheck }] : []),
-    { id: "rfq", label: `RFQs (${toQuote.length} to quote)`, icon: Icon.scale },
+    { id: "rfq", label: "RFQs", icon: Icon.scale },
     { id: "orders", label: "Purchase orders", icon: Icon.truck },
-    ...(isContractor ? [{ id: "wo", label: `Work orders (${wos.filter((w) => w.acceptance?.status === "Pending").length} to accept)`, icon: Icon.clipboardList }, { id: "claims", label: "RA claims", icon: Icon.receipt }] : []),
+    ...(isContractor ? [{ id: "wo", label: "Work orders", icon: Icon.clipboardList }, { id: "claims", label: "RA claims", icon: Icon.receipt }] : []),
     ...(isContractor && st.workers.some((w) => w.vendorId === vid) ? [{ id: "att", label: "Daily attendance", icon: Icon.users }] : []),
     { id: "bills", label: "Bills & payments", icon: Icon.rupee },
     { id: "price", label: "Pricelist", icon: Icon.sheet },
     { id: "docs", label: "Documents", icon: Icon.folderCheck },
-    { id: "help", label: `Queries (${tickets.length})`, icon: Icon.message },
+    { id: "help", label: "Queries", icon: Icon.message },
     { id: "users", label: "Users", icon: Icon.users },
   ];
   const actWo = (wo, status, reason) => {

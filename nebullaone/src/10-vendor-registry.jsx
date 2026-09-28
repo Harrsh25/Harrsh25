@@ -611,7 +611,7 @@ function VendorRegistryPage() {
         <StatTile tone="orange" label="Compliance issues" value={compIssues} sub="Active vendors" icon={Icon.warning} />
       </StatGrid>
       )}
-      <TabBar active={view} onChange={setView} tabs={[{ id: "vendors", label: "Vendors", icon: Icon.building }, { id: "invites", label: `Invitations (${st.invites.filter((i) => i.status === "Invited").length} open)`, icon: Icon.mail }]} />
+      <TabBar active={view} onChange={setView} tabs={[{ id: "vendors", label: "Vendors", icon: Icon.building }, { id: "invites", label: "Invitations", icon: Icon.mail }]} />
       {view === "invites" && <InvitesTable onOpenVendor={setOpen} />}
       {view === "vendors" && <>
       <Toolbar left={<>

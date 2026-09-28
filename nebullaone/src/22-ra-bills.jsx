@@ -221,7 +221,7 @@ function RaBillsPage() {
         <StatTile tone="amber" label="Gross certified" value={inrShort(sum(st.raBills.filter((b) => ["Certified", "Approved", "Paid"].includes(b.status)), (b) => b.gross))} icon={Icon.receipt} />
         <StatTile tone="red" label="Total deductions" value={inrShort(sum(st.raBills.filter((b) => b.status !== "Rejected"), (b) => b.totalDed))} icon={Icon.percent} />
       </StatGrid>
-      <TabBar active={tab} onChange={setTab} tabs={[{ id: "bills", label: "RA bills", icon: Icon.receipt }, { id: "claims", label: `Contractor claims (${newClaims} to verify)`, icon: Icon.hardHat }]} />
+      <TabBar active={tab} onChange={setTab} tabs={[{ id: "bills", label: "RA bills", icon: Icon.receipt }, { id: "claims", label: "Contractor claims", icon: Icon.hardHat }]} />
       {tab === "claims" && <ClaimsTab onBill={(id) => { setTab("bills"); setOpen(id); }} />}
       {tab === "bills" && <>
       <Toolbar left={<FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Submitted", "Verified", "Certified", "Approved", "Paid", "Rejected"]} />} right={<span className="text-[12px]">{rows.length} bills</span>} />
@@ -264,7 +264,7 @@ function RetentionPage() {
         <StatTile tone="cyan" label="Labour cess" value={inrShort(T("cess"))} icon={Icon.hardHat} />
         <StatTile tone="red" label="Penalties & recoveries" value={inrShort(T("penalty") + T("materials") + T("other"))} icon={Icon.warning} />
       </StatGrid>
-      <TabBar active={tab} onChange={setTab} tabs={[{ id: "ledger", label: "Contract ledger", icon: Icon.book }, { id: "rel", label: `Retention releases (${st.retentionReleases.filter((r) => r.status !== "Released").length})`, icon: Icon.lock }, { id: "ded", label: "Deduction register", icon: Icon.listChecks }]} />
+      <TabBar active={tab} onChange={setTab} tabs={[{ id: "ledger", label: "Contract ledger", icon: Icon.book }, { id: "rel", label: "Retention releases", icon: Icon.lock }, { id: "ded", label: "Deduction register", icon: Icon.listChecks }]} />
       {tab === "ledger" && (
         <DataTable rows={ledgers} rowKey={(l) => l.c.id} columns={[
           { key: "c", label: "Contract", render: (l) => <span><span className="mono text-[12px]">{l.c.id}</span> · {vendorName(st, l.c.vendorId)}</span> },

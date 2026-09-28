@@ -259,7 +259,7 @@ function MeasurementBookPage() {
         <StatTile tone="red" label="Disputed" value={st.measurements.filter((m) => m.jms.status === "Disputed").length} icon={Icon.warning} />
         <StatTile tone="green" label="Signed, not yet billed" value={st.measurements.filter((m) => m.jms.status === "Signed" && !m.billedIn).length} icon={Icon.check} />
       </StatGrid>
-      <TabBar active={tab} onChange={setTab} tabs={[{ id: "mb", label: "Measurement book", icon: Icon.book }, { id: "jms", label: `Joint measurement sheets (${pendingRows.length})`, icon: Icon.users }, { id: "abs", label: "Abstract by item", icon: Icon.sheet }]} />
+      <TabBar active={tab} onChange={setTab} tabs={[{ id: "mb", label: "Measurement book", icon: Icon.book }, { id: "jms", label: "Joint measurement sheets", icon: Icon.users }, { id: "abs", label: "Abstract by item", icon: Icon.sheet }]} />
       {tab === "mb" && <>
         <Toolbar left={<><FilterSelect label="Work order" value={wo} onChange={setWo} options={woOpts} /><FilterSelect label="JMS" value={jms} onChange={setJms} options={[{ value: "All", label: "All JMS status" }, "Pending", "Signed", "Disputed"]} /></>} right={<span className="text-[12px]">{rows.length} entries</span>} />
         <DataTable rows={rows} onRow={(m) => setOpenMb(m.id)} columns={[
