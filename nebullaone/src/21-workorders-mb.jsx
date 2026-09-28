@@ -154,8 +154,7 @@ function WorkOrdersPage() {
         <StatTile tone="cyan" label="Lump Sum" value={st.workOrders.filter((w) => w.type === "Lump Sum").length} icon={Icon.target} />
         <StatTile tone="red" label="Behind schedule" value={st.workOrders.filter((w) => ["Issued", "In Progress"].includes(w.status) && woProgress(st, w).spi < 0.8).length} sub="SPI < 0.8" icon={Icon.warning} />
       </StatGrid>
-      <Toolbar left={<FilterSelect label="Type" value={type} onChange={setType} options={[{ value: "All", label: "All types" }, "Item-Rate", "Lump Sum"]} />} right={<span className="text-[12px]">{rows.length} work orders</span>} />
-      <DataTable rows={rows} onRow={(w) => setOpen(w.id)} columns={[
+      <DataTable noun="work orders" filters={<FilterSelect label="Type" value={type} onChange={setType} options={[{ value: "All", label: "All types" }, "Item-Rate", "Lump Sum"]} />} rows={rows} onRow={(w) => setOpen(w.id)} columns={[
         { key: "id", label: "WO", className: "mono text-[12px] text-ink-soft" },
         { key: "title", label: "Title", className: "font-medium" },
         { key: "v", label: "Contractor", render: (w) => vendorName(st, w.vendorId) },
@@ -262,8 +261,7 @@ function MeasurementBookPage() {
       </StatGrid>
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "mb", label: "Measurement book", icon: Icon.book }, { id: "jms", label: "Joint measurement sheets", icon: Icon.users }, { id: "abs", label: "Abstract by item", icon: Icon.sheet }]} />
       {tab === "mb" && <>
-        <Toolbar left={<><FilterSelect label="Work order" value={wo} onChange={setWo} options={woOpts} /><FilterSelect label="JMS" value={jms} onChange={setJms} options={[{ value: "All", label: "All JMS status" }, "Pending", "Signed", "Disputed"]} /></>} right={<span className="text-[12px]">{rows.length} entries</span>} />
-        <DataTable rows={rows} onRow={(m) => setOpenMb(m.id)} columns={[
+        <DataTable noun="measurements" filters={<><FilterSelect label="Work order" value={wo} onChange={setWo} options={woOpts} /><FilterSelect label="JMS" value={jms} onChange={setJms} options={[{ value: "All", label: "All JMS status" }, "Pending", "Signed", "Disputed"]} /></>} rows={rows} onRow={(m) => setOpenMb(m.id)} columns={[
           { key: "id", label: "MB no.", className: "mono text-[12px]" },
           { key: "date", label: "Date", render: (m) => fmtDate(m.date) },
           { key: "wo", label: "WO", className: "mono text-[12px]", render: (m) => m.woId },
@@ -276,9 +274,7 @@ function MeasurementBookPage() {
         ]} />
       </>}
       {tab === "jms" && <>
-        <Toolbar left={<span className="text-[12.5px] text-ink-soft">Engineer and contractor representative sign together; disputed entries can be re-measured with a corrected quantity.</span>}
-          right={<Btn variant="primary" size="sm" icon={Icon.check} disabled={!sel.length} onClick={() => setSign({ ids: sel, rep: "", eng: currentUser() })}>Sign selected ({sel.length})</Btn>} />
-        <DataTable rows={pendingRows} onRow={(m) => setOpenMb(m.id)} empty={<EmptyState icon={Icon.check} title="All measurements are jointly signed" />} columns={[
+        <DataTable noun="pending entries" filters={<span className="text-[12.5px] text-ink-soft">Engineer and contractor representative sign together; disputed entries can be re-measured with a corrected quantity.</span>} actions={<Btn variant="primary" size="sm" icon={Icon.check} disabled={!sel.length} onClick={() => setSign({ ids: sel, rep: "", eng: currentUser() })}>Sign selected ({sel.length})</Btn>} rows={pendingRows} onRow={(m) => setOpenMb(m.id)} empty={<EmptyState icon={Icon.check} title="All measurements are jointly signed" />} columns={[
           { key: "sel", label: "", render: (m) => <input type="checkbox" className="h-4 w-4 accent-[#0b5ed7]" checked={sel.includes(m.id)} onClick={(e) => e.stopPropagation()} onChange={(e) => setSel(e.target.checked ? [...sel, m.id] : sel.filter((x) => x !== m.id))} /> },
           { key: "id", label: "MB no.", className: "mono text-[12px]" }, { key: "wo", label: "WO", render: (m) => `${m.woId} · ${vendorName(st, byId(st.workOrders, m.woId).vendorId)}` },
           { key: "item", label: "Item", className: "max-w-[240px] truncate", render: (m) => lineName(m) }, { key: "loc", label: "Location", className: "max-w-[180px] truncate", render: (m) => m.location },

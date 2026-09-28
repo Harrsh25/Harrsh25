@@ -6,44 +6,27 @@ const contractorVendors = (st) => st.vendors.filter((v) => v.isContractor || v.t
 // ---------------------------------------------------------------- onboarding
 function OnboardingPage() {
   const st = useStore();
-  const [reg, setReg] = y.useState(false), [open, setOpen] = y.useState(null), [full, setFull] = y.useState(null);
+  const [reg, setReg] = y.useState(false), [open, setOpen] = y.useState(null), [full, setFull] = y.useState(null), [stageF, setStageF] = y.useState("All");
   const list = contractorVendors(st).filter((v) => !["Blacklisted", "Disabled"].includes(v.status));
   const col = (stage) => list.filter((v) => onboardingStage(v) === stage);
-  const toneOf = { Documents: "border-t-amber-400", "Under Review": "border-t-blue-400", Mobilising: "border-t-violet-400", Onboarded: "border-t-green-500" };
   return (
     <Page title="Contractor Onboarding" subtitle="Registration → statutory documents → approvals → mobilisation checklist" icon={Icon.userPlus}
       actions={<Btn variant="primary" icon={Icon.userPlus} onClick={() => setReg(true)}>Onboard contractor</Btn>}>
       <StatGrid>
         {ONBOARD_STAGES.map((s, i) => <StatTile key={s} tone={["amber", "blue", "purple", "green"][i]} label={s} value={col(s).length} icon={[Icon.folder, Icon.clipboardCheck, Icon.hardHat, Icon.userCheck][i]} />)}
       </StatGrid>
-      <div className="grid flex-1 grid-cols-4 gap-3 bg-gray-50/60 p-4">
-        {ONBOARD_STAGES.map((stage) => (
-          <div key={stage} className={cls("flex min-h-[260px] flex-col rounded-xl border border-t-4 border-line bg-white", toneOf[stage])}>
-            <p className="flex items-center justify-between px-3 py-2 text-[13px] font-semibold">{stage}<span className="rounded-full bg-gray-100 px-2 text-[11.5px] text-ink-soft">{col(stage).length}</span></p>
-            <div className="flex-1 space-y-2 px-2 pb-2">
-              {col(stage).map((v) => {
-                const docsOk = v.docs.filter((d) => d.status === "Verified").length, docsN = requiredDocs(v).length;
-                const ck = v.onboarding?.checklist || [];
-                const pending = v.approval.stages.find((s) => s.status === "Pending");
-                return (
-                  <button key={v.id} onClick={() => setOpen(v.id)} className="block w-full rounded-lg border border-line bg-white p-3 text-left shadow-sm hover:border-brand">
-                    <p className="text-[13px] font-semibold leading-tight">{v.name}</p>
-                    <p className="mt-0.5 text-[11.5px] text-ink-mute">{v.id} · {v.categories.slice(0, 2).join(", ")}</p>
-                    <div className="mt-2 space-y-1 text-[11.5px] text-ink-soft">
-                      <p className="flex justify-between"><span>Documents</span><span className={cls("num", docsOk < docsN && "text-amber-600")}>{docsOk}/{docsN}</span></p>
-                      {stage === "Under Review" && pending && <p className="flex justify-between"><span>With</span><span className="font-medium text-blue-700">{pending.dept}</span></p>}
-                      {(stage === "Mobilising" || stage === "Onboarded") && <p className="flex justify-between"><span>Checklist</span><span className="num">{ck.filter((c) => c.done).length}/{ck.length}</span></p>}
-                      {v.contractor?.workforce ? <p className="flex justify-between"><span>Workforce</span><span className="num">{v.contractor.workforce}</span></p> : null}
-                    </div>
-                    {complianceOf(v).status !== "Compliant" && stage === "Onboarded" && <p className="mt-2"><Status>{complianceOf(v).status}</Status></p>}
-                  </button>
-                );
-              })}
-              {col(stage).length === 0 && <p className="px-2 py-6 text-center text-[12px] text-ink-faint">Nothing here</p>}
-            </div>
-          </div>
-        ))}
-      </div>
+      <DataTable noun="contractors" placeholder="Search contractor, trade…"
+        filters={<FilterSelect label="Stage" value={stageF} onChange={setStageF} options={[{ value: "All", label: "All stages" }, ...ONBOARD_STAGES.map((x, k) => ({ value: x, label: x, tone: ["amber", "blue", "purple", "green"][k] }))]} />}
+        rows={list.filter((v) => stageF === "All" || onboardingStage(v) === stageF)} onRow={(v) => setOpen(v.id)} columns={[
+        { key: "n", label: "Contractor", className: "font-medium", render: (v) => v.name },
+        { key: "t", label: "Trades", render: (v) => <CategoryChips list={v.categories} /> },
+        { key: "st", label: "Stage", render: (v) => { const s0 = onboardingStage(v); return <Status tone={{ Documents: "amber", "Under Review": "blue", Mobilising: "purple", Onboarded: "green", Rejected: "red" }[s0]}>{s0}</Status>; } },
+        { key: "d", label: "Documents", render: (v) => { const ok = v.docs.filter((d) => d.status === "Verified").length, n = requiredDocs(v).length; return <span className="flex items-center gap-2"><span className="h-1.5 w-16 overflow-hidden rounded-full bg-gray-200"><span className={cls("block h-full rounded-full", ok >= n ? "bg-green-500" : "bg-amber-500")} style={{ width: `${(ok / (n || 1)) * 100}%` }} /></span><span className="num text-[12px] text-ink-soft">{ok}/{n}</span></span>; } },
+        { key: "a", label: "Approval", render: (v) => { const pnd = v.approval.stages.find((x) => x.status === "Pending"); return pnd ? <span>With <b className="font-medium text-blue-700">{pnd.dept}</b></span> : v.status === "Active" || v.status === "On Hold" ? <span className="text-green-700">Approved</span> : <span className="text-ink-mute">{v.status}</span>; } },
+        { key: "c", label: "Mobilisation checklist", render: (v) => { const ck = v.onboarding?.checklist || []; const done = ck.filter((x) => x.done).length; return ck.length ? <span className="flex items-center gap-2"><span className="h-1.5 w-16 overflow-hidden rounded-full bg-gray-200"><span className="block h-full rounded-full bg-violet-500" style={{ width: `${(done / ck.length) * 100}%` }} /></span><span className="num text-[12px] text-ink-soft">{done}/{ck.length}</span></span> : <span className="text-ink-faint">—</span>; } },
+        { key: "w", label: "Workforce", align: "right", num: true, render: (v) => v.contractor?.workforce || "—" },
+        { key: "cp", label: "Compliance", render: (v) => <Status>{complianceOf(v).status}</Status> },
+      ]} />
       <RegisterVendorModal open={reg} contractorMode onClose={() => setReg(false)} onCreated={setOpen} />
       {open && <OnboardingDrawer vendorId={open} onClose={() => setOpen(null)} onFull={(tab) => { setFull({ id: open, tab }); setOpen(null); }} />}
       {full && <VendorDrawer vendorId={full.id} initialTab={full.tab} onClose={() => setFull(null)} />}
@@ -257,8 +240,7 @@ function ContractsPage() {
           </div>
         </div>
       )}
-      <Toolbar left={<FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Draft", "Active", "Expiring", "In DLP", "Completed", "Closed"]} />} right={<span className="text-[12px]">{rows.length} contracts</span>} />
-      <DataTable rows={rows} onRow={(c) => setOpen(c.id)} columns={[
+      <DataTable noun="contracts" filters={<FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Draft", "Active", "Expiring", "In DLP", "Completed", "Closed"]} />} rows={rows} onRow={(c) => setOpen(c.id)} columns={[
         { key: "id", label: "Contract", className: "mono text-[12px] text-ink-soft" },
         { key: "title", label: "Title", className: "font-medium" },
         { key: "v", label: "Contractor", render: (c) => vendorName(st, c.vendorId) },

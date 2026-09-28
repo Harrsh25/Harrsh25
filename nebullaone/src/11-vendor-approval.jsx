@@ -189,7 +189,7 @@ function VendorApprovalsPage() {
       </StatGrid>
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "queue", label: "Approval queue", icon: Icon.clipboardList }, { id: "scores", label: "Qualification results", icon: Icon.listChecks }]} />
       {tab === "queue" && (
-        <DataTable rows={queue} onRow={(v) => setOpen(v.id)} empty={<EmptyState icon={Icon.check} title="Approval queue is clear" text="New registrations will show up here." />} columns={[
+        <DataTable noun="vendors" rows={queue} onRow={(v) => setOpen(v.id)} empty={<EmptyState icon={Icon.check} title="Approval queue is clear" text="New registrations will show up here." />} columns={[
           { key: "name", label: "Vendor", className: "font-medium" },
           { key: "type", label: "Type", render: (v) => <VendorTypeTag v={v} /> },
           { key: "stage", label: "Routing", render: (v) => (
@@ -218,7 +218,7 @@ function VendorApprovalsPage() {
         </div>
       )}
       {tab === "scores" && (
-        <DataTable rows={st.vendors.filter((v) => v.qualification)} onRow={(v) => setOpen(v.id)} columns={[
+        <DataTable noun="vendors" rows={st.vendors.filter((v) => v.qualification)} onRow={(v) => setOpen(v.id)} columns={[
           { key: "name", label: "Vendor", className: "font-medium" },
           { key: "sets", label: "Rule sets", render: (v) => <span className="text-[12px] text-ink-soft">{v.qualification.ruleSet}</span> },
           { key: "score", label: "Score", render: (v) => <ScoreBadge value={v.qualification.score} /> },

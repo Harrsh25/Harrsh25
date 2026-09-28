@@ -215,7 +215,7 @@ function ApprovalManagementPage() {
       {!module ? <EmptyState icon={Icon.shieldCheck} title="Select a module" text="Approvals are grouped by the module they come from. Pick one from the selector above to load its queue." />
         : rows.length === 0 ? <EmptyState icon={Icon.folderCheck} title="Nothing to approve" text={`There are no ${module} items waiting in your queue.`} />
         : (
-          <DataTable rows={rows} rowKey={(r) => r.ref} onRow={(r) => r.open && setOpen(r.open)} columns={[
+          <DataTable noun="items" rows={rows} rowKey={(r) => r.ref} onRow={(r) => r.open && setOpen(r.open)} columns={[
             { key: "ref", label: "Reference", className: "mono text-[12px]" },
             { key: "title", label: "Title", render: (r) => <span className="flex flex-col"><span className="font-medium">{r.title}</span>{r.sub && <span className="text-[11.5px] text-ink-mute">{r.sub}</span>}</span> },
             ...(isNew ? [{ key: "extra", label: "Details", className: "text-[12px] text-ink-soft" }] : []),

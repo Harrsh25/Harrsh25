@@ -589,8 +589,7 @@ function RfqPage() {
         {tile("Late", "red", Icon.warning, "Past due, not awarded")}
         {tile("Done", "green", Icon.check, "")}
       </StatGrid>
-      <Toolbar left={<span className="text-[12.5px] text-ink-soft">{filter === "All" ? "All RFQs" : `Showing: ${filter}`} {filter !== "All" && <button className="ml-2 text-brand" onClick={() => setFilter("All")}>Clear</button>}</span>} right={<span className="text-[12px]">{rows.length} RFQs</span>} />
-      <DataTable rows={rows} onRow={(r) => { setCompose(false); setOpen(r.id); }} columns={[
+      <DataTable noun="RFQs" filters={<span className="text-[12.5px] text-ink-soft">{filter === "All" ? "All RFQs" : `Showing: ${filter}`} {filter !== "All" && <button className="ml-2 text-brand" onClick={() => setFilter("All")}>Clear</button>}</span>} rows={rows} onRow={(r) => { setCompose(false); setOpen(r.id); }} columns={[
         { key: "title", label: "Requirement", className: "font-medium" },
         { key: "project", label: "Project" },
         { key: "mode", label: "Mode", render: (r) => modeLabel(r.mode) },

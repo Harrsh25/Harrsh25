@@ -271,7 +271,7 @@ function PurchaseOrdersPage() {
         <StatTile tone="red" label="Late deliveries" value={live.filter((p) => !["Received", "Draft"].includes(poStatus(p)) && daysUntil(p.deliveryDate) < 0).length} icon={Icon.clock} />
         <StatTile tone="green" label="Fully received" value={live.filter((p) => poStatus(p) === "Received").length} icon={Icon.check} />
       </StatGrid>
-      <DataTable rows={st.purchaseOrders} onRow={(p) => setOpen(p.id)} columns={[
+      <DataTable noun="purchase orders" rows={st.purchaseOrders} onRow={(p) => setOpen(p.id)} columns={[
         { key: "v", label: "Vendor", render: (p) => <span className="font-medium">{vendorName(st, p.vendorId)}</span> },
         { key: "items", label: "Items · project", render: (p) => <TwoLine a={itemsSummary(p.lines)} b={p.project} /> },
         { key: "src", label: "Source", render: (p) => { const [a, b] = poSourceText(st, p); return <TwoLine a={a} b={b} />; } },
@@ -309,7 +309,7 @@ function BlanketOrdersPage() {
         <StatTile tone="green" label="Drawn down" value={inrShort(sum(st.blanketOrders, used))} icon={Icon.package} />
         <StatTile tone="amber" label="Expiring ≤ 60 days" value={st.blanketOrders.filter((b) => { const d = daysUntil(b.deadline); return d >= 0 && d <= 60; }).length} icon={Icon.calendarClock} />
       </StatGrid>
-      <DataTable rows={st.blanketOrders} onRow={(b) => setOpen(b.id)} empty={<EmptyState icon={Icon.layers} title="No blanket orders" text="Create one for materials you buy repeatedly from the same vendor." />} columns={[
+      <DataTable noun="agreements" rows={st.blanketOrders} onRow={(b) => setOpen(b.id)} empty={<EmptyState icon={Icon.layers} title="No blanket orders" text="Create one for materials you buy repeatedly from the same vendor." />} columns={[
         { key: "title", label: "Agreement", className: "font-medium" },
         { key: "v", label: "Vendor", render: (b) => vendorName(st, b.vendorId) },
         { key: "val", label: "Value", align: "right", num: true, render: (b) => inrShort(value(b)) },
@@ -699,9 +699,7 @@ function InvoicesPage() {
         <StatTile tone="purple" label="Accrued, not billed" value={inrShort(accrued)} sub="JMS-signed work" icon={Icon.fileClock} />
         <StatTile tone="cyan" label="TDS deducted" value={inrShort(tdsFY)} sub="194C / 194Q" icon={Icon.percent} />
       </StatGrid>
-      <Toolbar left={<FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Unpaid", "Partially Paid", "Overdue", "On Hold", "Paid"]} />}
-        right={<span className="text-[12px]">Tick unpaid bills to include them in a payment run</span>} />
-      <DataTable rows={rows} onRow={(i) => setOpen(i.id)} columns={[
+      <DataTable noun="bills" summary={(r) => [{ value: inrShort(sum(r, (i) => invoiceTotals(i).balance)), label: "outstanding" }, { value: inrShort(sum(st.vendorAdvances, (a) => a.amount - sum(a.allocated, (x) => x.amount))), label: "unadjusted advances" }]} filters={<><FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Unpaid", "Partially Paid", "Overdue", "On Hold", "Paid"]} /><span className="text-[12px] text-ink-mute">Tick unpaid bills to include them in a payment run</span></>} rows={rows} onRow={(i) => setOpen(i.id)} columns={[
         { key: "sel", label: "", render: (i) => invoiceStatus(i) !== "Paid" && <input type="checkbox" className="h-4 w-4 accent-[#0b5ed7]" checked={sel.includes(i.id)} onClick={(e) => e.stopPropagation()} onChange={(e) => setSel(e.target.checked ? [...sel, i.id] : sel.filter((x) => x !== i.id))} /> },
         { key: "v", label: "Vendor", render: (i) => <span className="font-medium">{vendorName(st, i.vendorId)}</span> },
         { key: "src", label: "Against", render: (i) => { const [a, b] = billAgainst(st, i); return <TwoLine a={a} b={b} />; } },
@@ -713,7 +711,6 @@ function InvoicesPage() {
         { key: "sbp", label: "Should pay", render: (i) => <Status tone={{ Yes: "green", No: "gray", Exception: "amber" }[shouldBePaid(st, i)]}>{shouldBePaid(st, i)}</Status> },
         { key: "s", label: "Status", render: (i) => <Status>{invoiceStatus(i)}</Status> },
       ]} />
-      <PageFooter items={[{ value: rows.length, label: "bills" }, { value: inrShort(sum(rows, (i) => invoiceTotals(i).balance)), label: "outstanding" }, { value: inrShort(sum(st.vendorAdvances, (a) => a.amount - sum(a.allocated, (x) => x.amount))), label: "unadjusted advances" }]} />
       {run && <PayModal invIds={sel} onClose={() => { setRun(false); setSel([]); }} />}
       <NewBillModal open={bill} onClose={() => setBill(false)} />
       {open && <InvoiceDrawer id={open} onClose={() => setOpen(null)} />}
@@ -857,11 +854,11 @@ function SpendByGroup({ onOpenVendor }) {
         <StatTile tone="amber" label="Outstanding (all)" value={inrShort(extTotal.outstanding + intraTotal.outstanding)} icon={Icon.wallet} />
       </div>
       <Section title="Spend by vendor group — external vendors" icon={Icon.layers} actions={<span className="text-[12px] text-ink-mute">Click a group to see its vendors · groups are managed in Procurement Settings</span>}>
-        <DataTable rows={data} rowKey={(r) => r.key} onRow={(r) => setOpenG(r.key)} columns={cols}
+        <DataTable plain rows={data} rowKey={(r) => r.key} onRow={(r) => setOpenG(r.key)} columns={cols}
           footer={<tfoot className="border-t border-line bg-gray-50/60 text-[13px] font-semibold"><tr><td className="px-4 py-2">Total external</td><td className="px-4 py-2 text-right">{extTotal.vendors}</td><td className="num px-4 py-2 text-right">{inrShort(extTotal.committed)}</td><td className="num px-4 py-2 text-right">{inrShort(extTotal.billed)}</td><td className="num px-4 py-2 text-right">{inrShort(extTotal.paid)}</td><td className="num px-4 py-2 text-right">{inrShort(extTotal.outstanding)}</td><td /><td /></tr></tfoot>} />
       </Section>
       <Section title="Inter-company — group companies (reported separately)" icon={Icon.building}>
-        <DataTable rows={intra.map((v) => ({ v, ...spendOf(st, [v]) }))} rowKey={(r) => r.v.id} onRow={(r) => onOpenVendor(r.v.id)}
+        <DataTable plain rows={intra.map((v) => ({ v, ...spendOf(st, [v]) }))} rowKey={(r) => r.v.id} onRow={(r) => onOpenVendor(r.v.id)}
           empty={<p className="p-4 text-[13px] text-ink-mute">No group-company vendors. Set “Internal parent company” on a vendor (Edit details) to mark it as one of ours.</p>} columns={[
           { key: "n", label: "Vendor", render: (r) => <span className="font-medium">{r.v.name}</span> }, { key: "p", label: "Parent (our company)", render: (r) => r.v.parentCompany },
           { key: "c", label: "Committed", align: "right", num: true, render: (r) => inrShort(r.committed) }, { key: "b", label: "Billed", align: "right", num: true, render: (r) => inrShort(r.billed) },

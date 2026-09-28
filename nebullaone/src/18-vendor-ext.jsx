@@ -57,11 +57,12 @@ const cancelInvite = (i) => { setState((s) => (byId(s.invites, i.id).status = "C
 function InvitesTable({ onOpenVendor }) {
   const st = useStore();
   const [share, setShare] = y.useState(null);
-  const [open, setOpen] = y.useState(null);
+  const [open, setOpen] = y.useState(null), [status, setStatus] = y.useState("All");
   const stop = (e) => e.stopPropagation();
+  const rows = st.invites.filter((i) => status === "All" || i.status === status);
   return (
     <>
-      <DataTable rows={st.invites} onRow={(i) => setOpen(i.id)} empty={<EmptyState icon={Icon.mail} title="No invitations yet" text="Use “Invite vendor” to send a personal registration link." />} columns={[
+      <DataTable noun="invitations" placeholder="Search company, e-mail, trade…" filters={<FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Invited", "Registered", "Cancelled"]} />} rows={rows} onRow={(i) => setOpen(i.id)} empty={<EmptyState icon={Icon.mail} title="No invitations yet" text="Use “Invite vendor” to send a personal registration link." />} columns={[
         { key: "name", label: "Company", className: "font-medium" },
         { key: "email", label: "E-mail" },
         { key: "category", label: "Trade", render: (i) => i.category || "—" },

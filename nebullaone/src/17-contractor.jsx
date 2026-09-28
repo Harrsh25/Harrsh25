@@ -163,7 +163,7 @@ function ClaimsTab({ onBill }) {
   const rows = st.claims.slice().reverse();
   return (
     <>
-      <DataTable rows={rows} onRow={(c) => c.status === "Submitted" && setRev(c.id)} empty={<EmptyState icon={Icon.receipt} title="No contractor claims" text="Contractors submit RA claims from the supplier portal (Work orders → Submit RA claim)." />} columns={[
+      <DataTable noun="claims" rows={rows} onRow={(c) => c.status === "Submitted" && setRev(c.id)} empty={<EmptyState icon={Icon.receipt} title="No contractor claims" text="Contractors submit RA claims from the supplier portal (Work orders → Submit RA claim)." />} columns={[
         { key: "id", label: "Claim", className: "mono text-[12px]" },
         { key: "v", label: "Contractor", render: (c) => <span className="font-medium">{vendorName(st, c.vendorId)}</span> },
         { key: "wo", label: "Work order", render: (c) => `${c.woId} · ${byId(st.workOrders, c.woId)?.type}` },
@@ -335,7 +335,7 @@ function LabourAttendancePage() {
           {rows.some((r) => r.unverified) && <Note tone="amber">Verify the contractor-submitted days in the Daily muster tab before posting.</Note>}
         </div>
       )}
-      {tab === "workers" && <DataTable rows={st.workers} columns={[
+      {tab === "workers" && <DataTable noun="workers" rows={st.workers} columns={[
         { key: "id", label: "ID", className: "mono text-[12px]" }, { key: "name", label: "Worker", className: "font-medium" }, { key: "v", label: "Contractor", render: (w) => vendorName(st, w.vendorId) },
         { key: "trade", label: "Trade" }, { key: "skill", label: "Skill" }, { key: "gatePass", label: "Gate pass", className: "mono text-[12px]" },
         { key: "ind", label: "Safety induction", render: (w) => fmtDate(w.inductionOn) },

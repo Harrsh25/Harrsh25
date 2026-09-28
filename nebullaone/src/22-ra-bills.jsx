@@ -224,8 +224,7 @@ function RaBillsPage() {
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "bills", label: "RA bills", icon: Icon.receipt }, { id: "claims", label: "Contractor claims", icon: Icon.hardHat }]} />
       {tab === "claims" && <ClaimsTab onBill={(id) => { setTab("bills"); setOpen(id); }} />}
       {tab === "bills" && <>
-      <Toolbar left={<FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Submitted", "Verified", "Certified", "Approved", "Paid", "Rejected"]} />} right={<span className="text-[12px]">{rows.length} bills</span>} />
-      <DataTable rows={rows} onRow={(b) => setOpen(b.id)} columns={[
+      <DataTable noun="bills" summary={(r) => [{ value: inrShort(sum(r.filter((b) => b.status !== "Rejected"), (b) => b.gross)), label: "gross" }, { value: inrShort(sum(r.filter((b) => b.status !== "Rejected"), (b) => b.net)), label: "net" }]} filters={<FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Submitted", "Verified", "Certified", "Approved", "Paid", "Rejected"]} />} rows={rows} onRow={(b) => setOpen(b.id)} columns={[
         { key: "id", label: "Bill", className: "mono text-[12px] text-ink-soft" },
         { key: "seq", label: "RA no.", render: (b) => <span>RA-{b.seq}{b.claimId && <span className="ml-1 text-[11px] text-ink-mute">from {b.claimId}</span>}</span> },
         { key: "wo", label: "Work order", render: (b) => <span><span className="mono text-[12px]">{b.woId}</span> · {vendorName(st, b.vendorId)}</span> },
@@ -236,7 +235,6 @@ function RaBillsPage() {
         { key: "n", label: "Net payable", align: "right", num: true, render: (b) => <b>{inr(b.net)}</b> },
         { key: "s", label: "Status", render: (b) => <Status>{b.status}</Status> },
       ]} />
-      <PageFooter items={[{ value: rows.length, label: "bills" }, { value: inrShort(sum(rows.filter((b) => b.status !== "Rejected"), (b) => b.gross)), label: "gross" }, { value: inrShort(sum(rows.filter((b) => b.status !== "Rejected"), (b) => b.net)), label: "net" }]} />
       </>}
       {prep && <PrepareBillModal woId={presetWo} onClose={() => setPrep(false)} onCreated={setOpen} />}
       {open && <RaBillDrawer id={open} onClose={() => setOpen(null)} />}
@@ -266,7 +264,7 @@ function RetentionPage() {
       </StatGrid>
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "ledger", label: "Contract ledger", icon: Icon.book }, { id: "rel", label: "Retention releases", icon: Icon.lock }, { id: "ded", label: "Deduction register", icon: Icon.listChecks }]} />
       {tab === "ledger" && (
-        <DataTable rows={ledgers} rowKey={(l) => l.c.id} columns={[
+        <DataTable noun="contracts" rows={ledgers} rowKey={(l) => l.c.id} columns={[
           { key: "c", label: "Contract", render: (l) => <span><span className="mono text-[12px]">{l.c.id}</span> · {vendorName(st, l.c.vendorId)}</span> },
           { key: "s", label: "Status", render: (l) => <Status>{contractStatus(l.c)}</Status> },
           { key: "g", label: "Gross billed", align: "right", num: true, render: (l) => inrShort(l.gross) },
@@ -280,7 +278,7 @@ function RetentionPage() {
         ]} footer={<tfoot><tr className="bg-gray-50 font-semibold"><Td>Total</Td><Td /><Td align="right" className="num">{inrShort(T("gross"))}</Td><Td align="right" className="num">{inrShort(T("retentionHeld"))}</Td><Td align="right" className="num">{inrShort(T("released"))}</Td><Td align="right" className="num">{inrShort(T("retentionBalance"))}</Td><Td align="right" className="num">{inrShort(T("advanceGiven"))}</Td><Td align="right" className="num">{inrShort(T("recovered"))}</Td><Td align="right" className="num">{inrShort(T("advanceBalance"))}</Td><Td /></tr></tfoot>} />
       )}
       {tab === "rel" && (
-        <DataTable rows={st.retentionReleases} empty={<EmptyState icon={Icon.lock} title="No release requests" text="Retention can be released after the defect liability period, or earlier against a bank guarantee." />} columns={[
+        <DataTable noun="releases" rows={st.retentionReleases} empty={<EmptyState icon={Icon.lock} title="No release requests" text="Retention can be released after the defect liability period, or earlier against a bank guarantee." />} columns={[
           { key: "id", label: "Request", className: "mono text-[12px]" },
           { key: "c", label: "Contract", render: (r) => `${r.contractId} · ${vendorName(st, byId(st.contracts, r.contractId).vendorId)}` },
           { key: "type", label: "Basis" }, { key: "note", label: "Note", className: "whitespace-normal text-[12px] text-ink-soft" },
@@ -291,7 +289,7 @@ function RetentionPage() {
         ]} />
       )}
       {tab === "ded" && (
-        <DataTable rows={dedRows} columns={[
+        <DataTable noun="deductions" rows={dedRows} columns={[
           { key: "id", label: "Bill", className: "mono text-[12px]" }, { key: "c", label: "Contract", className: "mono text-[12px]", render: (b) => b.contractId },
           { key: "v", label: "Contractor", render: (b) => vendorName(st, b.vendorId) },
           { key: "g", label: "Gross", align: "right", num: true, render: (b) => inrShort(b.gross) },

@@ -101,7 +101,7 @@ function ScorecardPage() {
       </StatGrid>
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "scores", label: "Scorecard", icon: Icon.gauge }, { id: "trend", label: "Monthly scores", icon: Icon.calendar }, { id: "bench", label: "Category benchmark", icon: Icon.chart }, { id: "spend", label: "Spend by group", icon: Icon.layers }, { id: "caps", label: "Corrective actions", icon: Icon.clipboardList }, { id: "model", label: "Metric model", icon: Icon.sliders }]} />
       {tab === "scores" && (
-        <DataTable rows={rows.sort((a, b) => (b.score ?? -1) - (a.score ?? -1))} rowKey={(r) => r.v.id} onRow={(r) => setOpen(r.v.id)} columns={[
+        <DataTable noun="vendors" rows={rows.sort((a, b) => (b.score ?? -1) - (a.score ?? -1))} rowKey={(r) => r.v.id} onRow={(r) => setOpen(r.v.id)} columns={[
           { key: "name", label: "Vendor", render: (r) => <span className="font-medium">{r.v.name}</span> },
           { key: "cat", label: "Category", render: (r) => primaryCategory(r.v) },
           { key: "score", label: "Score", render: (r) => <ScoreBadge value={r.score} /> },
@@ -125,8 +125,7 @@ function ScorecardPage() {
         const tone = (x) => (x == null ? "text-ink-faint" : x >= 80 ? "text-green-700" : x >= 65 ? "text-blue-700" : x >= 50 ? "text-amber-700" : "text-red-600");
         return (
           <>
-            <Toolbar left={<span className="text-[12.5px] text-ink-soft">Scored per month from the ratings and deliveries recorded in that month (ERPNext-style evaluation periods). “—” means no activity.</span>} />
-            <DataTable rows={rows.filter((r) => r.score != null)} rowKey={(r) => r.v.id} onRow={(r) => setOpen(r.v.id)} columns={[
+            <DataTable noun="vendors" filters={<span className="text-[12.5px] text-ink-soft">Scored per month from the ratings and deliveries recorded in that month (ERPNext-style evaluation periods). “—” means no activity.</span>} rows={rows.filter((r) => r.score != null)} rowKey={(r) => r.v.id} onRow={(r) => setOpen(r.v.id)} columns={[
               { key: "n", label: "Vendor", render: (r) => <span className="font-medium">{r.v.name}</span> },
               ...months.map((m) => ({ key: m, label: lbl(m), align: "center", render: (r) => { const x = periodScore(st, r.v.id, m); return <span className={cls("num font-medium", tone(x))}>{x == null ? "—" : Math.round(x)}</span>; } })),
               { key: "c", label: "Current", render: (r) => <ScoreBadge value={r.score} /> },
@@ -146,7 +145,7 @@ function ScorecardPage() {
       )}
       {tab === "spend" && <SpendByGroup onOpenVendor={setOpen} />}
       {tab === "caps" && (
-        <DataTable rows={st.caps} empty={<EmptyState icon={Icon.check} title="No corrective action plans" text="Issue a CAP from the scorecard when a vendor falls below the CAP threshold." />} columns={[
+        <DataTable noun="corrective actions" rows={st.caps} empty={<EmptyState icon={Icon.check} title="No corrective action plans" text="Issue a CAP from the scorecard when a vendor falls below the CAP threshold." />} columns={[
           { key: "id", label: "CAP", className: "mono text-[12px]" },
           { key: "v", label: "Vendor", render: (c) => <span className="font-medium">{vendorName(st, c.vendorId)}</span> },
           { key: "issue", label: "Issue", className: "whitespace-normal" },

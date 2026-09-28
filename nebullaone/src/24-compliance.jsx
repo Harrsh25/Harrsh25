@@ -200,7 +200,7 @@ function CompliancePage() {
   const st = useStore();
   const [tab, setTab] = y.useState("vendors");
   const [open, setOpen] = useQueryOpen();
-  const [flt, setFlt] = y.useState("All"), [bucket, setBucket] = y.useState("All"), [q, setQ] = y.useState("");
+  const [flt, setFlt] = y.useState("All"), [bucket, setBucket] = y.useState("All");
   const [rej, setRej] = y.useState(null);
   const set0 = settingsOf(st);
   const live = st.vendors.filter((v) => !["Blacklisted", "Disabled", "Rejected", "Draft"].includes(v.status));
@@ -216,7 +216,7 @@ function CompliancePage() {
   const counts = { Compliant: 0, Expiring: 0, "Non-Compliant": 0 };
   rows.forEach((r) => counts[r.c.status]++);
   const blocked = rows.filter((r) => r.c.blocking.length).length;
-  const vendorRows = rows.filter((r) => (flt === "All" || (flt === "Blocked" ? r.c.blocking.length > 0 : r.c.status === flt)) && (!q || r.v.name.toLowerCase().includes(q.toLowerCase())));
+  const vendorRows = rows.filter((r) => (flt === "All" || (flt === "Blocked" ? r.c.blocking.length > 0 : r.c.status === flt)));
   const insRows = rows.flatMap((r) => insuranceCheck(r.v).map((c) => ({ ...r, ins: c, key: r.v.id + c.rule.type })));
   const mutDoc = (v, name, fn, action) => setState((s) => fn(byId(s.vendors, v.id).docs.find((d) => d.name === name)), { entity: "Vendor", id: v.id, action });
   const mutPol = (v, p, fn, action) => setState((s) => fn(byId(s.vendors, v.id).insurance.find((i) => i === p || (i.id && i.id === p.id) || i.policy === p.policy)), { entity: "Vendor", id: v.id, action });
@@ -234,10 +234,7 @@ function CompliancePage() {
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "vendors", label: "Vendors", icon: Icon.building }, { id: "exp", label: "Expiring & expired", icon: Icon.fileClock },
         { id: "verify", label: "Verification queue", icon: Icon.clipboardCheck }, { id: "ins", label: "Insurance", icon: Icon.shield }, { id: "req", label: "Requirements", icon: Icon.sliders }]} />
       {tab === "vendors" && <>
-        <Toolbar left={<><SearchBox value={q} onChange={setQ} placeholder="Search vendor" />
-          <FilterSelect label="Status" value={flt} onChange={setFlt} options={[{ value: "All", label: "All statuses" }, "Compliant", { value: "Expiring", label: "Attention needed" }, "Non-Compliant", { value: "Blocked", label: "Payments blocked" }]} /></>}
-          right={<span className="text-[12px]">{vendorRows.length} vendors</span>} />
-        <DataTable rows={vendorRows} rowKey={(r) => r.v.id} onRow={(r) => setOpen(r.v.id)} columns={[
+        <DataTable noun="vendors" filters={<FilterSelect label="Status" value={flt} onChange={setFlt} options={[{ value: "All", label: "All statuses" }, "Compliant", { value: "Expiring", label: "Attention needed" }, "Non-Compliant", { value: "Blocked", label: "Payments blocked" }]} />} rows={vendorRows} rowKey={(r) => r.v.id} onRow={(r) => setOpen(r.v.id)} columns={[
           { key: "n", label: "Vendor", className: "font-medium", render: (r) => r.v.name },
           { key: "s", label: "Status", render: (r) => <Status>{r.c.status}</Status> },
           { key: "d", label: "Documents", render: (r) => { const d = r.c.items.filter((i) => i.kind === "Document"); const ok = d.filter((i) => i.level === 0).length; return <Progress value={Math.round((ok / (d.length || 1)) * 100)} color={ok === d.length ? "bg-green-500" : "bg-amber-500"} />; } },
@@ -249,11 +246,9 @@ function CompliancePage() {
         ]} />
       </>}
       {tab === "exp" && <>
-        <Toolbar left={<div className="flex gap-1.5">{["All", "Expired", "≤ 30 days", "31–60 days", "61–90 days"].map((b) => {
+        <DataTable noun="items" filters={<div className="flex gap-1.5">{["All", "Expired", "≤ 30 days", "31–60 days", "61–90 days"].map((b) => {
           const n = b === "All" ? null : allItems.filter((x) => x.item.expiry && bucketOf(daysUntil(x.item.expiry)) === b).length;
-          return <button key={b} onClick={() => setBucket(b)} className={cls("rounded-full border px-3 py-1 text-[12.5px]", bucket === b ? "border-brand bg-brand-soft text-brand" : "border-line text-ink-soft hover:border-gray-300")}>{b}{n !== null ? ` · ${n}` : ""}</button>; })}</div>}
-          right={<span className="text-[12px]">Next 90 days</span>} />
-        <DataTable rows={expRows} rowKey={(x) => x.key} onRow={(x) => setOpen(x.v.id)} empty={<EmptyState icon={Icon.check} title="Nothing expiring in this window" />} columns={[
+          return <button key={b} onClick={() => setBucket(b)} className={cls("rounded-full border px-3 py-1 text-[12.5px]", bucket === b ? "border-brand bg-brand-soft text-brand" : "border-line text-ink-soft hover:border-gray-300")}>{b}{n !== null ? ` · ${n}` : ""}</button>; })}</div>} rows={expRows} rowKey={(x) => x.key} onRow={(x) => setOpen(x.v.id)} empty={<EmptyState icon={Icon.check} title="Nothing expiring in this window" />} columns={[
           { key: "v", label: "Vendor", className: "font-medium", render: (x) => x.v.name },
           { key: "n", label: "Document / policy", render: (x) => x.item.name },
           { key: "k", label: "Type", render: (x) => x.item.kind },
@@ -265,7 +260,7 @@ function CompliancePage() {
         ]} />
       </>}
       {tab === "verify" && (
-        <DataTable rows={queue} rowKey={(x) => x.key} onRow={(x) => setOpen(x.v.id)} empty={<EmptyState icon={Icon.check} title="Nothing waiting for verification" text="New uploads from vendors and your team appear here." />} columns={[
+        <DataTable noun="uploads" rows={queue} rowKey={(x) => x.key} onRow={(x) => setOpen(x.v.id)} empty={<EmptyState icon={Icon.check} title="Nothing waiting for verification" text="New uploads from vendors and your team appear here." />} columns={[
           { key: "v", label: "Vendor", className: "font-medium", render: (x) => x.v.name },
           { key: "n", label: "Document / policy", render: (x) => x.name },
           { key: "k", label: "Type", render: (x) => x.kind },
@@ -281,7 +276,7 @@ function CompliancePage() {
         ]} />
       )}
       {tab === "ins" && (
-        <DataTable rows={insRows} rowKey={(r) => r.key} onRow={(r) => setOpen(r.v.id)} empty={<EmptyState icon={Icon.shield} title="No insurance requirements apply" />} columns={[
+        <DataTable noun="requirements" rows={insRows} rowKey={(r) => r.key} onRow={(r) => setOpen(r.v.id)} empty={<EmptyState icon={Icon.shield} title="No insurance requirements apply" />} columns={[
           { key: "v", label: "Vendor", className: "font-medium", render: (r) => r.v.name },
           { key: "t", label: "Required coverage", render: (r) => r.ins.rule.type },
           { key: "m", label: "Minimum", align: "right", num: true, render: (r) => inrShort(r.ins.rule.min) },

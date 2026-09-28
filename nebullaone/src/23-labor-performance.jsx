@@ -68,6 +68,11 @@ function LaborRatesPage() {
   const pending = st.laborRates.filter((r) => r.status === "Pending Approval");
   const below = active.filter((r) => r.rate < r.minWage);
   const labourItems = st.workOrders.filter((w) => w.type === "Item-Rate" && w.status !== "Draft").flatMap((wo) => wo.items.filter((i) => i.unit === "man-day").map((i) => ({ wo, i, card: matchRate(st, wo, i) })));
+  const rateFilters = <>
+          <FilterSelect label="Region" value={region} onChange={setRegion} options={[{ value: "All", label: "All regions" }, ...REGIONS]} />
+          <FilterSelect label="Skill" value={skill} onChange={setSkill} options={[{ value: "All", label: "All skills" }, ...SKILLS]} />
+          <FilterSelect label="Source" value={src} onChange={setSrc} options={[{ value: "All", label: "Standard + contractor" }, { value: "Standard", label: "Standard only" }, ...contractorVendors(st).filter((v) => st.laborRates.some((r) => r.vendorId === v.id)).map((v) => ({ value: v.id, label: v.name }))]} />
+        </>;
   const cols = [
     { key: "id", label: "Card", className: "mono text-[12px] text-ink-soft" },
     { key: "trade", label: "Trade", className: "font-medium" },
@@ -91,19 +96,12 @@ function LaborRatesPage() {
         <StatTile tone="green" label="Avg. margin over min. wage" value={`${(sum(active, margin) / (active.length || 1)).toFixed(1)}%`} icon={Icon.trending} />
       </StatGrid>
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "cards", label: "Rate cards", icon: Icon.sheet }, { id: "pending", label: "Pending approval", icon: Icon.clipboardCheck }, { id: "check", label: "Work order rate check", icon: Icon.scale }, { id: "hist", label: "Revision history", icon: Icon.fileClock }]} />
-      {(tab === "cards" || tab === "hist") && (
-        <Toolbar left={<>
-          <FilterSelect label="Region" value={region} onChange={setRegion} options={[{ value: "All", label: "All regions" }, ...REGIONS]} />
-          <FilterSelect label="Skill" value={skill} onChange={setSkill} options={[{ value: "All", label: "All skills" }, ...SKILLS]} />
-          <FilterSelect label="Source" value={src} onChange={setSrc} options={[{ value: "All", label: "Standard + contractor" }, { value: "Standard", label: "Standard only" }, ...contractorVendors(st).filter((v) => st.laborRates.some((r) => r.vendorId === v.id)).map((v) => ({ value: v.id, label: v.name }))]} />
-        </>} />
-      )}
-      {tab === "cards" && <DataTable rows={filt(active)} onRow={(r) => setOpenR(r.id)} columns={[...cols, { key: "a", label: "", align: "right", render: (r) => <span onClick={(e) => e.stopPropagation()}><Btn size="sm" icon={Icon.pencil} onClick={() => setEdit(r)}>Revise</Btn></span> }]} />}
-      {tab === "pending" && <DataTable rows={pending} onRow={(r) => setOpenR(r.id)} empty={<EmptyState icon={Icon.check} title="No revisions awaiting approval" />} columns={[...cols,
+      {tab === "cards" && <DataTable noun="rate cards" filters={rateFilters} rows={filt(active)} onRow={(r) => setOpenR(r.id)} columns={[...cols, { key: "a", label: "", align: "right", render: (r) => <span onClick={(e) => e.stopPropagation()}><Btn size="sm" icon={Icon.pencil} onClick={() => setEdit(r)}>Revise</Btn></span> }]} />}
+      {tab === "pending" && <DataTable noun="revisions" rows={pending} onRow={(r) => setOpenR(r.id)} empty={<EmptyState icon={Icon.check} title="No revisions awaiting approval" />} columns={[...cols,
         { key: "cur", label: "Current rate", align: "right", num: true, render: (r) => { const c = active.find((a) => rateKey(a) === rateKey(r)); return c ? <span>{inr(c.rate)} <span className={cls("text-[11px]", r.rate > c.rate ? "text-red-600" : "text-green-600")}>({r.rate > c.rate ? "+" : ""}{pct(r.rate - c.rate, c.rate)}%)</span></span> : "new"; } },
         { key: "why", label: "Reason", className: "whitespace-normal text-[12px] text-ink-soft", render: (r) => r.reason || "—" },
         { key: "a", label: "", align: "right", render: (r) => <span className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}><Btn size="sm" variant="success" onClick={() => approveRate(r, true)}>Approve</Btn><Btn size="sm" variant="danger" onClick={() => approveRate(r, false)}>Reject</Btn></span> }]} />}
-      {tab === "check" && <DataTable rows={labourItems} rowKey={(r) => r.wo.id + r.i.id} empty={<EmptyState icon={Icon.hardHat} title="No man-day items on work orders" />} columns={[
+      {tab === "check" && <DataTable noun="items" rows={labourItems} rowKey={(r) => r.wo.id + r.i.id} empty={<EmptyState icon={Icon.hardHat} title="No man-day items on work orders" />} columns={[
         { key: "wo", label: "Work order", render: (r) => <span><span className="mono text-[12px]">{r.wo.id}</span> · {vendorName(st, r.wo.vendorId)}</span> },
         { key: "i", label: "Item", render: (r) => r.i.desc },
         { key: "reg", label: "Wage zone", render: (r) => PROJECT_REGION[r.wo.project] },
@@ -113,7 +111,7 @@ function LaborRatesPage() {
         { key: "res", label: "Check", render: (r) => !r.card ? <Status tone="gray">No card</Status> : r.i.rate < r.card.minWage ? <Status tone="red">Below min. wage</Status> : r.i.rate > r.card.rate ? <Status tone="amber">{`Above card by ${pct(r.i.rate - r.card.rate, r.card.rate)}%`}</Status> : <Status tone="green">Within card</Status> },
         { key: "v", label: "Value at risk", align: "right", num: true, render: (r) => (r.card && r.i.rate > r.card.rate ? inr((r.i.rate - r.card.rate) * r.i.qty) : "—") },
       ]} />}
-      {tab === "hist" && <DataTable onRow={(r) => setOpenR(r.id)} rows={filt(st.laborRates).slice().sort((a, b) => rateKey(a).localeCompare(rateKey(b)) || b.version - a.version)} columns={[...cols, { key: "s", label: "Status", render: (r) => <Status>{r.status}</Status> }]} />}
+      {tab === "hist" && <DataTable noun="versions" filters={rateFilters} onRow={(r) => setOpenR(r.id)} rows={filt(st.laborRates).slice().sort((a, b) => rateKey(a).localeCompare(rateKey(b)) || b.version - a.version)} columns={[...cols, { key: "s", label: "Status", render: (r) => <Status>{r.status}</Status> }]} />}
       {edit && <RateModal base={edit.id ? edit : null} onClose={() => setEdit(null)} />}
       {openR && (() => {
         const r = byId(st.laborRates, openR); if (!r) return null;
@@ -207,7 +205,7 @@ function PerformancePage() {
         <StatTile tone="purple" label="Work done, unbilled" value={inrShort(sum(live, (x) => x.p.measured - x.p.billed))} icon={Icon.fileClock} />
       </StatGrid>
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "progress", label: "Work order progress", icon: Icon.trending }, { id: "chart", label: "Planned vs actual", icon: Icon.chart }, { id: "score", label: "Contractor scorecard", icon: Icon.gauge }, { id: "log", label: "Ratings log", icon: Icon.star }]} />
-      {tab === "progress" && <DataTable rows={live} rowKey={(x) => x.wo.id} onRow={(x) => setOpen(x.wo.id)} columns={[
+      {tab === "progress" && <DataTable noun="work orders" rows={live} rowKey={(x) => x.wo.id} onRow={(x) => setOpen(x.wo.id)} columns={[
         { key: "id", label: "WO", className: "mono text-[12px] text-ink-soft", render: (x) => x.wo.id },
         { key: "t", label: "Scope", className: "max-w-[240px] truncate font-medium", render: (x) => <span title={x.wo.title}>{x.wo.title}</span> },
         { key: "v", label: "Contractor", render: (x) => vendorName(st, x.wo.vendorId) },
@@ -219,7 +217,7 @@ function PerformancePage() {
         { key: "s", label: "Status", render: (x) => <Status tone={{ "On Track": "green", "At Risk": "amber", Delayed: "red" }[progressStatus(x.p)]}>{progressStatus(x.p)}</Status> },
       ]} />}
       {tab === "chart" && <PlanVsActual rows={live} />}
-      {tab === "score" && <DataTable rows={rowsC} rowKey={(r) => r.v.id} onRow={(r) => setVd(r.v.id)} columns={[
+      {tab === "score" && <DataTable noun="contractors" rows={rowsC} rowKey={(r) => r.v.id} onRow={(r) => setVd(r.v.id)} columns={[
         { key: "n", label: "Contractor", render: (r) => <span className="font-medium">{r.v.name}</span> },
         { key: "w", label: "WOs", align: "center", render: (r) => r.wos.length },
         { key: "val", label: "Value", align: "right", num: true, render: (r) => inrShort(r.value) },
@@ -234,7 +232,7 @@ function PerformancePage() {
         { key: "cap", label: "", render: (r) => (r.caps ? <Status tone="amber">{`${r.caps} open CAP`}</Status> : null) },
         { key: "a", label: "", align: "right", render: (r) => <Btn size="sm" icon={Icon.star} onClick={(e) => { e.stopPropagation(); setRate({ vendorId: r.v.id }); }}>Rate</Btn> },
       ]} />}
-      {tab === "log" && <DataTable rows={st.ratings.slice().reverse()} columns={[
+      {tab === "log" && <DataTable noun="ratings" rows={st.ratings.slice().reverse()} columns={[
         { key: "p", label: "Period", render: (r) => r.period }, { key: "v", label: "Contractor", render: (r) => <span className="font-medium">{vendorName(st, r.vendorId)}</span> },
         { key: "w", label: "WO", className: "mono text-[12px]", render: (r) => r.woId || "—" },
         { key: "q", label: "Quality", render: (r) => <Stars value={r.quality} /> }, { key: "s", label: "Safety", render: (r) => <Stars value={r.safety} /> }, { key: "m", label: "Manpower", render: (r) => <Stars value={r.manpower} /> },

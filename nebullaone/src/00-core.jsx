@@ -377,6 +377,14 @@ function FilterSelect({ value, onChange, options, label }) {
     document.addEventListener("mousedown", off); document.addEventListener("keydown", esc);
     return () => { document.removeEventListener("mousedown", off); document.removeEventListener("keydown", esc); };
   }, [open]);
+  const menu = y.useRef(null);
+  const [flip, setFlip] = y.useState(false);
+  y.useLayoutEffect(() => {
+    if (!open) { setFlip(false); return; }
+    if (!menu.current || flip) return;
+    const r = menu.current.getBoundingClientRect();
+    setFlip(r.right > window.innerWidth - 8);
+  }, [open]);
   const opts = options.map((o) => (typeof o === "object" ? o : { value: o, label: o }));
   const cur = opts.find((o) => String(o.value) === String(value)) || opts[0];
   const isAll = (o) => o === opts[0] && /^(all|any)\b/i.test(String(o.label));
@@ -389,14 +397,14 @@ function FilterSelect({ value, onChange, options, label }) {
         {dot(cur)}<span className="truncate">{String(cur.label).trim()}</span>{h(Icon.chevronDown, { size: 13, className: "shrink-0 text-ink-mute" })}
       </button>
       {open && (
-        <div role="listbox" className="absolute left-0 z-50 mt-1 max-h-[320px] min-w-full w-max max-w-[340px] overflow-y-auto rounded-lg border border-line bg-white py-1 shadow-lg">
+        <div ref={menu} role="listbox" className={cls("absolute z-50 mt-1 max-h-[320px] min-w-full w-max max-w-[min(340px,calc(100vw-24px))] overflow-y-auto rounded-lg border border-line bg-white py-1 shadow-lg", flip ? "right-0" : "left-0")}>
           {label && <p className="px-3 pb-1 pt-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-ink-mute">{label}</p>}
           {opts.map((o) => {
             const on = String(o.value) === String(value);
             return (
               <button key={o.value} type="button" role="option" aria-selected={on} onClick={() => { onChange(o.value); setOpen(false); }}
                 className={cls("flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-[13px]", on ? "bg-brand-soft/60 text-brand" : "text-ink hover:bg-gray-50")}>
-                {dot(o)}<span className="flex-1 whitespace-nowrap">{String(o.label).trim()}</span>{on && h(Icon.check, { size: 14, className: "text-brand" })}
+                {dot(o)}<span className="flex-1 truncate">{String(o.label).trim()}</span>{on && h(Icon.check, { size: 14, className: "text-brand" })}
               </button>
             );
           })}
@@ -407,32 +415,63 @@ function FilterSelect({ value, onChange, options, label }) {
 }
 
 // Generic table built on the host's th/td cells
-function DataTable({ columns, rows, onRow, rowKey = (r) => r.id, empty, footer, dense }) {
-  if (!rows.length) return empty || <EmptyState icon={Icon.folder} title="Nothing here yet" text="Records you add will appear in this list." />;
-  return (
-    <div className="overflow-x-auto">
-      <table className={cls("w-full", !dense && "nx-list")}>
-        <thead>
-          <tr>
-            {columns.map((c) => (
-              <Th key={c.key} align={c.align} className={c.thClass}>{c.label}</Th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, i) => (
-            <tr key={rowKey(r, i)} onClick={onRow ? () => onRow(r) : undefined} className={cls("group hover:bg-gray-50", onRow && "cursor-pointer")}>
+// Text used by the list search: every plain value on the row (2 levels deep) plus vendor / work-order names
+function rowSearchText(r, depth = 0) {
+  if (r == null) return "";
+  if (typeof r !== "object") return String(r);
+  if (depth > 2 || Array.isArray(r) && r.length > 50) return "";
+  const out = [];
+  for (const [k, v] of Object.entries(r)) {
+    if (k === "dataUrl" || k === "history" || k === "revisions") continue;
+    if (typeof v === "string" && /vendorId$/i.test(k)) out.push((byId(getState().vendors, v) || {}).name || "");
+    if (typeof v === "string" && k === "woId") out.push((byId(getState().workOrders, v) || {}).title || "");
+    out.push(rowSearchText(v, depth + 1));
+  }
+  return out.join(" ");
+}
+
+// Main list = toolbar (page filters left, search right) + table + bottom bar with the count.
+// dense / plain tables (inside panels and cards) are just the table.
+function DataTable({ columns, rows, onRow, rowKey = (r) => r.id, empty, footer, dense, plain, filters, actions, noun = "records", summary, searchText = rowSearchText, placeholder = "Search…" }) {
+  const list = !dense && !plain;
+  const [q, setQ] = y.useState("");
+  const shown = list && q.trim() ? rows.filter((r) => { const t = searchText(r).toLowerCase(); return q.toLowerCase().split(/\s+/).filter(Boolean).every((w) => t.includes(w)); }) : rows;
+  const table = !shown.length
+    ? (rows.length ? <EmptyState icon={Icon.search} title="No matches" text={`Nothing matches “${q}”. Try another word or clear the search.`} /> : empty || <EmptyState icon={Icon.folder} title="Nothing here yet" text="Records you add will appear in this list." />)
+    : (
+      <div className="overflow-x-auto">
+        <table className={cls("w-full", !dense && "nx-list")}>
+          <thead>
+            <tr>
               {columns.map((c) => (
-                <Td key={c.key} align={c.align} className={cls(c.num && "num", dense && "py-[5px]", c.className)}>
-                  {c.render ? c.render(r, i) : r[c.key]}
-                </Td>
+                <Th key={c.key} align={c.align} className={c.thClass}>{c.label}</Th>
               ))}
             </tr>
-          ))}
-        </tbody>
-        {footer}
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {shown.map((r, i) => (
+              <tr key={rowKey(r, i)} onClick={onRow ? () => onRow(r) : undefined} className={cls("group hover:bg-gray-50", onRow && "cursor-pointer")}>
+                {columns.map((c) => (
+                  <Td key={c.key} align={c.align} className={cls(c.num && "num", dense && "py-[5px]", c.className)}>
+                    {c.render ? c.render(r, i) : r[c.key]}
+                  </Td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+          {footer}
+        </table>
+      </div>
+    );
+  if (!list) return table;
+  const sum$ = typeof summary === "function" ? summary(shown) : summary || [];
+  return (
+    <>
+      <Toolbar left={<div className="flex flex-wrap items-center gap-2">{filters}</div>}
+        right={<div className="flex items-center gap-2">{actions}<SearchBox value={q} onChange={setQ} placeholder={placeholder} /></div>} />
+      {table}
+      <FooterBar items={[{ value: q.trim() ? `${shown.length} of ${rows.length}` : rows.length, label: noun }, ...sum$]} updated={new Date().toLocaleString("en-IN")} />
+    </>
   );
 }
 

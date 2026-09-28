@@ -576,13 +576,13 @@ function AuditList({ items }) {
 // ---------------------------------------------------------------- registry page
 function VendorRegistryPage() {
   const st = useStore();
-  const [q, setQ] = y.useState(""), [type, setType] = y.useState("All"), [status, setStatus] = y.useState("All"), [tier, setTier] = y.useState("All"), [grp, setGrp] = y.useState("All");
+  const [type, setType] = y.useState("All"), [status, setStatus] = y.useState("All"), [tier, setTier] = y.useState("All"), [grp, setGrp] = y.useState("All");
   const groups = settingsOf(st).vendorGroups, roots = [...new Set(groups.map(groupRoot))];
   const [open, setOpen] = y.useState(null), [reg, setReg] = y.useState(false), [share, setShare] = y.useState(false), [invite, setInvite] = y.useState(false), [view, setView] = y.useState("vendors");
   const rows = st.vendors.filter((v) =>
     (type === "All" || v.type === type) && (status === "All" || v.status === status) && (tier === "All" || v.tier === tier) &&
     (grp === "All" || (grp === "__intra" ? isGroupCompany(v) : grp === "__none" ? !v.group : inGroup(v, grp))) &&
-    (!q || [v.name, v.id, v.gstin, v.city, v.group, v.parentCompany, ...v.categories].join(" ").toLowerCase().includes(q.toLowerCase())));
+    true);
   const compIssues = st.vendors.filter((v) => v.status === "Active" && complianceOf(v).status !== "Compliant").length;
   return (
     <Page title="Vendor Registry" subtitle="Vendor master — registration, classification and status" icon={Icon.building}
@@ -615,16 +615,16 @@ function VendorRegistryPage() {
       <TabBar active={view} onChange={setView} tabs={[{ id: "vendors", label: "Vendors", icon: Icon.building }, { id: "invites", label: "Invitations", icon: Icon.mail }]} />
       {view === "invites" && <InvitesTable onOpenVendor={setOpen} />}
       {view === "vendors" && <>
-      <Toolbar left={<>
-        <SearchBox value={q} onChange={setQ} placeholder="Search name, ID, GSTIN, trade" />
+      <DataTable noun="vendors" placeholder="Search name, GSTIN, trade, group…" summary={(r) => [{ value: r.filter((v) => v.preferred).length, label: "preferred", color: "text-amber-600" }]}
+        filters={<>
         <FilterSelect label="Type" value={type} onChange={setType} options={[{ value: "All", label: "All types" }, ...VENDOR_TYPES]} />
         <FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Active", "Pending Approval", "Changes Requested", "Draft", "On Hold", "Blacklisted", "Disabled", "Rejected"]} />
         <FilterSelect label="Tier" value={tier} onChange={setTier} options={[{ value: "All", label: "All tiers" }, ...TIERS]} />
         <FilterSelect label="Group" value={grp} onChange={setGrp} options={[{ value: "All", label: "All groups" },
           ...roots.flatMap((r) => { const kids = groups.filter((g) => g.startsWith(r + " › ")); return [{ value: r, label: kids.length ? `${r} (all)` : r }, ...kids.map((g) => ({ value: g, label: `— ${g.split(" › ")[1]}` }))]; }),
           { value: "__none", label: "Not grouped" }, { value: "__intra", label: "Group companies" }]} />
-      </>} right={<span className="text-[12px]">{rows.length} of {st.vendors.length}</span>} />
-      <DataTable rows={rows} onRow={(v) => setOpen(v.id)} columns={[
+      </>}
+        rows={rows} onRow={(v) => setOpen(v.id)} columns={[
         { key: "name", label: "Vendor", render: (v) => <span className="flex items-center justify-between gap-3 font-medium"><span className="truncate">{v.name}</span><PreferredStar v={v} size={14} /></span> },
         { key: "type", label: "Type", render: (v) => <span className="flex flex-wrap items-center gap-1"><VendorTypeTag v={v} /><GroupCoTag v={v} /></span> },
         { key: "cat", label: "Trades", render: (v) => <CategoryChips list={v.categories} /> },
@@ -634,7 +634,6 @@ function VendorRegistryPage() {
         { key: "score", label: "Score", render: (v) => <ScoreBadge value={vendorScore(st, v.id).score} /> },
         { key: "status", label: "Status", render: (v) => <Status>{v.status}</Status> },
       ]} />
-      <PageFooter items={[{ value: rows.length, label: "vendors" }, { value: rows.filter((v) => v.preferred).length, label: "preferred", color: "text-amber-600" }]} />
       </>}
       {invite && <InviteVendorModal onClose={() => setInvite(false)} />}
       <RegisterVendorModal open={reg} onClose={() => setReg(false)} onCreated={(id) => setOpen(id)} />
