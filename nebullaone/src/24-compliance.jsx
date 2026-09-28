@@ -223,7 +223,7 @@ function CompliancePage() {
   const gateTag = (r) => (r.c.blocking.length ? <Status tone={set0.complianceGate === "Stop" ? "red" : set0.complianceGate === "Warn" ? "amber" : "gray"}>{set0.complianceGate === "Stop" ? "Blocked" : set0.complianceGate === "Warn" ? "Flagged" : "Open (gate off)"}</Status> : <Status tone="green">Open</Status>);
   return (
     <Page title="Compliance Center" subtitle="Vendor documents, insurance, expiry reminders and the payment compliance gate" icon={Icon.shieldCheck}
-      actions={<Btn variant="primary" icon={Icon.mail} disabled={!dueAll.length} onClick={() => sendReminders(dueAll.map((x) => ({ v: x.v, item: x.item })), true)}>Send due reminders ({dueAll.length})</Btn>}>
+      actions={<Btn variant="primary" icon={Icon.mail} disabled={!dueAll.length} onClick={() => sendReminders(dueAll.map((x) => ({ v: x.v, item: x.item })), true)}>Send due reminders</Btn>}>
       <StatGrid cols={5}>
         <StatTile tone="green" label="Compliant" value={counts.Compliant} sub={`of ${rows.length} vendors`} icon={Icon.shieldCheck} />
         <StatTile tone="amber" label="Attention needed" value={counts.Expiring} sub={`Expiring ≤ ${set0.expiryWarnDays} days / unverified`} icon={Icon.clock} />
@@ -237,7 +237,6 @@ function CompliancePage() {
         <DataTable noun="vendors" filters={<FilterSelect label="Status" value={flt} onChange={setFlt} options={[{ value: "All", label: "All statuses" }, "Compliant", { value: "Expiring", label: "Attention needed" }, "Non-Compliant", { value: "Blocked", label: "Payments blocked" }]} />} rows={vendorRows} rowKey={(r) => r.v.id} onRow={(r) => setOpen(r.v.id)} columns={[
           { key: "n", label: "Vendor", className: "font-medium", render: (r) => r.v.name },
           { key: "s", label: "Status", render: (r) => <Status>{r.c.status}</Status> },
-          { key: "d", label: "Documents", render: (r) => { const d = r.c.items.filter((i) => i.kind === "Document"); const ok = d.filter((i) => i.level === 0).length; return <Progress value={Math.round((ok / (d.length || 1)) * 100)} color={ok === d.length ? "bg-green-500" : "bg-amber-500"} />; } },
           { key: "i", label: "Insurance", render: (r) => { const d = r.c.items.filter((i) => i.kind === "Insurance"); if (!d.length) return <span className="text-ink-faint">Not required</span>; const bad = d.filter((i) => i.level === 2).length, att = d.filter((i) => i.level === 1).length; return <Status tone={bad ? "red" : att ? "amber" : "green"}>{bad ? `${bad} failing` : att ? `${att} expiring` : "Met"}</Status>; } },
           { key: "o", label: "Open items", render: (r) => <span className="block max-w-[240px] truncate">{r.c.issues.join(" · ") || "—"}</span> },
           { key: "x", label: "Next expiry", render: (r) => <ExpiryCell iso={r.next} /> },

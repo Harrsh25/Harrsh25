@@ -199,8 +199,6 @@ function VendorApprovalsPage() {
                   s.status === "Approved" ? "bg-green-100 text-green-700" : s.status === "Pending" ? "bg-blue-100 text-blue-700" : s.status === "Changes Requested" ? "bg-amber-100 text-amber-800" : s.status === "Rejected" ? "bg-red-100 text-red-700" : "bg-gray-100 text-ink-mute")}>{s.dept}</span>
               ))}
             </span>) },
-          { key: "docs", label: "Documents", render: (v) => { const n = requiredDocs(v).length, ok = v.docs.filter((d) => d.status === "Verified").length; return <Progress value={Math.round((ok / n) * 100)} color={ok === n ? "bg-green-500" : "bg-amber-500"} />; } },
-          { key: "q", label: "Qualification", render: (v) => (v.qualification ? <ScoreBadge value={v.qualification.score} /> : <span className="text-ink-mute">—</span>) },
           { key: "since", label: "Registered", render: (v) => fmtDate(v.createdAt) },
           { key: "status", label: "Status", render: (v) => <Status>{v.status}</Status> },
         ]} />
