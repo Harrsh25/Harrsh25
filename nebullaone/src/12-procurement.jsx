@@ -264,13 +264,6 @@ function PurchaseOrdersPage() {
   return (
     <Page title="Purchase Orders" subtitle="PO generation, partial deliveries, goods receipt, returns & billing status" icon={Icon.package}
       actions={<Btn variant="primary" icon={Icon.plus} onClick={() => setCreate(true)}>New PO</Btn>}>
-      <StatGrid cols={5}>
-        <StatTile tone="blue" label="Open POs" value={live.filter((p) => !["Received", "Closed", "Draft"].includes(poStatus(p))).length} sub={inrShort(sum(live.filter((p) => poStatus(p) !== "Received"), poValue))} icon={Icon.package} />
-        <StatTile tone="purple" label="Awaiting approval" value={live.filter((p) => p.status === "Draft").length} icon={Icon.clipboardCheck} />
-        <StatTile tone="amber" label="Waiting bills" value={live.filter((p) => ["Waiting Bills", "Partially Billed"].includes(poBillingStatus(st, p))).length} icon={Icon.receipt} />
-        <StatTile tone="red" label="Late deliveries" value={live.filter((p) => !["Received", "Draft"].includes(poStatus(p)) && daysUntil(p.deliveryDate) < 0).length} icon={Icon.clock} />
-        <StatTile tone="green" label="Fully received" value={live.filter((p) => poStatus(p) === "Received").length} icon={Icon.check} />
-      </StatGrid>
       <DataTable noun="purchase orders" rows={st.purchaseOrders} onRow={(p) => setOpen(p.id)} columns={[
         { key: "v", label: "Vendor", filter: (x) => vendorName(st, x.vendorId), render: (p) => <span className="font-medium">{vendorName(st, p.vendorId)}</span> },
         { key: "items", label: "Items · project", filter: (p) => p.project, filterLabel: "Project", render: (p) => <TwoLine a={itemsSummary(p.lines)} b={p.project} /> },
@@ -303,12 +296,6 @@ function BlanketOrdersPage() {
   return (
     <Page title="Blanket Orders" subtitle="Long-term rate agreements — call-off POs draw down the agreed quantity at the agreed rate" icon={Icon.layers}
       actions={<Btn variant="primary" icon={Icon.plus} onClick={() => { setF(blank); setCreate(true); }}>New blanket order</Btn>}>
-      <StatGrid>
-        <StatTile tone="blue" label="Active agreements" value={st.blanketOrders.filter((b) => blanketStatus(st, b) === "Active").length} icon={Icon.layers} />
-        <StatTile tone="purple" label="Agreement value" value={inrShort(sum(st.blanketOrders, value))} icon={Icon.file} />
-        <StatTile tone="green" label="Drawn down" value={inrShort(sum(st.blanketOrders, used))} icon={Icon.package} />
-        <StatTile tone="amber" label="Expiring ≤ 60 days" value={st.blanketOrders.filter((b) => { const d = daysUntil(b.deadline); return d >= 0 && d <= 60; }).length} icon={Icon.calendarClock} />
-      </StatGrid>
       <DataTable noun="agreements" rows={st.blanketOrders} onRow={(b) => setOpen(b.id)} empty={<EmptyState icon={Icon.layers} title="No blanket orders" text="Create one for materials you buy repeatedly from the same vendor." />} columns={[
         { key: "title", label: "Agreement", className: "font-medium" },
         { key: "v", label: "Vendor", filter: (x) => vendorName(st, x.vendorId), render: (b) => vendorName(st, b.vendorId) },
@@ -692,13 +679,6 @@ function InvoicesPage() {
         <Btn icon={Icon.plus} onClick={() => setBill(true)}>Enter vendor bill</Btn>
         <Btn variant="primary" icon={Icon.rupee} disabled={!sel.length} onClick={() => setRun(true)}>Payment run{sel.length ? ` (${sel.length})` : ""}</Btn>
       </>}>
-      <StatGrid cols={5}>
-        <StatTile tone="blue" label="Payable" value={inrShort(sum(open$, (i) => invoiceTotals(i).balance))} sub={`${open$.length} bills`} icon={Icon.wallet} />
-        <StatTile tone="red" label="Overdue" value={inrShort(sum(open$.filter((i) => invoiceStatus(i) === "Overdue"), (i) => invoiceTotals(i).balance))} sub={`${open$.filter((i) => invoiceStatus(i) === "Overdue").length} bills`} icon={Icon.clock} />
-        <StatTile tone="amber" label="Exceptions / on hold" value={`${st.invoices.filter((i) => shouldBePaid(st, i) === "Exception").length} / ${st.invoices.filter((i) => invoiceStatus(i) === "On Hold").length}`} icon={Icon.lock} />
-        <StatTile tone="purple" label="Accrued, not billed" value={inrShort(accrued)} sub="JMS-signed work" icon={Icon.fileClock} />
-        <StatTile tone="cyan" label="TDS deducted" value={inrShort(tdsFY)} sub="194C / 194Q" icon={Icon.percent} />
-      </StatGrid>
       <DataTable noun="bills" summary={(r) => [{ value: inrShort(sum(r, (i) => invoiceTotals(i).balance)), label: "outstanding" }, { value: inrShort(sum(st.vendorAdvances, (a) => a.amount - sum(a.allocated, (x) => x.amount))), label: "unadjusted advances" }]} filters={<><FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Unpaid", "Partially Paid", "Overdue", "On Hold", "Paid"]} /></>} rows={rows} onRow={(i) => setOpen(i.id)} columns={[
         { key: "sel", label: "", render: (i) => invoiceStatus(i) !== "Paid" && <input type="checkbox" className="h-4 w-4 accent-[#0b5ed7]" checked={sel.includes(i.id)} onClick={(e) => e.stopPropagation()} onChange={(e) => setSel(e.target.checked ? [...sel, i.id] : sel.filter((x) => x !== i.id))} /> },
         { key: "v", label: "Vendor", filter: (x) => vendorName(st, x.vendorId), render: (i) => <span className="font-medium">{vendorName(st, i.vendorId)}</span> },
@@ -847,12 +827,6 @@ function SpendByGroup({ onOpenVendor }) {
   ];
   return (
     <div className="space-y-4 p-4">
-      <div className="grid grid-cols-4 gap-3">
-        <StatTile tone="blue" label="External spend (committed)" value={inrShort(extTotal.committed)} sub={`${ext.length} vendors`} icon={Icon.building} />
-        <StatTile tone="purple" label="Vendor groups in use" value={new Set(ext.map((v) => v.group).filter(Boolean)).size} sub={`${ext.filter((v) => !v.group).length} vendors not grouped`} icon={Icon.layers} />
-        <StatTile tone="cyan" label="Inter-company spend" value={inrShort(intraTotal.committed)} sub={`${intra.length} group companies`} icon={Icon.building} />
-        <StatTile tone="amber" label="Outstanding (all)" value={inrShort(extTotal.outstanding + intraTotal.outstanding)} icon={Icon.wallet} />
-      </div>
       <Section title="Spend by vendor group — external vendors" icon={Icon.layers} actions={<span className="text-[12px] text-ink-mute">Click a group to see its vendors · groups are managed in Procurement Settings</span>}>
         <DataTable plain rows={data} rowKey={(r) => r.key} onRow={(r) => setOpenG(r.key)} columns={cols}
           footer={<tfoot className="border-t border-line bg-gray-50/60 text-[13px] font-semibold"><tr><td className="px-4 py-2">Total external</td><td className="px-4 py-2 text-right">{extTotal.vendors}</td><td className="num px-4 py-2 text-right">{inrShort(extTotal.committed)}</td><td className="num px-4 py-2 text-right">{inrShort(extTotal.billed)}</td><td className="num px-4 py-2 text-right">{inrShort(extTotal.paid)}</td><td className="num px-4 py-2 text-right">{inrShort(extTotal.outstanding)}</td><td /><td /></tr></tfoot>} />

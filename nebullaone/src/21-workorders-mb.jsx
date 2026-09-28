@@ -148,12 +148,6 @@ function WorkOrdersPage() {
   return (
     <Page title="Work Orders" subtitle="Lump Sum and Item-Rate work orders issued under contracts" icon={Icon.clipboardList}
       actions={<Btn variant="primary" icon={Icon.plus} onClick={() => setCreate(true)}>Create work order</Btn>}>
-      <StatGrid>
-        <StatTile tone="blue" label="Open work orders" value={st.workOrders.filter((w) => ["Issued", "In Progress"].includes(w.status)).length} sub={inrShort(sum(st.workOrders.filter((w) => ["Issued", "In Progress"].includes(w.status)), woValue))} icon={Icon.clipboardList} />
-        <StatTile tone="purple" label="Item-Rate" value={st.workOrders.filter((w) => w.type === "Item-Rate").length} icon={Icon.ruler} />
-        <StatTile tone="cyan" label="Lump Sum" value={st.workOrders.filter((w) => w.type === "Lump Sum").length} icon={Icon.target} />
-        <StatTile tone="red" label="Behind schedule" value={st.workOrders.filter((w) => ["Issued", "In Progress"].includes(w.status) && woProgress(st, w).spi < 0.8).length} sub="SPI < 0.8" icon={Icon.warning} />
-      </StatGrid>
       <DataTable noun="work orders" filters={<FilterSelect label="Type" value={type} onChange={setType} options={[{ value: "All", label: "All types" }, "Item-Rate", "Lump Sum"]} />} rows={rows} onRow={(w) => setOpen(w.id)} columns={[
         { key: "id", label: "WO", className: "mono text-[12px] text-ink-soft" },
         { key: "title", label: "Title", className: "font-medium" },
@@ -253,12 +247,6 @@ function MeasurementBookPage() {
   return (
     <Page title="Measurement Book" subtitle="Site measurements and joint measurement sheets (JMS) — the basis for every RA bill" icon={Icon.ruler}
       actions={<Btn variant="primary" icon={Icon.plus} onClick={() => setAdd(true)}>Record measurement</Btn>}>
-      <StatGrid>
-        <StatTile tone="blue" label="MB entries" value={st.measurements.length} icon={Icon.book} />
-        <StatTile tone="amber" label="Awaiting JMS" value={st.measurements.filter((m) => m.jms.status === "Pending").length} icon={Icon.clock} />
-        <StatTile tone="red" label="Disputed" value={st.measurements.filter((m) => m.jms.status === "Disputed").length} icon={Icon.warning} />
-        <StatTile tone="green" label="Signed, not yet billed" value={st.measurements.filter((m) => m.jms.status === "Signed" && !m.billedIn).length} icon={Icon.check} />
-      </StatGrid>
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "mb", label: "Measurement book", icon: Icon.book }, { id: "jms", label: "Joint measurement sheets", icon: Icon.users }, { id: "abs", label: "Abstract by item", icon: Icon.sheet }]} />
       {tab === "mb" && <>
         <DataTable noun="measurements" filters={<><FilterSelect label="Work order" value={wo} onChange={setWo} options={woOpts} /><FilterSelect label="JMS" value={jms} onChange={setJms} options={[{ value: "All", label: "All JMS status" }, "Pending", "Signed", "Disputed"]} /></>} rows={rows} onRow={(m) => setOpenMb(m.id)} columns={[

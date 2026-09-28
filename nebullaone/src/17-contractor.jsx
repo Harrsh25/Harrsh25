@@ -306,12 +306,6 @@ function LabourAttendancePage() {
   };
   return (
     <Page title="Labour Attendance" subtitle="Worker-wise daily muster → man-days in the measurement book → RA bill" icon={Icon.users}>
-      <StatGrid>
-        <StatTile tone="blue" label="Workers on roll" value={st.workers.filter((w) => w.active).length} sub={`${new Set(st.workers.map((w) => w.vendorId)).size} contractor(s)`} icon={Icon.users} />
-        <StatTile tone="green" label="Present yesterday" value={today.filter((a) => a.status !== "A").length} sub={`of ${today.length} marked`} icon={Icon.userCheck} />
-        <StatTile tone="amber" label="Unverified days" value={st.attendance.filter((a) => !a.verified && !a.rolledInto).length} sub="Contractor-submitted" icon={Icon.clock} />
-        <StatTile tone="purple" label="Man-days not yet billed" value={num(sum(st.attendance.filter((a) => !a.rolledInto), manDays))} icon={Icon.fileClock} />
-      </StatGrid>
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "muster", label: "Daily muster", icon: Icon.listChecks }, { id: "roll", label: "Roll up to measurement book", icon: Icon.ruler }, { id: "workers", label: "Workers", icon: Icon.hardHat }]} />
       {tab === "muster" && <AttendanceSheet />}
       {tab === "roll" && (

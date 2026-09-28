@@ -93,12 +93,6 @@ function ScorecardPage() {
     <Page title="Vendor Scorecard" subtitle="Weighted KPIs, category benchmarking, auto-block and corrective action" icon={Icon.gauge}
       actions={<><Btn icon={Icon.star} onClick={() => setRate(true)}>Rate performance</Btn>
         <Btn variant="primary" icon={Icon.zap} onClick={() => { const b = evaluateAutoBlock(); toast(b.length ? `${b.length} vendor(s) auto-held` : "No vendor below threshold", b.length ? "red" : "green"); }}>Run auto-block check</Btn></>}>
-      <StatGrid>
-        <StatTile tone="blue" label="Average score" value={scored.length ? (sum(scored, (r) => r.score) / scored.length).toFixed(1) : "—"} sub={`${scored.length} vendors scored`} icon={Icon.gauge} />
-        <StatTile tone="green" label="Band A (≥ 80)" value={scored.filter((r) => r.score >= 80).length} icon={Icon.star} />
-        <StatTile tone="red" label={`Below ${st.scoreConfig.blockThreshold} (block)`} value={scored.filter((r) => r.score < st.scoreConfig.blockThreshold).length} icon={Icon.ban} />
-        <StatTile tone="amber" label="Open CAPs" value={st.caps.filter((c) => c.status === "Open").length} icon={Icon.clipboardList} />
-      </StatGrid>
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "scores", label: "Scorecard", icon: Icon.gauge }, { id: "trend", label: "Monthly scores", icon: Icon.calendar }, { id: "bench", label: "Category benchmark", icon: Icon.chart }, { id: "spend", label: "Spend by group", icon: Icon.layers }, { id: "caps", label: "Corrective actions", icon: Icon.clipboardList }, { id: "model", label: "Metric model", icon: Icon.sliders }]} />
       {tab === "scores" && (
         <DataTable noun="vendors" rows={rows.sort((a, b) => (b.score ?? -1) - (a.score ?? -1))} rowKey={(r) => r.v.id} onRow={(r) => setOpen(r.v.id)} columns={[

@@ -89,12 +89,6 @@ function LaborRatesPage() {
   return (
     <Page title="Labour Rate Management" subtitle="Rate cards by trade, skill and wage zone — versioned, approved and checked against minimum wages" icon={Icon.hardHat}
       actions={<Btn variant="primary" icon={Icon.plus} onClick={() => setEdit({})}>New rate</Btn>}>
-      <StatGrid>
-        <StatTile tone="blue" label="Active rate cards" value={active.length} sub={`${active.filter((r) => r.vendorId).length} contractor-specific`} icon={Icon.sheet} />
-        <StatTile tone="amber" label="Pending approval" value={pending.length} icon={Icon.clipboardCheck} />
-        <StatTile tone="red" label="Below minimum wage" value={below.length} sub="Statutory risk" icon={Icon.warning} />
-        <StatTile tone="green" label="Avg. margin over min. wage" value={`${(sum(active, margin) / (active.length || 1)).toFixed(1)}%`} icon={Icon.trending} />
-      </StatGrid>
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "cards", label: "Rate cards", icon: Icon.sheet }, { id: "pending", label: "Pending approval", icon: Icon.clipboardCheck }, { id: "check", label: "Work order rate check", icon: Icon.scale }, { id: "hist", label: "Revision history", icon: Icon.fileClock }]} />
       {tab === "cards" && <DataTable noun="rate cards" filters={rateFilters} rows={filt(active)} onRow={(r) => setOpenR(r.id)} columns={[...cols, { key: "a", label: "", align: "right", render: (r) => <span onClick={(e) => e.stopPropagation()}><Btn size="sm" icon={Icon.pencil} onClick={() => setEdit(r)}>Revise</Btn></span> }]} />}
       {tab === "pending" && <DataTable noun="revisions" rows={pending} onRow={(r) => setOpenR(r.id)} empty={<EmptyState icon={Icon.check} title="No revisions awaiting approval" />} columns={[...cols,
@@ -197,13 +191,6 @@ function PerformancePage() {
   return (
     <Page title="Performance & Progress" subtitle="Planned vs physical vs financial progress per work order, and contractor scorecards" icon={Icon.trending}
       actions={<Btn variant="primary" icon={Icon.star} onClick={() => setRate({})}>Rate contractor</Btn>}>
-      <StatGrid cols={5}>
-        <StatTile tone="blue" label="Live work orders" value={live.length} sub={inrShort(sum(live, (x) => x.p.value))} icon={Icon.clipboardList} />
-        <StatTile tone="green" label="On track" value={live.filter((x) => progressStatus(x.p) === "On Track").length} sub="SPI ≥ 0.95" icon={Icon.check} />
-        <StatTile tone="amber" label="At risk" value={live.filter((x) => progressStatus(x.p) === "At Risk").length} sub="SPI 0.80–0.95" icon={Icon.warning} />
-        <StatTile tone="red" label="Delayed" value={live.filter((x) => progressStatus(x.p) === "Delayed").length} sub="SPI < 0.80" icon={Icon.clock} />
-        <StatTile tone="purple" label="Work done, unbilled" value={inrShort(sum(live, (x) => x.p.measured - x.p.billed))} icon={Icon.fileClock} />
-      </StatGrid>
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "progress", label: "Work order progress", icon: Icon.trending }, { id: "chart", label: "Planned vs actual", icon: Icon.chart }, { id: "score", label: "Contractor scorecard", icon: Icon.gauge }, { id: "log", label: "Ratings log", icon: Icon.star }]} />
       {tab === "progress" && <DataTable noun="work orders" rows={live} rowKey={(x) => x.wo.id} onRow={(x) => setOpen(x.wo.id)} columns={[
         { key: "id", label: "WO", className: "mono text-[12px] text-ink-soft", render: (x) => x.wo.id },

@@ -12,9 +12,6 @@ function OnboardingPage() {
   return (
     <Page title="Contractor Onboarding" subtitle="Registration → statutory documents → approvals → mobilisation checklist" icon={Icon.userPlus}
       actions={<Btn variant="primary" icon={Icon.userPlus} onClick={() => setReg(true)}>Onboard contractor</Btn>}>
-      <StatGrid>
-        {ONBOARD_STAGES.map((s, i) => <StatTile key={s} tone={["amber", "blue", "purple", "green"][i]} label={s} value={col(s).length} icon={[Icon.folder, Icon.clipboardCheck, Icon.hardHat, Icon.userCheck][i]} />)}
-      </StatGrid>
       <DataTable noun="contractors" placeholder="Search contractor, trade…"
         filters={<FilterSelect label="Stage" value={stageF} onChange={setStageF} options={[{ value: "All", label: "All stages" }, ...ONBOARD_STAGES.map((x, k) => ({ value: x, label: x, tone: ["amber", "blue", "purple", "green"][k] }))]} />}
         rows={list.filter((v) => stageF === "All" || onboardingStage(v) === stageF)} onRow={(v) => setOpen(v.id)} columns={[
@@ -222,12 +219,6 @@ function ContractsPage() {
   return (
     <Page title="Contracts" subtitle="Contract creation, tracking, renewals and change orders" icon={Icon.file}
       actions={<Btn variant="primary" icon={Icon.plus} onClick={() => setCreate(true)}>Create contract</Btn>}>
-      <StatGrid>
-        <StatTile tone="blue" label="Active contract value" value={inrShort(sum(st.contracts.filter((c) => ["Active", "Expiring"].includes(contractStatus(c))), contractValue))} sub={`${st.contracts.filter((c) => ["Active", "Expiring"].includes(contractStatus(c))).length} contracts`} icon={Icon.file} />
-        <StatTile tone="amber" label="Renewals due ≤ 90 days" value={reminders.length} sub={`${reminders.filter((r) => r.d <= 30).length} within 30 days`} icon={Icon.calendarClock} />
-        <StatTile tone="purple" label="Change orders pending" value={sum(st.contracts, (c) => c.changeOrders.filter((o) => o.status === "Pending").length)} icon={Icon.branch} />
-        <StatTile tone="green" label="Billed to date" value={inrShort(sum(st.contracts, (c) => contractLedger(st, c).gross))} icon={Icon.receipt} />
-      </StatGrid>
       {reminders.length > 0 && (
         <div className="border-b border-line px-4 py-3">
           <p className="mb-2 flex items-center gap-2 text-[12.5px] font-semibold"><Icon.calendarClock size={14} className="text-amber-500" /> Renewal reminders (90 / 30-day triggers)</p>

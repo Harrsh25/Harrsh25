@@ -224,13 +224,6 @@ function CompliancePage() {
   return (
     <Page title="Compliance Center" subtitle="Vendor documents, insurance, expiry reminders and the payment compliance gate" icon={Icon.shieldCheck}
       actions={<Btn variant="primary" icon={Icon.mail} disabled={!dueAll.length} onClick={() => sendReminders(dueAll.map((x) => ({ v: x.v, item: x.item })), true)}>Send due reminders</Btn>}>
-      <StatGrid cols={5}>
-        <StatTile tone="green" label="Compliant" value={counts.Compliant} sub={`of ${rows.length} vendors`} icon={Icon.shieldCheck} />
-        <StatTile tone="amber" label="Attention needed" value={counts.Expiring} sub={`Expiring ≤ ${set0.expiryWarnDays} days / unverified`} icon={Icon.clock} />
-        <StatTile tone="red" label="Non-compliant" value={counts["Non-Compliant"]} sub={`${blocked} with payments ${set0.complianceGate === "Stop" ? "blocked" : "flagged"}`} icon={Icon.warning} />
-        <StatTile tone="purple" label="Awaiting verification" value={queue.length} sub="Documents & policies" icon={Icon.clipboardCheck} />
-        <StatTile tone="blue" label="Reminders due" value={dueAll.length} sub={`Schedule: ${set0.reminderDays.join(" / ")} days`} icon={Icon.mail} />
-      </StatGrid>
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "vendors", label: "Vendors", icon: Icon.building }, { id: "exp", label: "Expiring & expired", icon: Icon.fileClock },
         { id: "verify", label: "Verification queue", icon: Icon.clipboardCheck }, { id: "ins", label: "Insurance", icon: Icon.shield }, { id: "req", label: "Requirements", icon: Icon.sliders }]} />
       {tab === "vendors" && <>

@@ -590,27 +590,6 @@ function VendorRegistryPage() {
         <Btn icon={Icon.mail} onClick={() => setInvite(true)}>Invite vendor</Btn>
         <Btn variant="primary" icon={Icon.plus} onClick={() => setReg(true)}>Register vendor</Btn>
       </>}>
-      {view === "invites" ? (() => {
-        const inv = st.invites, open = inv.filter((i) => i.status === "Invited"), reg = inv.filter((i) => i.status === "Registered");
-        const stale = open.filter((i) => daysUntil(i.sentOn) <= -7).length, decided = inv.filter((i) => i.status !== "Cancelled").length;
-        return (
-          <StatGrid cols={5}>
-            <StatTile tone="blue" label="Invitations sent" value={inv.length} sub={`${inv.filter((i) => i.status === "Cancelled").length} cancelled`} icon={Icon.mail} />
-            <StatTile tone="amber" label="Awaiting registration" value={open.length} sub="Link not used yet" icon={Icon.clock} />
-            <StatTile tone="green" label="Registered" value={reg.length} sub="Vendor record created" icon={Icon.check} />
-            <StatTile tone="red" label="No response ≥ 7 days" value={stale} sub="Send a reminder" icon={Icon.warning} />
-            <StatTile tone="purple" label="Conversion" value={`${decided ? Math.round((reg.length / decided) * 100) : 0}%`} sub="Invited → registered" icon={Icon.trending} />
-          </StatGrid>
-        );
-      })() : (
-      <StatGrid cols={5}>
-        <StatTile tone="blue" label="Total vendors" value={st.vendors.length} sub={`${st.vendors.filter((v) => v.isContractor).length} contractors`} icon={Icon.building} />
-        <StatTile tone="green" label="Active" value={st.vendors.filter((v) => v.status === "Active").length} sub="Spend authorized" icon={Icon.check} />
-        <StatTile tone="amber" label="Pending approval" value={st.vendors.filter((v) => v.status === "Pending Approval" || v.status === "Draft").length} sub="Incl. drafts" icon={Icon.clipboardCheck} />
-        <StatTile tone="red" label="Held / blocked" value={st.vendors.filter((v) => ["On Hold", "Blacklisted", "Disabled"].includes(v.status)).length} icon={Icon.lock} />
-        <StatTile tone="orange" label="Compliance issues" value={compIssues} sub="Active vendors" icon={Icon.warning} />
-      </StatGrid>
-      )}
       <TabBar active={view} onChange={setView} tabs={[{ id: "vendors", label: "Vendors", icon: Icon.building }, { id: "invites", label: "Invitations", icon: Icon.mail }]} />
       {view === "invites" && <InvitesTable onOpenVendor={setOpen} />}
       {view === "vendors" && <>

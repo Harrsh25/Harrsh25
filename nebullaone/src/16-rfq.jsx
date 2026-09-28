@@ -583,13 +583,7 @@ function RfqPage() {
   return (
     <Page title="RFQ & Quotations" subtitle="Requests for quotation, vendor responses, comparison and award" icon={Icon.scale}
       actions={<Btn variant="primary" icon={Icon.plus} onClick={() => setCreate(true)}>New RFQ</Btn>}>
-      <StatGrid>
-        {tile("To Send", "blue", Icon.send, "Drafts not e-mailed")}
-        {tile("Waiting", "amber", Icon.clock, "Awaiting vendor quotes")}
-        {tile("Late", "red", Icon.warning, "Past due, not awarded")}
-        {tile("Done", "green", Icon.check, "")}
-      </StatGrid>
-      <DataTable noun="RFQs" filters={<span className="text-[12.5px] text-ink-soft">{filter === "All" ? "All RFQs" : `Showing: ${filter}`} {filter !== "All" && <button className="ml-2 text-brand" onClick={() => setFilter("All")}>Clear</button>}</span>} rows={rows} onRow={(r) => { setCompose(false); setOpen(r.id); }} columns={[
+      <DataTable noun="RFQs" filters={<FilterSelect label="Stage" value={filter} onChange={setFilter} options={[{ value: "All", label: "All stages" }, { value: "To Send", label: "To send", tone: "blue" }, { value: "Waiting", label: "Waiting", tone: "amber" }, { value: "Late", label: "Late", tone: "red" }, { value: "Done", label: "Awarded / closed", tone: "green" }]} />} rows={rows} onRow={(r) => { setCompose(false); setOpen(r.id); }} columns={[
         { key: "title", label: "Requirement", className: "font-medium" },
         { key: "project", label: "Project", filter: true },
         { key: "mode", label: "Mode", filter: (r) => modeLabel(r.mode), render: (r) => modeLabel(r.mode) },

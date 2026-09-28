@@ -214,13 +214,6 @@ function RaBillsPage() {
   return (
     <Page title="RA Bills & Certification" subtitle="Running account bills from the measurement book — verify, certify, approve, pay" icon={Icon.receipt}
       actions={<Btn variant="primary" icon={Icon.plus} onClick={() => setPrep(true)}>Prepare RA bill</Btn>}>
-      <StatGrid cols={5}>
-        <StatTile tone="blue" label="In certification" value={inCert.length} sub={inrShort(sum(inCert, (b) => b.net))} icon={Icon.clipboardCheck} />
-        <StatTile tone="purple" label="Approved, unpaid" value={st.raBills.filter((b) => b.status === "Approved").length} sub={inrShort(sum(st.raBills.filter((b) => b.status === "Approved"), (b) => b.net))} icon={Icon.wallet} />
-        <StatTile tone="green" label="Paid" value={inrShort(sum(st.raBills.filter((b) => b.status === "Paid"), (b) => b.net))} icon={Icon.check} />
-        <StatTile tone="amber" label="Gross certified" value={inrShort(sum(st.raBills.filter((b) => ["Certified", "Approved", "Paid"].includes(b.status)), (b) => b.gross))} icon={Icon.receipt} />
-        <StatTile tone="red" label="Total deductions" value={inrShort(sum(st.raBills.filter((b) => b.status !== "Rejected"), (b) => b.totalDed))} icon={Icon.percent} />
-      </StatGrid>
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "bills", label: "RA bills", icon: Icon.receipt }, { id: "claims", label: "Contractor claims", icon: Icon.hardHat }]} />
       {tab === "claims" && <ClaimsTab onBill={(id) => { setTab("bills"); setOpen(id); }} />}
       {tab === "bills" && <>
@@ -255,13 +248,6 @@ function RetentionPage() {
     <Page title="Retention, Deductions & Advances" subtitle="Retention held and released, advance recovery and every statutory / contractual deduction" icon={Icon.scale}
       actions={<><Btn icon={Icon.plus} onClick={() => setAdv({ contractId: contracts[0]?.id, amount: "", type: "Mobilisation advance", date: todayISO(), ref: "" })}>Record advance</Btn>
         <Btn variant="primary" icon={Icon.lock} onClick={() => setRel({ contractId: contracts.find((c) => contractLedger(st, c).retentionBalance > 0)?.id || "", type: "After DLP", amount: "", note: "" })}>Request retention release</Btn></>}>
-      <StatGrid cols={5}>
-        <StatTile tone="amber" label="Retention held" value={inrShort(T("retentionBalance"))} sub={`${inrShort(T("released"))} released`} icon={Icon.lock} />
-        <StatTile tone="blue" label="Advance outstanding" value={inrShort(T("advanceBalance"))} sub={`of ${inrShort(T("advanceGiven"))} given`} icon={Icon.wallet} />
-        <StatTile tone="purple" label="TDS deducted" value={inrShort(T("tds"))} icon={Icon.percent} />
-        <StatTile tone="cyan" label="Labour cess" value={inrShort(T("cess"))} icon={Icon.hardHat} />
-        <StatTile tone="red" label="Penalties & recoveries" value={inrShort(T("penalty") + T("materials") + T("other"))} icon={Icon.warning} />
-      </StatGrid>
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "ledger", label: "Contract ledger", icon: Icon.book }, { id: "rel", label: "Retention releases", icon: Icon.lock }, { id: "ded", label: "Deduction register", icon: Icon.listChecks }]} />
       {tab === "ledger" && (
         <DataTable noun="contracts" rows={ledgers} rowKey={(l) => l.c.id} columns={[

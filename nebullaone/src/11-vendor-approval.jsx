@@ -183,10 +183,6 @@ function VendorApprovalsPage() {
   const byDept = APPROVAL_FLOW.map((d) => ({ d, n: st.vendors.filter((v) => v.approval.stages.some((s) => s.dept === d && s.status === "Pending")).length }));
   return (
     <Page title="Vendor Approvals" subtitle="Multi-stage approval, qualification rule sets and requalification" icon={Icon.clipboardCheck}>
-      <StatGrid>
-        {byDept.map(({ d, n }, i) => <StatTile key={d} tone={["blue", "purple", "cyan"][i]} label={`Pending — ${d}`} value={n} icon={Icon.clipboardCheck} />)}
-        <StatTile tone="red" label="Sent back" value={st.vendors.filter((v) => v.status === "Rejected").length} sub="Awaiting resubmission" icon={Icon.refresh} />
-      </StatGrid>
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "queue", label: "Approval queue", icon: Icon.clipboardList }, { id: "scores", label: "Qualification results", icon: Icon.listChecks }]} />
       {tab === "queue" && (
         <DataTable noun="vendors" rows={queue} onRow={(v) => setOpen(v.id)} empty={<EmptyState icon={Icon.check} title="Approval queue is clear" text="New registrations will show up here." />} columns={[
