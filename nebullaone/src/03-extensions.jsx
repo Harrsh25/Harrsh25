@@ -17,9 +17,26 @@ const DEFAULT_SETTINGS = {
   overrideRole: "Finance Controller",
   myRole: "Finance Controller",   // demo: role of the signed-in buyer
   quoteLogin: true,               // vendors must sign in (one-time code) to quote
+  // Vendor groups ("Parent › Child") for filtering and spend roll-up
+  vendorGroups: [
+    "Material Suppliers › Steel", "Material Suppliers › Cement", "Material Suppliers › Electrical", "Material Suppliers › General",
+    "Civil Contractors › Structural", "Civil Contractors › Finishing", "EPC Contractors › Transmission", "EPC Contractors › Solar",
+    "Labour Contractors", "Specialist Subcontractors", "Equipment & Services",
+  ],
+  // Our own group companies — vendors linked to one are inter-company suppliers
+  groupCompanies: ["NebullaOne Equipment Pvt Ltd", "NebullaOne Precast Ltd", "NebullaOne Realty Ltd"],
 };
 const ROLES = ["Procurement Executive", "Procurement Head", "Project Manager", "Finance Controller"];
 const settingsOf = (st) => ({ ...DEFAULT_SETTINGS, ...(st.settings || {}) });
+const groupRoot = (g) => (g || "").split(" › ")[0];
+const inGroup = (v, g) => !!v.group && (v.group === g || v.group.startsWith(g + " › "));
+const isGroupCompany = (v) => !!(v && v.parentCompany);
+// options that always include the vendor's current value, even if it was removed from settings
+const withCurrent = (list, cur) => (cur && !list.includes(cur) ? [...list, cur] : list);
+function GroupCoTag({ v }) {
+  if (!isGroupCompany(v)) return null;
+  return <span title={`Group company of ${v.parentCompany} — inter-company supplier`} className="rounded border border-teal-200 bg-teal-50 px-1.5 py-[1px] text-[11px] font-medium text-teal-700">Group co.</span>;
+}
 
 const DEFAULT_STANDINGS = [
   { name: "Excellent", min: 80, max: 100, color: "green", warnRfq: false, warnPo: false, preventRfq: false, preventPo: false },

@@ -58,6 +58,7 @@ function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket }) {
         </div>
         {gate.block && <Note tone="red">{v.name} is in the <b>{gate.standing.name}</b> scorecard standing — new POs are prevented.</Note>}
         {!gate.block && gate.warn && <Note tone="amber">{v.name} is in the <b>{gate.standing.name}</b> scorecard standing — check performance before ordering.</Note>}
+        {isGroupCompany(v) && <Note tone="blue" icon={Icon.building}><b>Group company</b> ({v.parentCompany}) — inter-company purchase: no RFQ or competitive quotes needed. Spend is reported separately under Vendor Scorecard → Spend by group.</Note>}
         {v && v.preferred && !bo && <Note tone="green" icon={Icon.star}>Preferred supplier — pricelist rates from earlier POs are suggested below.</Note>}
         <Section title={bo ? `Lines from ${bo.id} (allowance ${set0.blanketAllowancePct}%)` : "Lines"} actions={!bo && <Btn size="sm" icon={Icon.plus} onClick={() => setF({ ...f, lines: [...f.lines, { desc: "", unit: "nos", qty: "", rate: "" }] })}>Add line</Btn>}>
           <div className="space-y-2 p-3">
@@ -781,7 +782,102 @@ function ProcurementSettingsPage() {
             <div className="col-span-2"><Check checked={f.quoteLogin} onChange={set("quoteLogin")} label="Vendors must sign in (one-time code) to open quote links" /></div>
           </div>
         </Section>
+        <ListEditor title="Vendor groups" icon={Icon.layers} hint={'Use "Parent › Child" (e.g. Material Suppliers › Steel). Picking a parent in filters includes all its children.'}
+          items={f.vendorGroups} onChange={set("vendorGroups")} placeholder="Material Suppliers › Aluminium" usage={(g) => getState().vendors.filter((v) => inGroup(v, g)).length} />
+        <ListEditor title="Our group companies" icon={Icon.building} hint="Vendors linked to one of these are inter-company suppliers: no RFQ needed, spend reported separately."
+          items={f.groupCompanies} onChange={set("groupCompanies")} placeholder="NebullaOne Infra Ltd" usage={(g) => getState().vendors.filter((v) => v.parentCompany === g).length} />
       </div>
     </Page>
+  );
+}
+
+function ListEditor({ title, icon, hint, items, onChange, placeholder, usage }) {
+  const [nv, setNv] = y.useState("");
+  const add = () => { const x = nv.trim().replace(/\s*>\s*/g, " › "); if (x && !items.includes(x)) onChange([...items, x].sort()); setNv(""); };
+  return (
+    <Section title={title} icon={icon}>
+      <p className="border-b border-line px-4 py-2 text-[12px] text-ink-mute">{hint}</p>
+      <ul className="max-h-[260px] divide-y divide-line overflow-y-auto">
+        {items.map((g) => (
+          <li key={g} className="flex items-center justify-between gap-2 px-4 py-1.5 text-[13px]">
+            <span>{g}</span>
+            <span className="flex items-center gap-2"><span className="text-[11.5px] text-ink-mute">{usage(g)} vendor(s)</span>
+              <IconBtn icon={Icon.trash} title={usage(g) ? "In use — vendors keep their value" : "Remove"} onClick={() => onChange(items.filter((x) => x !== g))} /></span>
+          </li>
+        ))}
+      </ul>
+      <div className="flex gap-2 border-t border-line p-3"><TextInput value={nv} onChange={setNv} placeholder={placeholder} onKeyDown={(e) => e.key === "Enter" && add()} /><Btn icon={Icon.plus} disabled={!nv.trim()} onClick={add}>Add</Btn></div>
+      <p className="px-4 pb-3 text-[11.5px] text-ink-mute">Click “Save settings” at the top to keep changes.</p>
+    </Section>
+  );
+}
+
+// Spend roll-up by vendor group, with group companies (inter-company) reported separately
+function spendOf(st, vs) {
+  const ids = new Set(vs.map((v) => v.id));
+  const pos = st.purchaseOrders.filter((p) => ids.has(p.vendorId) && !["Draft", "Cancelled"].includes(p.status));
+  const wos = st.workOrders.filter((w) => ids.has(w.vendorId) && w.status !== "Draft");
+  const invs = st.invoices.filter((i) => ids.has(i.vendorId));
+  const scores = vs.map((v) => vendorScore(st, v.id).score).filter((x) => x != null);
+  return { vendors: vs.length, committed: sum(pos, poValue) + sum(wos, woValue), billed: sum(invs, (i) => invoiceTotals(i).payable), paid: sum(invs, (i) => invoiceTotals(i).paid),
+    outstanding: sum(invs, (i) => invoiceTotals(i).balance), score: scores.length ? sum(scores, (x) => x) / scores.length : null };
+}
+function SpendByGroup({ onOpenVendor }) {
+  const st = useStore();
+  const [openG, setOpenG] = y.useState(null);
+  const ext = st.vendors.filter((v) => !isGroupCompany(v)), intra = st.vendors.filter(isGroupCompany);
+  const groups = [...new Set([...settingsOf(st).vendorGroups, ...ext.map((v) => v.group).filter(Boolean)])];
+  const roots = [...new Set(groups.map(groupRoot))];
+  const rows = [];
+  for (const r of roots) {
+    const kids = groups.filter((g) => g.startsWith(r + " › "));
+    rows.push({ key: r, label: r, level: 0, vs: ext.filter((v) => inGroup(v, r)) });
+    for (const k of kids) rows.push({ key: k, label: k.split(" › ")[1], level: 1, vs: ext.filter((v) => v.group === k) });
+  }
+  rows.push({ key: "__none", label: "Not grouped", level: 0, vs: ext.filter((v) => !v.group) });
+  const data = rows.map((r) => ({ ...r, ...spendOf(st, r.vs) })).filter((r) => r.vendors > 0 || r.level === 0);
+  const extTotal = spendOf(st, ext), intraTotal = spendOf(st, intra);
+  const sel = openG && data.find((r) => r.key === openG);
+  const cols = [
+    { key: "label", label: "Vendor group", render: (r) => <span className={cls(r.level ? "pl-5 text-ink-soft" : "font-semibold")}>{r.level ? "└ " : ""}{r.label}</span> },
+    { key: "vendors", label: "Vendors", align: "right" },
+    { key: "c", label: "Committed (PO + WO)", align: "right", num: true, render: (r) => inrShort(r.committed) },
+    { key: "b", label: "Billed", align: "right", num: true, render: (r) => inrShort(r.billed) },
+    { key: "p", label: "Paid", align: "right", num: true, render: (r) => inrShort(r.paid) },
+    { key: "o", label: "Outstanding", align: "right", num: true, render: (r) => inrShort(r.outstanding) },
+    { key: "sh", label: "Share of external spend", render: (r) => <Progress value={Math.round(pct(r.committed, extTotal.committed))} /> },
+    { key: "s", label: "Avg score", render: (r) => <ScoreBadge value={r.score} /> },
+  ];
+  return (
+    <div className="space-y-4 p-4">
+      <div className="grid grid-cols-4 gap-3">
+        <StatTile tone="blue" label="External spend (committed)" value={inrShort(extTotal.committed)} sub={`${ext.length} vendors`} icon={Icon.building} />
+        <StatTile tone="purple" label="Vendor groups in use" value={new Set(ext.map((v) => v.group).filter(Boolean)).size} sub={`${ext.filter((v) => !v.group).length} vendors not grouped`} icon={Icon.layers} />
+        <StatTile tone="cyan" label="Inter-company spend" value={inrShort(intraTotal.committed)} sub={`${intra.length} group companies`} icon={Icon.building} />
+        <StatTile tone="amber" label="Outstanding (all)" value={inrShort(extTotal.outstanding + intraTotal.outstanding)} icon={Icon.wallet} />
+      </div>
+      <Section title="Spend by vendor group — external vendors" icon={Icon.layers} actions={<span className="text-[12px] text-ink-mute">Click a group to see its vendors · groups are managed in Procurement Settings</span>}>
+        <DataTable rows={data} rowKey={(r) => r.key} onRow={(r) => setOpenG(r.key)} columns={cols}
+          footer={<tfoot className="border-t border-line bg-gray-50/60 text-[13px] font-semibold"><tr><td className="px-4 py-2">Total external</td><td className="px-4 py-2 text-right">{extTotal.vendors}</td><td className="num px-4 py-2 text-right">{inrShort(extTotal.committed)}</td><td className="num px-4 py-2 text-right">{inrShort(extTotal.billed)}</td><td className="num px-4 py-2 text-right">{inrShort(extTotal.paid)}</td><td className="num px-4 py-2 text-right">{inrShort(extTotal.outstanding)}</td><td /><td /></tr></tfoot>} />
+      </Section>
+      <Section title="Inter-company — group companies (reported separately)" icon={Icon.building}>
+        <DataTable rows={intra.map((v) => ({ v, ...spendOf(st, [v]) }))} rowKey={(r) => r.v.id} onRow={(r) => onOpenVendor(r.v.id)}
+          empty={<p className="p-4 text-[13px] text-ink-mute">No group-company vendors. Set “Internal parent company” on a vendor (Edit details) to mark it as one of ours.</p>} columns={[
+          { key: "n", label: "Vendor", render: (r) => <span className="font-medium">{r.v.name}</span> }, { key: "p", label: "Parent (our company)", render: (r) => r.v.parentCompany },
+          { key: "c", label: "Committed", align: "right", num: true, render: (r) => inrShort(r.committed) }, { key: "b", label: "Billed", align: "right", num: true, render: (r) => inrShort(r.billed) },
+          { key: "o", label: "Outstanding", align: "right", num: true, render: (r) => inrShort(r.outstanding) },
+        ]} />
+      </Section>
+      {sel && (
+        <Modal open onClose={() => setOpenG(null)} width={760} title={sel.key === "__none" ? "Vendors not grouped" : sel.key} subtitle={`${sel.vendors} vendor(s) · committed ${inrShort(sel.committed)}`}>
+          <DataTable dense rows={sel.vs.map((v) => ({ v, ...spendOf(st, [v]) }))} rowKey={(r) => r.v.id} onRow={(r) => { setOpenG(null); onOpenVendor(r.v.id); }}
+            empty={<p className="p-4 text-[13px] text-ink-mute">No vendors in this group yet.</p>} columns={[
+            { key: "n", label: "Vendor", render: (r) => <span className="font-medium">{r.v.name}</span> }, { key: "g", label: "Group", className: "text-[12px]", render: (r) => r.v.group || "—" },
+            { key: "c", label: "Committed", align: "right", num: true, render: (r) => inrShort(r.committed) }, { key: "o", label: "Outstanding", align: "right", num: true, render: (r) => inrShort(r.outstanding) },
+            { key: "s", label: "Score", render: (r) => <ScoreBadge value={r.score} /> },
+          ]} />
+        </Modal>
+      )}
+    </div>
   );
 }

@@ -201,7 +201,6 @@ function VendorApprovalsPage() {
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "queue", label: `Approval queue (${queue.length})`, icon: Icon.clipboardList }, { id: "rules", label: "Qualification rule sets", icon: Icon.sliders }, { id: "scores", label: "Qualification results", icon: Icon.listChecks }]} />
       {tab === "queue" && (
         <DataTable rows={queue} onRow={(v) => setOpen(v.id)} empty={<EmptyState icon={Icon.check} title="Approval queue is clear" text="New registrations will show up here." />} columns={[
-          { key: "id", label: "Vendor ID", className: "mono text-[12px] text-ink-soft" },
           { key: "name", label: "Vendor", className: "font-medium" },
           { key: "type", label: "Type", render: (v) => <VendorTypeTag v={v} /> },
           { key: "stage", label: "Routing", render: (v) => (

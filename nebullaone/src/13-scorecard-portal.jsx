@@ -99,7 +99,7 @@ function ScorecardPage() {
         <StatTile tone="red" label={`Below ${st.scoreConfig.blockThreshold} (block)`} value={scored.filter((r) => r.score < st.scoreConfig.blockThreshold).length} icon={Icon.ban} />
         <StatTile tone="amber" label="Open CAPs" value={st.caps.filter((c) => c.status === "Open").length} icon={Icon.clipboardList} />
       </StatGrid>
-      <TabBar active={tab} onChange={setTab} tabs={[{ id: "scores", label: "Scorecard", icon: Icon.gauge }, { id: "trend", label: "Monthly scores", icon: Icon.calendar }, { id: "bench", label: "Category benchmark", icon: Icon.chart }, { id: "caps", label: "Corrective actions", icon: Icon.clipboardList }, { id: "model", label: "Metric model", icon: Icon.sliders }]} />
+      <TabBar active={tab} onChange={setTab} tabs={[{ id: "scores", label: "Scorecard", icon: Icon.gauge }, { id: "trend", label: "Monthly scores", icon: Icon.calendar }, { id: "bench", label: "Category benchmark", icon: Icon.chart }, { id: "spend", label: "Spend by group", icon: Icon.layers }, { id: "caps", label: "Corrective actions", icon: Icon.clipboardList }, { id: "model", label: "Metric model", icon: Icon.sliders }]} />
       {tab === "scores" && (
         <DataTable rows={rows.sort((a, b) => (b.score ?? -1) - (a.score ?? -1))} rowKey={(r) => r.v.id} onRow={(r) => setOpen(r.v.id)} columns={[
           { key: "name", label: "Vendor", render: (r) => <span className="font-medium">{r.v.name}</span> },
@@ -144,6 +144,7 @@ function ScorecardPage() {
           </Section>
         </div>
       )}
+      {tab === "spend" && <SpendByGroup onOpenVendor={setOpen} />}
       {tab === "caps" && (
         <DataTable rows={st.caps} empty={<EmptyState icon={Icon.check} title="No corrective action plans" text="Issue a CAP from the scorecard when a vendor falls below the CAP threshold." />} columns={[
           { key: "id", label: "CAP", className: "mono text-[12px]" },

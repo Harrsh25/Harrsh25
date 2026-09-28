@@ -182,7 +182,7 @@ function PortalBody({ vid, vendorMode }) {
       <div className={cls(tab === "reg" && "p-5")}>
         {tab === "reg" && <RegistrationFix v={v} />}
         {tab === "rfq" && <DataTable rows={rfqs} onRow={(r) => setQuoteFor(r.id)} empty={<EmptyState icon={Icon.scale} title="No RFQs yet" text="Requests for quotation you're invited to will appear here." />} columns={[
-          { key: "id", label: "RFQ", className: "mono text-[12px]" }, { key: "title", label: "Requirement", className: "font-medium" }, { key: "project", label: "Project" },
+          { key: "title", label: "Requirement", className: "font-medium" }, { key: "project", label: "Project" },
           { key: "n", label: "Lines", align: "center", render: (r) => r.items.length },
           { key: "due", label: "Quotes due", render: (r) => <ExpiryCell iso={["Awarded", "Closed"].includes(r.status) ? null : r.dueDate} /> },
           { key: "inv", label: "Invitation", render: (r) => <Status>{(r.responses?.[vid] || {}).status || "Invited"}</Status> },

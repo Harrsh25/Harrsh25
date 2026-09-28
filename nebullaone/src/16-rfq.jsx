@@ -591,7 +591,6 @@ function RfqPage() {
       </StatGrid>
       <Toolbar left={<span className="text-[12.5px] text-ink-soft">{filter === "All" ? "All RFQs" : `Showing: ${filter}`} {filter !== "All" && <button className="ml-2 text-brand" onClick={() => setFilter("All")}>Clear</button>}</span>} right={<span className="text-[12px]">{rows.length} RFQs</span>} />
       <DataTable rows={rows} onRow={(r) => { setCompose(false); setOpen(r.id); }} columns={[
-        { key: "id", label: "RFQ", className: "mono text-[12px] text-ink-soft" },
         { key: "title", label: "Title", className: "font-medium" },
         { key: "project", label: "Project" },
         { key: "mode", label: "Mode" },

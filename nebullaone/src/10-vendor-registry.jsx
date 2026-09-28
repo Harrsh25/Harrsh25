@@ -113,8 +113,8 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
           {!publicMode && <>
           <Field label="Withholding tax (TDS)" span={2}><Select value={f.tds} onChange={(v) => upd("tds", v)} options={TDS_SECTIONS} /></Field>
           <Field label="Supplier tier"><Select value={f.tier} onChange={(v) => upd("tier", v)} options={TIERS} /></Field>
-          <Field label="Vendor group" hint="Parent › child, for roll-up reporting"><TextInput value={f.group} onChange={(v) => upd("group", v)} placeholder="Civil Contractors › Structural" /></Field>
-          <Field label="Internal parent company" hint="Only for group companies"><TextInput value={f.parentCompany} onChange={(v) => upd("parentCompany", v)} placeholder="—" /></Field>
+          <Field label="Vendor group" hint="Used for filters and spend-by-group reports"><Select value={f.group} placeholder="— not grouped —" onChange={(v) => upd("group", v)} options={withCurrent(settingsOf(getState()).vendorGroups, f.group)} /></Field>
+          <Field label="Internal parent company" hint="Set only if this vendor is one of our group companies"><Select value={f.parentCompany} placeholder="— external vendor —" onChange={(v) => upd("parentCompany", v)} options={withCurrent(settingsOf(getState()).groupCompanies, f.parentCompany)} /></Field>
           </>}
         </div>
       </div>
@@ -250,7 +250,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
   ];
   return (
     <Drawer open onClose={onClose} width={880} title={<span className="flex items-center gap-2">{v.name}<PreferredStar v={v} size={16} always /></span>}
-      subtitle={<><span className="mono text-[12px] text-ink-mute">{v.id}</span><span className="text-ink-faint">·</span><VendorTypeTag v={v} /><Status>{v.status}</Status><Status>{v.regTier}</Status><Status>{comp.status}</Status></>}
+      subtitle={<><span className="mono text-[12px] text-ink-mute">{v.id}</span><span className="text-ink-faint">·</span><VendorTypeTag v={v} /><GroupCoTag v={v} /><Status>{v.status}</Status><Status>{v.regTier}</Status><Status>{comp.status}</Status></>}
       actions={<>{canEdit && <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>}</>}
       tabs={{ tabs, active: tab, onChange: setTab }}>
       <div className="space-y-4 px-6 py-5">
@@ -283,8 +283,8 @@ function VendorOverview({ v, comp }) {
         <KV items={[
           ["Legal name", v.legalName], ["Vendor ID", <span className="mono">{v.id}</span>], ["Tier", v.tier], ["Supplier type", v.supplierType || "Company"], ["Source", v.source || "Internal"],
           ["GSTIN", <span className="mono">{v.gstin}</span>], ["PAN", <span className="mono">{v.pan}</span>], ["Currency", v.currency],
-          ["Payment terms", v.paymentTerms], ["TDS", (TDS_SECTIONS.find((t) => t.value === v.tds) || {}).label], ["Vendor group", v.group || "—"],
-          ["Internal parent", v.parentCompany || "—"], ["Registered", fmtDate(v.createdAt)], ["Categories", <CategoryChips list={v.categories} max={4} />],
+          ["Payment terms", v.paymentTerms], ["TDS", (TDS_SECTIONS.find((t) => t.value === v.tds) || {}).label], ["Vendor group", v.group || "Not grouped"],
+          ["Internal parent", v.parentCompany ? <span className="flex items-center gap-1.5">{v.parentCompany}<GroupCoTag v={v} /></span> : "External vendor"], ["Registered", fmtDate(v.createdAt)], ["Categories", <CategoryChips list={v.categories} max={4} />],
         ]} />
       </Section>
       <Section title="Contact" icon={Icon.user}>
@@ -338,6 +338,8 @@ function VendorFlags({ v }) {
           <Field label="Registration tier">
             <Select value={v.regTier} onChange={(t) => edit("regTier", t, `Registration tier → ${t}`)} options={["Prospective", "Spend Authorized"]} />
           </Field>
+          <Field label="Vendor group" hint="Filters & spend-by-group report"><Select value={v.group || ""} placeholder="— not grouped —" onChange={(g) => edit("group", g, g ? `Vendor group → ${g}` : "Removed from vendor group")} options={withCurrent(settingsOf(getState()).vendorGroups, v.group)} /></Field>
+          <Field label="Internal parent company" hint="Only if this vendor is one of our group companies" span={2}><Select value={v.parentCompany || ""} placeholder="— external vendor —" onChange={(g) => edit("parentCompany", g, g ? `Marked as group company of ${g}` : "Marked as external vendor")} options={withCurrent(settingsOf(getState()).groupCompanies, v.parentCompany)} /></Field>
           <Field label="Trades / categories (multi-trade)" span={3}>
             <ChipPicker options={TRADES} value={v.categories} onChange={(c) => edit("categories", c, "Categories updated")} />
           </Field>
@@ -502,11 +504,13 @@ function AuditList({ items }) {
 // ---------------------------------------------------------------- registry page
 function VendorRegistryPage() {
   const st = useStore();
-  const [q, setQ] = y.useState(""), [type, setType] = y.useState("All"), [status, setStatus] = y.useState("All"), [tier, setTier] = y.useState("All");
+  const [q, setQ] = y.useState(""), [type, setType] = y.useState("All"), [status, setStatus] = y.useState("All"), [tier, setTier] = y.useState("All"), [grp, setGrp] = y.useState("All");
+  const groups = settingsOf(st).vendorGroups, roots = [...new Set(groups.map(groupRoot))];
   const [open, setOpen] = y.useState(null), [reg, setReg] = y.useState(false), [share, setShare] = y.useState(false), [invite, setInvite] = y.useState(false), [view, setView] = y.useState("vendors");
   const rows = st.vendors.filter((v) =>
     (type === "All" || v.type === type) && (status === "All" || v.status === status) && (tier === "All" || v.tier === tier) &&
-    (!q || [v.name, v.id, v.gstin, v.city, ...v.categories].join(" ").toLowerCase().includes(q.toLowerCase())));
+    (grp === "All" || (grp === "__intra" ? isGroupCompany(v) : grp === "__none" ? !v.group : inGroup(v, grp))) &&
+    (!q || [v.name, v.id, v.gstin, v.city, v.group, v.parentCompany, ...v.categories].join(" ").toLowerCase().includes(q.toLowerCase())));
   const compIssues = st.vendors.filter((v) => v.status === "Active" && complianceOf(v).status !== "Compliant").length;
   return (
     <Page title="Vendor Registry" subtitle="Vendor master — registration, classification and status" icon={Icon.building}
@@ -530,11 +534,13 @@ function VendorRegistryPage() {
         <FilterSelect label="Type" value={type} onChange={setType} options={[{ value: "All", label: "All types" }, ...VENDOR_TYPES]} />
         <FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Active", "Pending Approval", "Changes Requested", "Draft", "On Hold", "Blacklisted", "Disabled", "Rejected"]} />
         <FilterSelect label="Tier" value={tier} onChange={setTier} options={[{ value: "All", label: "All tiers" }, ...TIERS]} />
+        <FilterSelect label="Group" value={grp} onChange={setGrp} options={[{ value: "All", label: "All groups" },
+          ...roots.flatMap((r) => { const kids = groups.filter((g) => g.startsWith(r + " › ")); return [{ value: r, label: kids.length ? `${r} (all)` : r }, ...kids.map((g) => ({ value: g, label: `— ${g.split(" › ")[1]}` }))]; }),
+          { value: "__none", label: "Not grouped" }, { value: "__intra", label: "Group companies" }]} />
       </>} right={<span className="text-[12px]">{rows.length} of {st.vendors.length}</span>} />
       <DataTable rows={rows} onRow={(v) => setOpen(v.id)} columns={[
-        { key: "id", label: "Vendor ID", className: "mono text-[12px] text-ink-soft" },
-        { key: "name", label: "Vendor", render: (v) => <span className="flex items-center justify-between gap-3 font-medium"><span>{v.name}</span><PreferredStar v={v} size={14} /></span> },
-        { key: "type", label: "Type", render: (v) => <VendorTypeTag v={v} /> },
+        { key: "name", label: "Vendor", render: (v) => <span className="flex items-center justify-between gap-3 font-medium"><span className="flex flex-col"><span>{v.name}</span>{v.group && <span className="text-[11px] font-normal text-ink-mute">{v.group}</span>}</span><PreferredStar v={v} size={14} /></span> },
+        { key: "type", label: "Type", render: (v) => <span className="flex flex-wrap items-center gap-1"><VendorTypeTag v={v} /><GroupCoTag v={v} /></span> },
         { key: "cat", label: "Trades", render: (v) => <CategoryChips list={v.categories} /> },
         { key: "tier", label: "Tier" },
         { key: "reg", label: "Registration", render: (v) => <span className="flex flex-col"><Status>{v.regTier}</Status>{v.source === "Self-registration" && <span className="text-[10.5px] text-ink-mute">self-registered</span>}</span> },
