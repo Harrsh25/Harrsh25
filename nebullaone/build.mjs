@@ -151,6 +151,10 @@ const RAW_CSS = "[role=dialog] .mono{white-space:nowrap}[role=dialog] p.flex.ite
   // Stacked cards always get breathing room, even inside wrappers that don't space their children
   ":not(.grid):not(.flex)>.nx-section+.nx-section{margin-top:16px}" +
   // The list fills the page card, so its horizontal scrollbar sits at the bottom (above the footer) with a sticky header
+  // Sticky first column with a divider after it (Project Center style)
+  ".nx-list .nx-stick{position:sticky;z-index:1;background:#fff}.nx-list tbody tr:hover .nx-stick{background:#f9fafb}" +
+  ".nx-list th.nx-stick,.nx-fill .nx-list thead th.nx-stick{z-index:3}.nx-list .nx-edge{box-shadow:inset -1px 0 0 #e5e7eb}" +
+  ".nx-list td.nx-stick:first-child:not(.nx-edge){width:44px;min-width:44px;max-width:44px}" +
   ".nx-filters>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}" +
   ".shadow-card>.nx-fill{flex:1 1 0;min-height:280px;overflow:auto}.shadow-card>.nx-fill thead th{position:sticky;top:0;z-index:2}";
 html = html.slice(0, styleEnd) + C_BEGIN + extraCss + RAW_CSS + C_END + html.slice(styleEnd);

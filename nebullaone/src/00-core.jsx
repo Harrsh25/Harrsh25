@@ -557,6 +557,9 @@ function rowSearchText(r, depth = 0) {
 const pluralWord = (w) => (/(s|ing|ce|ance|by|pay|ed)$/.test(w) ? w : /(ch|sh|x)$/.test(w) ? w + "es" : /[^aeiou]y$/.test(w) ? w.slice(0, -1) + "ies" : w + "s");
 function DataTable({ columns, rows, onRow, rowKey = (r) => r.id, empty, footer, dense, plain, filters, actions, noun = "records", summary, searchText = rowSearchText, placeholder = "Search…" }) {
   const list = !dense && !plain;
+  // First column stays put while the rest scrolls sideways (a leading checkbox column sticks together with it)
+  const lead = !dense && columns[0] && !columns[0].label && columns.length > 2 ? 1 : 0;
+  const stick = (ci) => (dense || ci > lead ? null : cls("nx-stick", ci === lead && "nx-edge", ci === 1 && lead ? "left-[44px]" : "left-0"));
   const [q, setQ] = y.useState("");
   // Column filters: a column with `filter` (true = row[key], or a function returning a value / list of values) gets its own dropdown
   const [cf, setCf] = y.useState({});
@@ -583,16 +586,16 @@ function DataTable({ columns, rows, onRow, rowKey = (r) => r.id, empty, footer, 
           {list && <colgroup>{columns.map((c) => <col key={c.key} style={{ width: c.width || (c.label ? `${(100 / Math.max(1, columns.filter((x) => x.label).length)).toFixed(2)}%` : c.key === "sel" ? 44 : undefined) }} />)}</colgroup>}
           <thead>
             <tr>
-              {columns.map((c) => (
-                <Th key={c.key} align={c.align} className={c.thClass}>{c.label}</Th>
+              {columns.map((c, ci) => (
+                <Th key={c.key} align={c.align} className={cls(c.thClass, stick(ci))}>{c.label}</Th>
               ))}
             </tr>
           </thead>
           <tbody>
             {shown.map((r, i) => (
               <tr key={rowKey(r, i)} onClick={onRow ? () => onRow(r) : undefined} className={cls("group hover:bg-gray-50", onRow && "cursor-pointer")}>
-                {columns.map((c) => (
-                  <Td key={c.key} align={c.align} className={cls(c.num && "num", dense && "py-[5px]", c.className)}>
+                {columns.map((c, ci) => (
+                  <Td key={c.key} align={c.align} className={cls(c.num && "num", dense && "py-[5px]", c.className, stick(ci))}>
                     {c.render ? c.render(r, i) : r[c.key]}
                   </Td>
                 ))}
