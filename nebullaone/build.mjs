@@ -26,7 +26,7 @@ if (code.includes("</script")) throw new Error("module code must not contain </s
 
 const JS_BEGIN = "/*NXV:BEGIN*/", JS_END = "/*NXV:END*/";
 const block =
-  `${JS_BEGIN}const NxVendor=(()=>{const h=y.createElement,Fragment=y.Fragment;\n${code}\nreturn{routes:NXV_ROUTES,nav:NXV_NAV,publicRoutes:NXV_PUBLIC,ApprovalMgmt:ApprovalManagementPage};})();` +
+  `${JS_BEGIN}const NxVendor=(()=>{const h=y.createElement,Fragment=y.Fragment;\n${code}\nreturn{routes:NXV_ROUTES,nav:NXV_NAV,publicRoutes:NXV_PUBLIC,ApprovalMgmt:ApprovalManagementPage,StatTile};})();` +
   `qx.groups.push(...NxVendor.nav);${JS_END}`;
 html = stripBetween(html, JS_BEGIN, JS_END);
 const anchor = 'const Xu="/productivity";function og(){';
@@ -56,6 +56,24 @@ html = html.replace(/\/\*NXV:AM\*\/[^]*?\/\*NXV:AM-END\*\//, "l.jsx(W0,{})");
 const amRoute = 'path:"approvals/approval-management",element:l.jsx(W0,{})';
 must(html, amRoute);
 html = html.replace(amRoute, () => `path:"approvals/approval-management",element:${AM_BEGIN}l.jsx(NxVendor.ApprovalMgmt,{})${AM_END}`);
+
+// Host UI patches (idempotent: each pair is applied once; re-runs find the patched text)
+const HOST_PATCHES = [
+  // Summary cards everywhere use the compact card from our bundle
+  ['function ue({label:e,value:t,sub:n,icon:r,tone:s}){return l.jsxs("div",{className:R("flex items-start justify-between rounded-xl border px-4 py-3",$x[s]),children:[',
+   'function ue(p){return NxVendor.StatTile(p)}function ue_orig({label:e,value:t,sub:n,icon:r,tone:s}){return l.jsxs("div",{className:R("flex items-start justify-between rounded-xl border px-4 py-3",$x[s]),children:['],
+  // Product chooser: no descriptions, smaller cards
+  ['l.jsx("p",{className:"mt-1.5 text-[13px] leading-5 text-ink-soft",children:r.desc}),', ''],
+  ['className:"mt-10 grid w-full max-w-[900px] gap-5 sm:grid-cols-3"', 'className:"mt-8 grid w-full max-w-[680px] gap-4 sm:grid-cols-3"'],
+  ['className:"group rounded-2xl border border-white bg-white/90 p-6 text-left shadow-[0_8px_30px_rgba(99,102,241,0.08)]', 'className:"group rounded-xl border border-white bg-white/90 px-4 py-4 text-left shadow-[0_8px_30px_rgba(99,102,241,0.08)]'],
+  ['l.jsx("span",{className:`grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br ${r.grad} text-white`,children:l.jsx(r.icon,{size:20})}),l.jsx("h2",{className:"mt-4 text-[16px] font-semibold",children:r.name}),',
+   'l.jsx("span",{className:`grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br ${r.grad} text-white`,children:l.jsx(r.icon,{size:17})}),l.jsx("h2",{className:"mt-3 text-[15px] font-semibold",children:r.name}),'],
+  ['l.jsxs("span",{className:"mt-4 inline-flex items-center gap-1 text-[13px] font-medium text-brand",children:["Open ",l.jsx(Mp,', 'l.jsxs("span",{className:"mt-2 inline-flex items-center gap-1 text-[13px] font-medium text-brand",children:["Open ",l.jsx(Mp,'],
+];
+for (const [from, to] of HOST_PATCHES) {
+  if (html.includes(from)) html = html.replace(from, () => to);
+  else if (!to || !html.includes(to)) { if (to) throw new Error("host patch anchor not found: " + from.slice(0, 70)); }
+}
 
 // ---- 2. CSS (only utilities the original bundle doesn't already ship) ----
 const C_BEGIN = "/*NXV:CSS*/", C_END = "/*NXV:CSS-END*/";

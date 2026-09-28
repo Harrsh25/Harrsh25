@@ -6,7 +6,7 @@
 //   rt footer bar · le status badge · Ws progress bar · Te empty state · R classnames
 //   fn useNavigate · Ht useLocation · Zn Link · at auth store
 
-const Card = B, PageHeader = H, TabBar = nr, Toolbar = se, StatTile = ue, Th = S, Td = g;
+const Card = B, PageHeader = H, TabBar = nr, Toolbar = se, Th = S, Td = g;
 const FooterBar = rt, StatusPill = le, Progress = Ws, EmptyState = Te, cls = R;
 const useNavigate = fn, RouterLink = Zn;
 
@@ -364,15 +364,45 @@ function SearchBox({ value, onChange, placeholder = "Search..." }) {
     </label>
   );
 }
+// Filter dropdown (popover menu): uppercase heading, status-coloured dots, tick on the selected option
+const DOT = { green: "bg-green-500", blue: "bg-blue-500", amber: "bg-amber-500", red: "bg-red-500", purple: "bg-violet-500", cyan: "bg-cyan-500", orange: "bg-orange-500", gray: "bg-gray-400" };
+const EXTRA_DOT = { "attention needed": "amber", "payments blocked": "red", "not grouped": "gray", "group companies": "cyan", ongoing: "blue", "not started": "gray" };
 function FilterSelect({ value, onChange, options, label }) {
+  const [open, setOpen] = y.useState(false);
+  const ref = y.useRef(null);
+  y.useEffect(() => {
+    if (!open) return;
+    const off = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const esc = (e) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", off); document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", off); document.removeEventListener("keydown", esc); };
+  }, [open]);
+  const opts = options.map((o) => (typeof o === "object" ? o : { value: o, label: o }));
+  const cur = opts.find((o) => String(o.value) === String(value)) || opts[0];
+  const isAll = (o) => o === opts[0] && /^(all|any)\b/i.test(String(o.label));
+  const tone = (o) => (isAll(o) ? null : o.tone || TONE[String(o.label).toLowerCase()] || TONE[String(o.value).toLowerCase()] || EXTRA_DOT[String(o.label).toLowerCase()] || "gray");
+  const dot = (o) => { const t = tone(o); return <span className={cls("h-2 w-2 shrink-0 rounded-full", t ? DOT[t] : "border border-gray-300 bg-white")} />; };
   return (
-    <select aria-label={label} className="h-[28px] rounded-md border border-line bg-white px-2 text-[13px] text-ink outline-none"
-      value={value} onChange={(e) => onChange(e.target.value)}>
-      {options.map((o) => {
-        const v = typeof o === "object" ? o.value : o, l2 = typeof o === "object" ? o.label : o;
-        return <option key={v} value={v}>{l2}</option>;
-      })}
-    </select>
+    <div ref={ref} className="relative">
+      <button type="button" aria-label={label} aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((o) => !o)}
+        className={cls("flex h-[28px] max-w-[260px] items-center gap-2 rounded-md border bg-white px-2.5 text-[13px] text-ink", open ? "border-brand ring-2 ring-brand/15" : "border-line hover:border-gray-300")}>
+        {dot(cur)}<span className="truncate">{String(cur.label).trim()}</span>{h(Icon.chevronDown, { size: 13, className: "shrink-0 text-ink-mute" })}
+      </button>
+      {open && (
+        <div role="listbox" className="absolute left-0 z-50 mt-1 max-h-[320px] min-w-full w-max max-w-[340px] overflow-y-auto rounded-lg border border-line bg-white py-1 shadow-lg">
+          {label && <p className="px-3 pb-1 pt-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-ink-mute">{label}</p>}
+          {opts.map((o) => {
+            const on = String(o.value) === String(value);
+            return (
+              <button key={o.value} type="button" role="option" aria-selected={on} onClick={() => { onChange(o.value); setOpen(false); }}
+                className={cls("flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-[13px]", on ? "bg-brand-soft/60 text-brand" : "text-ink hover:bg-gray-50")}>
+                {dot(o)}<span className="flex-1 whitespace-nowrap">{String(o.label).trim()}</span>{on && h(Icon.check, { size: 14, className: "text-brand" })}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -406,8 +436,27 @@ function DataTable({ columns, rows, onRow, rowKey = (r) => r.id, empty, footer, 
   );
 }
 
+// Classes used by host patches in build.mjs (kept here so Tailwind generates them):
+// mt-8 max-w-[680px] gap-4 rounded-xl px-4 py-4 h-9 w-9 rounded-lg mt-3 text-[15px] mt-2
+// Compact KPI card (dashboard style) — also replaces the host's summary card on every page
+const CARD_TONE = {
+  blue: "from-blue-500 to-blue-600", green: "from-emerald-500 to-green-600", amber: "from-amber-500 to-orange-500", red: "from-rose-500 to-red-600",
+  purple: "from-violet-500 to-indigo-500", cyan: "from-teal-500 to-cyan-600", orange: "from-orange-500 to-orange-600", gray: "from-slate-500 to-slate-600",
+};
+function StatTile({ label, value, sub, icon, tone = "blue" }) {
+  return (
+    <div className={cls("flex min-w-0 items-center gap-2.5 rounded-lg bg-gradient-to-br px-3 py-2 text-white shadow-sm", CARD_TONE[tone] || CARD_TONE.blue)}>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[11px] font-medium text-white/85">{label}</p>
+        <p className="mt-0.5 flex min-w-0 items-baseline gap-1.5"><span className="num whitespace-nowrap text-[17px] font-bold leading-tight">{value}</span>{sub && <span className="truncate text-[11px] text-white/75">{sub}</span>}</p>
+      </div>
+      {icon && <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-white/20">{h(icon, { size: 14 })}</span>}
+    </div>
+  );
+}
+
 function StatGrid({ children, cols = 4 }) {
-  return <div className={cls("grid gap-3 border-b border-line p-4", cols === 5 ? "grid-cols-5" : cols === 3 ? "grid-cols-3" : "grid-cols-4")}>{children}</div>;
+  return <div className={cls("grid gap-2.5 border-b border-line px-4 py-3", cols === 6 ? "grid-cols-6" : cols === 5 ? "grid-cols-5" : cols === 3 ? "grid-cols-3" : "grid-cols-4")}>{children}</div>;
 }
 
 function Section({ title, icon, actions, children, className }) {

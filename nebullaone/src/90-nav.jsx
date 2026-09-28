@@ -3,6 +3,7 @@ const VM_BASE = "/productivity/vendor-management";
 const CL_BASE = "/productivity/contract-labor";
 
 const NXV_PAGES = [
+  { group: "Vendor Management", base: VM_BASE, path: "overview", label: "Overview", icon: Icon.grid, el: VendorOverviewPage },
   { group: "Vendor Management", base: VM_BASE, path: "registry", label: "Vendor Registry", icon: Icon.building, el: VendorRegistryPage },
   { group: "Vendor Management", base: VM_BASE, path: "approvals", label: "Vendor Approvals", icon: Icon.clipboardCheck, el: VendorApprovalsPage },
   { group: "Vendor Management", base: VM_BASE, path: "compliance", label: "Compliance Center", icon: Icon.shieldCheck, el: CompliancePage },
@@ -13,6 +14,7 @@ const NXV_PAGES = [
   { group: "Vendor Management", base: VM_BASE, path: "scorecard", label: "Vendor Scorecard", icon: Icon.gauge, el: ScorecardPage },
   { group: "Vendor Management", base: VM_BASE, path: "portal", label: "Vendor Portal", icon: Icon.globe, el: VendorPortalPage },
   { group: "Vendor Management", base: VM_BASE, path: "settings", label: "Procurement Settings", icon: Icon.settings, el: ProcurementSettingsPage },
+  { group: "Contract & Labor", base: CL_BASE, path: "overview", label: "Overview", icon: Icon.grid, el: ContractOverviewPage },
   { group: "Contract & Labor", base: CL_BASE, path: "onboarding", label: "Contractor Onboarding", icon: Icon.userPlus, el: OnboardingPage },
   { group: "Contract & Labor", base: CL_BASE, path: "contracts", label: "Contracts", icon: Icon.file, el: ContractsPage },
   { group: "Contract & Labor", base: CL_BASE, path: "work-orders", label: "Work Orders", icon: Icon.clipboardList, el: WorkOrdersPage },
