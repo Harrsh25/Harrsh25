@@ -355,6 +355,60 @@ function ChipPicker({ options, value = [], onChange }) {
   );
 }
 
+const TRADE_GROUPS = [
+  { label: "Civil & structure", items: ["Civil", "RCC / Structural", "Formwork", "Masonry", "Excavation", "Waterproofing", "Scaffolding", "Painting & Finishing"] },
+  { label: "Electrical, MEP & power", items: ["Electrical", "Plumbing", "Tower Erection", "Stringing", "Solar EPC"] },
+  { label: "Materials", items: ["Steel", "Cement & Aggregates", "Hardware"] },
+  { label: "Equipment & manpower", items: ["Equipment Hire", "Manpower Supply"] },
+];
+function TradePicker({ options, value = [], onChange }) {
+  const [q, setQ] = y.useState("");
+  const known = new Set(TRADE_GROUPS.flatMap((g) => g.items));
+  const rest = options.filter((o) => !known.has(o));
+  const groups = [...TRADE_GROUPS.map((g) => ({ ...g, items: g.items.filter((o) => options.includes(o)) })), ...(rest.length ? [{ label: "Other", items: rest }] : [])];
+  const ql = q.trim().toLowerCase();
+  const shown = groups.map((g) => ({ ...g, items: g.items.filter((o) => !ql || o.toLowerCase().includes(ql)) })).filter((g) => g.items.length);
+  const toggle = (o) => onChange(value.includes(o) ? value.filter((x) => x !== o) : [...value, o]);
+  return (
+    <div className="overflow-hidden rounded-lg border border-line bg-white">
+      <div className="flex flex-wrap items-center gap-2 border-b border-line bg-gray-50/70 px-3 py-2">
+        <label className="flex h-[28px] w-[200px] items-center gap-2 rounded-md border border-line bg-white px-2 text-[13px] text-ink-mute">
+          {h(Icon.search, { size: 13 })}
+          <input className="w-full bg-transparent text-ink outline-none placeholder:text-ink-mute" placeholder="Find a trade…" value={q} onChange={(e) => setQ(e.target.value)} />
+        </label>
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
+          {value.length ? value.map((o) => (
+            <span key={o} className="inline-flex items-center gap-1 rounded-md bg-brand-soft py-[2px] pl-2 pr-1 text-[12px] font-medium text-brand">
+              {o}<button type="button" aria-label={"Remove " + o} className="rounded p-[1px] hover:bg-white/70" onClick={() => toggle(o)}>{h(Icon.x, { size: 11 })}</button>
+            </span>)) : <span className="text-[12px] text-ink-faint">No trades selected yet</span>}
+        </div>
+        <span className="ml-auto flex items-center gap-2 whitespace-nowrap text-[12px] text-ink-mute">
+          <b className="text-ink">{value.length}</b> selected
+          {value.length > 0 && <button type="button" className="text-brand hover:underline" onClick={() => onChange([])}>Clear</button>}
+        </span>
+      </div>
+      <div className="divide-y divide-line">
+        {shown.length ? shown.map((g) => (
+          <div key={g.label} className="flex flex-col gap-1.5 px-3 py-2.5 sm:flex-row sm:items-start">
+            <div className="w-[170px] shrink-0 pt-[5px] text-[11px] font-semibold uppercase tracking-wide text-ink-mute">{g.label}</div>
+            <div className="flex flex-1 flex-wrap gap-1.5">
+              {g.items.map((o) => {
+                const on = value.includes(o);
+                return (
+                  <button key={o} type="button" aria-pressed={on} onClick={() => toggle(o)}
+                    className={cls("inline-flex items-center gap-1 rounded-md border px-2.5 py-[4px] text-[12.5px] transition-colors",
+                      on ? "border-brand bg-brand-soft font-medium text-brand" : "border-line bg-white text-ink-soft hover:border-gray-300 hover:bg-gray-50")}>
+                    {on ? h(Icon.check, { size: 12 }) : <span className="text-[13px] leading-none text-ink-faint">+</span>}{o}
+                  </button>
+                );
+              })}
+            </div>
+          </div>)) : <div className="px-3 py-4 text-center text-[12.5px] text-ink-mute">No trade matches “{q}”</div>}
+      </div>
+    </div>
+  );
+}
+
 function SearchBox({ value, onChange, placeholder = "Search..." }) {
   return (
     <label className="flex h-[28px] w-[220px] items-center gap-2 rounded-md border border-line bg-white px-2 text-[13px] text-ink-mute">
