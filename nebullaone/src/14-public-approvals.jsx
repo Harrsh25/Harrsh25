@@ -200,11 +200,9 @@ function ApprovalManagementPage() {
     <Card>
       <PageHeader title="Approval Management" subtitle={`${total} item(s) waiting across all modules`} actions={<>{h(tr)}{h(ve, { value: project, onChange: setProject })}</>} />
       <Toolbar left={<>
-        <select value={module} onChange={(e) => setModule(e.target.value)} className="h-[28px] w-[230px] rounded-md border border-line bg-white px-2.5 text-[13px]">
-          <option value="">Select module</option>
-          <optgroup label="Vendor & contracts">{NXV_APPROVAL_MODULES.map((m) => <option key={m} value={m}>{m} ({count(m)})</option>)}</optgroup>
-          <optgroup label="Projects & towers">{d0.map((m) => <option key={m} value={m}>{m} ({count(m)})</option>)}</optgroup>
-        </select>
+        <div className="w-[260px]"><Select label="Module" value={module} onChange={setModule} placeholder="Select module" options={[
+          { header: true, value: "__h1", label: "Vendor & contracts" }, ...NXV_APPROVAL_MODULES.map((m) => ({ value: m, label: `${m} (${count(m)})` })),
+          { header: true, value: "__h2", label: "Projects & towers" }, ...d0.map((m) => ({ value: m, label: `${m} (${count(m)})` }))]} className="h-[28px]" /></div>
         <span className="mx-1 h-5 w-px bg-line" />
         <div className="flex flex-wrap gap-1.5">
           {NXV_APPROVAL_MODULES.filter((m) => count(m) > 0 && m !== module).map((m) => (
@@ -219,10 +217,10 @@ function ApprovalManagementPage() {
             { key: "ref", label: "Reference", className: "mono text-[12px]" },
             { key: "title", label: "Title", render: (r) => <span className="flex flex-col"><span className="font-medium">{r.title}</span>{r.sub && <span className="text-[11.5px] text-ink-mute">{r.sub}</span>}</span> },
             ...(isNew ? [{ key: "extra", label: "Details", className: "text-[12px] text-ink-soft" }] : []),
-            { key: "by", label: "Submitted By" },
+            { key: "by", label: "Submitted By", filterAll: "Anyone", filter: true },
             { key: "date", label: "Date" },
-            { key: "level", label: "Level" },
-            { key: "status", label: "Status", render: (r) => <Status>{r.status}</Status> },
+            { key: "level", label: "Level", filter: true },
+            { key: "status", label: "Status", filter: true, render: (r) => <Status>{r.status}</Status> },
             { key: "action", label: "Action", render: (r) => (r.status === "Pending" ? (
               <span className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                 <button className="rounded bg-green-600 px-2 py-0.5 text-[12px] text-white hover:bg-green-700" onClick={() => r.approve("")}>Approve</button>

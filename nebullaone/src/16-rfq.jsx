@@ -154,7 +154,7 @@ function SendRfqModal({ rfq, onClose, resendTo }) {
         </div>
         <div>
           <div className="mb-1 flex items-center justify-between"><span className="text-[12px] font-medium text-ink-soft">Preview</span>
-            <select className="h-[26px] rounded border border-line px-1 text-[12px]" value={preview} onChange={(e) => setPreview(e.target.value)}>{targets.map((vid) => <option key={vid} value={vid}>{vendorName(st, vid)}</option>)}</select></div>
+            <div className="w-[220px]"><Select label="Preview as" value={preview} onChange={setPreview} options={targets.map((vid) => ({ value: vid, label: vendorName(st, vid) }))} className="h-[28px]" /></div></div>
           <div className="rounded-lg border border-line bg-gray-50 p-3 text-[12.5px]">
             <p><b>To:</b> {pv.contact.email}</p><p><b>Subject:</b> {subject}</p>
             <hr className="my-2 border-line" />
@@ -591,12 +591,12 @@ function RfqPage() {
       </StatGrid>
       <DataTable noun="RFQs" filters={<span className="text-[12.5px] text-ink-soft">{filter === "All" ? "All RFQs" : `Showing: ${filter}`} {filter !== "All" && <button className="ml-2 text-brand" onClick={() => setFilter("All")}>Clear</button>}</span>} rows={rows} onRow={(r) => { setCompose(false); setOpen(r.id); }} columns={[
         { key: "title", label: "Requirement", className: "font-medium" },
-        { key: "project", label: "Project" },
-        { key: "mode", label: "Mode", render: (r) => modeLabel(r.mode) },
+        { key: "project", label: "Project", filter: true },
+        { key: "mode", label: "Mode", filter: (r) => modeLabel(r.mode), render: (r) => modeLabel(r.mode) },
         { key: "resp", label: "Responses", render: (r) => { const R = Object.values(r.responses || {}); return <span className="text-[12px]">{r.quotes.length} quoted · {R.filter((x) => x.status === "Declined").length} declined · {r.vendorIds.length} invited</span>; } },
         { key: "best", label: "Lowest total", align: "right", num: true, render: (r) => (r.quotes.length ? inrShort(Math.min(...r.quotes.map((q) => quoteTotal(r, q)))) : "—") },
         { key: "due", label: "Due", render: (r) => <span className={cls(bucket(r) === "Late" && "font-medium text-red-600")}>{fmtDate(r.dueDate)}</span> },
-        { key: "s", label: "Status", render: (r) => <Status>{r.status}</Status> },
+        { key: "s", label: "Status", filter: (r) => r.status, render: (r) => <Status>{r.status}</Status> },
       ]} />
       <NewRfqModal open={create} onClose={() => setCreate(false)} onCreated={(id) => { setCompose(true); setOpen(id); }} />
       {open && <RfqDrawer key={open} id={open} compose={compose} onClose={() => { setOpen(null); setCompose(false); }} />}

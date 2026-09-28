@@ -157,14 +157,14 @@ function WorkOrdersPage() {
       <DataTable noun="work orders" filters={<FilterSelect label="Type" value={type} onChange={setType} options={[{ value: "All", label: "All types" }, "Item-Rate", "Lump Sum"]} />} rows={rows} onRow={(w) => setOpen(w.id)} columns={[
         { key: "id", label: "WO", className: "mono text-[12px] text-ink-soft" },
         { key: "title", label: "Title", className: "font-medium" },
-        { key: "v", label: "Contractor", render: (w) => vendorName(st, w.vendorId) },
+        { key: "v", label: "Contractor", filter: (x) => vendorName(st, x.vendorId), render: (w) => vendorName(st, w.vendorId) },
         { key: "type", label: "Type", render: (w) => <span className={cls("rounded px-1.5 py-[1px] text-[11px] font-medium", w.type === "Lump Sum" ? "bg-cyan-50 text-cyan-700" : "bg-violet-50 text-violet-700")}>{w.type}</span> },
         { key: "val", label: "Value", align: "right", num: true, render: (w) => inrShort(woValue(w)) },
         { key: "pl", label: "Planned", align: "right", num: true, render: (w) => `${woProgress(st, w).planned.toFixed(0)}%` },
         { key: "ph", label: "Physical", render: (w) => { const p = woProgress(st, w); return <Progress value={Math.round(p.physical)} color={p.spi >= 0.95 ? "bg-green-500" : p.spi >= 0.8 ? "bg-amber-500" : "bg-red-500"} />; } },
         { key: "end", label: "Finish", render: (w) => fmtDate(w.end) },
-        { key: "acc", label: "Contractor", render: (w) => <Status tone={{ Accepted: "green", Pending: "amber", Declined: "red" }[w.acceptance?.status] || "gray"}>{w.acceptance?.status === "Pending" ? "Awaiting acceptance" : w.acceptance?.status || "—"}</Status> },
-        { key: "s", label: "Status", render: (w) => <Status>{w.status}</Status> },
+        { key: "acc", label: "Contractor", filter: (w) => w.acceptance?.status || "—", filterLabel: "Acceptance", render: (w) => <Status tone={{ Accepted: "green", Pending: "amber", Declined: "red" }[w.acceptance?.status] || "gray"}>{w.acceptance?.status === "Pending" ? "Awaiting acceptance" : w.acceptance?.status || "—"}</Status> },
+        { key: "s", label: "Status", filter: (w) => w.status, render: (w) => <Status>{w.status}</Status> },
       ]} />
       <WorkOrderModal open={create} contractId={presetContract} onClose={() => setCreate(false)} onCreated={setOpen} />
       {open && <WorkOrderDrawer id={open} onClose={() => setOpen(null)} />}
@@ -270,7 +270,7 @@ function MeasurementBookPage() {
           { key: "dims", label: "N × L × B × D", className: "num text-[12px] text-ink-soft", render: (m) => (m.l || m.b || m.d ? [m.nos || 1, m.l ?? "–", m.b ?? "–", m.d ?? "–"].join(" × ") : "—") },
           { key: "qty", label: "Quantity", align: "right", num: true, render: (m) => <b>{qtyText(m)}</b> },
           { key: "jms", label: "JMS", render: (m) => <span title={m.jms.remark || ""}><Status>{m.jms.status}</Status></span> },
-          { key: "bill", label: "Billed in", render: (m) => (m.billedIn ? <RefLink to={`${CL_BASE}/ra-bills?open=${m.billedIn}`}>{m.billedIn}</RefLink> : <span className="text-ink-faint">—</span>) },
+          { key: "bill", label: "Billed in", filter: (m) => (m.billedIn ? "Billed" : "Not billed"), filterLabel: "Billing", render: (m) => (m.billedIn ? <RefLink to={`${CL_BASE}/ra-bills?open=${m.billedIn}`}>{m.billedIn}</RefLink> : <span className="text-ink-faint">—</span>) },
         ]} />
       </>}
       {tab === "jms" && <>
@@ -279,7 +279,7 @@ function MeasurementBookPage() {
           { key: "id", label: "MB no.", className: "mono text-[12px]" }, { key: "wo", label: "WO", render: (m) => `${m.woId} · ${vendorName(st, byId(st.workOrders, m.woId).vendorId)}` },
           { key: "item", label: "Item", className: "max-w-[240px] truncate", render: (m) => lineName(m) }, { key: "loc", label: "Location", className: "max-w-[180px] truncate", render: (m) => m.location },
           { key: "qty", label: "Engineer qty", align: "right", num: true, render: (m) => qtyText(m) },
-          { key: "s", label: "Status", render: (m) => <span className="flex flex-col"><Status>{m.jms.status}</Status>{m.jms.remark && <span className="mt-0.5 max-w-[220px] whitespace-normal text-[11px] text-red-600">{m.jms.remark}</span>}</span> },
+          { key: "s", label: "Status", filter: (m) => m.jms.status, render: (m) => <span className="flex flex-col"><Status>{m.jms.status}</Status>{m.jms.remark && <span className="mt-0.5 max-w-[220px] whitespace-normal text-[11px] text-red-600">{m.jms.remark}</span>}</span> },
           { key: "a", label: "", align: "right", render: (m) => (
             <span className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
               <Btn size="sm" variant="success" onClick={() => setSign({ ids: [m.id], rep: "", eng: currentUser(), qty: m.jms.status === "Disputed" ? (m.pct ?? m.qty) : undefined, disputed: m.jms.status === "Disputed", isPct: m.pct !== null })}>{m.jms.status === "Disputed" ? "Re-measure & sign" : "Sign"}</Btn>

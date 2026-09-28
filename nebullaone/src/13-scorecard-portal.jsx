@@ -103,15 +103,15 @@ function ScorecardPage() {
       {tab === "scores" && (
         <DataTable noun="vendors" rows={rows.sort((a, b) => (b.score ?? -1) - (a.score ?? -1))} rowKey={(r) => r.v.id} onRow={(r) => setOpen(r.v.id)} columns={[
           { key: "name", label: "Vendor", render: (r) => <span className="font-medium">{r.v.name}</span> },
-          { key: "cat", label: "Category", render: (r) => primaryCategory(r.v) },
+          { key: "cat", label: "Category", filter: (r) => primaryCategory(r.v), render: (r) => primaryCategory(r.v) },
           { key: "score", label: "Score", render: (r) => <ScoreBadge value={r.score} /> },
-          { key: "band", label: "Standing", render: (r) => { const b = standingOf(st, r.v.id); return b ? <span className="flex flex-col"><Status tone={b.color === "blue" ? "blue" : b.color}>{b.name}</Status><span className="text-[10.5px] text-ink-mute">{[b.preventRfq && "no RFQ", b.preventPo && "no PO", !b.preventRfq && b.warnRfq && "warn RFQ", !b.preventPo && b.warnPo && "warn PO"].filter(Boolean).join(" · ") || "no restriction"}</span></span> : "—"; } },
+          { key: "band", label: "Standing", filter: (r) => standingOf(st, r.v.id)?.name, render: (r) => { const b = standingOf(st, r.v.id); return b ? <span className="flex flex-col"><Status tone={b.color === "blue" ? "blue" : b.color}>{b.name}</Status><span className="text-[10.5px] text-ink-mute">{[b.preventRfq && "no RFQ", b.preventPo && "no PO", !b.preventRfq && b.warnRfq && "warn RFQ", !b.preventPo && b.warnPo && "warn PO"].filter(Boolean).join(" · ") || "no restriction"}</span></span> : "—"; } },
           { key: "q", label: "Quality", align: "right", render: (r) => partCell(r.parts.quality) },
           { key: "t", label: "Timeliness", align: "right", render: (r) => partCell(r.parts.timeliness) },
           { key: "s", label: "Safety", align: "right", render: (r) => partCell(r.parts.safety) },
           { key: "c", label: "Compliance", align: "right", render: (r) => partCell(r.parts.compliance) },
           { key: "b", label: "vs category", align: "right", render: (r) => { const a = catAvg(r.v); if (a == null || r.score == null) return "—"; const d = r.score - a; return <span className={cls("num", d < 0 ? "text-red-600" : "text-green-600")}>{d >= 0 ? "+" : ""}{d.toFixed(1)}</span>; } },
-          { key: "st", label: "Status", render: (r) => <Status>{r.v.status}</Status> },
+          { key: "st", label: "Status", filter: (r) => r.v.status, render: (r) => <Status>{r.v.status}</Status> },
           { key: "a", label: "", align: "right", render: (r) => (
             <span className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
               {r.score != null && r.score < st.scoreConfig.capThreshold && !st.caps.some((c) => c.vendorId === r.v.id && c.status === "Open") && <Btn size="sm" onClick={() => setCap({ vendorId: r.v.id, issue: "", actions: "", dueDate: shiftDays(21), owner: currentUser() })}>Issue CAP</Btn>}
@@ -147,12 +147,12 @@ function ScorecardPage() {
       {tab === "caps" && (
         <DataTable noun="corrective actions" rows={st.caps} empty={<EmptyState icon={Icon.check} title="No corrective action plans" text="Issue a CAP from the scorecard when a vendor falls below the CAP threshold." />} columns={[
           { key: "id", label: "CAP", className: "mono text-[12px]" },
-          { key: "v", label: "Vendor", render: (c) => <span className="font-medium">{vendorName(st, c.vendorId)}</span> },
+          { key: "v", label: "Vendor", filter: (x) => vendorName(st, x.vendorId), render: (c) => <span className="font-medium">{vendorName(st, c.vendorId)}</span> },
           { key: "issue", label: "Issue", className: "whitespace-normal" },
           { key: "actions", label: "Required actions", className: "whitespace-normal text-[12px] text-ink-soft" },
           { key: "due", label: "Due", render: (c) => <ExpiryCell iso={c.status === "Open" ? c.dueDate : null} /> },
-          { key: "owner", label: "Owner" },
-          { key: "s", label: "Status", render: (c) => <Status tone={c.status === "Open" ? (daysUntil(c.dueDate) < 0 ? "red" : "amber") : "gray"}>{c.status === "Open" && daysUntil(c.dueDate) < 0 ? "Overdue" : c.status}</Status> },
+          { key: "owner", label: "Owner", filter: true },
+          { key: "s", label: "Status", filter: (c) => (c.status === "Open" && daysUntil(c.dueDate) < 0 ? "Overdue" : c.status), render: (c) => <Status tone={c.status === "Open" ? (daysUntil(c.dueDate) < 0 ? "red" : "amber") : "gray"}>{c.status === "Open" && daysUntil(c.dueDate) < 0 ? "Overdue" : c.status}</Status> },
           { key: "a", label: "", align: "right", render: (c) => c.status === "Open" && <Btn size="sm" variant="success" onClick={() => setState((s) => (byId(s.caps, c.id).status = "Closed"), { entity: "CAP", id: c.id, action: "Closed — actions verified" })}>Close</Btn> },
         ]} />
       )}

@@ -75,7 +75,7 @@ function LaborRatesPage() {
         </>;
   const cols = [
     { key: "id", label: "Card", className: "mono text-[12px] text-ink-soft" },
-    { key: "trade", label: "Trade", className: "font-medium" },
+    { key: "trade", label: "Trade", filter: true, className: "font-medium" },
     { key: "skill", label: "Skill" },
     { key: "region", label: "Region" },
     { key: "v", label: "Applies to", render: (r) => (r.vendorId ? vendorName(st, r.vendorId) : <span className="text-ink-mute">Standard</span>) },
@@ -102,9 +102,9 @@ function LaborRatesPage() {
         { key: "why", label: "Reason", className: "whitespace-normal text-[12px] text-ink-soft", render: (r) => r.reason || "—" },
         { key: "a", label: "", align: "right", render: (r) => <span className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}><Btn size="sm" variant="success" onClick={() => approveRate(r, true)}>Approve</Btn><Btn size="sm" variant="danger" onClick={() => approveRate(r, false)}>Reject</Btn></span> }]} />}
       {tab === "check" && <DataTable noun="items" rows={labourItems} rowKey={(r) => r.wo.id + r.i.id} empty={<EmptyState icon={Icon.hardHat} title="No man-day items on work orders" />} columns={[
-        { key: "wo", label: "Work order", render: (r) => <span><span className="mono text-[12px]">{r.wo.id}</span> · {vendorName(st, r.wo.vendorId)}</span> },
+        { key: "wo", label: "Work order", filter: (r) => vendorName(st, r.wo.vendorId), filterLabel: "Contractor", render: (r) => <span><span className="mono text-[12px]">{r.wo.id}</span> · {vendorName(st, r.wo.vendorId)}</span> },
         { key: "i", label: "Item", render: (r) => r.i.desc },
-        { key: "reg", label: "Wage zone", render: (r) => PROJECT_REGION[r.wo.project] },
+        { key: "reg", label: "Wage zone", filter: (r) => PROJECT_REGION[r.wo.project], render: (r) => PROJECT_REGION[r.wo.project] },
         { key: "wr", label: "WO rate", align: "right", num: true, render: (r) => inr(r.i.rate) },
         { key: "cr", label: "Rate card", align: "right", num: true, render: (r) => (r.card ? `${inr(r.card.rate)} (${r.card.id})` : "—") },
         { key: "mw", label: "Min. wage", align: "right", num: true, render: (r) => (r.card ? inr(r.card.minWage) : "—") },
@@ -208,13 +208,13 @@ function PerformancePage() {
       {tab === "progress" && <DataTable noun="work orders" rows={live} rowKey={(x) => x.wo.id} onRow={(x) => setOpen(x.wo.id)} columns={[
         { key: "id", label: "WO", className: "mono text-[12px] text-ink-soft", render: (x) => x.wo.id },
         { key: "t", label: "Scope", className: "max-w-[240px] truncate font-medium", render: (x) => <span title={x.wo.title}>{x.wo.title}</span> },
-        { key: "v", label: "Contractor", render: (x) => vendorName(st, x.wo.vendorId) },
+        { key: "v", label: "Contractor", filter: (x) => vendorName(st, x.wo.vendorId), render: (x) => vendorName(st, x.wo.vendorId) },
         { key: "pl", label: "Planned", align: "right", num: true, render: (x) => `${x.p.planned.toFixed(1)}%` },
         { key: "ph", label: "Physical", render: (x) => <Progress value={Math.round(x.p.physical)} /> },
         { key: "fi", label: "Financial", render: (x) => <Progress value={Math.round(x.p.financial)} color="bg-violet-500" /> },
         { key: "spi", label: "SPI", align: "right", render: (x) => <span className={cls("num font-semibold", x.p.spi < 0.8 ? "text-red-600" : x.p.spi < 0.95 ? "text-amber-600" : "text-green-700")}>{x.p.spi.toFixed(2)}</span> },
         { key: "d", label: "Days left", align: "right", num: true, render: (x) => daysUntil(x.wo.end) },
-        { key: "s", label: "Status", render: (x) => <Status tone={{ "On Track": "green", "At Risk": "amber", Delayed: "red" }[progressStatus(x.p)]}>{progressStatus(x.p)}</Status> },
+        { key: "s", label: "Status", filter: (x) => progressStatus(x.p), render: (x) => <Status tone={{ "On Track": "green", "At Risk": "amber", Delayed: "red" }[progressStatus(x.p)]}>{progressStatus(x.p)}</Status> },
       ]} />}
       {tab === "chart" && <PlanVsActual rows={live} />}
       {tab === "score" && <DataTable noun="contractors" rows={rowsC} rowKey={(r) => r.v.id} onRow={(r) => setVd(r.v.id)} columns={[
@@ -233,12 +233,12 @@ function PerformancePage() {
         { key: "a", label: "", align: "right", render: (r) => <Btn size="sm" icon={Icon.star} onClick={(e) => { e.stopPropagation(); setRate({ vendorId: r.v.id }); }}>Rate</Btn> },
       ]} />}
       {tab === "log" && <DataTable noun="ratings" rows={st.ratings.slice().reverse()} columns={[
-        { key: "p", label: "Period", render: (r) => r.period }, { key: "v", label: "Contractor", render: (r) => <span className="font-medium">{vendorName(st, r.vendorId)}</span> },
+        { key: "p", label: "Period", filter: (r) => r.period, render: (r) => r.period }, { key: "v", label: "Contractor", filter: (x) => vendorName(st, x.vendorId), render: (r) => <span className="font-medium">{vendorName(st, r.vendorId)}</span> },
         { key: "w", label: "WO", className: "mono text-[12px]", render: (r) => r.woId || "—" },
         { key: "q", label: "Quality", render: (r) => <Stars value={r.quality} /> }, { key: "s", label: "Safety", render: (r) => <Stars value={r.safety} /> }, { key: "m", label: "Manpower", render: (r) => <Stars value={r.manpower} /> },
         { key: "i", label: "Incidents", align: "center", render: (r) => r.incidents || 0 },
         { key: "r", label: "Remarks", className: "whitespace-normal text-[12px] text-ink-soft", render: (r) => r.remarks },
-        { key: "b", label: "By", render: (r) => r.by },
+        { key: "b", label: "By", filterLabel: "Rated by", filterAll: "Anyone", filter: (r) => r.by, render: (r) => r.by },
       ]} />}
       {open && <WorkOrderDrawer id={open} onClose={() => setOpen(null)} />}
       {vd && <VendorDrawer vendorId={vd} initialTab="activity" onClose={() => setVd(null)} />}

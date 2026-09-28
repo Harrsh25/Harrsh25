@@ -290,8 +290,9 @@ function Drawer({ open, title, subtitle, onClose, actions, width = 760, tabs, ch
 
 const inputCls =
   "h-[32px] w-full rounded-md border border-line bg-white px-2.5 text-[13px] text-ink outline-none focus:border-brand focus:ring-2 focus:ring-brand/15";
+const FieldCtx = y.createContext(null);
 function Field({ label, hint, required, span = 1, children }) {
-  return (
+  return h(FieldCtx.Provider, { value: typeof label === "string" ? label : null }, (
     <label className={cls("block", span === 2 && "col-span-2", span === 3 && "col-span-3", span === 4 && "col-span-4")}>
       <span className="mb-1 block text-[12px] font-medium text-ink-soft">
         {label}
@@ -300,7 +301,7 @@ function Field({ label, hint, required, span = 1, children }) {
       {children}
       {hint && <span className="mt-1 block text-[11px] text-ink-mute">{hint}</span>}
     </label>
-  );
+  ));
 }
 function TextInput({ value, onChange, ...rest }) {
   return <input className={inputCls} value={value ?? ""} onChange={(e) => onChange(e.target.value)} {...rest} />;
@@ -314,15 +315,78 @@ function NumInput({ value, onChange, ...rest }) {
 function DateInput({ value, onChange, ...rest }) {
   return <input type="date" className={inputCls} value={value ?? ""} onChange={(e) => onChange(e.target.value)} {...rest} />;
 }
-function Select({ value, onChange, options, placeholder, ...rest }) {
+// Form dropdown — same popover menu as the list filters (heading, dots, tick), positioned on screen
+function Select({ value, onChange, options, placeholder, disabled, className, label, ...rest }) {
+  const fieldLabel = y.useContext(FieldCtx);
+  const [open, setOpen] = y.useState(false);
+  const [pos, setPos] = y.useState(null);
+  const [q, setQ] = y.useState("");
+  const [hi, setHi] = y.useState(-1);
+  const btn = y.useRef(null), menu = y.useRef(null);
+  const opts = [...(placeholder !== undefined ? [{ value: "", label: placeholder, ph: true }] : []), ...options.map((o) => (typeof o === "object" ? o : { value: o, label: o }))];
+  const cur = opts.find((o) => String(o.value) === String(value ?? ""));
+  const searchable = opts.length > 8;
+  const ql = q.trim().toLowerCase();
+  const list = ql ? opts.filter((o) => !o.ph && !o.header && String(o.label).toLowerCase().includes(ql)) : opts;
+  const place = () => {
+    const r = btn.current.getBoundingClientRect(), vw = window.innerWidth, vh = window.innerHeight;
+    const width = Math.min(Math.max(r.width, 200), 360), below = vh - r.bottom - 12, above = r.top - 12;
+    const up = below < 220 && above > below;
+    setPos({ left: Math.max(8, Math.min(r.left, vw - width - 8)), width, top: up ? undefined : r.bottom + 4, bottom: up ? vh - r.top + 4 : undefined, maxH: Math.max(160, Math.min(320, up ? above : below)) });
+  };
+  y.useLayoutEffect(() => { if (open) { place(); setQ(""); setHi(opts.findIndex((o) => String(o.value) === String(value ?? ""))); } }, [open]);
+  y.useEffect(() => {
+    if (!open) return;
+    const off = (e) => { if (!btn.current?.contains(e.target) && !menu.current?.contains(e.target)) setOpen(false); };
+    const scr = (e) => { if (!menu.current?.contains(e.target)) setOpen(false); };
+    const close = () => setOpen(false);
+    document.addEventListener("mousedown", off); document.addEventListener("scroll", scr, true); window.addEventListener("resize", close);
+    return () => { document.removeEventListener("mousedown", off); document.removeEventListener("scroll", scr, true); window.removeEventListener("resize", close); };
+  }, [open]);
+  const pick = (o) => { onChange(String(o.value)); setOpen(false); btn.current?.focus(); };
+  const key = (e) => {
+    if (disabled) return;
+    if (!open && ["ArrowDown", "Enter", " "].includes(e.key)) { e.preventDefault(); setOpen(true); return; }
+    if (!open) return;
+    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); setOpen(false); }
+    else if (e.key === "ArrowDown") { e.preventDefault(); setHi((i) => Math.min(list.length - 1, i + 1)); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setHi((i) => Math.max(0, i - 1)); }
+    else if (e.key === "Enter" && list[hi] && !list[hi].header) { e.preventDefault(); pick(list[hi]); }
+  };
+  const heading = label || fieldLabel;
+  const dotOf = (o) => { const t = o.tone || TONE[String(o.label).toLowerCase()] || EXTRA_DOT[String(o.label).toLowerCase()]; return t ? <span className={cls("h-2 w-2 shrink-0 rounded-full", DOT[t])} /> : null; };
   return (
-    <select className={inputCls} value={value ?? ""} onChange={(e) => onChange(e.target.value)} {...rest}>
-      {placeholder !== undefined && <option value="">{placeholder}</option>}
-      {options.map((o) => {
-        const v = typeof o === "object" ? o.value : o, l2 = typeof o === "object" ? o.label : o;
-        return <option key={v} value={v}>{l2}</option>;
-      })}
-    </select>
+    <>
+      <button ref={btn} type="button" role="combobox" aria-haspopup="listbox" aria-expanded={open} aria-label={rest["aria-label"] || heading} data-value={value ?? ""} disabled={disabled}
+        onClick={() => setOpen((o) => !o)} onKeyDown={key}
+        className={cls(inputCls, "flex items-center gap-2 text-left", open && "border-brand ring-2 ring-brand/15", disabled ? "cursor-not-allowed bg-gray-50 text-ink-mute" : "hover:border-gray-300", className)}>
+        {cur && !cur.ph && dotOf(cur)}
+        <span className={cls("min-w-0 flex-1 truncate", (!cur || cur.ph) && "text-ink-mute")}>{cur ? String(cur.label).trim() : placeholder || "Select…"}</span>
+        {h(Icon.chevronDown, { size: 14, className: cls("shrink-0 text-ink-mute transition-transform", open && "rotate-180") })}
+      </button>
+      {open && pos && (
+        <div ref={menu} role="listbox" onClick={(e) => e.preventDefault()} onKeyDown={key}
+          className="fixed z-[80] flex flex-col overflow-hidden rounded-lg border border-line bg-white py-1 shadow-lg"
+          style={{ left: pos.left, top: pos.top, bottom: pos.bottom, width: pos.width, maxHeight: pos.maxH }}>
+          {heading && <p className="px-3 pb-1 pt-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-ink-mute">{String(heading).replace(/\s*\*$/, "")}</p>}
+          {searchable && (
+            <div className="px-2 pb-1">
+              <input autoFocus className="h-[28px] w-full rounded-md border border-line px-2 text-[12.5px] outline-none focus:border-brand" placeholder="Search…" value={q} onChange={(e) => { setQ(e.target.value); setHi(0); }} />
+            </div>)}
+          <div className="min-h-0 overflow-y-auto">
+            {list.length ? list.map((o, i) => {
+              if (o.header) return <p key={"h" + i} className="px-3 pb-0.5 pt-2 text-[10.5px] font-semibold uppercase tracking-wider text-ink-faint">{o.label}</p>;
+              const on = String(o.value) === String(value ?? "");
+              return (
+                <button key={String(o.value) + i} type="button" role="option" aria-selected={on} disabled={o.disabled} onMouseEnter={() => setHi(i)} onClick={() => !o.disabled && pick(o)}
+                  className={cls("flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-[13px]", o.disabled ? "cursor-not-allowed text-ink-faint" : on ? "bg-brand-soft/60 text-brand" : i === hi ? "bg-gray-50 text-ink" : "text-ink", o.ph && !on && "text-ink-mute")}>
+                  {dotOf(o)}<span className="flex-1 truncate">{String(o.label).trim()}</span>{on && h(Icon.check, { size: 14, className: "shrink-0 text-brand" })}
+                </button>
+              );
+            }) : <p className="px-3 py-2 text-[12.5px] text-ink-mute">No matches</p>}
+          </div>
+        </div>)}
+    </>
   );
 }
 function TextArea({ value, onChange, rows = 3, ...rest }) {
@@ -423,6 +487,7 @@ const DOT = { green: "bg-green-500", blue: "bg-blue-500", amber: "bg-amber-500",
 const EXTRA_DOT = { "attention needed": "amber", "payments blocked": "red", "not grouped": "gray", "group companies": "cyan", ongoing: "blue", "not started": "gray" };
 function FilterSelect({ value, onChange, options, label }) {
   const [open, setOpen] = y.useState(false);
+  const [fq, setFq] = y.useState("");
   const ref = y.useRef(null);
   y.useEffect(() => {
     if (!open) return;
@@ -434,7 +499,7 @@ function FilterSelect({ value, onChange, options, label }) {
   const menu = y.useRef(null);
   const [flip, setFlip] = y.useState(false);
   y.useLayoutEffect(() => {
-    if (!open) { setFlip(false); return; }
+    if (!open) { setFlip(false); setFq(""); return; }
     if (!menu.current || flip) return;
     const r = menu.current.getBoundingClientRect();
     setFlip(r.right > window.innerWidth - 8);
@@ -453,7 +518,8 @@ function FilterSelect({ value, onChange, options, label }) {
       {open && (
         <div ref={menu} role="listbox" className={cls("absolute z-50 mt-1 max-h-[320px] min-w-full w-max max-w-[min(340px,calc(100vw-24px))] overflow-y-auto rounded-lg border border-line bg-white py-1 shadow-lg", flip ? "right-0" : "left-0")}>
           {label && <p className="px-3 pb-1 pt-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-ink-mute">{label}</p>}
-          {opts.map((o) => {
+          {opts.length > 8 && <div className="px-2 pb-1"><input autoFocus className="h-[28px] w-full rounded-md border border-line px-2 text-[12.5px] outline-none focus:border-brand" placeholder="Search…" value={fq} onChange={(e) => setFq(e.target.value)} /></div>}
+          {opts.filter((o) => !fq.trim() || isAll(o) || String(o.label).toLowerCase().includes(fq.trim().toLowerCase())).map((o) => {
             const on = String(o.value) === String(value);
             return (
               <button key={o.value} type="button" role="option" aria-selected={on} onClick={() => { onChange(o.value); setOpen(false); }}
@@ -486,12 +552,26 @@ function rowSearchText(r, depth = 0) {
 
 // Main list = toolbar (page filters left, search right) + table + bottom bar with the count.
 // dense / plain tables (inside panels and cards) are just the table.
+const pluralWord = (w) => (/(s|ing|ce|ance|by|pay|ed)$/.test(w) ? w : /(ch|sh|x)$/.test(w) ? w + "es" : /[^aeiou]y$/.test(w) ? w.slice(0, -1) + "ies" : w + "s");
 function DataTable({ columns, rows, onRow, rowKey = (r) => r.id, empty, footer, dense, plain, filters, actions, noun = "records", summary, searchText = rowSearchText, placeholder = "Search…" }) {
   const list = !dense && !plain;
   const [q, setQ] = y.useState("");
-  const shown = list && q.trim() ? rows.filter((r) => { const t = searchText(r).toLowerCase(); return q.toLowerCase().split(/\s+/).filter(Boolean).every((w) => t.includes(w)); }) : rows;
+  // Column filters: a column with `filter` (true = row[key], or a function returning a value / list of values) gets its own dropdown
+  const [cf, setCf] = y.useState({});
+  const fcols = list ? columns.filter((c) => c.filter) : [];
+  const fval = (c, r) => { const v = typeof c.filter === "function" ? c.filter(r) : r[c.key]; return (Array.isArray(v) ? v : [v]).filter((x) => x !== undefined && x !== null && x !== "").map(String); };
+  const colFiltered = fcols.length ? rows.filter((r) => fcols.every((c) => !cf[c.key] || cf[c.key] === "__all" || fval(c, r).includes(cf[c.key]))) : rows;
+  const shown = list && q.trim() ? colFiltered.filter((r) => { const t = searchText(r).toLowerCase(); return q.toLowerCase().split(/\s+/).filter(Boolean).every((w) => t.includes(w)); }) : colFiltered;
+  const active = q.trim() || fcols.some((c) => cf[c.key] && cf[c.key] !== "__all");
+  const colSelects = fcols.map((c) => {
+    const name = c.filterLabel || (typeof c.label === "string" ? c.label : c.key);
+    const vals = c.filterOptions || [...new Set(rows.flatMap((r) => fval(c, r)))].sort((a, b) => a.localeCompare(b, "en", { numeric: true }));
+    if (!c.filterOptions && vals.length < 1 && !(cf[c.key] && cf[c.key] !== "__all")) return null;
+    return <FilterSelect key={"cf-" + c.key} label={name} value={cf[c.key] || "__all"} onChange={(v) => setCf((o) => ({ ...o, [c.key]: v }))}
+      options={[{ value: "__all", label: c.filterAll || `All ${pluralWord(name.toLowerCase())}` }, ...vals.map((v) => (typeof v === "object" ? v : { value: v, label: v }))]} />;
+  });
   const table = !shown.length
-    ? (rows.length ? <EmptyState icon={Icon.search} title="No matches" text={`Nothing matches “${q}”. Try another word or clear the search.`} /> : empty || <EmptyState icon={Icon.folder} title="Nothing here yet" text="Records you add will appear in this list." />)
+    ? (rows.length ? <EmptyState icon={Icon.search} title="No matches" text={q.trim() ? `Nothing matches “${q}”. Try another word or clear the search.` : "No records match these filters."} /> : empty || <EmptyState icon={Icon.folder} title="Nothing here yet" text="Records you add will appear in this list." />)
     : (
       <div className="overflow-x-auto">
         <table className={cls("w-full", !dense && "nx-list")}>
@@ -521,10 +601,11 @@ function DataTable({ columns, rows, onRow, rowKey = (r) => r.id, empty, footer, 
   const sum$ = typeof summary === "function" ? summary(shown) : summary || [];
   return (
     <>
-      <Toolbar left={<div className="flex flex-wrap items-center gap-2">{filters}</div>}
+      <Toolbar left={<div className="flex flex-wrap items-center gap-2">{filters}{colSelects}
+        {fcols.length > 0 && fcols.some((c) => cf[c.key] && cf[c.key] !== "__all") && <button type="button" className="px-1 text-[12.5px] text-brand hover:underline" onClick={() => setCf({})}>Clear filters</button>}</div>}
         right={<div className="flex items-center gap-2">{actions}<SearchBox value={q} onChange={setQ} placeholder={placeholder} /></div>} />
       {table}
-      <FooterBar items={[{ value: q.trim() ? `${shown.length} of ${rows.length}` : rows.length, label: noun }, ...sum$]} updated={new Date().toLocaleString("en-IN")} />
+      <FooterBar items={[{ value: active ? `${shown.length} of ${rows.length}` : rows.length, label: noun }, ...sum$]} updated={new Date().toLocaleString("en-IN")} />
     </>
   );
 }

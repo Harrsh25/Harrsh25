@@ -627,10 +627,10 @@ function VendorRegistryPage() {
         rows={rows} onRow={(v) => setOpen(v.id)} columns={[
         { key: "name", label: "Vendor", render: (v) => <span className="flex items-center justify-between gap-3 font-medium"><span className="truncate">{v.name}</span><PreferredStar v={v} size={14} /></span> },
         { key: "type", label: "Type", render: (v) => <span className="flex flex-wrap items-center gap-1"><VendorTypeTag v={v} /><GroupCoTag v={v} /></span> },
-        { key: "cat", label: "Trades", render: (v) => <CategoryChips list={v.categories} /> },
+        { key: "cat", label: "Trades", filter: (v) => v.categories, render: (v) => <CategoryChips list={v.categories} /> },
         { key: "tier", label: "Tier" },
-        { key: "reg", label: "Registration", render: (v) => <Status>{v.regTier}</Status> },
-        { key: "comp", label: "Compliance", render: (v) => <Status>{complianceOf(v).status}</Status> },
+        { key: "reg", label: "Registration", filter: (v) => v.regTier, render: (v) => <Status>{v.regTier}</Status> },
+        { key: "comp", label: "Compliance", filter: (v) => complianceOf(v).status, render: (v) => <Status>{complianceOf(v).status}</Status> },
         { key: "score", label: "Score", render: (v) => <ScoreBadge value={vendorScore(st, v.id).score} /> },
         { key: "status", label: "Status", render: (v) => <Status>{v.status}</Status> },
       ]} />

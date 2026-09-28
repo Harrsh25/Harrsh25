@@ -227,8 +227,8 @@ function RaBillsPage() {
       <DataTable noun="bills" summary={(r) => [{ value: inrShort(sum(r.filter((b) => b.status !== "Rejected"), (b) => b.gross)), label: "gross" }, { value: inrShort(sum(r.filter((b) => b.status !== "Rejected"), (b) => b.net)), label: "net" }]} filters={<FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Submitted", "Verified", "Certified", "Approved", "Paid", "Rejected"]} />} rows={rows} onRow={(b) => setOpen(b.id)} columns={[
         { key: "id", label: "Bill", className: "mono text-[12px] text-ink-soft" },
         { key: "seq", label: "RA no.", render: (b) => <span>RA-{b.seq}{b.claimId && <span className="ml-1 text-[11px] text-ink-mute">from {b.claimId}</span>}</span> },
-        { key: "wo", label: "Work order", render: (b) => <span><span className="mono text-[12px]">{b.woId}</span> · {vendorName(st, b.vendorId)}</span> },
-        { key: "t", label: "Type", render: (b) => byId(st.workOrders, b.woId).type },
+        { key: "wo", label: "Work order", filter: (b) => vendorName(st, b.vendorId), filterLabel: "Contractor", render: (b) => <span><span className="mono text-[12px]">{b.woId}</span> · {vendorName(st, b.vendorId)}</span> },
+        { key: "t", label: "Type", filter: (b) => byId(st.workOrders, b.woId).type, render: (b) => byId(st.workOrders, b.woId).type },
         { key: "d", label: "Bill date", render: (b) => fmtDate(b.date) },
         { key: "g", label: "Gross", align: "right", num: true, render: (b) => inr(b.gross) },
         { key: "ded", label: "Deductions", align: "right", num: true, render: (b) => <span className="text-red-600">− {inr(b.totalDed)}</span> },
@@ -266,7 +266,7 @@ function RetentionPage() {
       {tab === "ledger" && (
         <DataTable noun="contracts" rows={ledgers} rowKey={(l) => l.c.id} columns={[
           { key: "c", label: "Contract", render: (l) => <span><span className="mono text-[12px]">{l.c.id}</span> · {vendorName(st, l.c.vendorId)}</span> },
-          { key: "s", label: "Status", render: (l) => <Status>{contractStatus(l.c)}</Status> },
+          { key: "s", label: "Status", filter: (l) => contractStatus(l.c), render: (l) => <Status>{contractStatus(l.c)}</Status> },
           { key: "g", label: "Gross billed", align: "right", num: true, render: (l) => inrShort(l.gross) },
           { key: "rh", label: "Retention held", align: "right", num: true, render: (l) => inrShort(l.retentionHeld) },
           { key: "rr", label: "Released", align: "right", num: true, render: (l) => inrShort(l.released) },
@@ -281,17 +281,17 @@ function RetentionPage() {
         <DataTable noun="releases" rows={st.retentionReleases} empty={<EmptyState icon={Icon.lock} title="No release requests" text="Retention can be released after the defect liability period, or earlier against a bank guarantee." />} columns={[
           { key: "id", label: "Request", className: "mono text-[12px]" },
           { key: "c", label: "Contract", render: (r) => `${r.contractId} · ${vendorName(st, byId(st.contracts, r.contractId).vendorId)}` },
-          { key: "type", label: "Basis" }, { key: "note", label: "Note", className: "whitespace-normal text-[12px] text-ink-soft" },
+          { key: "type", label: "Basis", filter: true }, { key: "note", label: "Note", className: "whitespace-normal text-[12px] text-ink-soft" },
           { key: "amount", label: "Amount", align: "right", num: true, render: (r) => inr(r.amount) },
           { key: "d", label: "Requested", render: (r) => fmtDate(r.requestedOn) },
-          { key: "s", label: "Status", render: (r) => <Status tone={r.status === "Released" ? "green" : "amber"}>{r.status}</Status> },
+          { key: "s", label: "Status", filter: (r) => r.status, render: (r) => <Status tone={r.status === "Released" ? "green" : "amber"}>{r.status}</Status> },
           { key: "a", label: "", align: "right", render: (r) => r.status !== "Released" && <Btn size="sm" variant="success" onClick={() => setState((s) => Object.assign(byId(s.retentionReleases, r.id), { status: "Released", releasedOn: todayISO() }), { entity: "Retention", id: r.id, action: `Released ${inr(r.amount)} for ${r.contractId}` })}>Release</Btn> },
         ]} />
       )}
       {tab === "ded" && (
         <DataTable noun="deductions" rows={dedRows} columns={[
           { key: "id", label: "Bill", className: "mono text-[12px]" }, { key: "c", label: "Contract", className: "mono text-[12px]", render: (b) => b.contractId },
-          { key: "v", label: "Contractor", render: (b) => vendorName(st, b.vendorId) },
+          { key: "v", label: "Contractor", filter: (x) => vendorName(st, x.vendorId), render: (b) => vendorName(st, b.vendorId) },
           { key: "g", label: "Gross", align: "right", num: true, render: (b) => inrShort(b.gross) },
           { key: "r", label: "Retention", align: "right", num: true, render: (b) => inr(b.ded.retention) },
           { key: "a", label: "Advance", align: "right", num: true, render: (b) => inr(b.ded.advance) },

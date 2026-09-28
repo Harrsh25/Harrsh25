@@ -65,7 +65,7 @@ function InvitesTable({ onOpenVendor }) {
       <DataTable noun="invitations" placeholder="Search company, e-mail, trade…" filters={<FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Invited", "Registered", "Cancelled"]} />} rows={rows} onRow={(i) => setOpen(i.id)} empty={<EmptyState icon={Icon.mail} title="No invitations yet" text="Use “Invite vendor” to send a personal registration link." />} columns={[
         { key: "name", label: "Company", className: "font-medium" },
         { key: "email", label: "E-mail" },
-        { key: "category", label: "Trade", render: (i) => i.category || "—" },
+        { key: "category", label: "Trade", filter: (i) => i.category, render: (i) => i.category || "—" },
         { key: "sent", label: "Sent", render: (i) => `${fmtDate(i.sentOn)} · ${i.by}` },
         { key: "s", label: "Status", render: (i) => <Status>{i.status}</Status> },
         { key: "a", label: "", align: "right", render: (i) => i.vendorId ? <span onClick={stop}><Btn size="sm" onClick={() => onOpenVendor(i.vendorId)}>Open vendor</Btn></span> : i.status === "Invited" ? (
