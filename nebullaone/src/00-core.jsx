@@ -613,8 +613,11 @@ function RefLink({ to, children }) {
     if (el.tagName === "INPUT") return el.type !== "checkbox" && el.type !== "radio" && el.scrollWidth > el.clientWidth + 1;
     if (!el.clientWidth || el.children.length > 3) return false;
     const cs = getComputedStyle(el);
-    const hides = cs.overflowX !== "visible" || cs.textOverflow === "ellipsis" || cs.webkitLineClamp !== "none";
-    return hides && (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 2);
+    // scrollable panels (overflow auto/scroll) are not "cut-off text"
+    if (/auto|scroll/.test(cs.overflowX + cs.overflowY)) return false;
+    if (cs.webkitLineClamp && cs.webkitLineClamp !== "none") return el.scrollHeight > el.clientHeight + 2;
+    const hides = cs.textOverflow === "ellipsis" || cs.overflowX === "hidden" || cs.overflowX === "clip";
+    return hides && el.scrollWidth > el.clientWidth + 1 && (el.innerText || "").length < 600;
   };
   const find = (t) => {
     for (let el = t, i = 0; el && el !== document.body && i < 5; el = el.parentElement, i++) {

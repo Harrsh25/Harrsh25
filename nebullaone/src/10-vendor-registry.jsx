@@ -86,92 +86,151 @@ function createVendor(f, submit, source = "Internal") {
   return id;
 }
 
+const GST_STATES = { "01": "Jammu & Kashmir", "03": "Punjab", "05": "Uttarakhand", "06": "Haryana", "07": "Delhi", "08": "Rajasthan", "09": "Uttar Pradesh", "10": "Bihar", "19": "West Bengal",
+  "20": "Jharkhand", "21": "Odisha", "22": "Chhattisgarh", "23": "Madhya Pradesh", "24": "Gujarat", "27": "Maharashtra", "29": "Karnataka", "30": "Goa", "32": "Kerala", "33": "Tamil Nadu", "36": "Telangana", "37": "Andhra Pradesh" };
+const STATES = [...new Set(Object.values(GST_STATES))].sort();
+const TYPE_INFO = {
+  Goods: { icon: Icon.package, text: "Supplies material — cement, steel, hardware, electricals" },
+  Services: { icon: Icon.wrench, text: "Provides a service — hire, installation, testing, EPC" },
+  Labor: { icon: Icon.hardHat, text: "Supplies workers / manpower for site work" },
+};
+
+function FormSection({ n, title, desc, done, right, children }) {
+  return (
+    <section className="rounded-xl border border-line bg-white">
+      <header className="flex items-center gap-3 border-b border-line px-4 py-3">
+        <span className={cls("grid h-6 w-6 shrink-0 place-items-center rounded-full text-[12px] font-semibold", done ? "bg-green-100 text-green-700" : "bg-brand-soft text-brand")}>{done ? h(Icon.check, { size: 13 }) : n}</span>
+        <div className="min-w-0 flex-1"><p className="text-[14px] font-semibold text-ink">{title}</p>{desc && <p className="text-[12px] text-ink-mute">{desc}</p>}</div>
+        {right}
+      </header>
+      <div className="p-4">{children}</div>
+    </section>
+  );
+}
+
 function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
   const upd = (k, val) => set({ ...f, [k]: val });
   const updC = (k, val) => set({ ...f, contact: { ...f.contact, [k]: val } });
   const updB = (k, val) => set({ ...f, bank: { ...f.bank, [k]: val } });
   const updK = (k, val) => set({ ...f, contractor: { ...f.contractor, [k]: val } });
   const err = (k) => errors[k] && <span className="mt-1 block text-[11px] text-red-600">{errors[k]}</span>;
-  const showContractor = contractorMode || f.isContractor || f.type === "Labor";
+  const ok = (cond, text) => cond && <span className="mt-1 flex items-center gap-1 text-[11px] text-green-700">{h(Icon.check, { size: 11 })}{text}</span>;
+  const isLabour = f.type === "Labor";
+  const onSite = isLabour || f.isContractor;
+  const showContractor = contractorMode || onSite;
+  const gstOk = GSTIN_RE.test((f.gstin || "").toUpperCase()), panOk = PAN_RE.test((f.pan || "").toUpperCase());
+  const ifscOk = /^[A-Z]{4}0[A-Z0-9]{6}$/.test(f.bank.ifsc || "");
+  // GSTIN carries the state code (chars 1–2) and the PAN (chars 3–12): fill both automatically
+  const setGstin = (raw) => {
+    const g = raw.toUpperCase().replace(/\s/g, "");
+    const next = { ...f, gstin: g };
+    if (g.length >= 12 && (!f.pan || f.pan === (f.gstin || "").slice(2, 12))) next.pan = g.slice(2, 12);
+    if (GST_STATES[g.slice(0, 2)]) next.state = GST_STATES[g.slice(0, 2)];
+    set(next);
+  };
+  const setType = (t) => set({ ...f, type: t, tds: autoTds(t, f.supplierType), isContractor: t === "Labor" ? true : t === "Goods" ? false : f.isContractor });
+  const docsDone = requiredDocs(f).every((d) => (f.uploads || {})[d]?.file);
+  const errCount = Object.keys(errors).length;
+  let n = 0;
   return (
-    <div className="space-y-5">
-      <div>
-        <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-mute">Company</p>
+    <div className="space-y-4">
+      {errCount > 0 && <Note tone="red">Please fix {errCount} field{errCount > 1 ? "s" : ""} marked in red below.</Note>}
+
+      <FormSection n={++n} title="Company & what they supply" desc={publicMode ? "Your company and the work you do" : "Who the vendor is and what they do for you"} done={!!(f.name && f.categories.length)}>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Company / trade name" required><TextInput value={f.name} onChange={(v) => upd("name", v)} placeholder="e.g. Shree Balaji Infra" />{err("name")}</Field>
-          <Field label="Registered legal name"><TextInput value={f.legalName} onChange={(v) => upd("legalName", v)} placeholder="As on GST certificate" /></Field>
-          <Field label="Vendor type" required hint="Drives PO type, TDS section and approval routing">
-            <Select value={f.type} onChange={(v) => set({ ...f, type: v, tds: autoTds(v, f.supplierType), isContractor: v === "Labor" ? true : f.isContractor })} options={VENDOR_TYPES} />
-          </Field>
-          <Field label="Supplier type" hint="Individual / HUF contractors attract 1% TDS, others 2%">
-            <Select value={f.supplierType || "Company"} onChange={(v) => set({ ...f, supplierType: v, tds: autoTds(f.type, v) })} options={SUPPLIER_TYPES} />
-          </Field>
-          {!publicMode ? <Field label="Registration tier" hint="Prospective vendors can quote but can't receive POs">
-            <Select value={f.regTier} onChange={(v) => upd("regTier", v)} options={["Spend Authorized", "Prospective"]} />
-          </Field> : <Field label="Currency"><Select value={f.currency} onChange={(v) => upd("currency", v)} options={["INR", "USD", "EUR", "AED"]} /></Field>}
-          <Field label="Trades / categories" required span={2}>
-            <ChipPicker options={TRADES} value={f.categories} onChange={(v) => upd("categories", v)} />{err("categories")}
-          </Field>
-          {!contractorMode && f.type !== "Labor" && (
-            <div className="col-span-2"><Check checked={f.isContractor} onChange={(v) => upd("isContractor", v)} label="This vendor executes work on site (contractor / subcontractor)" /></div>
-          )}
+          <Field label="Registered legal name" hint="As on the GST certificate — leave empty if same"><TextInput value={f.legalName} onChange={(v) => upd("legalName", v)} placeholder={f.name || "Legal name"} /></Field>
         </div>
-      </div>
-      <div>
-        <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-mute">Tax & terms</p>
+        <p className="mb-2 mt-4 text-[12.5px] font-medium text-ink">Vendor type <span className="text-red-500">*</span></p>
         <div className="grid grid-cols-3 gap-3">
-          <Field label="GSTIN" required><TextInput value={f.gstin} onChange={(v) => upd("gstin", v.toUpperCase())} placeholder="27AAKCS4412M1Z3" maxLength={15} />{err("gstin")}</Field>
-          <Field label="PAN" required><TextInput value={f.pan} onChange={(v) => upd("pan", v.toUpperCase())} placeholder="AAKCS4412M" maxLength={10} />{err("pan")}</Field>
-          {!publicMode && <Field label="Currency"><Select value={f.currency} onChange={(v) => upd("currency", v)} options={["INR", "USD", "EUR", "AED"]} /></Field>}
-          <Field label={publicMode ? "Preferred payment terms" : "Payment terms"}><Select value={f.paymentTerms} onChange={(v) => upd("paymentTerms", v)} options={PAYMENT_TERMS} /></Field>
-          {!publicMode && <>
-          <Field label="Withholding tax (TDS)" span={2}><Select value={f.tds} onChange={(v) => upd("tds", v)} options={TDS_SECTIONS} /></Field>
-          <Field label="Supplier tier"><Select value={f.tier} onChange={(v) => upd("tier", v)} options={TIERS} /></Field>
-          <Field label="Vendor group" hint="Used for filters and spend-by-group reports"><Select value={f.group} placeholder="— not grouped —" onChange={(v) => upd("group", v)} options={withCurrent(settingsOf(getState()).vendorGroups, f.group)} /></Field>
-          <Field label="Internal parent company" hint="Set only if this vendor is one of our group companies"><Select value={f.parentCompany} placeholder="— external vendor —" onChange={(v) => upd("parentCompany", v)} options={withCurrent(settingsOf(getState()).groupCompanies, f.parentCompany)} /></Field>
-          </>}
+          {VENDOR_TYPES.map((t) => {
+            const on = f.type === t, I = TYPE_INFO[t];
+            return (
+              <button key={t} type="button" onClick={() => setType(t)} className={cls("flex items-start gap-3 rounded-lg border p-3 text-left transition-colors", on ? "border-brand bg-brand-soft/60 ring-1 ring-brand" : "border-line hover:border-gray-300 hover:bg-gray-50")}>
+                <span className={cls("grid h-8 w-8 shrink-0 place-items-center rounded-md", on ? "bg-brand text-white" : "bg-gray-100 text-ink-soft")}>{h(I.icon, { size: 16 })}</span>
+                <span><span className={cls("block text-[13.5px] font-semibold", on ? "text-brand" : "text-ink")}>{t === "Labor" ? "Labour" : t}</span><span className="block text-[11.5px] leading-snug text-ink-mute">{I.text}</span></span>
+              </button>
+            );
+          })}
         </div>
-      </div>
-      <div>
-        <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-mute">Contact & address</p>
+        <label className={cls("mt-3 flex items-start gap-3 rounded-lg border p-3", onSite ? "border-orange-200 bg-orange-50/60" : "border-line", isLabour || f.type === "Goods" ? "cursor-default" : "cursor-pointer hover:bg-gray-50")}>
+          <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[#0b5ed7]" checked={onSite} disabled={isLabour || f.type === "Goods"} onChange={(e) => upd("isContractor", e.target.checked)} />
+          <span className="min-w-0">
+            <span className="flex items-center gap-2 text-[13.5px] font-semibold text-ink">{h(Icon.hardHat, { size: 15, className: onSite ? "text-orange-600" : "text-ink-faint" })}This vendor executes work on site (contractor / subcontractor)</span>
+            <span className="mt-0.5 block text-[12px] leading-snug text-ink-soft">
+              {isLabour ? "Always on for Labour vendors — supplying workers means working on your site." : f.type === "Goods" ? "Not applicable — material suppliers only deliver goods. Choose Services or Labour if they also do site work."
+                : "Tick for scaffolding, excavation, EPC, installation and similar work done on your site."}
+              {" "}Contractors get the <b>“· Contractor”</b> tag, statutory details (labour licence, PF, ESI) and are managed in <b>Contract &amp; Labor</b> — contracts, work orders, measurement book, RA bills, retention and attendance.
+            </span>
+          </span>
+        </label>
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <Field label="Trades / categories" required span={2}><ChipPicker options={TRADES} value={f.categories} onChange={(v) => upd("categories", v)} />{err("categories")}</Field>
+        </div>
+      </FormSection>
+
+      <FormSection n={++n} title="Tax & payment" desc="GSTIN fills the PAN and state automatically" done={gstOk && panOk}>
+        <div className="grid grid-cols-3 gap-3">
+          <Field label="GSTIN" required><TextInput value={f.gstin} onChange={setGstin} placeholder="27AAKCS4412M1Z3" maxLength={15} className={cls(inputCls, "mono")} />{err("gstin") || ok(gstOk, `Valid · ${GST_STATES[f.gstin.slice(0, 2)] || "state code " + f.gstin.slice(0, 2)}`)}</Field>
+          <Field label="PAN" required><TextInput value={f.pan} onChange={(v) => upd("pan", v.toUpperCase())} placeholder="AAKCS4412M" maxLength={10} className={cls(inputCls, "mono")} />{err("pan") || ok(panOk && gstOk && f.gstin.slice(2, 12) === f.pan, "Matches GSTIN")}</Field>
+          <Field label="Supplier type" hint="Individual / HUF: 1% TDS, others 2%"><Select value={f.supplierType || "Company"} onChange={(v) => set({ ...f, supplierType: v, tds: autoTds(f.type, v) })} options={SUPPLIER_TYPES} /></Field>
+          <Field label={publicMode ? "Preferred payment terms" : "Payment terms"}><Select value={f.paymentTerms} onChange={(v) => upd("paymentTerms", v)} options={PAYMENT_TERMS} /></Field>
+          <Field label="Currency"><Select value={f.currency} onChange={(v) => upd("currency", v)} options={["INR", "USD", "EUR", "AED"]} /></Field>
+          {!publicMode && <Field label="Withholding tax (TDS)" hint="Set automatically from vendor & supplier type"><Select value={f.tds} onChange={(v) => upd("tds", v)} options={TDS_SECTIONS} /></Field>}
+        </div>
+      </FormSection>
+
+      <FormSection n={++n} title="Contact & address" desc={publicMode ? "We send RFQs, POs and payment advice here" : "The contact also becomes the vendor's portal admin"} done={!!(f.contact.name && EMAIL_RE.test(f.contact.email))}>
         <div className="grid grid-cols-3 gap-3">
           <Field label="Contact person" required><TextInput value={f.contact.name} onChange={(v) => updC("name", v)} />{err("contactName")}</Field>
-          <Field label="Email" required><TextInput type="email" value={f.contact.email} onChange={(v) => updC("email", v)} />{err("email")}</Field>
-          <Field label="Phone"><TextInput value={f.contact.phone} onChange={(v) => updC("phone", v)} placeholder="+91" /></Field>
-          <Field label="Registered address" span={2}><TextInput value={f.address} onChange={(v) => upd("address", v)} /></Field>
+          <Field label="Email" required><TextInput type="email" value={f.contact.email} onChange={(v) => updC("email", v)} placeholder="name@company.com" />{err("email")}</Field>
+          <Field label="Phone"><TextInput value={f.contact.phone} onChange={(v) => updC("phone", v)} placeholder="+91 98xxx xxxxx" /></Field>
+          <Field label="Registered address" span={3}><TextInput value={f.address} onChange={(v) => upd("address", v)} placeholder="Building, street, area" /></Field>
           <Field label="City"><TextInput value={f.city} onChange={(v) => upd("city", v)} /></Field>
+          <Field label="State" hint={GST_STATES[(f.gstin || "").slice(0, 2)] ? "From GSTIN" : ""}><Select value={f.state} onChange={(v) => upd("state", v)} options={withCurrent(STATES, f.state)} /></Field>
         </div>
-      </div>
+      </FormSection>
+
       {showContractor && (
-        <div>
-          <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-mute">Contractor statutory details</p>
+        <FormSection n={++n} title="Contractor statutory details" desc="Required before a contractor can be mobilised to site" done={!!f.contractor.labourLicence}>
           <div className="grid grid-cols-3 gap-3">
             <Field label="Labour licence no. (CLRA)"><TextInput value={f.contractor.labourLicence} onChange={(v) => updK("labourLicence", v)} /></Field>
             <Field label="Licence valid till"><DateInput value={f.contractor.licenceExpiry} onChange={(v) => updK("licenceExpiry", v)} /></Field>
-            <Field label="Workforce strength"><NumInput value={f.contractor.workforce} onChange={(v) => updK("workforce", v)} /></Field>
+            <Field label="Workforce strength"><NumInput value={f.contractor.workforce} onChange={(v) => updK("workforce", v)} placeholder="Workers" /></Field>
             <Field label="PF establishment code"><TextInput value={f.contractor.pfCode} onChange={(v) => updK("pfCode", v)} /></Field>
             <Field label="ESI code"><TextInput value={f.contractor.esiCode} onChange={(v) => updK("esiCode", v)} /></Field>
             <Field label="Experience (years)"><NumInput value={f.contractor.experienceYrs} onChange={(v) => updK("experienceYrs", v)} /></Field>
-            <Field label="Past projects" span={3}><TextInput value={f.contractor.pastProjects} onChange={(v) => updK("pastProjects", v)} placeholder="Comma-separated" /></Field>
+            <Field label="Past projects" span={3}><TextInput value={f.contractor.pastProjects} onChange={(v) => updK("pastProjects", v)} placeholder="Comma-separated, e.g. Lodha Park T3, Metro Line 2A depot" /></Field>
           </div>
-        </div>
+        </FormSection>
       )}
-      <div>
-        <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-mute">Bank details</p>
+
+      <FormSection n={++n} title="Bank details" desc={lockBank ? "Locked — only the vendor can change bank details" : "Payments are blocked until a bank account is on file"} done={!!(f.bank.account && ifscOk)}
+        right={lockBank && <span className="flex items-center gap-1 text-[12px] text-ink-mute">{h(Icon.lock, { size: 13 })}Locked</span>}>
         <div className="grid grid-cols-3 gap-3">
-          <Field label="Bank" hint={lockBank ? "Locked — only the vendor can change bank details" : ""}><TextInput value={f.bank.bank} disabled={lockBank} onChange={(v) => updB("bank", v)} /></Field>
-          <Field label="Account no."><TextInput value={f.bank.account} disabled={lockBank} onChange={(v) => updB("account", v)} /></Field>
-          <Field label="IFSC"><TextInput value={f.bank.ifsc} disabled={lockBank} onChange={(v) => updB("ifsc", v.toUpperCase())} maxLength={11} /></Field>
+          <Field label="Bank"><TextInput value={f.bank.bank} disabled={lockBank} onChange={(v) => updB("bank", v)} placeholder="e.g. HDFC Bank" /></Field>
+          <Field label="Account no."><TextInput value={f.bank.account} disabled={lockBank} onChange={(v) => updB("account", v.replace(/\s/g, ""))} className={cls(inputCls, "mono")} /></Field>
+          <Field label="IFSC"><TextInput value={f.bank.ifsc} disabled={lockBank} onChange={(v) => updB("ifsc", v.toUpperCase())} maxLength={11} placeholder="HDFC0001234" className={cls(inputCls, "mono")} />
+            {f.bank.ifsc && !ifscOk ? <span className="mt-1 block text-[11px] text-amber-700">Format: 4 letters, 0, then 6 characters</span> : ok(ifscOk, "Valid IFSC")}</Field>
         </div>
-      </div>
-      <div>
-        <p className="mb-2 flex items-center justify-between text-[12px] font-semibold uppercase tracking-wide text-ink-mute">
-          <span>Documents</span>
-          <span className="normal-case tracking-normal font-normal">{Object.values(f.uploads || {}).filter((u) => u.file).length} of {requiredDocs(f).length} uploaded · PDF / JPG / PNG</span>
-        </p>
+      </FormSection>
+
+      <FormSection n={++n} title="Documents" desc="PDF / JPG / PNG — each is verified by the approver" done={docsDone}
+        right={<span className="rounded-full bg-gray-100 px-2 py-0.5 text-[12px] font-medium text-ink-soft">{Object.values(f.uploads || {}).filter((u) => u.file).length} / {requiredDocs(f).length}</span>}>
         <DocUploadList docs={requiredDocs(f)} uploads={f.uploads || {}} onChange={(u) => set({ ...f, uploads: u })} />
         {errors.docs && <span className="mt-1 block text-[11px] text-red-600">{errors.docs}</span>}
-      </div>
+      </FormSection>
+
+      {!publicMode && (
+        <FormSection n={++n} title="Internal classification" desc="Only visible to your team — not shown to the vendor" done>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label={<span data-tip={TIER_TIP}>Supplier tier ⓘ</span>}><Select value={f.tier} onChange={(v) => upd("tier", v)} options={TIERS} /></Field>
+            <Field label={<span data-tip={REG_TIP}>Registration tier ⓘ</span>} hint="Prospective vendors can quote but can't receive POs"><Select value={f.regTier} onChange={(v) => upd("regTier", v)} options={["Spend Authorized", "Prospective"]} /></Field>
+            <Field label="Vendor group" hint="Used for filters and spend-by-group reports"><Select value={f.group} placeholder="— not grouped —" onChange={(v) => upd("group", v)} options={withCurrent(settingsOf(getState()).vendorGroups, f.group)} /></Field>
+            <Field label="Internal parent company" hint="Only if this vendor is one of our group companies"><Select value={f.parentCompany} placeholder="— external vendor —" onChange={(v) => upd("parentCompany", v)} options={withCurrent(settingsOf(getState()).groupCompanies, f.parentCompany)} /></Field>
+          </div>
+        </FormSection>
+      )}
     </div>
   );
 }
