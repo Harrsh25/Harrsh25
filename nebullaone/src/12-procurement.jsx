@@ -271,10 +271,9 @@ function PurchaseOrdersPage() {
         <StatTile tone="green" label="Fully received" value={live.filter((p) => poStatus(p) === "Received").length} icon={Icon.check} />
       </StatGrid>
       <DataTable rows={st.purchaseOrders} onRow={(p) => setOpen(p.id)} columns={[
-        { key: "id", label: "PO", className: "mono text-[12px] text-ink-soft" },
         { key: "v", label: "Vendor", render: (p) => <span className="font-medium">{vendorName(st, p.vendorId)}</span> },
-        { key: "project", label: "Project" },
-        { key: "src", label: "Source", className: "text-[12px]", render: (p) => p.rfqId || p.blanketId || "Direct" },
+        { key: "items", label: "Items · project", render: (p) => <TwoLine a={itemsSummary(p.lines)} b={p.project} /> },
+        { key: "src", label: "Source", render: (p) => { const [a, b] = poSourceText(st, p); return <TwoLine a={a} b={b} />; } },
         { key: "val", label: "Value", align: "right", num: true, render: (p) => inrShort(poValue(p)) },
         { key: "rec", label: "Received", render: (p) => { const r = poReceived(p); return <Progress value={Math.round(pct(sum(r, (x) => x.received), sum(r, (x) => x.qty)))} />; } },
         { key: "dd", label: "Delivery by", render: (p) => <span className={cls(poStatus(p) !== "Received" && daysUntil(p.deliveryDate) < 0 && "text-red-600")}>{fmtDate(p.deliveryDate)}</span> },
@@ -310,7 +309,7 @@ function BlanketOrdersPage() {
         <StatTile tone="amber" label="Expiring ≤ 60 days" value={st.blanketOrders.filter((b) => { const d = daysUntil(b.deadline); return d >= 0 && d <= 60; }).length} icon={Icon.calendarClock} />
       </StatGrid>
       <DataTable rows={st.blanketOrders} onRow={(b) => setOpen(b.id)} empty={<EmptyState icon={Icon.layers} title="No blanket orders" text="Create one for materials you buy repeatedly from the same vendor." />} columns={[
-        { key: "id", label: "Agreement", className: "mono text-[12px]" }, { key: "title", label: "Title", className: "font-medium" },
+        { key: "title", label: "Agreement", className: "font-medium" },
         { key: "v", label: "Vendor", render: (b) => vendorName(st, b.vendorId) },
         { key: "val", label: "Value", align: "right", num: true, render: (b) => inrShort(value(b)) },
         { key: "u", label: "Consumed", render: (b) => <Progress value={Math.round(pct(used(b), value(b)))} /> },
@@ -503,7 +502,7 @@ function NewBillModal({ open, onClose, presetPoId }) {
           {mode === "po"
             ? <Field label="Purchase order" span={2}><Select value={poId} disabled={!!presetPoId} placeholder="Select PO…" onChange={pickPo} options={st.purchaseOrders.filter((p) => !["Draft", "Cancelled"].includes(p.status)).map((p) => ({ value: p.id, label: `${p.id} — ${vendorName(st, p.vendorId)} (${poBillingStatus(st, p)})` }))} /></Field>
             : <Field label="Vendor" span={2}><Select value={vendorId} placeholder="Select vendor…" onChange={(x) => { setVendorId(x); setF({ ...f, lines: [{ desc: "", qty: 1, rate: "" }] }); }} options={st.vendors.filter((x) => x.status !== "Blacklisted").map((x) => ({ value: x.id, label: x.name }))} /></Field>}
-          <Field label="Vendor invoice no."><TextInput value={f.number} onChange={(x) => setF({ ...f, number: x })} /></Field>
+          <Field label="Vendor invoice no." required><TextInput value={f.number} onChange={(x) => setF({ ...f, number: x })} /></Field>
           <Field label="Invoice date"><DateInput value={f.date} onChange={(x) => setF({ ...f, date: x })} /></Field>
         </div>
         {v && isBlockedFor(v, "Invoices") && <Note tone="red">{v.name} is blocked for invoices.</Note>}
@@ -702,10 +701,9 @@ function InvoicesPage() {
         right={<span className="text-[12px]">Tick unpaid bills to include them in a payment run</span>} />
       <DataTable rows={rows} onRow={(i) => setOpen(i.id)} columns={[
         { key: "sel", label: "", render: (i) => invoiceStatus(i) !== "Paid" && <input type="checkbox" className="h-4 w-4 accent-[#0b5ed7]" checked={sel.includes(i.id)} onClick={(e) => e.stopPropagation()} onChange={(e) => setSel(e.target.checked ? [...sel, i.id] : sel.filter((x) => x !== i.id))} /> },
-        { key: "id", label: "Bill", className: "mono text-[12px] text-ink-soft" },
         { key: "v", label: "Vendor", render: (i) => <span className="font-medium">{vendorName(st, i.vendorId)}</span> },
-        { key: "src", label: "Against", render: (i) => <span className="text-[12px]">{i.source === "RA Bill" ? `RA · ${i.raBillId}` : i.source === "Direct" ? "No PO" : `PO · ${i.poId}`}</span> },
-        { key: "num", label: "Vendor ref", className: "text-[12px]" },
+        { key: "src", label: "Against", render: (i) => { const [a, b] = billAgainst(st, i); return <TwoLine a={a} b={b} />; } },
+        { key: "number", label: "Vendor bill no.", className: "text-[12px]", render: (i) => (i.source === "RA Bill" ? <span className="text-ink-mute">Auto (from RA bill)</span> : i.number || <span className="text-ink-faint">—</span>) },
         { key: "amt", label: "Amount", align: "right", num: true, render: (i) => inr(invoiceTotals(i).payable) },
         { key: "bal", label: "Balance", align: "right", num: true, render: (i) => inr(invoiceTotals(i).balance) },
         { key: "due", label: "Next due", render: (i) => fmtDate((nextInstalment(i) || {}).due || i.due) },

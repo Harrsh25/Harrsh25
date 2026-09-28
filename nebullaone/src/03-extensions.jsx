@@ -28,6 +28,20 @@ const DEFAULT_SETTINGS = {
 };
 const ROLES = ["Procurement Executive", "Procurement Head", "Project Manager", "Finance Controller"];
 const settingsOf = (st) => ({ ...DEFAULT_SETTINGS, ...(st.settings || {}) });
+// Readable descriptions used in list views instead of document codes
+const itemsSummary = (lines) => (lines && lines.length ? `${lines[0].desc}${lines.length > 1 ? ` +${lines.length - 1} more` : ""}` : "—");
+const modeLabel = (m) => (m === "Call for Tenders" ? "Multiple Vendors" : m);
+function poSourceText(st, p) {
+  if (p.rfqId) { const r = byId(st.rfqs, p.rfqId); return ["From RFQ", r ? r.title : ""]; }
+  if (p.blanketId) { const b = byId(st.blanketOrders, p.blanketId); return ["Blanket call-off", b ? b.title : ""]; }
+  return ["Direct", ""];
+}
+function billAgainst(st, i) {
+  if (i.source === "RA Bill") { const b = byId(st.raBills, i.raBillId), w = b && byId(st.workOrders, b.woId); return [w ? w.title : "RA bill", b ? `RA bill no. ${b.seq} · work order` : "RA bill"]; }
+  if (i.source === "Direct") return ["Direct bill", "No purchase order"];
+  const p = byId(st.purchaseOrders, i.poId); return [p ? itemsSummary(p.lines) : "Purchase order", p ? `Purchase order · ${p.project}` : "Purchase order"];
+}
+const TwoLine = ({ a, b }) => <span className="flex flex-col"><span className="max-w-[280px] truncate">{a}</span>{b && <span className="max-w-[280px] truncate text-[11.5px] text-ink-mute">{b}</span>}</span>;
 const groupRoot = (g) => (g || "").split(" › ")[0];
 const inGroup = (v, g) => !!v.group && (v.group === g || v.group.startsWith(g + " › "));
 const isGroupCompany = (v) => !!(v && v.parentCompany);

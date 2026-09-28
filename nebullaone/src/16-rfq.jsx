@@ -37,7 +37,7 @@ const templateItems = (name) => { const t = RFQ_TEMPLATES.find((x) => x.name ===
 // ---------------------------------------------------------------- create RFQ
 function NewRfqModal({ open, onClose, onCreated }) {
   const st = useStore();
-  const blank = () => ({ title: "", project: PROJECTS[0], mode: "Call for Tenders", template: "", sourceRef: "", dueDate: shiftDays(7), incoterm: INCOTERMS[0],
+  const blank = () => ({ title: "", project: PROJECTS[0], mode: "Multiple Vendors", template: "", sourceRef: "", dueDate: shiftDays(7), incoterm: INCOTERMS[0],
     tnc: "Prices firm for the validity period. Delivery to site, unloading by vendor. Payment as per agreed terms after GRN and bill.",
     items: [{ desc: "", unit: "nos", qty: "", requiredBy: shiftDays(14) }], vendorIds: [], weights: { price: 60, quality: 25, delivery: 15 } });
   const [f, setF] = y.useState(blank);
@@ -71,7 +71,7 @@ function NewRfqModal({ open, onClose, onCreated }) {
           <Field label="Template" hint={f.template ? `${f.items.length} line items loaded — edit or remove as needed` : "Loads a ready list of line items"}><Select value={f.template} placeholder="Blank" onChange={(x) => setF({ ...f, template: x, title: f.title || (x ? `${x} — ${f.project}` : ""), items: templateItems(x) || [{ desc: "", unit: "nos", qty: "", requiredBy: shiftDays(14) }] })} options={RFQ_TEMPLATES.map((t) => ({ value: t.name, label: `${t.name} (${t.items.length} items)` }))} /></Field>
           <Field label="Project"><Select value={f.project} onChange={(x) => setF({ ...f, project: x })} options={PROJECTS} /></Field>
           <Field label="Source (BOQ / material request)"><TextInput value={f.sourceRef} onChange={(x) => setF({ ...f, sourceRef: x })} placeholder="e.g. BOQ-2026-002 · Structural steel" /></Field>
-          <Field label="Sourcing mode"><Select value={f.mode} onChange={(x) => setF({ ...f, mode: x, vendorIds: x === "Single Vendor" ? f.vendorIds.slice(0, 1) : f.vendorIds })} options={["Call for Tenders", "Single Vendor"]} /></Field>
+          <Field label="Sourcing mode"><Select value={f.mode} onChange={(x) => setF({ ...f, mode: x, vendorIds: x === "Single Vendor" ? f.vendorIds.slice(0, 1) : f.vendorIds })} options={["Multiple Vendors", "Single Vendor"]} /></Field>
           <Field label="Quotes due (order deadline)"><DateInput value={f.dueDate} onChange={(x) => setF({ ...f, dueDate: x })} /></Field>
           <Field label="Incoterm"><Select value={f.incoterm} onChange={(x) => setF({ ...f, incoterm: x })} options={INCOTERMS} /></Field>
         </div>
@@ -457,7 +457,7 @@ function RfqDrawer({ id, onClose, compose }) {
     { entity: "RFQ", id, action: `Quotation from ${vendorName(st, vid)} ${status === "Accepted" ? "accepted for evaluation" : `returned — ${reason}`}` });
   return (
     <Drawer open onClose={onClose} width={1040} title={rfq.title}
-      subtitle={<><span className="mono">{rfq.id}</span><Status>{rfq.status}</Status><span>{rfq.mode}</span><span>· {rfq.project}</span><span>· due {fmtDate(rfq.dueDate)}</span>{rfq.sourceRef && <span>· {rfq.sourceRef}</span>}</>}
+      subtitle={<><span className="mono">{rfq.id}</span><Status>{rfq.status}</Status><span>{modeLabel(rfq.mode)}</span><span>· {rfq.project}</span><span>· due {fmtDate(rfq.dueDate)}</span>{rfq.sourceRef && <span>· {rfq.sourceRef}</span>}</>}
       actions={<>
         <Btn icon={Icon.download} onClick={() => printRfq(rfq)}>Print / PDF</Btn>
         {rfq.status === "Draft" && <Btn variant="primary" icon={Icon.send} onClick={() => setSend({ all: true })}>Compose & send</Btn>}
@@ -593,7 +593,7 @@ function RfqPage() {
       <DataTable rows={rows} onRow={(r) => { setCompose(false); setOpen(r.id); }} columns={[
         { key: "title", label: "Title", className: "font-medium" },
         { key: "project", label: "Project" },
-        { key: "mode", label: "Mode" },
+        { key: "mode", label: "Mode", render: (r) => modeLabel(r.mode) },
         { key: "resp", label: "Responses", render: (r) => { const R = Object.values(r.responses || {}); return <span className="text-[12px]">{r.quotes.length} quoted · {R.filter((x) => x.status === "Declined").length} declined · {r.vendorIds.length} invited</span>; } },
         { key: "best", label: "Lowest total", align: "right", num: true, render: (r) => (r.quotes.length ? inrShort(Math.min(...r.quotes.map((q) => quoteTotal(r, q)))) : "—") },
         { key: "due", label: "Due", render: (r) => <span className={cls(bucket(r) === "Late" && "font-medium text-red-600")}>{fmtDate(r.dueDate)}</span> },
