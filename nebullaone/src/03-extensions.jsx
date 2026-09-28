@@ -41,7 +41,8 @@ function billAgainst(st, i) {
   if (i.source === "Direct") return ["Direct bill", "No purchase order"];
   const p = byId(st.purchaseOrders, i.poId); return [p ? itemsSummary(p.lines) : "Purchase order", p ? `Purchase order · ${p.project}` : "Purchase order"];
 }
-const TwoLine = ({ a, b }) => <span className="flex flex-col"><span className="max-w-[280px] truncate">{a}</span>{b && <span className="max-w-[280px] truncate text-[11.5px] text-ink-mute">{b}</span>}</span>;
+// List cells stay single-line (Project Center style); the secondary detail is shown on hover
+const TwoLine = ({ a, b }) => <span className="block max-w-[300px] truncate" data-tip={b ? `${a}\n${b}` : undefined}>{a}</span>;
 const groupRoot = (g) => (g || "").split(" › ")[0];
 const inGroup = (v, g) => !!v.group && (v.group === g || v.group.startsWith(g + " › "));
 const isGroupCompany = (v) => !!(v && v.parentCompany);

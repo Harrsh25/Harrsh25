@@ -592,6 +592,19 @@ function VendorRegistryPage() {
         <Btn icon={Icon.mail} onClick={() => setInvite(true)}>Invite vendor</Btn>
         <Btn variant="primary" icon={Icon.plus} onClick={() => setReg(true)}>Register vendor</Btn>
       </>}>
+      {view === "invites" ? (() => {
+        const inv = st.invites, open = inv.filter((i) => i.status === "Invited"), reg = inv.filter((i) => i.status === "Registered");
+        const stale = open.filter((i) => daysUntil(i.sentOn) <= -7).length, decided = inv.filter((i) => i.status !== "Cancelled").length;
+        return (
+          <StatGrid cols={5}>
+            <StatTile tone="blue" label="Invitations sent" value={inv.length} sub={`${inv.filter((i) => i.status === "Cancelled").length} cancelled`} icon={Icon.mail} />
+            <StatTile tone="amber" label="Awaiting registration" value={open.length} sub="Link not used yet" icon={Icon.clock} />
+            <StatTile tone="green" label="Registered" value={reg.length} sub="Vendor record created" icon={Icon.check} />
+            <StatTile tone="red" label="No response ≥ 7 days" value={stale} sub="Send a reminder" icon={Icon.warning} />
+            <StatTile tone="purple" label="Conversion" value={`${decided ? Math.round((reg.length / decided) * 100) : 0}%`} sub="Invited → registered" icon={Icon.trending} />
+          </StatGrid>
+        );
+      })() : (
       <StatGrid cols={5}>
         <StatTile tone="blue" label="Total vendors" value={st.vendors.length} sub={`${st.vendors.filter((v) => v.isContractor).length} contractors`} icon={Icon.building} />
         <StatTile tone="green" label="Active" value={st.vendors.filter((v) => v.status === "Active").length} sub="Spend authorized" icon={Icon.check} />
@@ -599,6 +612,7 @@ function VendorRegistryPage() {
         <StatTile tone="red" label="Held / blocked" value={st.vendors.filter((v) => ["On Hold", "Blacklisted", "Disabled"].includes(v.status)).length} icon={Icon.lock} />
         <StatTile tone="orange" label="Compliance issues" value={compIssues} sub="Active vendors" icon={Icon.warning} />
       </StatGrid>
+      )}
       <TabBar active={view} onChange={setView} tabs={[{ id: "vendors", label: "Vendors", icon: Icon.building }, { id: "invites", label: `Invitations (${st.invites.filter((i) => i.status === "Invited").length} open)`, icon: Icon.mail }]} />
       {view === "invites" && <InvitesTable onOpenVendor={setOpen} />}
       {view === "vendors" && <>
@@ -612,11 +626,11 @@ function VendorRegistryPage() {
           { value: "__none", label: "Not grouped" }, { value: "__intra", label: "Group companies" }]} />
       </>} right={<span className="text-[12px]">{rows.length} of {st.vendors.length}</span>} />
       <DataTable rows={rows} onRow={(v) => setOpen(v.id)} columns={[
-        { key: "name", label: "Vendor", render: (v) => <span className="flex items-center justify-between gap-3 font-medium"><span className="flex flex-col"><span>{v.name}</span>{v.group && <span className="text-[11px] font-normal text-ink-mute">{v.group}</span>}</span><PreferredStar v={v} size={14} /></span> },
+        { key: "name", label: "Vendor", render: (v) => <span className="flex items-center justify-between gap-3 font-medium"><span className="truncate" data-tip={v.group ? `${v.name}\nGroup: ${v.group}` : undefined}>{v.name}</span><PreferredStar v={v} size={14} /></span> },
         { key: "type", label: "Type", render: (v) => <span className="flex flex-wrap items-center gap-1"><VendorTypeTag v={v} /><GroupCoTag v={v} /></span> },
         { key: "cat", label: "Trades", render: (v) => <CategoryChips list={v.categories} /> },
         { key: "tier", label: <span data-tip={TIER_TIP}>Tier</span>, render: (v) => <span data-tip={TIER_HELP[v.tier]}>{v.tier}</span> },
-        { key: "reg", label: <span data-tip={REG_TIP}>Registration</span>, render: (v) => <span className="flex flex-col" data-tip={REG_HELP[v.regTier]}><Status>{v.regTier}</Status>{v.source === "Self-registration" && <span className="text-[10.5px] text-ink-mute">self-registered</span>}</span> },
+        { key: "reg", label: <span data-tip={REG_TIP}>Registration</span>, render: (v) => <span data-tip={REG_HELP[v.regTier] + (v.source === "Self-registration" ? "\n\nSelf-registered via the portal." : "")}><Status>{v.regTier}</Status></span> },
         { key: "comp", label: "Compliance", render: (v) => <Status>{complianceOf(v).status}</Status> },
         { key: "score", label: "Score", render: (v) => <ScoreBadge value={vendorScore(st, v.id).score} /> },
         { key: "status", label: "Status", render: (v) => <Status>{v.status}</Status> },

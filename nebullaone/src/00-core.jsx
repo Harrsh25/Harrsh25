@@ -379,7 +379,7 @@ function DataTable({ columns, rows, onRow, rowKey = (r) => r.id, empty, footer, 
   if (!rows.length) return empty || <EmptyState icon={Icon.folder} title="Nothing here yet" text="Records you add will appear in this list." />;
   return (
     <div className="overflow-x-auto">
-      <table className="w-full">
+      <table className={cls("w-full", !dense && "nx-list")}>
         <thead>
           <tr>
             {columns.map((c) => (

@@ -198,7 +198,7 @@ function VendorApprovalsPage() {
         {byDept.map(({ d, n }, i) => <StatTile key={d} tone={["blue", "purple", "cyan"][i]} label={`Pending — ${d}`} value={n} icon={Icon.clipboardCheck} />)}
         <StatTile tone="red" label="Sent back" value={st.vendors.filter((v) => v.status === "Rejected").length} sub="Awaiting resubmission" icon={Icon.refresh} />
       </StatGrid>
-      <TabBar active={tab} onChange={setTab} tabs={[{ id: "queue", label: `Approval queue (${queue.length})`, icon: Icon.clipboardList }, { id: "rules", label: "Qualification rule sets", icon: Icon.sliders }, { id: "scores", label: "Qualification results", icon: Icon.listChecks }]} />
+      <TabBar active={tab} onChange={setTab} tabs={[{ id: "queue", label: `Approval queue (${queue.length})`, icon: Icon.clipboardList }, { id: "scores", label: "Qualification results", icon: Icon.listChecks }]} />
       {tab === "queue" && (
         <DataTable rows={queue} onRow={(v) => setOpen(v.id)} empty={<EmptyState icon={Icon.check} title="Approval queue is clear" text="New registrations will show up here." />} columns={[
           { key: "name", label: "Vendor", className: "font-medium" },

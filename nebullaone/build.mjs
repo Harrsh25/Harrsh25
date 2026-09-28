@@ -92,7 +92,11 @@ root.walkAtRules((a) => {
 const extraCss = root.toString().replace(/\/\*[^]*?\*\//g, "").replace(/\s*\n\s*/g, "");
 // Hand-written tweaks for host components rendered inside detail panels / dialogs:
 // keep stat values on one line and let the sub-label drop below instead.
-const RAW_CSS = "[role=dialog] .mono{white-space:nowrap}[role=dialog] p.flex.items-baseline{flex-wrap:wrap;row-gap:0}";
+// List views (Project Center style): single-line 14px text, ~40px rows, no monospace codes in cells.
+const RAW_CSS = "[role=dialog] .mono{white-space:nowrap}[role=dialog] p.flex.items-baseline{flex-wrap:wrap;row-gap:0}" +
+  ".nx-list td{font-size:14px;padding-top:9px;padding-bottom:9px}:where(.nx-list) td{color:#111827}" +
+  ".nx-list td.mono,.nx-list td .mono{font-family:inherit;font-size:14px;letter-spacing:0}.nx-list td button{font-size:13px}" +
+  ".nx-list td.text-ink-soft,.nx-list td.text-\\[12px\\],.nx-list td .text-\\[12px\\]{font-size:14px}";
 html = html.slice(0, styleEnd) + C_BEGIN + extraCss + RAW_CSS + C_END + html.slice(styleEnd);
 
 writeFileSync(HTML, html);
