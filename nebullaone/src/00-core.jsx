@@ -510,9 +510,9 @@ function FilterSelect({ value, onChange, options, label }) {
   const tone = (o) => (isAll(o) ? null : o.tone || TONE[String(o.label).toLowerCase()] || TONE[String(o.value).toLowerCase()] || EXTRA_DOT[String(o.label).toLowerCase()] || "gray");
   const dot = (o) => { const t = tone(o); return <span className={cls("h-2 w-2 shrink-0 rounded-full", t ? DOT[t] : "border border-gray-300 bg-white")} />; };
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative min-w-0 shrink">
       <button type="button" aria-label={label} aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((o) => !o)}
-        className={cls("flex h-[28px] max-w-[260px] items-center gap-2 rounded-md border bg-white px-2.5 text-[13px] text-ink", open ? "border-brand ring-2 ring-brand/15" : "border-line hover:border-gray-300")}>
+        className={cls("flex h-[28px] w-full max-w-[260px] items-center gap-2 rounded-md border bg-white px-2.5 text-[13px] text-ink", open ? "border-brand ring-2 ring-brand/15" : "border-line hover:border-gray-300")}>
         {dot(cur)}<span className="truncate">{String(cur.label).trim()}</span>{h(Icon.chevronDown, { size: 13, className: "shrink-0 text-ink-mute" })}
       </button>
       {open && (
@@ -602,9 +602,12 @@ function DataTable({ columns, rows, onRow, rowKey = (r) => r.id, empty, footer, 
   const sum$ = typeof summary === "function" ? summary(shown) : summary || [];
   return (
     <>
-      <Toolbar left={<div className="flex flex-wrap items-center gap-2">{filters}{colSelects}
-        {fcols.length > 0 && fcols.some((c) => cf[c.key] && cf[c.key] !== "__all") && <button type="button" className="px-1 text-[12.5px] text-brand hover:underline" onClick={() => setCf({})}>Clear filters</button>}</div>}
-        right={<div className="flex items-center gap-2">{actions}<SearchBox value={q} onChange={setQ} placeholder={placeholder} /></div>} />
+      {/* One line: filters on the left (they shrink and truncate when space is tight), search on the right */}
+      <div className="flex min-h-[44px] items-center gap-3 border-b border-line px-4 py-1.5">
+        <div className="nx-filters flex min-w-0 flex-1 flex-nowrap items-center gap-2">{filters}{colSelects}
+          {fcols.length > 0 && fcols.some((c) => cf[c.key] && cf[c.key] !== "__all") && <button type="button" className="shrink-0 whitespace-nowrap px-1 text-[12.5px] text-brand hover:underline" onClick={() => setCf({})}>Clear filters</button>}</div>
+        <div className="flex shrink-0 items-center gap-2">{actions}<SearchBox value={q} onChange={setQ} placeholder={placeholder} /></div>
+      </div>
       {table}
       <FooterBar items={[{ value: active ? `${shown.length} of ${rows.length}` : rows.length, label: noun }, ...sum$]} updated={new Date().toLocaleString("en-IN")} />
     </>
