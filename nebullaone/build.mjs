@@ -122,7 +122,9 @@ const RAW_CSS = "[role=dialog] .mono{white-space:nowrap}[role=dialog] p.flex.ite
   ".nx-list td span.rounded-md.border.text-\\[11\\.5px\\]{font-size:12.5px;padding:2px 7px;gap:5px}" +
   ".nx-list td span.rounded.text-\\[11px\\]{font-size:12px;padding:2px 7px}" +
   // Stacked cards always get breathing room, even inside wrappers that don't space their children
-  ":not(.grid):not(.flex)>.nx-section+.nx-section{margin-top:16px}";
+  ":not(.grid):not(.flex)>.nx-section+.nx-section{margin-top:16px}" +
+  // The list fills the page card, so its horizontal scrollbar sits at the bottom (above the footer) with a sticky header
+  ".shadow-card>.nx-fill{flex:1 1 0;min-height:280px;overflow:auto}.shadow-card>.nx-fill thead th{position:sticky;top:0;z-index:2}";
 html = html.slice(0, styleEnd) + C_BEGIN + extraCss + RAW_CSS + C_END + html.slice(styleEnd);
 
 writeFileSync(HTML, html);

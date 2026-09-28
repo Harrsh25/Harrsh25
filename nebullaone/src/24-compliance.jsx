@@ -175,9 +175,9 @@ function RequirementsEditor() {
       <Section title="Insurance requirements" icon={Icon.shield} actions={<Btn size="sm" icon={Icon.plus} onClick={() => setIns([...ins, { type: INS_TYPES[2], applies: "contractor", min: 10000000, blocks: true }])}>Add coverage</Btn>}>
         <table className="w-full"><thead><tr><Th>Coverage</Th><Th>Required for</Th><Th align="right">Minimum sum insured (₹)</Th><Th align="center">Blocks payment</Th><Th align="right">Vendors</Th><Th /></tr></thead>
           <tbody>{ins.map((d, i) => (
-            <tr key={i}><Td className="w-[30%]"><Select value={d.type} onChange={(x) => upd(ins, setIns, i, "type", x)} options={withCurrent(INS_TYPES, d.type)} /></Td>
+            <tr key={i}><Td className="w-[28%]"><Select value={d.type} onChange={(x) => upd(ins, setIns, i, "type", x)} options={withCurrent(INS_TYPES, d.type)} /></Td>
               <Td className="w-[24%]"><Select value={d.applies} onChange={(x) => upd(ins, setIns, i, "applies", x)} options={APPLIES} /></Td>
-              <Td align="right" className="w-[20%]"><NumInput value={d.min} onChange={(x) => upd(ins, setIns, i, "min", x)} /><span className="text-[11px] text-ink-mute">{inrShort(d.min)}</span></Td>
+              <Td align="right" className="w-[22%] min-w-[210px]"><div className="relative"><NumInput value={d.min} onChange={(x) => upd(ins, setIns, i, "min", x)} style={{ paddingRight: 80 }} /><span className="pointer-events-none absolute right-7 top-1/2 -translate-y-1/2 whitespace-nowrap text-[11.5px] text-ink-mute">{inrShort(d.min)}</span></div></Td>
               <Td align="center"><Chk on={d.blocks} onChange={(x) => upd(ins, setIns, i, "blocks", x)} /></Td>
               <Td align="right" className="num text-ink-soft">{affected(d)}</Td>
               <Td align="right"><IconBtn icon={Icon.trash} title="Remove requirement" onClick={() => setIns(ins.filter((_, j) => j !== i))} /></Td></tr>

@@ -577,7 +577,6 @@ function AuditList({ items }) {
 function VendorRegistryPage() {
   const st = useStore();
   const [type, setType] = y.useState("All"), [status, setStatus] = y.useState("All"), [tier, setTier] = y.useState("All"), [grp, setGrp] = y.useState("All");
-  const groups = settingsOf(st).vendorGroups, roots = [...new Set(groups.map(groupRoot))];
   const [open, setOpen] = y.useState(null), [reg, setReg] = y.useState(false), [share, setShare] = y.useState(false), [invite, setInvite] = y.useState(false), [view, setView] = y.useState("vendors");
   const rows = st.vendors.filter((v) =>
     (type === "All" || v.type === type) && (status === "All" || v.status === status) && (tier === "All" || v.tier === tier) &&
@@ -620,14 +619,11 @@ function VendorRegistryPage() {
         <FilterSelect label="Type" value={type} onChange={setType} options={[{ value: "All", label: "All types" }, ...VENDOR_TYPES]} />
         <FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Active", "Pending Approval", "Changes Requested", "Draft", "On Hold", "Blacklisted", "Disabled", "Rejected"]} />
         <FilterSelect label="Tier" value={tier} onChange={setTier} options={[{ value: "All", label: "All tiers" }, ...TIERS]} />
-        <FilterSelect label="Group" value={grp} onChange={setGrp} options={[{ value: "All", label: "All groups" },
-          ...roots.flatMap((r) => { const kids = groups.filter((g) => g.startsWith(r + " › ")); return [{ value: r, label: kids.length ? `${r} (all)` : r }, ...kids.map((g) => ({ value: g, label: `— ${g.split(" › ")[1]}` }))]; }),
-          { value: "__none", label: "Not grouped" }, { value: "__intra", label: "Group companies" }]} />
       </>}
         rows={rows} onRow={(v) => setOpen(v.id)} columns={[
         { key: "name", label: "Vendor", render: (v) => <span className="flex items-center justify-between gap-3 font-medium"><span className="truncate">{v.name}</span><PreferredStar v={v} size={14} /></span> },
         { key: "type", label: "Type", render: (v) => <span className="flex flex-wrap items-center gap-1"><VendorTypeTag v={v} /><GroupCoTag v={v} /></span> },
-        { key: "cat", label: "Trades", filter: (v) => v.categories, render: (v) => <CategoryChips list={v.categories} /> },
+        { key: "cat", label: "Trades", render: (v) => <CategoryChips list={v.categories} /> },
         { key: "tier", label: "Tier" },
         { key: "reg", label: "Registration", filter: (v) => v.regTier, render: (v) => <Status>{v.regTier}</Status> },
         { key: "comp", label: "Compliance", filter: (v) => complianceOf(v).status, render: (v) => <Status>{complianceOf(v).status}</Status> },

@@ -573,8 +573,9 @@ function DataTable({ columns, rows, onRow, rowKey = (r) => r.id, empty, footer, 
   const table = !shown.length
     ? (rows.length ? <EmptyState icon={Icon.search} title="No matches" text={q.trim() ? `Nothing matches “${q}”. Try another word or clear the search.` : "No records match these filters."} /> : empty || <EmptyState icon={Icon.folder} title="Nothing here yet" text="Records you add will appear in this list." />)
     : (
-      <div className="overflow-x-auto">
+      <div className={cls("overflow-x-auto", list && "nx-fill")}>
         <table className={cls("w-full", !dense && "nx-list")}>
+          {list && <colgroup>{columns.map((c) => <col key={c.key} style={{ width: c.width || (c.label ? `${(100 / Math.max(1, columns.filter((x) => x.label).length)).toFixed(2)}%` : c.key === "sel" ? 44 : undefined) }} />)}</colgroup>}
           <thead>
             <tr>
               {columns.map((c) => (
