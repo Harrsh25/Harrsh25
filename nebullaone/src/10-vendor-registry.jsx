@@ -20,11 +20,11 @@ const VENDOR_EXTRA_COLUMNS = (st) => [
   { key: "xContact", label: "Contact person", desc: "Main contact at the vendor", render: (v) => muted(v.contact?.name) },
   { key: "xEmail", label: "Email", desc: "Contact e-mail address", render: (v) => muted(v.contact?.email) },
   { key: "xPhone", label: "Phone", desc: "Contact phone number", render: (v) => muted(v.contact?.phone) },
-  { key: "xCity", label: "City / State", desc: "Registered city and state", filterLabel: "State", filterOptions: () => STATES, filter: (v) => v.state, render: (v) => muted([v.city, v.state].filter(Boolean).join(", ")) },
+  { key: "xCity", label: "City / State", desc: "Registered city and state", sort: (v) => v.state, render: (v) => muted([v.city, v.state].filter(Boolean).join(", ")) },
   { key: "xGstin", label: "GSTIN", desc: "GST registration number", render: (v) => muted(v.gstin) },
   { key: "xPan", label: "PAN", desc: "Permanent account number", render: (v) => muted(v.pan) },
-  { key: "xSupType", label: "Supplier type", desc: "Company, LLP, individual — decides TDS rate", filterOptions: SUPPLIER_TYPES, filter: (v) => v.supplierType || "Company", render: (v) => v.supplierType || "Company" },
-  { key: "xGroup", label: "Vendor group", desc: "Group used for filters and spend reports", filterOptions: () => settingsOf(getState()).vendorGroups, filter: (v) => v.group, render: (v) => muted(v.group) },
+  { key: "xSupType", label: "Supplier type", desc: "Company, LLP, individual — decides TDS rate", sort: (v) => v.supplierType || "Company", render: (v) => v.supplierType || "Company" },
+  { key: "xGroup", label: "Vendor group", desc: "Group used for filters and spend reports", sort: (v) => v.group, render: (v) => muted(v.group) },
   { key: "xParent", label: "Internal parent company", desc: "Set only for our own group companies", render: (v) => muted(v.parentCompany) },
   { key: "xStanding", label: "Scorecard standing", desc: "Excellent / Good / Average / Poor", filterLabel: "Standing", filterOptions: FO.standings, filter: (v) => standingOf(st, v.id)?.name, render: (v) => { const b = standingOf(st, v.id); return b ? <Status tone={b.color === "blue" ? "blue" : b.color}>{b.name}</Status> : muted(null); } },
   { key: "xRegOn", label: "Registered on", desc: "Date the vendor record was created", render: (v) => fmtDate(v.createdAt) },
@@ -364,7 +364,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
   ];
   return (
     <Drawer open onClose={onClose} width={880} title={<span className="flex items-center gap-2">{v.name}<PreferredStar v={v} size={16} always /></span>}
-      subtitle={<><span className="mono text-[12px] text-ink-mute">{v.id}</span><span className="text-ink-faint">·</span><VendorTypeTag v={v} /><GroupCoTag v={v} /><Status>{v.status}</Status><Status>{v.regTier}</Status><Status>{comp.status}</Status></>}
+      subtitle={<><span className="mono text-[12px] text-ink-mute">{v.id}</span><span className="text-ink-faint">·</span><VendorTypeTag v={v} /><GroupCoTag v={v} /><VendorStatusMenu v={v} /><Status>{v.regTier}</Status><Status>{comp.status}</Status></>}
       actions={<>{canEdit && <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>}</>}
       tabs={{ tabs, active: tab, onChange: setTab }}>
       <div className="space-y-4 px-6 py-5">
@@ -657,6 +657,77 @@ function BulkHoldModal({ ids, onClose, onDone }) {
   );
 }
 
+// ---------------------------------------------------------------- vendor status (click to change)
+// Operational statuses are set by hand; approval statuses come from the approval flow.
+const VSTATUS = [
+  { s: "Active", desc: "Can be used on RFQs, POs, contracts and payments" },
+  { s: "On Hold", desc: "Temporarily blocks invoices / payments — needs a reason and release date" },
+  { s: "Disabled", desc: "No new transactions; history and open documents stay" },
+  { s: "Blacklisted", desc: "Barred from new RFQs, POs and contracts — needs a reason" },
+];
+const APPROVAL_STATES = ["Draft", "Pending Approval", "Changes Requested", "Rejected"];
+function vendorStatusOptions(v) {
+  if (APPROVAL_STATES.includes(v.status)) return v.status === "Pending Approval" ? [] : [{ s: "Pending Approval", desc: v.status === "Draft" ? "Submit this registration for approval" : "Resubmit after corrections" }];
+  return VSTATUS.filter((o) => o.s !== v.status);
+}
+function setVendorStatus(v, to, extra = {}) {
+  if (to === "Pending Approval") { resubmit(v); toast(`${v.name} submitted for approval`); return; }
+  setState((s) => {
+    const x = byId(s.vendors, v.id); const from = x.status; x.status = to;
+    if (to === "On Hold") x.hold = { ...extra.hold, placedAt: todayISO() }; else if (from === "On Hold") x.hold = null;
+    if (to === "Blacklisted") { x.hold = null; x.notes.unshift({ at: todayISO(), by: currentUser(), text: `Blacklisted — ${extra.reason}` }); }
+  }, { entity: "Vendor", id: v.id, action: `Status ${v.status} → ${to}${extra.reason ? ` — ${extra.reason}` : extra.hold ? ` (${extra.hold.scope}) — ${extra.hold.reason}` : ""}` });
+  toast(`${v.name}: ${v.status} → ${to}`);
+}
+function VendorStatusMenu({ v }) {
+  const [open, setOpen] = y.useState(false), [pos, setPos] = y.useState(null), [ask, setAsk] = y.useState(null);
+  const btn = y.useRef(null), menu = y.useRef(null);
+  const opts = vendorStatusOptions(v);
+  y.useEffect(() => {
+    if (!open) return;
+    const r = btn.current.getBoundingClientRect(); setPos({ left: Math.min(r.left, window.innerWidth - 330), top: r.bottom + 4 > window.innerHeight - 260 ? undefined : r.bottom + 4, bottom: r.bottom + 4 > window.innerHeight - 260 ? window.innerHeight - r.top + 4 : undefined });
+    const off = (e) => { if (!btn.current?.contains(e.target) && !menu.current?.contains(e.target)) setOpen(false); };
+    const esc = (e) => e.key === "Escape" && setOpen(false);
+    const scr = (e) => { if (!menu.current?.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", off); document.addEventListener("keydown", esc); document.addEventListener("scroll", scr, true);
+    return () => { document.removeEventListener("mousedown", off); document.removeEventListener("keydown", esc); document.removeEventListener("scroll", scr, true); };
+  }, [open]);
+  const pick = (o) => { setOpen(false); if (o.s === "On Hold") setAsk("hold"); else if (o.s === "Blacklisted") setAsk("black"); else setVendorStatus(v, o.s); };
+  return (
+    <span onClick={(e) => e.stopPropagation()} className="inline-flex">
+      <button ref={btn} type="button" aria-label={`Change status of ${v.name}`} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}
+        className={cls("group/st inline-flex items-center gap-1 rounded-md px-1 py-0.5 -mx-1 hover:bg-gray-100", open && "bg-gray-100")}>
+        <CalmStatus>{v.status}</CalmStatus>{h(Icon.chevronDown, { size: 12, className: "text-ink-faint opacity-0 group-hover/st:opacity-100" })}
+      </button>
+      {open && pos && (
+        <div ref={menu} role="menu" className="fixed z-[80] w-[320px] overflow-hidden whitespace-normal rounded-lg border border-line bg-white py-1 shadow-lg" style={{ left: pos.left, top: pos.top, bottom: pos.bottom }}>
+          <p className="px-3 pb-1 pt-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-ink-mute">Change status · now {v.status}</p>
+          {opts.map((o) => (
+            <button key={o.s} type="button" role="menuitem" onClick={() => pick(o)} className="flex w-full items-start gap-2.5 px-3 py-2 text-left hover:bg-gray-50">
+              <span className={cls("mt-1.5 h-2 w-2 shrink-0 rounded-full", DOT[TONE[o.s.toLowerCase()] || "gray"])} />
+              <span className="min-w-0"><span className="block text-[13px] font-medium text-ink">{o.s === "Pending Approval" ? (v.status === "Draft" ? "Submit for approval" : "Resubmit for approval") : o.s === "Active" && v.status === "Blacklisted" ? "Remove from blacklist (Active)" : o.s === "Active" && v.status === "On Hold" ? "Release hold (Active)" : o.s}</span><span className="block text-[11.5px] text-ink-mute">{o.desc}</span></span>
+            </button>
+          ))}
+          <p className="mt-1 border-t border-line px-3 pb-1.5 pt-2 text-[11.5px] leading-snug text-ink-mute">
+            {v.status === "Pending Approval" ? "Waiting for approvers — decided in Vendor Approvals / Approval Management." : "Draft, Pending Approval, Changes Requested and Rejected are set by the approval flow."}
+          </p>
+        </div>
+      )}
+      {ask === "hold" && <BulkHoldModal ids={[v.id]} onClose={() => setAsk(null)} onDone={() => setAsk(null)} />}
+      {ask === "black" && <BlacklistModal v={v} onClose={() => setAsk(null)} />}
+    </span>
+  );
+}
+function BlacklistModal({ v, onClose }) {
+  const [reason, setReason] = y.useState("");
+  return (
+    <Modal open onClose={onClose} width={480} title={`Blacklist ${v.name}?`} subtitle="History is kept, but the vendor can't be used on new RFQs, POs or contracts"
+      footer={<><Btn onClick={onClose}>Cancel</Btn><Btn variant="danger" icon={Icon.ban} disabled={!reason.trim()} onClick={() => { setVendorStatus(v, "Blacklisted", { reason }); onClose(); }}>Blacklist vendor</Btn></>}>
+      <Field label="Reason (audit logged)" required><TextInput value={reason} onChange={setReason} placeholder="e.g. Duplicate invoicing found in audit" autoFocus /></Field>
+    </Modal>
+  );
+}
+
 // ---------------------------------------------------------------- registry page
 function VendorRegistryPage() {
   const st = useStore();
@@ -690,12 +761,12 @@ function VendorRegistryPage() {
         rows={rows} onRow={(v) => setOpen(v.id)} columns={[
         { key: "sel", label: "", render: (v) => <input type="checkbox" aria-label={`Select ${v.name}`} className="h-4 w-4 accent-[#0b5ed7]" checked={sel.includes(v.id)} onClick={(e) => e.stopPropagation()} onChange={(e) => setSel(e.target.checked ? [...sel, v.id] : sel.filter((x) => x !== v.id))} /> },
         { key: "name", label: "Vendor", filterOptions: FO.preferred, filterLabel: "Preferred", filterAll: "All vendors", filter: (v) => (v.preferred ? "Preferred" : "Not preferred"), render: (v) => <span className="flex items-center justify-between gap-3 font-medium"><span className="truncate">{v.name}</span><PreferredStar v={v} size={14} /></span> },
-        { key: "status", label: "Status", render: (v) => <CalmStatus>{v.status}</CalmStatus> },
+        { key: "status", label: "Status", sort: (v) => v.status, render: (v) => <VendorStatusMenu v={v} /> },
         { key: "type", label: "Type", render: (v) => <span className="flex flex-wrap items-center gap-1.5 text-ink-soft">{v.type}<GroupCoTag v={v} /></span> },
         { key: "cat", label: "Trades", sort: (v) => v.categories[0] || "", render: (v) => <CategoryChips list={v.categories} /> },
         { key: "tier", label: "Tier", sort: (v) => TIERS.indexOf(v.tier) },
-        { key: "reg", label: "Registration", filterOptions: FO.regTier, filter: (v) => v.regTier, render: (v) => <CalmStatus>{v.regTier}</CalmStatus> },
-        { key: "comp", label: "Compliance", filterOptions: FO.compliance, filter: (v) => complianceOf(v).status, render: (v) => <CalmStatus>{complianceOf(v).status}</CalmStatus> },
+        { key: "reg", label: "Registration", sort: (v) => v.regTier, render: (v) => <CalmStatus>{v.regTier}</CalmStatus> },
+        { key: "comp", label: "Compliance", sort: (v) => complianceOf(v).status, render: (v) => <CalmStatus>{complianceOf(v).status}</CalmStatus> },
         { key: "score", label: "Score", sort: (v) => vendorScore(st, v.id).score ?? -1, render: (v) => { const sc = vendorScore(st, v.id).score; return sc == null ? <span data-tip="No orders, work orders or ratings yet" className="text-[12.5px] text-ink-faint">New</span> : <ScoreBadge value={sc} />; } },
       ]} />
       </>}
