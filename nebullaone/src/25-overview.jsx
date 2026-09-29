@@ -102,7 +102,7 @@ function buildVendorOverview(st, f) {
   const rfqs = st.rfqs.filter((r) => projOk(r.project) && (f.vendor === "All" || r.vendorIds.includes(f.vendor)));
   const engaged = new Set([...pos.map((p) => p.vendorId), ...rfqs.flatMap((r) => r.vendorIds), ...invs.map((i) => i.vendorId)]);
   const vendors = st.vendors.filter((v) => vend(v.id) && (f.project === "All" || engaged.has(v.id)));
-  const live = vendors.filter((v) => !["Blacklisted", "Disabled", "Rejected", "Draft"].includes(v.status));
+  const live = vendors.filter((v) => !["Blacklisted", "Inactive", "Rejected", "Draft"].includes(v.status));
   const open$ = invs.filter((i) => invoiceTotals(i).balance > 0.5);
   const blocked = open$.filter((i) => shouldBePaid(st, i) === "No" && paymentGate(st, i).stops.length);
   const livePOs = pos.filter((p) => !["Draft", "Closed", "Cancelled"].includes(p.status) && poStatus(p) !== "Received");
@@ -363,7 +363,7 @@ function VendorOverviewPage() {
               { label: "Active", value: d.vendors.filter((v) => v.status === "Active").length, tone: "green" },
               { label: "Pending approval", value: d.vendors.filter((v) => ["Pending Approval", "Draft", "Changes Requested"].includes(v.status)).length, tone: "amber" },
               { label: "On hold", value: d.vendors.filter((v) => v.status === "On Hold").length, tone: "purple" },
-              { label: "Blocked / blacklisted", value: d.vendors.filter((v) => ["Blacklisted", "Disabled", "Rejected"].includes(v.status)).length, tone: "red" },
+              { label: "Blocked / blacklisted", value: d.vendors.filter((v) => ["Blacklisted", "Inactive", "Rejected"].includes(v.status)).length, tone: "red" },
             ]} />
           </DashCard>
           <DashCard title="Compliance status" icon={Icon.shieldCheck} link={{ label: "Compliance", to: `${VM_BASE}/compliance` }}>

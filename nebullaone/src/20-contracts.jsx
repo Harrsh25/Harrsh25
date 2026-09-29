@@ -7,7 +7,7 @@ const contractorVendors = (st) => st.vendors.filter((v) => v.isContractor || v.t
 function OnboardingPage() {
   const st = useStore();
   const [reg, setReg] = y.useState(false), [open, setOpen] = y.useState(null), [full, setFull] = y.useState(null), [stageF, setStageF] = y.useState("All");
-  const list = contractorVendors(st).filter((v) => !["Blacklisted", "Disabled"].includes(v.status));
+  const list = contractorVendors(st).filter((v) => !["Blacklisted", "Inactive"].includes(v.status));
   const col = (stage) => list.filter((v) => onboardingStage(v) === stage);
   return (
     <Page title="Contractor Onboarding" subtitle="Registration → statutory documents → approvals → mobilisation checklist" icon={Icon.userPlus}

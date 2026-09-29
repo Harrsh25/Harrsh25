@@ -203,7 +203,7 @@ function CompliancePage() {
   const [flt, setFlt] = y.useState("All"), [bucket, setBucket] = y.useState("All");
   const [rej, setRej] = y.useState(null);
   const set0 = settingsOf(st);
-  const live = st.vendors.filter((v) => !["Blacklisted", "Disabled", "Rejected", "Draft"].includes(v.status));
+  const live = st.vendors.filter((v) => !["Blacklisted", "Inactive", "Rejected", "Draft"].includes(v.status));
   const rows = live.map((v) => { const c = complianceOf(v); return { v, c, next: c.items.map((i) => i.expiry).filter(Boolean).sort()[0] || null, due: c.items.filter((i) => reminderDue(v, i)) }; });
   const allItems = rows.flatMap((r) => r.c.items.map((item) => ({ ...r, item, key: r.v.id + item.key })));
   const dueAll = allItems.filter((x) => reminderDue(x.v, x.item));

@@ -285,7 +285,7 @@ const FO = {
   ruleSets: () => uniqSorted(getState().vendors.map((v) => v.qualification?.ruleSet)),
   standings: () => (getState().scoreConfig.standings || DEFAULT_STANDINGS).map((b) => b.name),
   coverage: () => INS_TYPES,
-  vendorStatus: ["Active", "Pending Approval", "Changes Requested", "Draft", "On Hold", "Blacklisted", "Disabled", "Rejected"],
+  vendorStatus: ["Active", "Pending Approval", "Changes Requested", "Draft", "On Hold", "Blacklisted", "Inactive", "Rejected"],
   compliance: ["Compliant", "Expiring", "Non-Compliant"],
   regTier: ["Prospective", "Spend Authorized"],
   vendorType: ["Goods", "Services", "Services · Contractor", "Labor · Contractor"],

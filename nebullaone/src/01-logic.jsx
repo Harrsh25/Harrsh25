@@ -79,7 +79,7 @@ const docState = (d) => {
 };
 
 const isBlockedFor = (v, what) =>
-  v.status === "Blacklisted" || v.status === "Disabled" ||
+  v.status === "Blacklisted" || v.status === "Inactive" ||
   (v.status === "On Hold" && v.hold && (v.hold.scope === "All" || v.hold.scope === what) && (!v.hold.until || daysUntil(v.hold.until) >= 0));
 
 // ---- Contracts & work orders

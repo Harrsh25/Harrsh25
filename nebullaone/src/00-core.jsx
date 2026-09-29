@@ -82,7 +82,7 @@ const PROJECTS = [
 const TONE = {
   active: "green", approved: "green", verified: "green", certified: "green", paid: "green", signed: "green",
   compliant: "green", completed: "green", awarded: "green", received: "green", onboarded: "green", released: "green",
-  "spend authorized": "green", closed: "gray", superseded: "gray", disabled: "gray", draft: "gray", expired: "red",
+  "spend authorized": "green", closed: "gray", superseded: "gray", disabled: "gray", inactive: "gray", draft: "gray", expired: "red",
   submitted: "blue", issued: "blue", "in progress": "blue", sent: "blue", "quotes received": "purple", "in review": "blue",
   "pending approval": "amber", pending: "amber", "partially paid": "amber", "partially received": "amber", expiring: "amber",
   "on hold": "amber", "docs pending": "amber", prospective: "purple", "under review": "blue", open: "amber",
@@ -107,7 +107,8 @@ function loadState() {
     const raw = localStorage.getItem(STORE_KEY);
     if (raw) {
       const s = JSON.parse(raw);
-      if (s && s.version === SEED_VERSION) return s;
+      // "Disabled" vendors are now called "Inactive"
+      if (s && s.version === SEED_VERSION) { (s.vendors || []).forEach((v) => { if (v.status === "Disabled") v.status = "Inactive"; }); return s; }
     }
   } catch {}
   return buildSeed();

@@ -462,7 +462,7 @@ function VendorFlags({ v }) {
       <Section title="Flags" icon={Icon.flag}>
         <div className="flex flex-wrap items-center gap-6 p-4">
           <Check checked={v.preferred} onChange={(b) => edit("preferred", b, b ? "Marked preferred supplier" : "Preferred flag removed")} label="Preferred supplier" />
-          <Check checked={v.status !== "Disabled"} onChange={(b) => edit("status", b ? "Active" : "Disabled", b ? "Vendor enabled" : "Vendor disabled")} label="Enabled for new transactions" />
+          <Check checked={v.status !== "Inactive"} onChange={(b) => edit("status", b ? "Active" : "Inactive", b ? "Vendor enabled" : "Vendor disabled")} label="Enabled for new transactions" />
           <Check checked={!!v.allowBillWithoutPO} onChange={(b) => edit("allowBillWithoutPO", b, b ? "Allowed bills without PO" : "PO required for bills")} label="Allow bills without PO" />
           <Check checked={!!v.allowBillWithoutReceipt} onChange={(b) => edit("allowBillWithoutReceipt", b, b ? "Allowed bills before receipt" : "Receipt required before billing")} label="Allow bills before goods receipt" />
         </div>
@@ -659,16 +659,11 @@ function BulkHoldModal({ ids, onClose, onDone }) {
 
 // ---------------------------------------------------------------- vendor status (click to change)
 // Operational statuses are set by hand; approval statuses come from the approval flow.
-const VSTATUS = [
-  { s: "Active", desc: "Can be used on RFQs, POs, contracts and payments" },
-  { s: "On Hold", desc: "Temporarily blocks invoices / payments — needs a reason and release date" },
-  { s: "Disabled", desc: "No new transactions; history and open documents stay" },
-  { s: "Blacklisted", desc: "Barred from new RFQs, POs and contracts — needs a reason" },
-];
+const VSTATUS = ["Active", "Inactive", "On Hold", "Blacklisted"];
 const APPROVAL_STATES = ["Draft", "Pending Approval", "Changes Requested", "Rejected"];
 function vendorStatusOptions(v) {
-  if (APPROVAL_STATES.includes(v.status)) return v.status === "Pending Approval" ? [] : [{ s: "Pending Approval", desc: v.status === "Draft" ? "Submit this registration for approval" : "Resubmit after corrections" }];
-  return VSTATUS.filter((o) => o.s !== v.status);
+  if (APPROVAL_STATES.includes(v.status)) return v.status === "Pending Approval" ? [] : ["Pending Approval"];
+  return VSTATUS;
 }
 function setVendorStatus(v, to, extra = {}) {
   if (to === "Pending Approval") { resubmit(v); toast(`${v.name} submitted for approval`); return; }
@@ -685,14 +680,14 @@ function VendorStatusMenu({ v }) {
   const opts = vendorStatusOptions(v);
   y.useEffect(() => {
     if (!open) return;
-    const r = btn.current.getBoundingClientRect(); setPos({ left: Math.min(r.left, window.innerWidth - 330), top: r.bottom + 4 > window.innerHeight - 260 ? undefined : r.bottom + 4, bottom: r.bottom + 4 > window.innerHeight - 260 ? window.innerHeight - r.top + 4 : undefined });
+    const r = btn.current.getBoundingClientRect(); setPos({ left: Math.min(r.left, window.innerWidth - 270), top: r.bottom + 4 > window.innerHeight - 260 ? undefined : r.bottom + 4, bottom: r.bottom + 4 > window.innerHeight - 260 ? window.innerHeight - r.top + 4 : undefined });
     const off = (e) => { if (!btn.current?.contains(e.target) && !menu.current?.contains(e.target)) setOpen(false); };
     const esc = (e) => e.key === "Escape" && setOpen(false);
     const scr = (e) => { if (!menu.current?.contains(e.target)) setOpen(false); };
     document.addEventListener("mousedown", off); document.addEventListener("keydown", esc); document.addEventListener("scroll", scr, true);
     return () => { document.removeEventListener("mousedown", off); document.removeEventListener("keydown", esc); document.removeEventListener("scroll", scr, true); };
   }, [open]);
-  const pick = (o) => { setOpen(false); if (o.s === "On Hold") setAsk("hold"); else if (o.s === "Blacklisted") setAsk("black"); else setVendorStatus(v, o.s); };
+  const pick = (o) => { setOpen(false); if (o === "On Hold") setAsk("hold"); else if (o === "Blacklisted") setAsk("black"); else setVendorStatus(v, o); };
   return (
     <span onClick={(e) => e.stopPropagation()} className="inline-flex">
       <button ref={btn} type="button" aria-label={`Change status of ${v.name}`} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}
@@ -700,14 +695,18 @@ function VendorStatusMenu({ v }) {
         <CalmStatus>{v.status}</CalmStatus>{h(Icon.chevronDown, { size: 12, className: "text-ink-faint opacity-0 group-hover/st:opacity-100" })}
       </button>
       {open && pos && (
-        <div ref={menu} role="menu" className="fixed z-[80] w-[320px] overflow-hidden whitespace-normal rounded-lg border border-line bg-white py-1 shadow-lg" style={{ left: pos.left, top: pos.top, bottom: pos.bottom }}>
-          <p className="px-3 pb-1 pt-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-ink-mute">Change status · now {v.status}</p>
-          {opts.map((o) => (
-            <button key={o.s} type="button" role="menuitem" onClick={() => pick(o)} className="flex w-full items-start gap-2.5 px-3 py-2 text-left hover:bg-gray-50">
-              <span className={cls("mt-1.5 h-2 w-2 shrink-0 rounded-full", DOT[TONE[o.s.toLowerCase()] || "gray"])} />
-              <span className="min-w-0"><span className="block text-[13px] font-medium text-ink">{o.s === "Pending Approval" ? (v.status === "Draft" ? "Submit for approval" : "Resubmit for approval") : o.s === "Active" && v.status === "Blacklisted" ? "Remove from blacklist (Active)" : o.s === "Active" && v.status === "On Hold" ? "Release hold (Active)" : o.s}</span><span className="block text-[11.5px] text-ink-mute">{o.desc}</span></span>
-            </button>
-          ))}
+        <div ref={menu} role="menu" className="fixed z-[80] w-[260px] overflow-hidden whitespace-normal rounded-lg border border-line bg-white py-1 shadow-lg" style={{ left: pos.left, top: pos.top, bottom: pos.bottom }}>
+          <p className="px-3 pb-1 pt-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-ink-mute">Status</p>
+          {opts.map((o) => {
+            const cur = o === v.status;
+            const label = o === "Pending Approval" ? (v.status === "Draft" ? "Submit for approval" : "Resubmit for approval") : o;
+            return (
+              <button key={o} type="button" role="menuitem" aria-current={cur || undefined} disabled={cur} onClick={() => pick(o)}
+                className={cls("flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px]", cur ? "bg-brand-soft/60 font-medium text-brand" : "text-ink hover:bg-gray-50")}>
+                <span className={cls("h-2 w-2 shrink-0 rounded-full", DOT[TONE[o.toLowerCase()] || "gray"])} /><span className="flex-1">{label}</span>{cur && h(Icon.check, { size: 14, className: "text-brand" })}
+              </button>
+            );
+          })}
           <p className="mt-1 border-t border-line px-3 pb-1.5 pt-2 text-[11.5px] leading-snug text-ink-mute">
             {v.status === "Pending Approval" ? "Waiting for approvers — decided in Vendor Approvals / Approval Management." : "Draft, Pending Approval, Changes Requested and Rejected are set by the approval flow."}
           </p>
@@ -755,7 +754,7 @@ function VendorRegistryPage() {
         summary={(r) => [{ value: r.filter((v) => v.preferred).length, label: "preferred", color: "text-amber-600" }]}
         filters={<>
         <FilterSelect label="Type" value={type} onChange={setType} options={[{ value: "All", label: "All types" }, ...VENDOR_TYPES]} />
-        <FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Active", "Pending Approval", "Changes Requested", "Draft", "On Hold", "Blacklisted", "Disabled", "Rejected"]} />
+        <FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Active", "Pending Approval", "Changes Requested", "Draft", "On Hold", "Blacklisted", "Inactive", "Rejected"]} />
         <FilterSelect label="Tier" value={tier} onChange={setTier} options={[{ value: "All", label: "All tiers" }, ...TIERS]} />
       </>}
         rows={rows} onRow={(v) => setOpen(v.id)} columns={[

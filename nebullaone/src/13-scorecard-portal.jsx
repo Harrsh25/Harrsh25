@@ -64,7 +64,7 @@ function OffboardModal({ vendorId, onClose }) {
   return (
     <Modal open onClose={onClose} width={600} title={`Offboard ${v.name}`} subtitle="Deactivates the vendor, keeps history, revokes access"
       footer={<><Btn onClick={onClose}>Cancel</Btn><Btn variant="danger" disabled={!ready} onClick={() => {
-        setState((s) => { const x = byId(s.vendors, vendorId); x.status = "Disabled"; x.hold = null; x.notes.unshift({ at: new Date().toISOString(), by: currentUser(), text: `Offboarded — ${reason}` }); }, { entity: "Vendor", id: vendorId, action: `Offboarded — ${reason}` });
+        setState((s) => { const x = byId(s.vendors, vendorId); x.status = "Inactive"; x.hold = null; x.notes.unshift({ at: new Date().toISOString(), by: currentUser(), text: `Offboarded — ${reason}` }); }, { entity: "Vendor", id: vendorId, action: `Offboarded — ${reason}` });
         toast(`${v.name} offboarded`); onClose();
       }}>Deactivate vendor</Btn></>}>
       <ul className="space-y-2">
@@ -109,7 +109,7 @@ function ScorecardPage() {
           { key: "a", label: "", align: "right", render: (r) => (
             <span className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
               {r.score != null && r.score < st.scoreConfig.capThreshold && !st.caps.some((c) => c.vendorId === r.v.id && c.status === "Open") && <Btn size="sm" onClick={() => setCap({ vendorId: r.v.id, issue: "", actions: "", dueDate: shiftDays(21), owner: currentUser() })}>Issue CAP</Btn>}
-              {r.v.status !== "Disabled" && <Btn size="sm" variant="ghost" onClick={() => setOff(r.v.id)}>Offboard</Btn>}
+              {r.v.status !== "Inactive" && <Btn size="sm" variant="ghost" onClick={() => setOff(r.v.id)}>Offboard</Btn>}
             </span>) },
         ]} />
       )}
