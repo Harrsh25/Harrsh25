@@ -237,7 +237,7 @@ function Modal({ open, title, subtitle, onClose, footer, width = 640, children }
           <IconBtn icon={Icon.x} title="Close" onClick={onClose} />
         </div>
         <div className="px-5 py-4">{children}</div>
-        {footer && <div className="flex items-center justify-end gap-2 border-t border-line bg-gray-50/70 px-5 py-3">{footer}</div>}
+        {footer && <div className="sticky z-10 flex items-center justify-end gap-2 rounded-b-xl border-t border-line bg-gray-50 px-5 py-3" style={{ bottom: -40 }}>{footer}</div>}
       </div>
     </div>
   );
@@ -598,7 +598,7 @@ function ColumnPicker({ extra, shown, onApply, onClose }) {
 }
 const readCols = (id) => { try { const v = JSON.parse(localStorage.getItem("nxv-cols:" + id)); return Array.isArray(v) ? v : null; } catch { return null; } };
 
-function DataTable({ columns: baseColumns, extraColumns, columnsId, rows, onRow, rowKey = (r) => r.id, empty, footer, dense, plain, filters, actions, noun = "records", summary, searchText = rowSearchText, placeholder = "Search…" }) {
+function DataTable({ columns: baseColumns, extraColumns, columnsId, onClearFilters, exportName, rows, onRow, rowKey = (r) => r.id, empty, footer, dense, plain, filters, actions, noun = "records", summary, searchText = rowSearchText, placeholder = "Search…" }) {
   const list = !dense && !plain;
   // Optional columns: shown when switched on in the Customize Columns panel ("+" at the end of the header)
   const [extraOn, setExtraOn] = y.useState(() => (extraColumns ? readCols(columnsId) || extraColumns.filter((c) => c.default).map((c) => c.key) : []));
@@ -612,10 +612,37 @@ function DataTable({ columns: baseColumns, extraColumns, columnsId, rows, onRow,
   const [q, setQ] = y.useState("");
   // Column filters: a column with `filter` (true = row[key], or a function returning a value / list of values) gets its own dropdown
   const [cf, setCf] = y.useState({});
+  // Sorting: click a column header (asc → desc → off). Value = column.sort(row), else its filter value, else row[key]
+  const [sort, setSort] = y.useState(null);
+  const tableRef = y.useRef(null);
   const fcols = list ? columns.filter((c) => c.filter) : [];
   const fval = (c, r) => { const v = typeof c.filter === "function" ? c.filter(r) : r[c.key]; return (Array.isArray(v) ? v : [v]).filter((x) => x !== undefined && x !== null && x !== "").map(String); };
   const colFiltered = fcols.length ? rows.filter((r) => fcols.every((c) => !cf[c.key] || cf[c.key] === "__all" || fval(c, r).includes(cf[c.key]))) : rows;
-  const shown = list && q.trim() ? colFiltered.filter((r) => { const t = searchText(r).toLowerCase(); return q.toLowerCase().split(/\s+/).filter(Boolean).every((w) => t.includes(w)); }) : colFiltered;
+  const prim = (x) => x != null && typeof x !== "object";
+  const sortVal = (c, r) => { const v = c.sort ? c.sort(r) : prim(r[c.key]) ? r[c.key] : typeof c.filter === "function" ? c.filter(r) : null; return Array.isArray(v) ? v.join(", ") : v; };
+  const canSort = (c) => list && c.label && c.sort !== false && c.key !== "__cols" && (c.sort || typeof c.filter === "function" || rows.some((r) => prim(r[c.key])));
+  const searched = list && q.trim() ? colFiltered.filter((r) => { const t = searchText(r).toLowerCase(); return q.toLowerCase().split(/\s+/).filter(Boolean).every((w) => t.includes(w)); }) : colFiltered;
+  const sortCol = sort && columns.find((c) => c.key === sort.key);
+  const shown = !sortCol ? searched : [...searched].sort((a, b) => {
+    const x = sortVal(sortCol, a), z = sortVal(sortCol, b);
+    if (x == null || x === "") return 1; if (z == null || z === "") return -1;
+    const d = typeof x === "number" && typeof z === "number" ? x - z : String(x).localeCompare(String(z), "en", { numeric: true });
+    return sort.dir === "asc" ? d : -d;
+  });
+  const toggleSort = (c) => setSort((o) => (!o || o.key !== c.key ? { key: c.key, dir: "asc" } : o.dir === "asc" ? { key: c.key, dir: "desc" } : null));
+  // Export exactly what is on screen (visible columns, filtered + sorted rows) as a CSV that opens in Excel
+  const exportCsv = () => {
+    const t = tableRef.current; if (!t) return;
+    const heads = [...t.querySelectorAll("thead th")].map((th) => th.innerText.trim());
+    const keep = heads.map((x, i) => (x ? i : -1)).filter((i) => i >= 0);
+    const esc = (x) => { const v = String(x).replace(/\s+/g, " ").trim(); return /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v; };
+    const lines = [keep.map((i) => esc(heads[i])).join(","), ...[...t.querySelectorAll("tbody tr")].map((tr) => { const tds = tr.querySelectorAll("td"); return keep.map((i) => esc(tds[i] ? tds[i].innerText : "")).join(","); })];
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(["\ufeff" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" }));
+    a.download = `${(exportName || noun).replace(/\s+/g, "-")}-${todayISO()}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    toast(`Exported ${shown.length} ${noun}`);
+  };
+  const clearAll = () => { setQ(""); setCf({}); onClearFilters && onClearFilters(); };
   const active = q.trim() || fcols.some((c) => cf[c.key] && cf[c.key] !== "__all");
   const colSelects = fcols.map((c) => {
     const name = c.filterLabel || (typeof c.label === "string" ? c.label : c.key);
@@ -628,15 +655,18 @@ function DataTable({ columns: baseColumns, extraColumns, columnsId, rows, onRow,
       options={[{ value: "__all", label: c.filterAll || `All ${pluralWord(name.toLowerCase())}` }, ...vals.map((v) => (typeof v === "object" ? v : { value: v, label: v }))]} />;
   });
   const table = !shown.length
-    ? (rows.length ? <EmptyState icon={Icon.search} title="No matches" text={q.trim() ? `Nothing matches “${q}”. Try another word or clear the search.` : "No records match these filters."} /> : empty || <EmptyState icon={Icon.folder} title="Nothing here yet" text="Records you add will appear in this list." />)
+    ? (rows.length || onClearFilters ? <div className="pb-8"><EmptyState icon={Icon.search} title="No matches" text={q.trim() ? `Nothing matches “${q}”. Try another word or clear the search.` : "No records match these filters."} /><div className="-mt-2 flex justify-center"><Btn icon={Icon.x} onClick={clearAll}>Clear search &amp; filters</Btn></div></div> : empty || <EmptyState icon={Icon.folder} title="Nothing here yet" text="Records you add will appear in this list." />)
     : (
       <div className={cls("overflow-x-auto", list && "nx-fill")}>
-        <table className={cls("w-full", !dense && "nx-list")}>
+        <table ref={tableRef} className={cls("w-full", !dense && "nx-list")}>
           {list && <colgroup>{columns.map((c) => <col key={c.key} style={{ width: c.width || (c.label ? `${(100 / Math.max(1, columns.filter((x) => x.label).length)).toFixed(2)}%` : c.key === "sel" ? 44 : undefined) }} />)}</colgroup>}
           <thead>
             <tr>
               {columns.map((c, ci) => (
-                <Th key={c.key} align={c.align} className={cls(c.thClass, stick(ci))}>{c.head || c.label}</Th>
+                <Th key={c.key} align={c.align} className={cls(c.thClass, stick(ci))}>{c.head || (canSort(c) ? (
+                  <button type="button" onClick={() => toggleSort(c)} aria-label={`Sort by ${c.label}`} className={cls("group/s inline-flex items-center gap-1 hover:text-ink", c.align === "right" && "flex-row-reverse", sort?.key === c.key && "text-ink")}>
+                    {c.label}{h(Icon.chevronDown, { size: 12, className: cls("shrink-0 transition", sort?.key === c.key ? (sort.dir === "asc" ? "rotate-180 opacity-100" : "opacity-100") : "opacity-0 group-hover/s:opacity-40") })}
+                  </button>) : c.label)}</Th>
               ))}
             </tr>
           </thead>
@@ -661,9 +691,12 @@ function DataTable({ columns: baseColumns, extraColumns, columnsId, rows, onRow,
     <>
       {/* One line: filters on the left (they shrink and truncate when space is tight), search on the right */}
       <div className="flex min-h-[44px] items-center gap-3 border-b border-line px-4 py-1.5">
-        <div className="nx-filters flex min-w-0 flex-1 flex-nowrap items-center gap-2">{filters}{colSelects}
+        <div className="nx-filters flex min-w-0 flex-1 flex-nowrap items-center gap-2">
+          {(filters || colSelects.some(Boolean)) && <span className="flex shrink-0 items-center gap-1 pr-1 text-[12px] font-medium text-ink-mute">{h(Icon.filter, { size: 13 })}Filters</span>}
+          {filters}{colSelects}
           {fcols.length > 0 && fcols.some((c) => cf[c.key] && cf[c.key] !== "__all") && <button type="button" className="shrink-0 whitespace-nowrap px-1 text-[12.5px] text-brand hover:underline" onClick={() => setCf({})}>Clear filters</button>}</div>
-        <div className="flex shrink-0 items-center gap-2">{actions}<SearchBox value={q} onChange={setQ} placeholder={placeholder} /></div>
+        <div className="flex shrink-0 items-center gap-2">{actions}<SearchBox value={q} onChange={setQ} placeholder={placeholder} />
+          <button type="button" aria-label="Export" data-tip="Export this view to Excel (CSV)" onClick={exportCsv} disabled={!shown.length} className="grid h-8 w-8 place-items-center rounded-md text-ink-soft hover:bg-gray-100 hover:text-ink disabled:opacity-40">{h(Icon.download, { size: 16 })}</button></div>
       </div>
       {table}
       <FooterBar items={[{ value: active ? `${shown.length} of ${rows.length}` : rows.length, label: noun }, ...sum$]} updated={new Date().toLocaleString("en-IN")} />
@@ -720,7 +753,7 @@ function KV({ items, cols = 3 }) {
       {items.filter(Boolean).map(([k, v]) => (
         <div key={k} className="min-w-0">
           <dt className="text-[11.5px] font-medium text-ink-mute">{k}</dt>
-          <dd className="mt-0.5 truncate text-[13px] text-ink">{v ?? "—"}</dd>
+          <dd className="mt-0.5 break-words text-[13px] leading-snug text-ink">{v ?? "—"}</dd>
         </div>
       ))}
     </dl>

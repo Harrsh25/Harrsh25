@@ -7,6 +7,12 @@ const GSTIN_RE = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
 const PAN_RE = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const openOrdersText = (v) => {
+  const s = getState(), pos = s.purchaseOrders.filter((p) => p.vendorId === v.id && !["Received", "Closed", "Cancelled", "Draft"].includes(poStatus(p)));
+  const wos = s.workOrders.filter((w) => w.vendorId === v.id && ["Issued", "In Progress"].includes(w.status));
+  const n = pos.length + wos.length, val = sum(pos, poValue) + sum(wos, woValue);
+  return n ? `${n} open · ${inrShort(val)}` : "None";
+};
 // Optional columns for the vendor master list (switched on from the "+" Customize Columns panel)
 const approvedOn = (v) => { const st = v.approval?.stages || []; return st.length && st.every((x) => x.status === "Approved") ? st.map((x) => x.at).filter(Boolean).sort().pop() || null : null; };
 const muted = (x) => x || <span className="text-ink-faint">—</span>;
@@ -31,9 +37,9 @@ function VendorTypeTag({ v }) {
   const c = { Goods: "bg-sky-50 text-sky-700 border-sky-200", Services: "bg-violet-50 text-violet-700 border-violet-200", Labor: "bg-orange-50 text-orange-700 border-orange-200" }[v.type];
   return <span className={cls("rounded border px-1.5 py-[1px] text-[11px] font-medium", c)}>{v.type}{v.isContractor ? " · Contractor" : ""}</span>;
 }
-function CategoryChips({ list, max = 2 }) {
+function CategoryChips({ list, max = 2, wrap }) {
   return (
-    <span className="flex items-center gap-1">
+    <span className={cls("flex items-center gap-1", wrap && "flex-wrap")}>
       {list.slice(0, max).map((c) => <span key={c} className="rounded bg-gray-100 px-1.5 py-[1px] text-[11px] text-ink-soft">{c}</span>)}
       {list.length > max && <span data-tip={list.slice(max).join("\n")} className="cursor-default rounded px-1 text-[11px] text-ink-mute hover:bg-gray-100">+{list.length - max}</span>}
     </span>
@@ -51,12 +57,21 @@ const emptyVendor = () => ({
   contractor: { labourLicence: "", licenceExpiry: "", pfCode: "", esiCode: "", workforce: "", experienceYrs: "", pastProjects: "" },
 });
 
+// Another vendor with the same GSTIN (same registration → blocked) or the same PAN (same company, maybe another state → warning)
+function findDuplicate(f) {
+  const g = (f.gstin || "").trim().toUpperCase(), pn = (f.pan || "").trim().toUpperCase();
+  const others = getState().vendors.filter((v) => v.id !== f.id);
+  return { gstin: g.length === 15 ? others.find((v) => (v.gstin || "").toUpperCase() === g) : null,
+    pan: pn.length === 10 ? others.find((v) => (v.pan || "").toUpperCase() === pn && (v.gstin || "").toUpperCase() !== g) : null };
+}
 function validateVendor(f) {
   const e = {};
   if (!f.name.trim()) e.name = "Required";
   if (!GSTIN_RE.test(f.gstin.trim().toUpperCase())) e.gstin = "Enter a valid 15-character GSTIN";
   if (!PAN_RE.test(f.pan.trim().toUpperCase())) e.pan = "Enter a valid PAN (ABCDE1234F)";
   else if (GSTIN_RE.test(f.gstin.trim().toUpperCase()) && f.gstin.toUpperCase().slice(2, 12) !== f.pan.toUpperCase()) e.pan = "PAN doesn't match GSTIN";
+  const dupe = findDuplicate(f).gstin;
+  if (dupe) e.gstin = `Already registered as ${dupe.id} — ${dupe.name}`;
   if (!f.contact.name.trim()) e.contactName = "Required";
   if (!EMAIL_RE.test(f.contact.email)) e.email = "Enter a valid email";
   if (!f.categories.length) e.categories = "Pick at least one category";
@@ -103,7 +118,7 @@ const TYPE_INFO = {
 
 function FormSection({ n, title, desc, done, right, children }) {
   return (
-    <section className="rounded-xl border border-line bg-white">
+    <section data-vf={title} data-done={done ? "1" : ""} className="scroll-mt-16 rounded-xl border border-line bg-white">
       <header className="flex items-center gap-3 border-b border-line px-4 py-3">
         <span className={cls("grid h-6 w-6 shrink-0 place-items-center rounded-full text-[12px] font-semibold", done ? "bg-green-100 text-green-700" : "bg-brand-soft text-brand")}>{done ? h(Icon.check, { size: 13 }) : n}</span>
         <div className="min-w-0 flex-1"><p className="text-[14px] font-semibold text-ink">{title}</p>{desc && <p className="text-[12px] text-ink-mute">{desc}</p>}</div>
@@ -114,7 +129,26 @@ function FormSection({ n, title, desc, done, right, children }) {
   );
 }
 
+// Sticky jump bar for the long vendor form: one chip per section, ticked when that section is complete
+function FormJumpBar({ root }) {
+  const [secs, setSecs] = y.useState([]);
+  y.useLayoutEffect(() => {
+    const el = root.current; if (!el) return;
+    const next = [...el.querySelectorAll("section[data-vf]")].map((x, i) => ({ i, title: x.dataset.vf, done: !!x.dataset.done }));
+    if (JSON.stringify(next) !== JSON.stringify(secs)) setSecs(next);
+  });
+  const go = (i) => root.current?.querySelectorAll("section[data-vf]")[i]?.scrollIntoView({ behavior: "smooth", block: "start" });
+  return (
+    <nav aria-label="Form sections" style={{ top: -40 }} className="sticky z-10 -mx-5 -mt-4 mb-1 flex gap-1.5 overflow-x-auto border-b border-line bg-white px-5 py-2 shadow-[0_1px_0_#e5e7eb]">
+      {secs.map((x) => (
+        <button key={x.title} type="button" onClick={() => go(x.i)} className={cls("flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px]", x.done ? "border-green-200 bg-green-50 text-green-700" : "border-line text-ink-soft hover:bg-gray-50")}>
+          <span className={cls("grid h-4 w-4 place-items-center rounded-full text-[10px] font-semibold", x.done ? "bg-green-600 text-white" : "bg-gray-100 text-ink-mute")}>{x.done ? h(Icon.check, { size: 10 }) : x.i + 1}</span>{x.title}
+        </button>))}
+    </nav>
+  );
+}
 function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
+  const formRoot = y.useRef(null);
   const upd = (k, val) => set({ ...f, [k]: val });
   const updC = (k, val) => set({ ...f, contact: { ...f.contact, [k]: val } });
   const updB = (k, val) => set({ ...f, bank: { ...f.bank, [k]: val } });
@@ -136,10 +170,13 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
   };
   const setType = (t) => set({ ...f, type: t, tds: autoTds(t, f.supplierType), isContractor: t === "Labor" ? true : t === "Goods" ? false : f.isContractor });
   const docsDone = requiredDocs(f).every((d) => (f.uploads || {})[d]?.file);
+  const dup = publicMode ? {} : findDuplicate(f);
+  const dupNote = (v, text) => v && <span className="mt-1 block text-[11px] text-red-600">{text} <b>{v.name}</b> ({v.id}, {v.status})</span>;
   const errCount = Object.keys(errors).length;
   let n = 0;
   return (
-    <div className="space-y-4">
+    <div ref={formRoot} className="space-y-4">
+      {!publicMode && <FormJumpBar root={formRoot} />}
       {errCount > 0 && <Note tone="red">Please fix {errCount} field{errCount > 1 ? "s" : ""} marked in red below.</Note>}
 
       <FormSection n={++n} title="Company & what they supply" desc={publicMode ? "Your company and the work you do" : "Who the vendor is and what they do for you"} done={!!(f.name && f.categories.length)}>
@@ -177,8 +214,8 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
 
       <FormSection n={++n} title="Tax & payment" desc="GSTIN fills the PAN and state automatically" done={gstOk && panOk}>
         <div className="grid grid-cols-3 gap-3">
-          <Field label="GSTIN" required><TextInput value={f.gstin} onChange={setGstin} placeholder="27AAKCS4412M1Z3" maxLength={15} className={cls(inputCls, "mono")} />{err("gstin") || ok(gstOk, `Valid · ${GST_STATES[f.gstin.slice(0, 2)] || "state code " + f.gstin.slice(0, 2)}`)}</Field>
-          <Field label="PAN" required><TextInput value={f.pan} onChange={(v) => upd("pan", v.toUpperCase())} placeholder="AAKCS4412M" maxLength={10} className={cls(inputCls, "mono")} />{err("pan") || ok(panOk && gstOk && f.gstin.slice(2, 12) === f.pan, "Matches GSTIN")}</Field>
+          <Field label="GSTIN" required><TextInput value={f.gstin} onChange={setGstin} placeholder="27AAKCS4412M1Z3" maxLength={15} className={cls(inputCls, "mono")} />{err("gstin") || dupNote(dup.gstin, "Already registered:") || ok(gstOk, `Valid · ${GST_STATES[f.gstin.slice(0, 2)] || "state code " + f.gstin.slice(0, 2)}`)}</Field>
+          <Field label="PAN" required><TextInput value={f.pan} onChange={(v) => upd("pan", v.toUpperCase())} placeholder="AAKCS4412M" maxLength={10} className={cls(inputCls, "mono")} />{err("pan") || (dup.pan && <span className="mt-1 block text-[11px] text-amber-700">Same PAN as <b>{dup.pan.name}</b> ({dup.pan.id}) — another branch of the same company?</span>) || ok(panOk && gstOk && f.gstin.slice(2, 12) === f.pan, "Matches GSTIN")}</Field>
           <Field label="Supplier type" hint="Individual / HUF: 1% TDS, others 2%"><Select value={f.supplierType || "Company"} onChange={(v) => set({ ...f, supplierType: v, tds: autoTds(f.type, v) })} options={SUPPLIER_TYPES} /></Field>
           <Field label={publicMode ? "Preferred payment terms" : "Payment terms"}><Select value={f.paymentTerms} onChange={(v) => upd("paymentTerms", v)} options={PAYMENT_TERMS} /></Field>
           <Field label="Currency"><Select value={f.currency} onChange={(v) => upd("currency", v)} options={["INR", "USD", "EUR", "AED"]} /></Field>
@@ -284,8 +321,6 @@ function RegisterVendorModal({ open, onClose, onCreated, contractorMode }) {
   }, [open]);
   const save = (submit) => {
     const e = validateVendor(f);
-    const dupe = getState().vendors.find((v) => v.gstin === f.gstin.toUpperCase());
-    if (dupe) e.gstin = `Already registered as ${dupe.id} — ${dupe.name}`;
     setErrors(e);
     if (Object.keys(e).length) return;
     const id = createVendor(f, submit);
@@ -360,10 +395,10 @@ function VendorOverview({ v, comp }) {
       {v.hold && v.status === "On Hold" && <Note tone="amber" icon={Icon.lock}><b>On hold ({v.hold.scope}):</b> {v.hold.reason}{v.hold.until ? ` — until ${fmtDate(v.hold.until)}` : ""}</Note>}
       <Section title="Vendor master" icon={Icon.building}>
         <KV items={[
-          ["Legal name", v.legalName], ["Vendor ID", <span className="mono">{v.id}</span>], ["Tier", v.tier], ["Supplier type", v.supplierType || "Company"], ["Source", v.source || "Internal"],
+          ["Legal name", v.legalName], ["Vendor ID", <span className="mono">{v.id}</span>], ["Tier", v.tier], ["Supplier type", v.supplierType || "Company"], ["Open orders", openOrdersText(v)], ["Outstanding", inrShort(sum(getState().invoices.filter((i) => i.vendorId === v.id), (i) => invoiceTotals(i).balance))],
           ["GSTIN", <span className="mono">{v.gstin}</span>], ["PAN", <span className="mono">{v.pan}</span>], ["Currency", v.currency],
           ["Payment terms", v.paymentTerms], ["TDS", (TDS_SECTIONS.find((t) => t.value === v.tds) || {}).label], ["Vendor group", v.group || "Not grouped"],
-          ["Internal parent", v.parentCompany ? <span className="flex items-center gap-1.5">{v.parentCompany}<GroupCoTag v={v} /></span> : "External vendor"], ["Registered", fmtDate(v.createdAt)], ["Categories", <CategoryChips list={v.categories} max={4} />],
+          ["Internal parent", v.parentCompany ? <span className="flex items-center gap-1.5">{v.parentCompany}<GroupCoTag v={v} /></span> : "External vendor"], ["Registered", fmtDate(v.createdAt)], ["Categories", <CategoryChips list={v.categories} max={99} wrap />],
         ]} />
       </Section>
       <Section title="Contact" icon={Icon.user}>
@@ -581,11 +616,53 @@ function AuditList({ items }) {
   );
 }
 
+// Calm list colours: normal states are plain text with a small dot; only exceptions get a coloured badge
+const CALM = { Active: "bg-green-500", "Spend Authorized": "bg-green-500", Compliant: "bg-green-500" };
+function CalmStatus({ children }) {
+  const d = CALM[children];
+  return d ? <span className="inline-flex items-center gap-1.5 text-ink-soft"><span className={cls("h-1.5 w-1.5 rounded-full", d)} />{children}</span> : <Status>{children}</Status>;
+}
+// Bulk actions for ticked vendors
+function BulkBar({ sel, onClear, onHold }) {
+  const st = useStore(), vs = sel.map((id) => byId(st.vendors, id)).filter(Boolean);
+  const bulk = (fn, action) => { setState((s) => sel.forEach((id) => fn(byId(s.vendors, id))), { entity: "Vendor", id: sel.join(", "), action }); toast(`${action} — ${sel.length} vendor${sel.length > 1 ? "s" : ""}`); };
+  const due = vs.flatMap((v) => complianceItems(v).filter((i) => i.level > 0).map((item) => ({ v, item })));
+  return (
+    <div className="flex flex-wrap items-center gap-2 border-b border-brand/20 bg-brand-soft/50 px-4 py-2 text-[13px]">
+      <b className="text-brand">{sel.length} selected</b><span className="mx-1 h-4 w-px bg-brand/20" />
+      <Btn size="sm" icon={Icon.star} onClick={() => bulk((v) => (v.preferred = true), "Marked preferred")}>Mark preferred</Btn>
+      <Btn size="sm" onClick={() => bulk((v) => (v.preferred = false), "Preferred removed")}>Remove preferred</Btn>
+      <div className="w-[170px]"><Select label="Change tier" value="" placeholder="Change tier…" options={TIERS} onChange={(t) => t && bulk((v) => (v.tier = t), `Tier changed to ${t}`)} className="h-[28px]" /></div>
+      <Btn size="sm" icon={Icon.mail} disabled={!due.length} onClick={() => sendReminders(due)}>Send compliance reminders{due.length ? ` (${due.length})` : ""}</Btn>
+      <Btn size="sm" icon={Icon.lock} onClick={onHold}>Put on hold</Btn>
+      <button type="button" className="ml-auto text-[12.5px] text-brand hover:underline" onClick={onClear}>Clear selection</button>
+    </div>
+  );
+}
+function BulkHoldModal({ ids, onClose, onDone }) {
+  const [hold, setHold] = y.useState({ scope: "Payments", until: shiftDays(30), reason: "" });
+  const go = () => {
+    setState((s) => ids.forEach((id) => { const x = byId(s.vendors, id); if (x.status === "Blacklisted") return; x.status = "On Hold"; x.hold = { ...hold, placedAt: todayISO() }; }), { entity: "Vendor", id: ids.join(", "), action: `Placed on hold (${hold.scope}) — ${hold.reason}` });
+    toast(`${ids.length} vendor${ids.length > 1 ? "s" : ""} put on hold`); onDone();
+  };
+  return (
+    <Modal open onClose={onClose} width={520} title={`Put ${ids.length} vendor${ids.length > 1 ? "s" : ""} on hold`} subtitle="Blacklisted vendors are skipped"
+      footer={<><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" icon={Icon.lock} disabled={!hold.reason.trim()} onClick={go}>Place hold</Btn></>}>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Block"><Select value={hold.scope} onChange={(x) => setHold({ ...hold, scope: x })} options={["Invoices", "Payments", "All"]} /></Field>
+        <Field label="Release date"><DateInput value={hold.until} onChange={(x) => setHold({ ...hold, until: x })} /></Field>
+        <Field label="Reason" required span={2}><TextInput value={hold.reason} onChange={(x) => setHold({ ...hold, reason: x })} placeholder="e.g. Pending reconciliation" /></Field>
+      </div>
+    </Modal>
+  );
+}
+
 // ---------------------------------------------------------------- registry page
 function VendorRegistryPage() {
   const st = useStore();
   const [type, setType] = y.useState("All"), [status, setStatus] = y.useState("All"), [tier, setTier] = y.useState("All"), [grp, setGrp] = y.useState("All");
   const [open, setOpen] = y.useState(null), [reg, setReg] = y.useState(false), [share, setShare] = y.useState(false), [invite, setInvite] = y.useState(false), [view, setView] = y.useState("vendors");
+  const [sel, setSel] = y.useState([]), [holdFor, setHoldFor] = y.useState(null);
   const rows = st.vendors.filter((v) =>
     (type === "All" || v.type === type) && (status === "All" || v.status === status) && (tier === "All" || v.tier === tier) &&
     (grp === "All" || (grp === "__intra" ? isGroupCompany(v) : grp === "__none" ? !v.group : inGroup(v, grp))) &&
@@ -601,21 +678,25 @@ function VendorRegistryPage() {
       <TabBar active={view} onChange={setView} tabs={[{ id: "vendors", label: "Vendors", icon: Icon.building }, { id: "invites", label: "Invitations", icon: Icon.mail }]} />
       {view === "invites" && <InvitesTable onOpenVendor={setOpen} />}
       {view === "vendors" && <>
-      <DataTable columnsId="vendor-registry" extraColumns={VENDOR_EXTRA_COLUMNS(st)} noun="vendors" placeholder="Search name, GSTIN, trade, group…" summary={(r) => [{ value: r.filter((v) => v.preferred).length, label: "preferred", color: "text-amber-600" }]}
+      {sel.length > 0 && <BulkBar sel={sel} onClear={() => setSel([])} onHold={() => setHoldFor(sel)} />}
+      <DataTable columnsId="vendor-registry" extraColumns={VENDOR_EXTRA_COLUMNS(st)} noun="vendors" exportName="vendor-master" placeholder="Search vendors…"
+        onClearFilters={() => { setType("All"); setStatus("All"); setTier("All"); }}
+        summary={(r) => [{ value: r.filter((v) => v.preferred).length, label: "preferred", color: "text-amber-600" }]}
         filters={<>
         <FilterSelect label="Type" value={type} onChange={setType} options={[{ value: "All", label: "All types" }, ...VENDOR_TYPES]} />
         <FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Active", "Pending Approval", "Changes Requested", "Draft", "On Hold", "Blacklisted", "Disabled", "Rejected"]} />
         <FilterSelect label="Tier" value={tier} onChange={setTier} options={[{ value: "All", label: "All tiers" }, ...TIERS]} />
       </>}
         rows={rows} onRow={(v) => setOpen(v.id)} columns={[
+        { key: "sel", label: "", render: (v) => <input type="checkbox" aria-label={`Select ${v.name}`} className="h-4 w-4 accent-[#0b5ed7]" checked={sel.includes(v.id)} onClick={(e) => e.stopPropagation()} onChange={(e) => setSel(e.target.checked ? [...sel, v.id] : sel.filter((x) => x !== v.id))} /> },
         { key: "name", label: "Vendor", filterOptions: FO.preferred, filterLabel: "Preferred", filterAll: "All vendors", filter: (v) => (v.preferred ? "Preferred" : "Not preferred"), render: (v) => <span className="flex items-center justify-between gap-3 font-medium"><span className="truncate">{v.name}</span><PreferredStar v={v} size={14} /></span> },
-        { key: "type", label: "Type", render: (v) => <span className="flex flex-wrap items-center gap-1"><VendorTypeTag v={v} /><GroupCoTag v={v} /></span> },
-        { key: "cat", label: "Trades", render: (v) => <CategoryChips list={v.categories} /> },
-        { key: "tier", label: "Tier" },
-        { key: "reg", label: "Registration", filterOptions: FO.regTier, filter: (v) => v.regTier, render: (v) => <Status>{v.regTier}</Status> },
-        { key: "comp", label: "Compliance", filterOptions: FO.compliance, filter: (v) => complianceOf(v).status, render: (v) => <Status>{complianceOf(v).status}</Status> },
-        { key: "score", label: "Score", render: (v) => <ScoreBadge value={vendorScore(st, v.id).score} /> },
-        { key: "status", label: "Status", render: (v) => <Status>{v.status}</Status> },
+        { key: "status", label: "Status", render: (v) => <CalmStatus>{v.status}</CalmStatus> },
+        { key: "type", label: "Type", sort: (v) => v.type + (v.isContractor ? " · Contractor" : ""), render: (v) => <span className="flex flex-wrap items-center gap-1.5 text-ink-soft">{v.type}{v.isContractor ? " · Contractor" : ""}<GroupCoTag v={v} /></span> },
+        { key: "cat", label: "Trades", sort: (v) => v.categories[0] || "", render: (v) => <CategoryChips list={v.categories} /> },
+        { key: "tier", label: "Tier", sort: (v) => TIERS.indexOf(v.tier) },
+        { key: "reg", label: "Registration", filterOptions: FO.regTier, filter: (v) => v.regTier, render: (v) => <CalmStatus>{v.regTier}</CalmStatus> },
+        { key: "comp", label: "Compliance", filterOptions: FO.compliance, filter: (v) => complianceOf(v).status, render: (v) => <CalmStatus>{complianceOf(v).status}</CalmStatus> },
+        { key: "score", label: "Score", sort: (v) => vendorScore(st, v.id).score ?? -1, render: (v) => { const sc = vendorScore(st, v.id).score; return sc == null ? <span data-tip="No orders, work orders or ratings yet" className="text-[12.5px] text-ink-faint">New</span> : <ScoreBadge value={sc} />; } },
       ]} />
       </>}
       {invite && <InviteVendorModal onClose={() => setInvite(false)} />}
@@ -623,6 +704,7 @@ function VendorRegistryPage() {
       {share && <ShareLinkModal title="Vendor self-registration link" url={appUrl("/vendor-register")} onClose={() => setShare(false)}
         text="Send this link to prospective vendors. They fill in their company, tax and bank details and upload documents themselves — no login needed. Submissions arrive in Approval Management under “Vendor Registration”." />}
       {open && <VendorDrawer vendorId={open} onClose={() => setOpen(null)} />}
+      {holdFor && <BulkHoldModal ids={holdFor} onClose={() => setHoldFor(null)} onDone={() => { setHoldFor(null); setSel([]); }} />}
     </Page>
   );
 }

@@ -311,6 +311,8 @@ function vendorScore(st, vendorId) {
     const r = sum(rec, (x) => x.received);
     if (r) parts.quality = (sum(rec, (x) => x.accepted) / r) * 100;
   }
+  // No orders, work orders or ratings yet → no score (a new vendor is "New", not a failing 30)
+  if (!Object.keys(parts).length) return { score: null, parts: {}, isNew: true };
   const comp = complianceOf(v).status;
   parts.compliance = comp === "Compliant" ? 100 : comp === "Expiring" ? 70 : 30;
   let tw = 0, ts = 0;

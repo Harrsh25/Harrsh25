@@ -31,6 +31,9 @@ function InviteVendorModal({ onClose }) {
   );
 }
 
+// Invitation links stay valid for 30 days from the last (re)send
+const INVITE_VALID_DAYS = 30;
+const inviteExpiry = (i) => shiftDays(INVITE_VALID_DAYS, i.sentOn);
 const remindInvite = (i) => { setState((s) => { const x = byId(s.invites, i.id); x.sentOn = todayISO(); x.reminders = [...(x.reminders || []), { at: new Date().toISOString(), by: currentUser() }]; }, { entity: "Invite", id: i.id, action: `Reminder sent to ${i.email}` }); toast(`Reminder sent to ${i.email}`); };
 const cancelInvite = (i) => { setState((s) => (byId(s.invites, i.id).status = "Cancelled"), { entity: "Invite", id: i.id, action: "Cancelled" }); toast("Invitation cancelled", "red"); };
 
@@ -46,7 +49,9 @@ function InvitesTable({ onOpenVendor }) {
         { key: "name", label: "Company", className: "font-medium" },
         { key: "email", label: "E-mail" },
         { key: "category", label: "Trade", filterOptions: FO.trades, filter: (i) => i.category, render: (i) => i.category || "—" },
-        { key: "sent", label: "Sent", render: (i) => `${fmtDate(i.sentOn)} · ${i.by}` },
+        { key: "sent", label: "Sent", sort: (i) => i.sentOn, render: (i) => `${fmtDate(i.sentOn)} · ${i.by}` },
+        { key: "rem", label: "Reminders", sort: (i) => (i.reminders || []).length, render: (i) => { const r = i.reminders || []; return r.length ? <span data-tip={r.map((x) => `${fmtDate(x.at)} · ${x.by}`).join("\n")}>{r.length} · last {fmtDate(r[r.length - 1].at)}</span> : <span className="text-ink-faint">None</span>; } },
+        { key: "exp", label: "Link expires", sort: (i) => inviteExpiry(i), render: (i) => (i.status === "Invited" ? <ExpiryCell iso={inviteExpiry(i)} /> : <span className="text-ink-faint">—</span>) },
         { key: "s", label: "Status", render: (i) => <Status>{i.status}</Status> },
         { key: "a", label: "", align: "right", render: (i) => i.vendorId ? <span onClick={stop}><Btn size="sm" onClick={() => onOpenVendor(i.vendorId)}>Open vendor</Btn></span> : i.status === "Invited" ? (
           <span className="flex justify-end gap-1" onClick={stop}>
