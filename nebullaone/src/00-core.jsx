@@ -457,11 +457,11 @@ function TradePicker({ options, value = [], onChange }) {
   );
 }
 
-function SearchBox({ value, onChange, placeholder = "Search..." }) {
+function SearchBox({ value, onChange, placeholder = "Search...", autoFocus, onBlur }) {
   return (
     <label className="flex h-[28px] w-[220px] items-center gap-2 rounded-md border border-line bg-white px-2 text-[13px] text-ink-mute">
       {h(Icon.search, { size: 13 })}
-      <input className="w-full bg-transparent text-ink outline-none placeholder:text-ink-mute" placeholder={placeholder}
+      <input className="w-full bg-transparent text-ink outline-none placeholder:text-ink-mute" placeholder={placeholder} autoFocus={autoFocus} onBlur={onBlur}
         value={value} onChange={(e) => onChange(e.target.value)} />
     </label>
   );
@@ -612,6 +612,9 @@ function DataTable({ columns: baseColumns, extraColumns, columnsId, onClearFilte
   const [q, setQ] = y.useState("");
   // Column filters: a column with `filter` (true = row[key], or a function returning a value / list of values) gets its own dropdown
   const [cf, setCf] = y.useState({});
+  const [searchOpen, setSearchOpen] = y.useState(false), [filtersOpen, setFiltersOpen] = y.useState(false), [nActive, setNActive] = y.useState(0);
+  const filterRow = y.useRef(null);
+  y.useLayoutEffect(() => { const el = filterRow.current; const n = el ? el.querySelectorAll("button[aria-haspopup=listbox].bg-brand-soft").length : 0; if (n !== nActive) setNActive(n); });
   // Sorting: click a column header (asc → desc → off). Value = column.sort(row), else its filter value, else row[key]
   const [sort, setSort] = y.useState(null);
   const tableRef = y.useRef(null);
@@ -654,6 +657,8 @@ function DataTable({ columns: baseColumns, extraColumns, columnsId, onClearFilte
     return <FilterSelect key={"cf-" + c.key} label={name} value={cf[c.key] || "__all"} onChange={(v) => setCf((o) => ({ ...o, [c.key]: v }))}
       options={[{ value: "__all", label: c.filterAll || `All ${pluralWord(name.toLowerCase())}` }, ...vals.map((v) => (typeof v === "object" ? v : { value: v, label: v }))]} />;
   });
+  const hasFilters = !!filters || colSelects.some(Boolean);
+  const showFilters = filtersOpen || nActive > 0;
   const table = !shown.length
     ? (rows.length || onClearFilters ? <div className="pb-8"><EmptyState icon={Icon.search} title="No matches" text={q.trim() ? `Nothing matches “${q}”. Try another word or clear the search.` : "No records match these filters."} /><div className="-mt-2 flex justify-center"><Btn icon={Icon.x} onClick={clearAll}>Clear search &amp; filters</Btn></div></div> : empty || <EmptyState icon={Icon.folder} title="Nothing here yet" text="Records you add will appear in this list." />)
     : (
@@ -689,15 +694,29 @@ function DataTable({ columns: baseColumns, extraColumns, columnsId, onClearFilte
   const sum$ = typeof summary === "function" ? summary(shown) : summary || [];
   return (
     <>
-      {/* One line: filters on the left (they shrink and truncate when space is tight), search on the right */}
-      <div className="flex min-h-[44px] items-center gap-3 border-b border-line px-4 py-1.5">
-        <div className="nx-filters flex min-w-0 flex-1 flex-nowrap items-center gap-2">
-          {(filters || colSelects.some(Boolean)) && <span className="flex shrink-0 items-center gap-1 pr-1 text-[12px] font-medium text-ink-mute">{h(Icon.filter, { size: 13 })}Filters</span>}
-          {filters}{colSelects}
-          {fcols.length > 0 && fcols.some((c) => cf[c.key] && cf[c.key] !== "__all") && <button type="button" className="shrink-0 whitespace-nowrap px-1 text-[12.5px] text-brand hover:underline" onClick={() => setCf({})}>Clear filters</button>}</div>
-        <div className="flex shrink-0 items-center gap-2">{actions}<SearchBox value={q} onChange={setQ} placeholder={placeholder} />
-          <button type="button" aria-label="Export" data-tip="Export this view to Excel (CSV)" onClick={exportCsv} disabled={!shown.length} className="grid h-8 w-8 place-items-center rounded-md text-ink-soft hover:bg-gray-100 hover:text-ink disabled:opacity-40">{h(Icon.download, { size: 16 })}</button></div>
+      {/* BOQ-style toolbar: actions + search icon + filter icon + export on the right; filters open in a row below */}
+      <div className="flex min-h-[44px] items-center justify-end gap-1.5 border-b border-line px-4 py-1.5">
+        {actions && <div className="mr-auto flex items-center gap-2">{actions}</div>}
+        {searchOpen || q ? (
+          <span className="w-[240px]"><SearchBox value={q} onChange={setQ} placeholder={placeholder} autoFocus onBlur={() => !q && setSearchOpen(false)} /></span>
+        ) : (
+          <button type="button" aria-label="Search" data-tip="Search" onClick={() => setSearchOpen(true)} className="grid h-8 w-8 place-items-center rounded-md text-ink-soft hover:bg-gray-100 hover:text-ink">{h(Icon.search, { size: 16 })}</button>
+        )}
+        {hasFilters && (
+          <button type="button" aria-label="Filters" aria-expanded={showFilters} data-tip={showFilters ? "Hide filters" : "Filters"} onClick={() => setFiltersOpen((o) => !o)}
+            className={cls("relative grid h-8 w-8 place-items-center rounded-md hover:bg-gray-100", showFilters || nActive ? "text-brand" : "text-ink-soft hover:text-ink", showFilters && "bg-brand-soft/60")}>
+            {h(Icon.filter, { size: 16 })}
+            {nActive > 0 && <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-brand px-1 text-[10px] font-semibold text-white">{nActive}</span>}
+          </button>
+        )}
+        <button type="button" aria-label="Export" data-tip="Export this view to Excel (CSV)" onClick={exportCsv} disabled={!shown.length} className="grid h-8 w-8 place-items-center rounded-md text-ink-soft hover:bg-gray-100 hover:text-ink disabled:opacity-40">{h(Icon.download, { size: 16 })}</button>
       </div>
+      {hasFilters && (
+        <div ref={filterRow} className={cls("nx-filters flex min-h-[42px] flex-wrap items-center gap-2 border-b border-line bg-gray-50/50 px-4 py-1.5", !showFilters && "hidden")}>
+          {filters}{colSelects}
+          {nActive > 0 && <button type="button" className="shrink-0 whitespace-nowrap px-1 text-[12.5px] text-brand hover:underline" onClick={clearAll}>Clear filters</button>}
+        </div>
+      )}
       {table}
       <FooterBar items={[{ value: active ? `${shown.length} of ${rows.length}` : rows.length, label: noun }, ...sum$]} updated={new Date().toLocaleString("en-IN")} />
       {picker && <ColumnPicker extra={extraColumns} shown={extraOn} onApply={applyCols} onClose={() => setPicker(false)} />}

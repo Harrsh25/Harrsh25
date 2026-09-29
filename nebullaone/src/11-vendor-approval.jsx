@@ -187,7 +187,7 @@ function VendorApprovalsPage() {
       {tab === "queue" && (
         <DataTable noun="vendors" rows={queue} onRow={(v) => setOpen(v.id)} empty={<EmptyState icon={Icon.check} title="Approval queue is clear" text="New registrations will show up here." />} columns={[
           { key: "name", label: "Vendor", className: "font-medium" },
-          { key: "type", label: "Type", filterOptions: FO.vendorType, filter: (v) => v.type + (v.isContractor ? " · Contractor" : ""), render: (v) => <VendorTypeTag v={v} /> },
+          { key: "type", label: "Type", filterOptions: VENDOR_TYPES, filter: (v) => v.type, render: (v) => <span className="text-ink-soft">{v.type}</span> },
           { key: "stage", label: "Routing", filterOptions: FO.stage, filter: (v) => (v.approval?.stages || []).find((s) => s.status === "Pending")?.dept || "—", filterLabel: "Stage", render: (v) => (
             <span className="flex items-center gap-1">
               {v.approval.stages.map((s) => (

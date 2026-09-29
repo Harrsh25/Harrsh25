@@ -691,7 +691,7 @@ function VendorRegistryPage() {
         { key: "sel", label: "", render: (v) => <input type="checkbox" aria-label={`Select ${v.name}`} className="h-4 w-4 accent-[#0b5ed7]" checked={sel.includes(v.id)} onClick={(e) => e.stopPropagation()} onChange={(e) => setSel(e.target.checked ? [...sel, v.id] : sel.filter((x) => x !== v.id))} /> },
         { key: "name", label: "Vendor", filterOptions: FO.preferred, filterLabel: "Preferred", filterAll: "All vendors", filter: (v) => (v.preferred ? "Preferred" : "Not preferred"), render: (v) => <span className="flex items-center justify-between gap-3 font-medium"><span className="truncate">{v.name}</span><PreferredStar v={v} size={14} /></span> },
         { key: "status", label: "Status", render: (v) => <CalmStatus>{v.status}</CalmStatus> },
-        { key: "type", label: "Type", sort: (v) => v.type + (v.isContractor ? " · Contractor" : ""), render: (v) => <span className="flex flex-wrap items-center gap-1.5 text-ink-soft">{v.type}{v.isContractor ? " · Contractor" : ""}<GroupCoTag v={v} /></span> },
+        { key: "type", label: "Type", render: (v) => <span className="flex flex-wrap items-center gap-1.5 text-ink-soft">{v.type}<GroupCoTag v={v} /></span> },
         { key: "cat", label: "Trades", sort: (v) => v.categories[0] || "", render: (v) => <CategoryChips list={v.categories} /> },
         { key: "tier", label: "Tier", sort: (v) => TIERS.indexOf(v.tier) },
         { key: "reg", label: "Registration", filterOptions: FO.regTier, filter: (v) => v.regTier, render: (v) => <CalmStatus>{v.regTier}</CalmStatus> },
