@@ -7,6 +7,26 @@ const GSTIN_RE = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
 const PAN_RE = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Optional columns for the vendor master list (switched on from the "+" Customize Columns panel)
+const approvedOn = (v) => { const st = v.approval?.stages || []; return st.length && st.every((x) => x.status === "Approved") ? st.map((x) => x.at).filter(Boolean).sort().pop() || null : null; };
+const muted = (x) => x || <span className="text-ink-faint">—</span>;
+const VENDOR_EXTRA_COLUMNS = (st) => [
+  { key: "xContact", label: "Contact person", desc: "Main contact at the vendor", render: (v) => muted(v.contact?.name) },
+  { key: "xEmail", label: "Email", desc: "Contact e-mail address", render: (v) => muted(v.contact?.email) },
+  { key: "xPhone", label: "Phone", desc: "Contact phone number", render: (v) => muted(v.contact?.phone) },
+  { key: "xCity", label: "City / State", desc: "Registered city and state", filterLabel: "State", filterOptions: () => STATES, filter: (v) => v.state, render: (v) => muted([v.city, v.state].filter(Boolean).join(", ")) },
+  { key: "xGstin", label: "GSTIN", desc: "GST registration number", render: (v) => muted(v.gstin) },
+  { key: "xPan", label: "PAN", desc: "Permanent account number", render: (v) => muted(v.pan) },
+  { key: "xSupType", label: "Supplier type", desc: "Company, LLP, individual — decides TDS rate", filterOptions: SUPPLIER_TYPES, filter: (v) => v.supplierType || "Company", render: (v) => v.supplierType || "Company" },
+  { key: "xGroup", label: "Vendor group", desc: "Group used for filters and spend reports", filterOptions: () => settingsOf(getState()).vendorGroups, filter: (v) => v.group, render: (v) => muted(v.group) },
+  { key: "xParent", label: "Internal parent company", desc: "Set only for our own group companies", render: (v) => muted(v.parentCompany) },
+  { key: "xStanding", label: "Scorecard standing", desc: "Excellent / Good / Average / Poor", filterLabel: "Standing", filterOptions: FO.standings, filter: (v) => standingOf(st, v.id)?.name, render: (v) => { const b = standingOf(st, v.id); return b ? <Status tone={b.color === "blue" ? "blue" : b.color}>{b.name}</Status> : muted(null); } },
+  { key: "xRegOn", label: "Registered on", desc: "Date the vendor record was created", render: (v) => fmtDate(v.createdAt) },
+  { key: "xApprOn", label: "Approved on", desc: "Date the last approval stage signed off", render: (v) => muted(approvedOn(v) && fmtDate(approvedOn(v))) },
+  { key: "xHold", label: "Hold reason", desc: "Why the vendor is on hold", render: (v) => muted(v.status === "On Hold" && v.hold?.reason) },
+  { key: "xRelease", label: "Hold release date", desc: "When the hold lifts automatically", render: (v) => muted(v.status === "On Hold" && v.hold ? (v.hold.until ? fmtDate(v.hold.until) : "Indefinite") : null) },
+];
+
 function VendorTypeTag({ v }) {
   const c = { Goods: "bg-sky-50 text-sky-700 border-sky-200", Services: "bg-violet-50 text-violet-700 border-violet-200", Labor: "bg-orange-50 text-orange-700 border-orange-200" }[v.type];
   return <span className={cls("rounded border px-1.5 py-[1px] text-[11px] font-medium", c)}>{v.type}{v.isContractor ? " · Contractor" : ""}</span>;
@@ -581,7 +601,7 @@ function VendorRegistryPage() {
       <TabBar active={view} onChange={setView} tabs={[{ id: "vendors", label: "Vendors", icon: Icon.building }, { id: "invites", label: "Invitations", icon: Icon.mail }]} />
       {view === "invites" && <InvitesTable onOpenVendor={setOpen} />}
       {view === "vendors" && <>
-      <DataTable noun="vendors" placeholder="Search name, GSTIN, trade, group…" summary={(r) => [{ value: r.filter((v) => v.preferred).length, label: "preferred", color: "text-amber-600" }]}
+      <DataTable columnsId="vendor-registry" extraColumns={VENDOR_EXTRA_COLUMNS(st)} noun="vendors" placeholder="Search name, GSTIN, trade, group…" summary={(r) => [{ value: r.filter((v) => v.preferred).length, label: "preferred", color: "text-amber-600" }]}
         filters={<>
         <FilterSelect label="Type" value={type} onChange={setType} options={[{ value: "All", label: "All types" }, ...VENDOR_TYPES]} />
         <FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Active", "Pending Approval", "Changes Requested", "Draft", "On Hold", "Blacklisted", "Disabled", "Rejected"]} />

@@ -14,7 +14,7 @@ const Icon = {
   activity: Pp, archive: V1, arrowLeft: Q1, arrowRight: Mp, book: q1, boxes: Ds, briefcase: vo,
   building: cn, calendar: jo, calendarClock: zp, chart: K1, chevronDown: Xn, chevronRight: ko,
   alert: wo, check: et, clipboardCheck: Yu, clipboardList: Jr, clock: Fs, download: Rp, more: Ap,
-  eye: tx, factory: nx, fileClock: _p, filePlus: rx, sheet: Op, file: Is, fileX: lx, filter: No,
+  eye: tx, eyeOff: ex, factory: nx, fileClock: _p, filePlus: rx, sheet: Op, file: Is, fileX: lx, filter: No,
   flag: sx, folderCheck: ix, folder: ax, gauge: ox, branch: ux, globe: cx, grid: px, info: Fp,
   layers: Fn, listChecks: So, lock: Ip, mail: vx, pin: jx, network: wx, package: Nx, plus: Us,
   receipt: Px, refresh: Mx, ruler: Tx, save: zx, scale: xs, search: er, settings: va, shapes: Co,
@@ -477,7 +477,7 @@ const FILTER_ICONS = {
   stage: "activity", mode: "users", category: "layers", standing: "gauge", insurance: "shield", "required coverage": "shield", "payment gate": "lock",
   "blocks payment": "lock", "work order": "clipboardList", jms: "listChecks", region: "globe", "wage zone": "globe", skill: "wrench", trade: "hardHat",
   trades: "hardHat", "rule sets": "listChecks", result: "target", owner: "user", level: "layers", "submitted by": "user", "rated by": "user",
-  acceptance: "check", basis: "file", period: "calendar", invitation: "mail", group: "layers",
+  acceptance: "check", basis: "file", period: "calendar", invitation: "mail", group: "layers", state: "globe", "supplier type": "building", "vendor group": "layers",
 };
 const filterIcon = (label) => {
   const k = FILTER_ICONS[String(label || "").toLowerCase()];
@@ -555,8 +555,57 @@ function rowSearchText(r, depth = 0) {
 // Main list = toolbar (page filters left, search right) + table + bottom bar with the count.
 // dense / plain tables (inside panels and cards) are just the table.
 const pluralWord = (w) => (/(s|ing|ce|ance|by|pay|ed)$/.test(w) ? w : /(ch|sh|x)$/.test(w) ? w + "es" : /[^aeiou]y$/.test(w) ? w.slice(0, -1) + "ies" : w + "s");
-function DataTable({ columns, rows, onRow, rowKey = (r) => r.id, empty, footer, dense, plain, filters, actions, noun = "records", summary, searchText = rowSearchText, placeholder = "Search…" }) {
+// Customize Columns panel (Project Center style): toggle optional columns on/off, Apply saves the choice for this browser
+function ColumnPicker({ extra, shown, onApply, onClose }) {
+  const [draft, setDraft] = y.useState(shown);
+  const on = (k) => draft.includes(k);
+  const flip = (k) => setDraft((d) => (d.includes(k) ? d.filter((x) => x !== k) : [...d, k]));
+  const changed = draft.length !== shown.length || draft.some((k) => !shown.includes(k));
+  y.useEffect(() => { const esc = (e) => e.key === "Escape" && onClose(); document.addEventListener("keydown", esc); return () => document.removeEventListener("keydown", esc); }, []);
+  return (
+    <div className="fixed inset-0 z-[65]" onMouseDown={onClose}>
+      <aside role="dialog" aria-label="Customize columns" onMouseDown={(e) => e.stopPropagation()}
+        className="absolute bottom-3 right-3 top-3 flex w-[380px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-xl border border-line bg-white shadow-2xl">
+        <div className="flex items-center gap-2.5 border-b border-line px-4 py-3">
+          <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-soft text-brand">{h(Icon.sliders, { size: 15 })}</span>
+          <h3 className="flex-1 text-[14.5px] font-semibold">Customize Columns <span data-tip="Show or hide extra columns in this list. Your choice is remembered on this browser." className="ml-1 inline-flex align-middle text-ink-mute">{h(Icon.info, { size: 13 })}</span></h3>
+          <button type="button" aria-label="Close" className="rounded-md p-1 text-ink-mute hover:bg-gray-100" onClick={onClose}>{h(Icon.x, { size: 16 })}</button>
+        </div>
+        <div className="flex items-center gap-3 px-4 py-3">
+          <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-100"><span className="block h-full rounded-full bg-brand transition-all" style={{ width: `${(100 * draft.length) / extra.length}%` }} /></span>
+          <span className="num text-[12px] text-ink-mute">{draft.length}/{extra.length}</span>
+          <button type="button" className="text-[12px] text-brand hover:underline" onClick={() => setDraft(draft.length === extra.length ? [] : extra.map((c) => c.key))}>{draft.length === extra.length ? "Hide all" : "Show all"}</button>
+        </div>
+        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 pb-4">
+          {extra.map((c) => (
+            <button key={c.key} type="button" role="switch" aria-checked={on(c.key)} aria-label={c.label} onClick={() => flip(c.key)}
+              className={cls("flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors", on(c.key) ? "border-brand/40 bg-brand-soft/40" : "border-line hover:bg-gray-50")}>
+              {h(on(c.key) ? Icon.eye : Icon.eyeOff, { size: 16, className: cls("shrink-0", on(c.key) ? "text-brand" : "text-ink-faint") })}
+              <span className="min-w-0 flex-1"><span className="block text-[13px] font-medium text-ink">{c.label}</span><span className="block truncate text-[11.5px] text-ink-mute">{c.desc}</span></span>
+              <span className={cls("relative h-[18px] w-8 shrink-0 rounded-full transition-colors", on(c.key) ? "bg-brand" : "bg-gray-200")}>
+                <span className={cls("absolute top-[2px] h-[14px] w-[14px] rounded-full bg-white shadow transition-all", on(c.key) ? "left-[16px]" : "left-[2px]")} />
+              </span>
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center justify-end gap-2 border-t border-line px-4 py-3">
+          <Btn onClick={onClose}>Cancel</Btn>
+          <Btn variant="primary" disabled={!changed} onClick={() => { onApply(draft); onClose(); }}>Apply</Btn>
+        </div>
+      </aside>
+    </div>
+  );
+}
+const readCols = (id) => { try { const v = JSON.parse(localStorage.getItem("nxv-cols:" + id)); return Array.isArray(v) ? v : null; } catch { return null; } };
+
+function DataTable({ columns: baseColumns, extraColumns, columnsId, rows, onRow, rowKey = (r) => r.id, empty, footer, dense, plain, filters, actions, noun = "records", summary, searchText = rowSearchText, placeholder = "Search…" }) {
   const list = !dense && !plain;
+  // Optional columns: shown when switched on in the Customize Columns panel ("+" at the end of the header)
+  const [extraOn, setExtraOn] = y.useState(() => (extraColumns ? readCols(columnsId) || extraColumns.filter((c) => c.default).map((c) => c.key) : []));
+  const [picker, setPicker] = y.useState(false);
+  const applyCols = (keys) => { setExtraOn(keys); try { localStorage.setItem("nxv-cols:" + columnsId, JSON.stringify(keys)); } catch {} };
+  const columns = !extraColumns || !list ? baseColumns : [...baseColumns, ...extraColumns.filter((c) => extraOn.includes(c.key)),
+    { key: "__cols", label: "", width: 48, align: "right", head: <button type="button" aria-label="Customize columns" data-tip="Customize columns" onClick={() => setPicker(true)} className="grid h-7 w-7 place-items-center rounded-md text-ink-mute hover:bg-gray-100 hover:text-ink">{h(Icon.plus, { size: 15 })}</button>, render: () => null }];
   // First column stays put while the rest scrolls sideways (a leading checkbox column sticks together with it)
   const lead = !dense && columns[0] && !columns[0].label && columns.length > 2 ? 1 : 0;
   const stick = (ci) => (dense || ci > lead ? null : cls("nx-stick", ci === lead && "nx-edge", ci === 1 && lead ? "left-[44px]" : "left-0"));
@@ -587,7 +636,7 @@ function DataTable({ columns, rows, onRow, rowKey = (r) => r.id, empty, footer, 
           <thead>
             <tr>
               {columns.map((c, ci) => (
-                <Th key={c.key} align={c.align} className={cls(c.thClass, stick(ci))}>{c.label}</Th>
+                <Th key={c.key} align={c.align} className={cls(c.thClass, stick(ci))}>{c.head || c.label}</Th>
               ))}
             </tr>
           </thead>
@@ -618,6 +667,7 @@ function DataTable({ columns, rows, onRow, rowKey = (r) => r.id, empty, footer, 
       </div>
       {table}
       <FooterBar items={[{ value: active ? `${shown.length} of ${rows.length}` : rows.length, label: noun }, ...sum$]} updated={new Date().toLocaleString("en-IN")} />
+      {picker && <ColumnPicker extra={extraColumns} shown={extraOn} onApply={applyCols} onClose={() => setPicker(false)} />}
     </>
   );
 }
