@@ -30945,7 +30945,9 @@ Procurement`;
         name: "",
         trade: "Mason",
         skill: "Skilled",
-        gatePass: ""
+        gatePass: "",
+        dob: "",
+        mobile: ""
       })
     }, "Add worker")), i ? e(z, null, w && e(re, {
       tone: "amber"
@@ -31007,23 +31009,34 @@ Procurement`;
       variant: "success",
       disabled: w,
       onClick: () => f(!0)
-    }, "Save & verify")))) : e(re, null, "No accepted work order to record attendance against."), v && e(we, {
+    }, "Save & verify")))) : e(re, null, "No accepted work order to record attendance against."), v && (() => {
+      const nxAge = v.dob ? Math.floor((Date.now() - new Date(v.dob).getTime()) / 315576e5) : null,
+        wkErr = {
+          name: VX.blank(v.name) ? "Required" : String(v.name).trim().length < 3 ? "Enter the full name" : "",
+          trade: VX.req(v.trade),
+          dob: !v.dob ? "Required" : nxAge < 18 ? "Worker must be at least 18 (Child & Adolescent Labour Act / BOCW)" : nxAge > 70 ? "Check the date of birth \u2014 age over 70" : "",
+          mobile: VX.phone(v.mobile),
+          gatePass: v.gatePass && r.workers.some(P => String(P.gatePass).toUpperCase() === String(v.gatePass).trim().toUpperCase()) ? "Gate pass already issued to another worker" : ""
+        },
+        nxDup = v.name && r.workers.find(P => P.vendorId === a && P.active && P.name.trim().toLowerCase() === String(v.name).trim().toLowerCase());
+      return e(we, {
       open: !0,
       onClose: () => I(null),
       width: 520,
       title: "Add worker",
-      footer: e(z, null, e(M, {
+      footer: e(z, null, nxFix(wkErr), e(M, {
         onClick: () => I(null)
       }, "Cancel"), e(M, {
         variant: "primary",
-        disabled: !v.name,
+        disabled: VX.any(wkErr),
         onClick: () => {
           const C = je("WK", r.workers);
           oe(P => P.workers.push({
             id: C,
             vendorId: a,
             ...v,
-            gatePass: v.gatePass || `GP-${4300+P.workers.length}`,
+            name: String(v.name).trim(),
+            gatePass: String(v.gatePass || `GP-${4300+P.workers.length}`).trim().toUpperCase(),
             inductionOn: ke(),
             active: !0,
             woId: i
@@ -31038,7 +31051,9 @@ Procurement`;
       className: "grid grid-cols-2 gap-3"
     }, e(L, {
       label: "Name",
-      span: 2
+      required: !0,
+      span: 2,
+      error: nxE(wkErr, "name")
     }, e(ee, {
       value: v.name,
       onChange: C => I({
@@ -31064,7 +31079,8 @@ Procurement`;
       }),
       options: aa
     })), e(L, {
-      label: "Gate pass no."
+      label: "Gate pass no.",
+      error: nxE(wkErr, "gatePass")
     }, e(ee, {
       value: v.gatePass,
       onChange: C => I({
@@ -31072,7 +31088,34 @@ Procurement`;
         gatePass: C
       }),
       placeholder: "Auto"
-    })))))
+    })), e(L, {
+      label: "Date of birth",
+      required: !0,
+      error: nxE(wkErr, "dob")
+    }, e(Re, {
+      value: v.dob,
+      max: Ne(-18 * 365),
+      onChange: C => I({
+        ...v,
+        dob: C
+      })
+    })), e(L, {
+      label: "Mobile",
+      error: nxE(wkErr, "mobile")
+    }, e(ee, {
+      value: v.mobile,
+      inputMode: "tel",
+      onChange: C => I({
+        ...v,
+        mobile: C
+      }),
+      placeholder: "+91 98xxxxxxxx"
+    }))), nxDup && e("div", {
+      className: "mt-3"
+    }, e(re, {
+      tone: "amber"
+    }, `${nxDup.name} (${nxDup.gatePass}) is already on this contractor's roll \u2014 check this is not a duplicate.`)))
+    })())
   }
 
   function tl(t, s) {
@@ -36037,17 +36080,29 @@ Procurement`;
         b = d && Ft(t, d),
         A = d && Ne((d.dlpMonths || 0) * 30, d.end),
         u = n.type === "After DLP" && d && ie(A) > 0,
-        v = b ? b.retentionBalance - F(t.retentionReleases.filter(I => I.contractId === d.id && I.status !== "Released"), I => I.amount) : 0;
+        v = b ? b.retentionBalance - F(t.retentionReleases.filter(I => I.contractId === d.id && I.status !== "Released"), I => I.amount) : 0,
+        rrErr = {
+          contract: d ? "" : "Required",
+          amount: VX.num(n.amount, {
+            gt: 0,
+            label: "Amount"
+          }) || (d && Number(n.amount) > v + .5 ? `Exceeds available retention (${Q(Math.max(0,v))})` : ""),
+          dlp: u ? "DLP not over" : "",
+          note: n.type === "Against bank guarantee" && VX.blank(n.note) ? "Enter the BG number / reference" : ""
+        };
       return e(we, {
         open: !0,
         onClose: () => a(null),
         width: 560,
         title: "Request retention release",
-        footer: e(z, null, e(M, {
+        footer: e(z, null, nxFix({
+          ...rrErr,
+          dlp: ""
+        }), e(M, {
           onClick: () => a(null)
         }, "Cancel"), e(M, {
           variant: "primary",
-          disabled: !d || !(n.amount > 0) || n.amount > v + .5 || u,
+          disabled: VX.any(rrErr),
           onClick: () => {
             const I = je("RR", t.retentionReleases);
             oe(w => w.retentionReleases.unshift({
@@ -36092,16 +36147,20 @@ Procurement`;
         options: ["After DLP", "Against bank guarantee", "50% on completion"]
       })), e(L, {
         label: "Amount (\u20B9)",
-        hint: d ? `Available ${Q(v)}` : ""
+        hint: d ? `Available ${Q(v)}` : "",
+        error: nxE(rrErr, "amount")
       }, e(ge, {
+        min: 0,
         value: n.amount,
         onChange: I => a({
           ...n,
           amount: I
         })
       })), e(L, {
-        label: "Note",
-        span: 2
+        label: n.type === "Against bank guarantee" ? "BG reference" : "Note",
+        required: n.type === "Against bank guarantee",
+        span: 2,
+        error: nxE(rrErr, "note")
       }, e(ee, {
         value: n.note,
         onChange: I => a({
@@ -36114,17 +36173,29 @@ Procurement`;
       }, e(re, {
         tone: "amber"
       }, "DLP runs until ", _(A), ". Release now only against a bank guarantee.")))
-    })(), l && e(we, {
+    })(), l && (() => {
+      const nxC = j(t.contracts, l.contractId),
+        nxCap = nxC && l.type === "Mobilisation advance" && nxC.advancePct > 0 ? Tt(nxC) * nxC.advancePct / 100 - (nxC.advanceAmount || 0) : null,
+        adErr = {
+          contract: nxC ? "" : "Required",
+          amount: VX.num(l.amount, {
+            gt: 0,
+            label: "Amount"
+          }) || (nxC && Number(l.amount) > Tt(nxC) ? "Advance can't exceed the contract value" : nxCap !== null && Number(l.amount) > nxCap + .5 ? `Exceeds the contract's ${nxC.advancePct}% mobilisation advance (${Q(Math.max(0,nxCap))} left)` : ""),
+          date: !l.date ? "Required" : VX.notFuture(l.date, "Payment date can't be in the future") || (nxC && nxC.start && l.date < Ne(-90, nxC.start) ? "More than 90 days before the contract start" : ""),
+          ref: VX.blank(l.ref) ? "Required" : ""
+        };
+      return e(we, {
       open: !0,
       onClose: () => o(null),
       width: 520,
       title: "Record advance paid to contractor",
       subtitle: "Recovered automatically from RA bills at the contract's recovery %",
-      footer: e(z, null, e(M, {
+      footer: e(z, null, nxFix(adErr), e(M, {
         onClick: () => o(null)
       }, "Cancel"), e(M, {
         variant: "primary",
-        disabled: !l.contractId || !(l.amount > 0),
+        disabled: VX.any(adErr),
         onClick: () => {
           oe(d => {
             const b = j(d.contracts, l.contractId);
@@ -36132,7 +36203,7 @@ Procurement`;
           }, {
             entity: "Contract",
             id: l.contractId,
-            action: `${l.type} of ${Q(l.amount)} recorded (${l.ref||"no ref"})`
+            action: `${l.type} of ${Q(l.amount)} paid ${_(l.date)} recorded (${l.ref})`
           }), me("Advance recorded"), o(null)
         }
       }, "Save"))
@@ -36161,30 +36232,39 @@ Procurement`;
       }),
       options: ["Mobilisation advance", "Secured advance (materials)", "Machinery advance"]
     })), e(L, {
-      label: "Amount (\u20B9)"
+      label: "Amount (\u20B9)",
+      required: !0,
+      hint: nxCap !== null ? `Up to ${Q(Math.max(0,nxCap))} (${nxC.advancePct}% of value)` : "",
+      error: nxE(adErr, "amount")
     }, e(ge, {
+      min: 0,
       value: l.amount,
       onChange: d => o({
         ...l,
         amount: d
       })
     })), e(L, {
-      label: "Date"
+      label: "Date paid",
+      required: !0,
+      error: nxE(adErr, "date")
     }, e(Re, {
+      max: ke(),
       value: l.date,
       onChange: d => o({
         ...l,
         date: d
       })
     })), e(L, {
-      label: "Payment ref / BG no."
+      label: "Payment ref / BG no.",
+      required: !0
     }, e(ee, {
       value: l.ref,
       onChange: d => o({
         ...l,
         ref: d
       })
-    })))))
+    }))))
+    })())
   }
   const Wn = ["Mumbai (Zone I)", "Pune (Zone II)", "Nashik (Zone III)"],
     aa = ["Unskilled", "Semi-skilled", "Skilled", "Highly Skilled"],
@@ -36228,14 +36308,36 @@ Procurement`;
         effectiveFrom: ke(),
         reason: ""
       }),
-      l = n.trade && n.minWage > 0 && n.rate > 0 && n.effectiveFrom && (!t || n.reason);
+      lrErr = {
+        trade: VX.req(n.trade),
+        minWage: VX.num(n.minWage, {
+          gt: 0,
+          label: "Minimum wage"
+        }),
+        rate: VX.num(n.rate, {
+          gt: 0,
+          label: "Rate"
+        }) || (Number(n.minWage) > 0 && Number(n.rate) < Number(n.minWage) ? "Billing rate can't be below the statutory minimum wage" : ""),
+        ot: VX.num(n.otMultiplier, {
+          min: 1,
+          max: 3,
+          label: "OT multiplier"
+        }),
+        effectiveFrom: !n.effectiveFrom ? "Required" : t ? (n.effectiveFrom <= t.effectiveFrom ? `Must be after the current version's start (${_(t.effectiveFrom)})` : "") : "",
+        reason: t ? VX.req(n.reason) : "",
+        dup: !t && r.laborRates.some(p => ["Active", "Pending Approval"].includes(p.status) && Pt(p) === Pt({
+          ...n,
+          vendorId: n.vendorId || null
+        })) ? "A rate card for this trade, zone and contractor already exists \u2014 use Revise" : ""
+      },
+      l = !VX.any(lrErr);
     return e(we, {
       open: !0,
       onClose: s,
       width: 640,
       title: t ? `Revise rate \u2014 ${t.trade}, ${t.region}` : "New labour rate",
       subtitle: "New versions go for approval; the approved one supersedes the current card from its effective date",
-      footer: e(z, null, e(M, {
+      footer: e(z, null, nxFix(lrErr), e(M, {
         onClick: s
       }, "Cancel"), e(M, {
         variant: "primary",
@@ -36321,8 +36423,10 @@ Procurement`;
       }))]
     })), e(L, {
       label: "Statutory minimum wage / day (\u20B9)",
-      required: !0
+      required: !0,
+      error: nxE(lrErr, "minWage")
     }, e(ge, {
+      min: 0,
       value: n.minWage,
       onChange: o => a({
         ...n,
@@ -36331,24 +36435,34 @@ Procurement`;
     })), e(L, {
       label: "Billing rate / day (\u20B9)",
       required: !0,
-      hint: n.minWage && n.rate ? `${Un(n).toFixed(1)}% over minimum wage` : ""
+      hint: n.minWage && n.rate ? `${Un(n).toFixed(1)}% over minimum wage` : "",
+      error: nxE(lrErr, "rate")
     }, e(ge, {
+      min: 0,
       value: n.rate,
       onChange: o => a({
         ...n,
         rate: o
       })
     })), e(L, {
-      label: "Overtime multiplier"
+      label: "Overtime multiplier",
+      hint: "1\u20133 (Factories Act: 2\xD7)",
+      error: nxE(lrErr, "ot")
     }, e(ge, {
+      min: 1,
+      max: 3,
+      step: .25,
       value: n.otMultiplier,
       onChange: o => a({
         ...n,
         otMultiplier: o
       })
     })), e(L, {
-      label: "Effective from"
+      label: "Effective from",
+      required: !0,
+      error: nxE(lrErr, "effectiveFrom")
     }, e(Re, {
+      min: t ? Ne(1, t.effectiveFrom) : void 0,
       value: n.effectiveFrom,
       onChange: o => a({
         ...n,
@@ -36365,11 +36479,11 @@ Procurement`;
         reason: o
       }),
       placeholder: "e.g. VDA notification w.e.f. 1 Oct"
-    }))), n.minWage > 0 && n.rate > 0 && n.rate < n.minWage && e("div", {
+    }))), lrErr.dup && e("div", {
       className: "mt-3"
     }, e(re, {
-      tone: "red"
-    }, "Billing rate is below the statutory minimum wage \u2014 this card will be flagged non-compliant.")))
+      tone: "amber"
+    }, lrErr.dup)))
   }
 
   function tn(t, s) {

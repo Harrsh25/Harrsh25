@@ -1,0 +1,27 @@
+const H = require('../tools/lib');
+module.exports = async () => {
+  const t = H.T('Add worker validation');
+  const { b, p, errors } = await H.open();
+  await H.go(p, '/productivity/contract-labor/attendance');
+  await H.click(p, 'Add worker', { dlg: false });
+  t.ok(await H.disabled(p, 'Add') === true, 'empty worker cannot be added');
+  await H.fill(p, 'Name', 'Test Worker');
+  const y = new Date(); y.setFullYear(y.getFullYear() - 16);
+  await H.fill(p, 'Date of birth', y.toISOString().slice(0, 10));
+  await H.fill(p, 'Mobile', '123');
+  await H.fill(p, 'Gate pass no.', 'gp-4201');
+  const a = (await H.alerts(p)).join(' | ');
+  t.ok(/at least 18/.test(a), 'under-18 worker blocked');
+  t.ok(/valid phone/.test(a), 'invalid mobile rejected');
+  t.ok(/already issued/.test(a), 'duplicate gate pass rejected');
+  y.setFullYear(y.getFullYear() - 10);
+  await H.fill(p, 'Date of birth', y.toISOString().slice(0, 10));
+  await H.fill(p, 'Mobile', '+91 9876543210');
+  await H.fill(p, 'Gate pass no.', '');
+  t.ok(await H.disabled(p, 'Add') === false, 'valid worker can be added');
+  await H.click(p, 'Add'); await H.sleep(300);
+  const w = (await H.store(p)).workers.find(x => x.name === 'Test Worker');
+  t.ok(w && w.dob && /^GP-/.test(w.gatePass), 'worker saved with DOB and auto gate pass');
+  t.ok(errors.length === 0, 'no page errors: ' + errors.join('; '));
+  await b.close(); return t.done();
+};
