@@ -1,4 +1,10 @@
-const H=require('./lib');
-(async()=>{const {b,p}=await H.open();await H.go(p,'/productivity/vendor-management/registry');await H.click(p,'Register vendor',{dlg:false});
-for (const lab of ['State','Country','Currency']) { const el=await H.field(p,lab); await el.scrollIntoViewIfNeeded(); await el.click(); await H.sleep(300);
-console.log(lab, await p.evaluate(()=>[...document.querySelectorAll('[role=listbox]')].map(l=>l.innerText.slice(0,80).replace(/\n/g,' | '))), await el.getAttribute('aria-expanded')); await p.keyboard.press('Escape').catch(()=>{}); await H.sleep(200);} await b.close();})();
+const H = require('./lib');
+(async () => { const { b, p } = await H.open();
+  await H.go(p, '/productivity/vendor-management/invoices');
+  await H.click(p, 'Enter vendor bill', { dlg: false });
+  await H.pick(p, 'Purchase order', 'PO-001');
+  const q = await p.$$('[role=dialog] table input[type=number]');
+  console.log(q.length);
+  await q[0].fill('99999'); await H.sleep(200);
+  console.log(await H.alerts(p)); console.log((await H.text(p)).slice(0,1500));
+  await b.close(); })();

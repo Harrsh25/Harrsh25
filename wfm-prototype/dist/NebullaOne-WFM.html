@@ -24679,7 +24679,13 @@ const NxVendor = (() => {
           next: f
         }
       }),
-      A = b.filter(u => !u.blocked && u.payNow > 0);
+      A = b.filter(u => !u.blocked && u.payNow > 0),
+      nxLatest = l.reduce((u, v) => v.date > u ? v.date : u, ""),
+      nxLastPay = l.flatMap(u => u.payments || []).reduce((u, v) => v.date > u ? v.date : u, ""),
+      payErr = {
+        date: !p ? "Required" : VX.notFuture(p, "Value date can't be in the future") || (p < nxLatest ? `Before the bill date (${_(nxLatest)})` : ""),
+        override: Object.entries(c).some(([u, v]) => A.some(I => I.inv.id === u) && String(v || "").trim().length < 5) ? "Enter an override reason (min 5 characters)" : ""
+      };
     return e(we, {
       open: !0,
       onClose: s,
@@ -24690,11 +24696,11 @@ const NxVendor = (() => {
         className: "mr-auto text-[13px]"
       }, "Paying ", e("b", null, A.length), " \xB7 net ", e("b", {
         className: "num"
-      }, Q(F(A, u => u.net)))), e(M, {
+      }, Q(F(A, u => u.net)))), nxFix(payErr), e(M, {
         onClick: s
       }, "Cancel"), e(M, {
         variant: "primary",
-        disabled: !A.length,
+        disabled: !A.length || VX.any(payErr),
         onClick: () => {
           oe(u => {
             let v = u.invoices.flatMap(I => I.payments).length;
@@ -24743,9 +24749,14 @@ const NxVendor = (() => {
       onChange: i,
       options: zr
     })), e(L, {
-      label: "Value date"
+      label: "Value date",
+      required: !0,
+      hint: nxLastPay && !payErr.date ? `Last payment ${_(nxLastPay)}` : "",
+      error: nxE(payErr, "date")
     }, e(Re, {
       value: p,
+      min: nxLatest,
+      max: ke(),
       onChange: m
     })), e(L, {
       label: "Your role"
@@ -24819,6 +24830,7 @@ const NxVendor = (() => {
       [d, b] = y.useState({
         number: "",
         date: ke(),
+        due: "",
         gstPct: 18,
         lines: []
       }),
@@ -24838,6 +24850,8 @@ const NxVendor = (() => {
             line: T,
             desc: D.desc,
             qty: Math.max(0, W(D) - V(T)),
+            max: Math.max(0, W(D) - V(T)),
+            poRate: D.rate,
             rate: D.rate
           }))
         }
@@ -24852,6 +24866,7 @@ const NxVendor = (() => {
       t && (o("po"), p(r || ""), c(""), b({
         number: "",
         date: ke(),
+        due: "",
         ...u(r)
       }))
     }, [t]);
@@ -24859,7 +24874,18 @@ const NxVendor = (() => {
       w = !a.poRequiredForBill || I && I.allowBillWithoutPO,
       f = A && A.billingPolicy !== "On ordered quantity" && A.receipts.length === 0,
       C = f && a.receiptRequiredForBill && !(I && I.allowBillWithoutReceipt),
-      P = d.number && I && !dn(I, "Invoices") && (l === "po" ? A && d.lines.some($ => $.qty > 0) && !C : w && d.lines.some($ => $.desc && $.qty > 0 && $.rate > 0)),
+      nxK = I ? parseInt((I.paymentTerms || "").replace(/\D/g, ""), 10) || 0 : 0,
+      nxDue = d.due || (d.date ? Ne(nxK, d.date) : ""),
+      nxLineErr = l === "po" ? d.lines.map(($, k) => VX.blank($.qty) || Number($.qty) < 0 ? `Line ${k+1}: quantity can't be negative` : $.max !== void 0 && Number($.qty) > $.max + 1e-9 ? `Line ${k+1} (${$.desc}): billing ${$.qty}, only ${$.max} is billable` : Number($.qty) > 0 && !(Number($.rate) > 0) ? `Line ${k+1}: rate must be greater than 0` : "").filter(Boolean) : d.lines.map(($, k) => !$.desc && !$.qty && !$.rate ? "" : !String($.desc || "").trim() ? `Line ${k+1}: description required` : !(Number($.qty) > 0) ? `Line ${k+1}: quantity must be greater than 0` : !(Number($.rate) > 0) ? `Line ${k+1}: rate must be greater than 0` : "").filter(Boolean),
+      nxDupInv = I && d.number && n.invoices.find($ => $.vendorId === I.id && String($.number).trim().toLowerCase() === String(d.number).trim().toLowerCase()),
+      bErr = {
+        number: VX.blank(d.number) ? "Required" : nxDupInv ? `Already entered as ${nxDupInv.id} for this vendor` : "",
+        date: !d.date ? "Required" : VX.notFuture(d.date, "Invoice date can't be in the future"),
+        due: nxDue && d.date && nxDue < d.date ? "Due date can't be before the invoice date" : "",
+        lines: nxLineErr.join(" \xB7 ")
+      },
+      nxWarn = [l === "po" && A && d.date && A.date && d.date < A.date ? `Invoice date is before the PO date (${_(A.date)})` : "", ...(l === "po" ? d.lines.filter($ => $.poRate && Number($.qty) > 0 && Number($.rate) > $.poRate).map($ => `${$.desc}: billed rate ${Q($.rate)} is above the PO rate ${Q($.poRate)} \u2014 will fail 3-way match`) : [])].filter(Boolean),
+      P = !VX.any(bErr) && d.number && I && !dn(I, "Invoices") && (l === "po" ? A && d.lines.some($ => $.qty > 0) && !C : w && d.lines.some($ => $.desc && $.qty > 0 && $.rate > 0)),
       h = () => {
         const $ = je("INV", n.invoices),
           k = parseInt(I.paymentTerms.replace(/\D/g, ""), 10) || 0;
@@ -24868,9 +24894,15 @@ const NxVendor = (() => {
           vendorId: I.id,
           source: l === "po" ? "Purchase Order" : "Direct",
           poId: l === "po" ? i : null,
-          number: d.number,
+          number: String(d.number).trim(),
           date: d.date,
-          due: Ne(k, d.date),
+          due: nxDue,
+          ...d.due ? {
+            dueOverride: {
+              by: Ae(),
+              default: Ne(k, d.date)
+            }
+          } : {},
           gstPct: Number(d.gstPct),
           hold: null,
           notes: [],
@@ -24894,7 +24926,10 @@ const NxVendor = (() => {
       width: 780,
       title: "Enter vendor bill",
       subtitle: a.poRequiredForBill ? "PO required for bills (Procurement Settings) unless the vendor is exempt" : "Bills can be entered with or without a PO",
-      footer: e(z, null, e(M, {
+      footer: e(z, null, nxFix({
+        ...bErr,
+        lines: bErr.lines ? "x" : ""
+      }), e(M, {
         onClick: s
       }, "Cancel"), e(M, {
         variant: "primary",
@@ -24948,7 +24983,8 @@ const NxVendor = (() => {
       }))
     })), e(L, {
       label: "Vendor invoice no.",
-      required: !0
+      required: !0,
+      error: nxE(bErr, "number")
     }, e(ee, {
       value: d.number,
       onChange: $ => b({
@@ -24956,14 +24992,39 @@ const NxVendor = (() => {
         number: $
       })
     })), e(L, {
-      label: "Invoice date"
+      label: "Invoice date",
+      required: !0,
+      error: nxE(bErr, "date")
     }, e(Re, {
       value: d.date,
+      max: ke(),
       onChange: $ => b({
         ...d,
         date: $
       })
-    }))), I && dn(I, "Invoices") && e(re, {
+    })), e(L, {
+      label: "Due date",
+      hint: I ? d.due ? e("button", {
+        type: "button",
+        className: "text-brand",
+        onClick: () => b({
+          ...d,
+          due: ""
+        })
+      }, "Reset to ", I.paymentTerms || "terms") : `${I.paymentTerms||"Immediate"} from invoice date` : "From vendor payment terms",
+      error: nxE(bErr, "due")
+    }, e(Re, {
+      value: nxDue,
+      min: d.date,
+      onChange: $ => b({
+        ...d,
+        due: $
+      })
+    }))), bErr.lines && e(re, {
+      tone: "red"
+    }, bErr.lines), nxWarn.length > 0 && e(re, {
+      tone: "amber"
+    }, nxWarn.join(" \xB7 ")), I && dn(I, "Invoices") && e(re, {
       tone: "red"
     }, I.name, " is blocked for invoices."), l === "direct" && I && !w && e(re, {
       tone: "red"
@@ -25571,10 +25632,100 @@ const NxVendor = (() => {
     }))))
   }
 
+  // Accruals: goods received but not billed (PO) + JMS-signed measurements not yet on an RA bill
+  function nxAccruals(t) {
+    const g = [];
+    for (const k of t.purchaseOrders.filter(k => !["Draft", "Cancelled"].includes(k.status))) St(k).forEach((D, T) => {
+      const billed = F(t.invoices.filter(q => q.poId === k.id).flatMap(q => q.lines.filter(E => E.line === T)), q => q.qty),
+        un = Math.max(0, D.accepted - billed);
+      un > 1e-9 && g.push({
+        id: `${k.id}-${T}`,
+        src: "Goods received, not billed",
+        ref: k.id,
+        vendorId: k.vendorId,
+        project: k.project,
+        desc: D.desc,
+        qty: un,
+        unit: D.unit,
+        rate: D.rate,
+        amount: Oe(un * D.rate),
+        since: k.receipts.filter(q => q.lines.some(E => E.line === T)).map(q => q.date).sort()[0]
+      })
+    });
+    for (const w of t.measurements.filter(w => w.jms && w.jms.status === "Signed" && !w.billedIn)) {
+      const o = j(t.workOrders, w.woId);
+      if (!o || o.type === "Lump Sum") continue;
+      const it = o.items.find(C => C.id === w.lineId);
+      it && g.push({
+        id: w.id,
+        src: "Work measured (JMS signed), not billed",
+        ref: `${w.id} / ${o.id}`,
+        vendorId: o.vendorId,
+        project: o.project,
+        desc: it.desc,
+        qty: w.qty,
+        unit: it.unit,
+        rate: it.rate,
+        amount: Oe(w.qty * it.rate),
+        since: w.date
+      })
+    }
+    return g
+  }
+
+  function nxAccrualDlg({
+    onClose: s
+  }) {
+    const t = be(),
+      g = nxAccruals(t);
+    return e(we, {
+      open: !0,
+      onClose: s,
+      width: 980,
+      title: "Accruals \u2014 received / measured, not yet billed",
+      subtitle: "Month-end liability to accrue. Clears automatically when the vendor bill or RA bill is entered.",
+      footer: e(z, null, e("span", {
+        className: "mr-auto text-[13px]"
+      }, g.length, " lines \xB7 total ", e("b", {
+        className: "num"
+      }, Q(F(g, a => a.amount)))), e(M, {
+        onClick: s
+      }, "Close"))
+    }, g.length ? e("table", {
+      className: "w-full"
+    }, e("thead", null, e("tr", null, e(ne, null, "Source"), e(ne, null, "Reference"), e(ne, null, "Vendor / contractor"), e(ne, null, "Item"), e(ne, {
+      align: "right"
+    }, "Qty"), e(ne, {
+      align: "right"
+    }, "Rate"), e(ne, {
+      align: "right"
+    }, "Accrue"), e(ne, null, "Since"))), e("tbody", null, g.map(a => e("tr", {
+      key: a.id
+    }, e(U, null, e(G, {
+      tone: a.src.startsWith("Goods") ? "blue" : "purple"
+    }, a.src.startsWith("Goods") ? "GRN" : "Measurement")), e(U, {
+      className: "mono text-[12px]"
+    }, a.ref), e(U, null, Z(t, a.vendorId)), e(U, {
+      className: "max-w-[240px] whitespace-normal"
+    }, a.desc), e(U, {
+      align: "right",
+      className: "num"
+    }, +a.qty.toFixed(3), " ", a.unit || ""), e(U, {
+      align: "right",
+      className: "num"
+    }, Q(a.rate)), e(U, {
+      align: "right",
+      className: "num font-semibold"
+    }, Q(a.amount)), e(U, null, a.since ? _(a.since) : "\u2014"))))) : e(re, {
+      tone: "green"
+    }, "Nothing to accrue \u2014 every receipt and signed measurement has been billed."))
+  }
+
   function $i() {
     const t = be(),
       [s, r] = Lt(),
       [n, a] = y.useState([]),
+      [nxAcc, nxSetAcc] = y.useState(!1),
       [l, o] = y.useState(!1),
       [i, p] = y.useState(!1),
       [m, c] = y.useState("All"),
@@ -25599,9 +25750,17 @@ const NxVendor = (() => {
           note: ""
         })
       }, "Record advance"), e(M, {
+        onClick: () => nxSetAcc(!0)
+      }, "Accruals"), e(M, {
         icon: x.plus,
         onClick: () => p(!0)
       }, "Enter vendor bill"), e(M, {
+        onClick: () => {
+          if (n.length) return a([]);
+          const w = t.invoices.filter(f => !["Paid", "On Hold"].includes(dt(f)) && De(f).balance > .5 && An(t, f).stops.length === 0 && ie((Vs(f) || f).due) <= 7).map(f => f.id);
+          a(w), me(w.length ? `${w.length} bill(s) due within 7 days and clear of payment checks selected` : "No bills are due and clear to pay", w.length ? void 0 : "amber")
+        }
+      }, n.length ? "Clear selection" : "Select payable"), e(M, {
         variant: "primary",
         icon: x.rupee,
         disabled: !n.length,
@@ -25712,6 +25871,8 @@ const NxVendor = (() => {
         label: "Status",
         render: w => e(G, null, dt(w))
       }]
+    }), nxAcc && e(nxAccrualDlg, {
+      onClose: () => nxSetAcc(!1)
     }), l && e(Oa, {
       invIds: n,
       onClose: () => {
