@@ -1,4 +1,4 @@
-<title>Vendor &amp; Contractor Fix Report</title>
+<title>Vendor &amp; Contractor Final Report</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Serif:wght@600&display=swap">
 <style>
@@ -39,7 +39,7 @@ tr:last-child td { border-bottom: 0 }
 td.n, th.n { text-align: right; font-variant-numeric: tabular-nums }
 .mono { font-family: var(--mono); font-size: 12.5px }
 .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; white-space: nowrap }
-.PASS, .Passed { background: var(--pass-bg); color: var(--pass) } .FAIL, .ERROR { background: var(--fail-bg); color: var(--fail) }
+.PASS, .Passed { background: var(--pass-bg); color: var(--pass) } .Withdrawn, .Built { background: var(--accent-soft); color: var(--accent) } .Check { background: var(--warn-bg); color: var(--warn) } .FAIL, .ERROR { background: var(--fail-bg); color: var(--fail) }
 .High { background: var(--fail-bg); color: var(--fail) } .Medium { background: var(--warn-bg); color: var(--warn) } .Low { background: var(--info-bg); color: var(--info) } .Observation { background: var(--accent-soft); color: var(--accent) }
 .chain { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 14px 16px; font-size: 13px }
 .chain span.node { background: var(--accent-soft); color: var(--accent); border-radius: 6px; padding: 3px 8px; font-family: var(--mono); font-size: 12.5px }
@@ -55,53 +55,51 @@ details summary:focus-visible { outline: 2px solid var(--accent); outline-offset
 details .box { border: 0; border-top: 1px solid var(--line); border-radius: 0 0 10px 10px }
 ul.plain { margin: 0; padding-left: 18px; color: var(--soft); max-width: 78ch } ul.plain li { margin-bottom: 6px }
 .steps { display: grid; gap: 0 }
+section h2 .letter { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 7px; background: var(--accent-soft); color: var(--accent); font: 600 15px var(--display); margin-right: 10px; vertical-align: 2px }
+.sechead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px }
+.sechead h2 { margin: 0 }
+h3 { font: 600 13px var(--sans); letter-spacing: .05em; text-transform: uppercase; color: var(--mute); margin: 18px 0 8px }
+.stack { display: grid; gap: 10px }
 @media (max-width: 860px) { .wrap { grid-template-columns: 1fr } nav.idx { display: none } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important } }
 </style>
 
 <div class="wrap">
   <nav class="idx" aria-label="Sections">
-    <a href="#verdict">Verdict</a><a href="#summary">Final test report</a><a href="#workflows">Workflow status</a><a href="#continuity">Data continuity</a>
-    <a href="#gaps">Gap &amp; fix tracker</a><a href="#tests">Test results</a><a href="#files">Files changed</a><a href="#notes">Assumptions</a>
+    <a href="#verdict">Verdict</a><span id="navAJ"></span><a href="#tests">Test results</a><a href="#files">Files changed</a><a href="#notes">Assumptions</a>
   </nav>
   <main>
     <header id="verdict">
-      <h1>Vendor &amp; Contractor Fix Report</h1>
-      <p>Every gap from the end-to-end audit (G-01 to G-28) plus the issues found while fixing (N-01 to N-19) was fixed in the NebullaOne prototype, retested, and regression-tested. The loop ended with a full lifecycle run of both flows from a clean start.</p>
+      <h1>Vendor &amp; Contractor Final Report</h1>
+      <p>Final re-audit of the NebullaOne prototype against the benchmark workbook, after merging the second build's validations and features, adding qualification limits, background-check mobilisation and configurable approval stages, and removing roles. Sections A to J follow the original audit.</p>
       <div class="verdicts" id="verdicts"></div>
     </header>
-    <section id="summary"><h2>Final test report</h2><p class="lead">Each gap is counted once under its primary category. Vendor and contractor rows count the gaps that touch each module; shared gaps appear in both.</p><div class="box"><table id="sumTable"></table></div></section>
-    <section id="workflows"><h2>Workflow status</h2><p class="lead">One clean run through the UI, each step done by the role that owns it, using the "Acting as" switcher: Procurement Executive, Procurement Head, Legal, Finance, Project Manager, Site Engineer, QS, HSE and Accounts.</p><div id="flows"></div></section>
-    <section id="continuity"><h2>Data continuity</h2><p class="lead">IDs created in the final run, and the links checked between them.</p><div class="box" id="chain"></div></section>
-    <section id="gaps"><h2>Gap &amp; fix tracker</h2><p class="lead">Root cause, fix and the test that proves it. Filter by severity or category.</p><div class="filters" id="gapFilters"></div><div class="box"><table id="gapTable"></table></div></section>
-    <section id="tests"><h2>Test results</h2><p class="lead">Five Playwright suites against the final build. The earlier regression suites (e2e, e2e3, va, vg, cc, ccp, pd, fc, ov2, smoke2, vs, colp, boq, dd, fx14) also pass after being updated to the new role-based workflow.</p><div id="suites"></div></section>
-    <section id="files"><h2>Files changed</h2><div class="box"><table id="fileTable"></table></div></section>
+    <div id="aj" style="display:grid;gap:36px"></div>
+    <section id="tests"><h2>Test results</h2><p class="lead">Playwright suites run against the final build. The older regression suites (e2e, e2e3, va, fx14, smoke) also pass; e2e2 is a legacy script that looks up RFQs by an ID the list no longer shows, and was not updated.</p><div id="suites"></div></section>
+    <section id="files"><h2>Files changed in this round</h2><div class="box"><table id="fileTable"></table></div></section>
     <section id="notes"><h2>Assumptions and limits</h2><ul class="plain" id="notesList"></ul></section>
   </main>
 </div>
 <script>
 const DATA = /*DATA*/null;
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const pill = (v, cls) => `<span class="pill ${esc(cls || v)}">${esc(v)}</span>`;
+const pill = (v, cls) => `<span class="pill ${esc(cls || String(v).split(" ")[0])}">${esc(v)}</span>`;
 document.getElementById("verdicts").innerHTML = DATA.verdicts.map((v) => `<div class="verdict"><span class="k">${esc(v.k)}</span><span class="v">${pill(v.v)}${esc(v.n)}</span><span class="e">${esc(v.e)}</span></div>`).join("");
-document.getElementById("sumTable").innerHTML = `<tr><th>Category</th><th class="n">Found</th><th class="n">Fixed</th><th class="n">Passed</th><th class="n">Remaining</th></tr>` +
-  DATA.summary.map((r) => `<tr><td>${esc(r[0])}</td><td class="n">${r[1]}</td><td class="n">${r[2]}</td><td class="n">${r[3]}</td><td class="n">${r[4]}</td></tr>`).join("");
-document.getElementById("flows").innerHTML = DATA.flows.map((f) => `<details open><summary><span>${esc(f.name)}</span>${pill(f.result)}</summary><div class="box"><table><tr><th>Step</th><th>Lifecycle stage</th><th>What happened</th><th>Result</th></tr>${f.steps.map((s) => `<tr><td class="mono">${esc(s.id)}</td><td>${esc(s.scn)}</td><td>${esc(s.actual)}</td><td>${pill(s.result)}</td></tr>`).join("")}</table></div></details>`).join("");
-document.getElementById("chain").innerHTML = DATA.chains.map((c) => `<div class="chain"><b>${esc(c.label)}</b>${c.nodes.map((n, i) => (i ? '<span class="arr">→</span>' : "") + `<span class="node">${esc(n)}</span>`).join("")}</div>`).join("");
-let fSev = "All", fCat = "All";
-const sevs = ["All", "High", "Medium", "Low", "Observation"], cats = ["All", ...new Set(DATA.gaps.map((g) => g.cat))];
-const drawGaps = () => {
-  const rows = DATA.gaps.filter((g) => (fSev === "All" || g.sev === fSev) && (fCat === "All" || g.cat === fCat));
-  document.getElementById("gapTable").innerHTML = `<tr><th>ID</th><th>Module · screen</th><th>Issue</th><th>Severity</th><th>Category</th><th>Root cause</th><th>Fix applied</th><th>Tests</th><th>Status</th></tr>` +
-    rows.map((g) => `<tr><td class="mono">${esc(g.id)}</td><td>${esc(g.mod)}<br><span style="color:var(--mute)">${esc(g.screen)}</span></td><td style="min-width:220px">${esc(g.issue)}</td><td>${pill(g.sev)}</td><td>${esc(g.cat)}</td><td style="min-width:140px">${esc(g.cause)}</td><td style="min-width:300px">${esc(g.fix)}</td><td class="mono">${esc(g.tests)}</td><td>${pill(g.status)}</td></tr>`).join("");
-};
-const fb = (list, get, set) => list.map((x) => `<button type="button" aria-pressed="${get() === x}" data-v="${esc(x)}">${esc(x)}</button>`).join("");
-const drawFilters = () => {
-  const el = document.getElementById("gapFilters");
-  el.innerHTML = fb(sevs, () => fSev) + '<span style="width:12px"></span>' + fb(cats, () => fCat);
-  el.querySelectorAll("button").forEach((b, i) => b.addEventListener("click", () => { if (i < sevs.length) fSev = b.dataset.v; else fCat = b.dataset.v; drawFilters(); drawGaps(); }));
-};
-drawFilters(); drawGaps();
+document.getElementById("navAJ").innerHTML = DATA.sections.map((x) => `<a href="#sec${x.k}">${x.k}. ${esc(x.title)}</a>`).join("");
+const gapTable = (gs) => `<div class="box"><table><tr><th>ID</th><th>Module · screen</th><th>Issue at audit</th><th>Severity</th><th>Fix / current behaviour</th><th>Tests</th><th>Status</th></tr>${gs.map((g) => `<tr><td class="mono">${esc(g.id)}</td><td>${esc(g.mod)}<br><span style="color:var(--mute)">${esc(g.screen)}</span></td><td style="min-width:220px">${esc(g.issue)}</td><td>${pill(g.sev)}</td><td style="min-width:300px">${esc(g.fix)}</td><td class="mono">${esc(g.tests)}</td><td>${pill(g.status)}</td></tr>`).join("")}</table></div>`;
+const mergeTable = (ms) => `<div class="box"><table><tr><th>ID</th><th>Requirement</th><th>How it works now</th><th>Tests</th><th>Status</th></tr>${ms.map((m) => `<tr><td class="mono">${esc(m.id)}</td><td style="min-width:220px">${esc(m.req)}</td><td style="min-width:280px">${esc(m.how)}</td><td class="mono">${esc(m.tests)}</td><td>${pill(m.status)}</td></tr>`).join("")}</table></div>`;
+const stepTable = (steps) => `<div class="box"><table><tr><th>Step</th><th>Lifecycle stage</th><th>What happened</th><th>Result</th></tr>${steps.map((s) => `<tr><td class="mono">${esc(s.id)}</td><td>${esc(s.scn)}</td><td>${esc(s.actual)}</td><td>${pill(s.result)}</td></tr>`).join("")}</table></div>`;
+const flowTable = (rows) => `<div class="box"><table><tr><th>Step</th><th>Stage</th><th>Screen</th><th>Owner (department)</th><th>Status in → out</th><th>Gate / validation</th></tr>${rows.map((f) => `<tr><td class="mono">${esc(f[0])}</td><td>${esc(f[1])}</td><td>${esc(f[2])}</td><td>${esc(f[3])}</td><td>${esc(f[4])} → ${esc(f[5])}</td><td style="min-width:220px">${esc(f[6])}</td></tr>`).join("")}</table></div>`;
+const chainBox = () => `<div class="box">${DATA.chains.map((c) => `<div class="chain"><b>${esc(c.label)}</b>${c.nodes.map((n, i) => (i ? '<span class="arr">→</span>' : "") + `<span class="node">${esc(n)}</span>`).join("")}</div>`).join("")}</div>`;
+document.getElementById("aj").innerHTML = DATA.sections.map((x) => {
+  const parts = [];
+  if (x.flows) parts.push(x.flows.map((f) => `<details open><summary><span>${esc(f.name)}</span>${pill(f.result)}</summary>${stepTable(f.steps)}</details>`).join(""));
+  if (x.chain) parts.push(chainBox());
+  if (x.gaps && x.gaps.length) parts.push(`<h3>Audit gaps (${x.gaps.length})</h3>` + gapTable(x.gaps));
+  if (x.merge && x.merge.length) parts.push(`<h3>Merged items (${x.merge.length})</h3>` + mergeTable(x.merge));
+  if (x.workflow) parts.push(`<h3>Vendor</h3>` + flowTable(DATA.vflow) + `<h3>Contractor</h3>` + flowTable(DATA.cflow));
+  return `<section id="sec${x.k}"><div class="sechead"><h2><span class="letter">${x.k}</span>${esc(x.title)}</h2>${pill(x.verdict)}</div><p class="lead">${esc(x.lead)}</p><div class="stack">${parts.join("")}</div></section>`;
+}).join("");
 document.getElementById("suites").innerHTML = DATA.suites.map((s) => `<details><summary><span>${esc(s.label)}</span><span>${pill(s.pass === s.total ? "PASS" : "FAIL")} ${s.pass}/${s.total}</span></summary><div class="box"><table><tr><th>ID</th><th>Scenario</th><th>Actual</th><th>Result</th></tr>${s.rows.map((r) => `<tr><td class="mono">${esc(r.id)}</td><td>${esc(r.scn)}</td><td>${esc(r.actual)}</td><td>${pill(r.result)}</td></tr>`).join("")}</table></div></details>`).join("");
 document.getElementById("fileTable").innerHTML = `<tr><th>File</th><th>Change</th></tr>` + DATA.files.map((f) => `<tr><td class="mono">${esc(f[0])}</td><td>${esc(f[1])}</td></tr>`).join("");
 document.getElementById("notesList").innerHTML = DATA.notes.map((n) => `<li>${esc(n)}</li>`).join("");

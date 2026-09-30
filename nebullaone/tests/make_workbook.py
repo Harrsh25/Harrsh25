@@ -1,6 +1,6 @@
 """Builds docs/Vendor-Contractor-Workflow-Tracker.xlsx from the gap list below and the
 Playwright results in tests/out/res-*.json (run the suites first)."""
-import json, os, glob
+import json, re, os, glob
 from collections import Counter
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -199,6 +199,66 @@ STATUS = [
  ("Bank guarantee","Active","Extend / return / encash","Active / Returned / Encashed","Procurement / Finance (encash)",""),
 ]
 
+# ---------------------------------------------------------------- merge phase (second build merged in, roles removed)
+# Gaps whose fix was the role model: withdrawn when the user asked for roles to be removed.
+SUPERSEDED = {
+ "G-13": "Withdrawn at the user's request: the 'Acting as' switcher, per-step role checks and one-person-per-step rules were removed. Every step is still recorded with who did it and when; stage order and all business gates remain.",
+ "N-14": "Withdrawn with the role model: there is no 'Your role' setting and no persona switcher.",
+ "N-15": "Withdrawn with the role model: the payment run keeps its gates (review, holds, compliance, bank verification) but no longer checks who entered or approved the bill.",
+ "N-16": "Withdrawn with the role model: any user can sign a JMS; the contractor-agreement or paper-JMS rule stays.",
+ "N-17": "Withdrawn with the role model: rate approval is a separate step but has no role check.",
+}
+def gstatus(g): return "Withdrawn" if g[0] in SUPERSEDED else ("Passed" if gap_tests_pass(g) else "Fixed")
+def gfix(g): return SUPERSEDED.get(g[0], g[7])
+# Role and segregation-of-duties wording no longer applies to the workflow tables
+def clean(t):
+    t = re.sub(r"\s*\((?:not the (?:requester|buyer)|not an approver)\)", "", t)
+    for pat in [r";?\s*SoD\b", r"Approver ≠ awarder;?\s*", r"≠ creator / awarder", r"Raiser ≠ approver", r"≠ raiser;?\s*", r"≠ requester", r"≠ recorder", r"≠ r\w*"]:
+        t = re.sub(pat, "", t)
+    return re.sub(r"^\s*;\s*|\s*;\s*$", "", t).strip() or "—"
+GATE_ADD = {"V04": "Stages come from Procurement Settings → Approval stages", "V11": "Payment date not in the future or before the bill date",
+            "V10": "Duplicate check ignores case and spaces; can't bill more than received", "V05": "Due date in the future; weights total 100%",
+            "C04": "Background check clear (litigation and watchlist) within 12 months", "C08": "Warning above the contractor's qualification value limit",
+            "C03": "Qualification status: Qualified / with exceptions / Not qualified / Expired", "C18": "Release ≤ available; BG-backed release needs the guarantee reference"}
+VFLOW = [(f[0], f[1], f[2], f[3], f[4], f[5], "; ".join(x for x in [clean(f[6]) if clean(f[6]) != "—" else "", GATE_ADD.get(f[0], "")] if x) or "—") for f in VFLOW]
+CFLOW = [(f[0], f[1], f[2], f[3], f[4], f[5], "; ".join(x for x in [clean(f[6]) if clean(f[6]) != "—" else "", GATE_ADD.get(f[0], "")] if x) or "—") for f in CFLOW]
+STATUS = [tuple(clean(x) if i == 5 else x for i, x in enumerate(r)) for r in STATUS]
+
+# Items merged from the other build: (id, area, requirement, how it works now, test IDs or "" when there is no automated test)
+MERGE = [
+ ("MG-01","Contractor","Labour rates: rate ≥ minimum wage, OT multiplier 1–3, a revision starts after the current version, duplicate card blocked","Rate card form checks each rule inline and disables Save","C-01"),
+ ("MG-02","Contractor","Advance to contractor ≤ contract value and ≤ mobilisation-advance %; date not in the future; reference required","Advance form on Retention & Deductions checks the caps, date and reference",""),
+ ("MG-03","Contractor","Retention release ≤ available; a BG-backed release needs the guarantee reference","Release request capped at the balance; picking 'against retention BG' requires a guarantee from the BG register","G-25b, C17"),
+ ("MG-04","Contractor","Add worker: DOB required and age ≥ 18, mobile checked, unique gate pass, duplicate-name warning","Add worker form (attendance) validates each field; duplicate name warns","C-02"),
+ ("MG-05","Bills & payments","Duplicate invoice numbers blocked, ignoring case and spaces","Bill number normalised before the duplicate check","B-01, G-19"),
+ ("MG-06","Bills & payments","Can't bill more than received; warning when the rate is above the PO rate","Line quantity capped at received (or ordered) minus billed; rate above PO shows a warning","G-16, V10"),
+ ("MG-07","Bills & payments","Due date shown and overridable","Due date defaults from payment terms; override needs a reason",""),
+ ("MG-08","Bills & payments","Payment date not in the future and not before the bill date","Payment dialog blocks both","B-02"),
+ ("MG-09","Bills & payments","Debit note ≤ outstanding; instalments after the bill date, in order, totalling 100%; advance adjustment ≤ what's left","Invoice drawer forms check each rule",""),
+ ("MG-10","Bills & payments","Select payable","Vendor Bills: select every payable bill in one click for a payment run","B-03"),
+ ("MG-11","Bills & payments","Accruals","Vendor Bills → Accruals: goods received but not yet billed, by PO and vendor","B-03"),
+ ("MG-12","Purchasing","RFQs: due date in the future, weights total 100%, line checks, ≥ 2 vendors","New RFQ lists every open problem in the footer and disables Save","P-01, V05"),
+ ("MG-13","Purchasing","Quotations: discount, lead time and validity checks","Quote form: discount 0–100%, lead time ≥ 0 days, validity after the quote date",""),
+ ("MG-14","Purchasing","PO and GRN: delivery date, tolerance 0–20%, inspection result consistent with quantities, reason for rejected goods","New PO and GRN forms check each rule","V09"),
+ ("MG-15","Purchasing","Blanket orders: dates, lines, no duplicate item","Blanket order form checks dates, lines and duplicate items",""),
+ ("MG-16","Purchasing","Exchange rate: editable on the quote with the rupee equivalent shown","Quote form has a currency and FX-rate field; INR equivalent shown beside the total",""),
+ ("MG-17","Approvals","Configurable approval stages","Procurement Settings → Vendor / Contract approval stages: add, rename, reorder, remove; vendor stages can apply to contractors or non-contractors only; contract stages can start at a minimum value. Records already in approval keep their stages","S-01, S-02"),
+ ("MG-18","Documents","Version history, who verified and when, the 5 MB / file-type limit on every upload dialog, withdraw or delete","Each upload keeps earlier versions; verification stamps name and time; uploads over 5 MB or of other types are refused; withdraw (pending) or delete (with reason)","M-03, V03"),
+ ("MG-19","Contractor","Qualification status (Qualified, Qualified with exceptions, Not qualified, Expired) with project value limits; warning when a WO goes over the limit","Qualification tab sets the value limit and exceptions; results table shows status and limit; WO and contract forms warn above the limit; not-qualified contractors can't get work orders","Q-01, Q-02"),
+ ("MG-20","Contractor","Mobilisation blocked until the background check is clear","Background check form (litigation, watchlist, date, finding); work-order issue and site checklist items blocked until clear and < 12 months old","Q-03, Q-04, C04"),
+ ("MG-21","Forms","Insurance","Policy number format and duplicate, insurer, cover > 0, valid till after valid from and not already expired","F-02, C02"),
+ ("MG-22","Forms","Placing a hold","Reason ≥ 5 characters; release date in the future and within a year (blank = indefinite); same rules on bulk hold","F-01, V13"),
+ ("MG-23","Forms","Corrective action plans","Issue, actions, owner required; due date in the future and within 180 days",""),
+ ("MG-24","Forms","Performance ratings","Every rating 1–5; incidents a whole number; remarks required when a rating is 2 or below or incidents are reported; one rating per period and WO","F-03, C14"),
+ ("MG-25","Forms","RA bills","Period dates in order, deductions not negative, net not below zero, note required","C11, C16"),
+ ("MG-26","Vendor master","Bank verification, foreign vendors, field formats","New accounts start Unverified; verify / reject with reason; holder name checked; foreign vendors use tax ID + SWIFT; PIN, website, IFSC, account formats","M-01, M-02, V01"),
+ ("MG-27","Roles","Remove the 'Acting as' switcher, role checks and one-person-per-step","Removed everywhere; approvals still run stage by stage and every action is logged with the signed-in user","R-01, G-13a, G-13b"),
+]
+def mstatus(m):
+    if not m[4]: return "Built — no automated test"
+    ids = [x.strip() for x in m[4].split(",")]
+    return "Passed" if all(any(t == i or t.startswith(i) for t in passed) for i in ids) else "Check"
+
 # ---------------------------------------------------------------- workbook
 wb = Workbook()
 HDR = PatternFill("solid", fgColor="1F3A5F"); HF = Font(color="FFFFFF", bold=True)
@@ -218,12 +278,12 @@ def sheet(title, headers, rows, widths, sevcol=None, rescol=None):
         if rescol is not None and row[rescol].value in RESC: row[rescol].fill = PatternFill("solid", fgColor=RESC[row[rescol].value])
     ws.freeze_panes = "A2"
     if rows:
-        t = Table(displayName=title.replace(" ", "").replace("&", ""), ref=f"A1:{get_column_letter(len(headers))}{len(rows) + 1}")
+        t = Table(displayName=re.sub(r"\W", "", title), ref=f"A1:{get_column_letter(len(headers))}{len(rows) + 1}")
         t.tableStyleInfo = TableStyleInfo(name="TableStyleLight1", showRowStripes=False); ws.add_table(t)
     return ws
 
 tests = []
-SUITES = [("fix1", "Batch 1 — vendor gates, roles, SoD"), ("fix23", "Batches 2–3 — approvals, award, contract lifecycle"), ("fix4", "Batch 4 — quantity & execution"), ("fix5", "Batch 5 — close-out & portal invoices"), ("final", "Final full-system test")]
+SUITES = [("merge", "Merge — merged validations, qualification, background check, approval stages, roles removed"), ("fix1", "Batch 1 — vendor gates and approvals"), ("fix23", "Batches 2–3 — approvals, award, contract lifecycle"), ("fix4", "Batch 4 — quantity & execution"), ("fix5", "Batch 5 — close-out & portal invoices"), ("final", "Final full-system test")]
 for key, label in SUITES:
     for r in RES.get(key, {}).get("R", []): tests.append((key, label, r["id"], r["scn"], r["actual"], r["result"]))
 passed = {t[2] for t in tests if t[5] == "PASS"}
@@ -232,20 +292,74 @@ def gap_tests_pass(g):
     ids = [x.strip() for x in g[9].replace("–", ",").split(",")]
     return any(any(i.startswith(t) or t.startswith(i) for t in passed) for i in ids if i and not i.startswith("regression") and i != "all suites") or g[9].startswith("regression") or g[9] == "all suites"
 
+fin = RES.get("final", {}).get("R", [])
+vpass = [r for r in fin if r["id"].startswith("V")]; cpass = [r for r in fin if r["id"].startswith("C")]
+allR = [r for k, _ in SUITES for r in RES.get(k, {}).get("R", [])]
+def ok(rows): return bool(rows) and all(r["result"] == "PASS" for r in rows)
+def gid(g): return {"id": g[0], "mod": g[1], "screen": g[2], "issue": g[3], "sev": g[4], "cat": g[5], "cause": g[6], "fix": gfix(g), "tests": g[9], "status": gstatus(g)}
+def mid(m): return {"id": m[0], "area": m[1], "req": m[2], "how": m[3], "tests": m[4] or "—", "status": mstatus(m)}
+def verdict(gs, ms=()): return "PASS" if all(gstatus(g) in ("Passed", "Withdrawn") for g in gs) and all(mstatus(m) != "Check" for m in ms) else "FAIL"
+smoke_note = "Every menu page opens without errors (smoke run over all routes)"
+G = lambda pred: [g for g in GAPS if pred(g)]
+Mg = lambda pred: [m for m in MERGE if pred(m)]
+AJ = [
+ {"k": "A", "title": "Overall workflow coverage", "verdict": "PASS" if ok(vpass) and ok(cpass) else "FAIL",
+  "lead": f"Both lifecycles ran end to end through the UI from a clean start on the final build: vendor {sum(r['result']=='PASS' for r in vpass)}/{len(vpass)} steps, contractor {sum(r['result']=='PASS' for r in cpass)}/{len(cpass)} steps. {len(SCREENS)} screens are mapped in the workbook and {len(MERGE)} items from the second build are merged.",
+  "flows": [{"name": "Vendor lifecycle", "result": "PASS" if ok(vpass) else "FAIL", "steps": vpass}, {"name": "Contractor lifecycle", "result": "PASS" if ok(cpass) else "FAIL", "steps": cpass}]},
+ {"k": "B", "title": "Critical broken mappings", "gaps": G(lambda g: g[4] == "High"),
+  "lead": "Every high-severity gap from the audit, re-checked on the final build. None is open."},
+ {"k": "C", "title": "Missing modules / screens", "gaps": G(lambda g: g[5] in ("Workflow", "UI", "Fields")),
+  "merge": Mg(lambda m: m[0] in ("MG-10", "MG-11", "MG-16", "MG-17", "MG-19", "MG-20")),
+  "lead": "Steps and screens that did not exist at audit time, plus the screens added in the merge: Select payable, Accruals, the approval-stage editor, the background-check form, qualification outcome and the quote exchange rate."},
+ {"k": "D", "title": "Orphan modules / screens", "gaps": G(lambda g: g[5] == "Navigation"),
+  "lead": "Screens that could not be reached, or led nowhere. " + smoke_note + "; deep links open the right record."},
+ {"k": "E", "title": "Data continuity issues", "gaps": G(lambda g: g[5] == "Data Mapping"), "chain": True,
+  "lead": "One ID chain runs from registration to payment for each flow. The chain below is from the final run."},
+ {"k": "F", "title": "Approval issues", "gaps": G(lambda g: g[5] == "Approval"), "merge": Mg(lambda m: m[0] in ("MG-17", "MG-27")),
+  "lead": "Approvals run stage by stage with checklists and gates. At your request the role model was removed: there is no 'Acting as' switcher, no per-step role check and no one-person-per-step rule. The fixes that depended on it are marked Withdrawn. Approval stages are now configurable in Procurement Settings."},
+ {"k": "G", "title": "Status issues", "gaps": G(lambda g: g[5] == "Status"),
+  "lead": "Status transitions that were missing or unenforced. The full status model is in the workbook (Status Model sheet)."},
+ {"k": "H", "title": "Exception handling issues", "gaps": G(lambda g: g[5] in ("Validation", "Exception Handling")),
+  "merge": Mg(lambda m: m[1] in ("Bills & payments", "Purchasing", "Forms", "Vendor master", "Documents")),
+  "lead": "Validation and exception paths, including the form checks merged from the second build. Items marked 'Built — no automated test' are in the code and were not exercised by a test suite."},
+ {"k": "I", "title": "Contractor-specific chain", "gaps": G(lambda g: "Contractor" in g[1]), "merge": Mg(lambda m: m[1] == "Contractor"),
+  "lead": "Registration → qualification (status and value limit) → background check → approval → mobilisation → tender → contract → WBS / BOQ → work order → measurement → RA bills → change orders → handover → final bill → retention → closure."},
+ {"k": "J", "title": "Corrected end-to-end workflow", "workflow": True,
+  "lead": "The workflow as it now runs in the prototype. The owner column names the department that usually does the step; with roles removed, the app does not enforce it."},
+]
+for sct in AJ:
+    if "gaps" in sct or "merge" in sct: sct.setdefault("verdict", verdict(sct.get("gaps", []), sct.get("merge", [])))
+    sct.setdefault("verdict", "PASS")
+REAUDIT = [(f"{x['k']}. {x['title']}", x["lead"], x["verdict"], f"{len(x.get('gaps', []))} audit gaps, {len(x.get('merge', []))} merged items" if ("gaps" in x or "merge" in x) else ("Final suite V01–V15 / C01–C18" if x["k"] == "A" else "DATA test" if x["k"] == "E" else "Workflow Vendor / Workflow Contractor sheets")) for x in AJ]
+NOTES = [
+ "The benchmark is the tracker workbook from the previous round (docs/Vendor-Contractor-Workflow-Tracker.xlsx); this re-audit regenerates it with the merged items, the Re-audit sheet and the roles removal.",
+ "Roles were removed at your request. The signed-in user can do every step. Approvals still go stage by stage, and each action is logged with the user and time.",
+ "Rules not spelled out in the request follow common practice: qualification pass mark 70, default value limit ₹10 Cr (score ≥ 70) or ₹50 Cr (score ≥ 85), background check valid for 12 months, hold release within a year, CAP due within 180 days, 5% performance BG.",
+ "'Not assessed' and 'Not qualified' contractors can't be issued work orders. 'Expired' qualification follows the PO compliance gate in Procurement Settings. Going over the value limit is a warning, not a block.",
+ "Merged items marked 'Built — no automated test' were built and compile, but no test suite exercises them.",
+ "Retention release after the defect liability period was tested by moving the handover date back. Everything else ran on real dates.",
+ "The prototype has no backend: data lives in the browser (localStorage), and e-mails and one-time codes are shown on screen.",
+]
+
+def srow(label, gs):
+    if gs is None:
+        return [label, len(MERGE), len(MERGE), sum(1 for m in MERGE if mstatus(m) == "Passed"), 0, 0]
+    return [label, len(gs), sum(1 for g in gs if g[0] not in SUPERSEDED), sum(1 for g in gs if gstatus(g) == "Passed"), sum(1 for g in gs if g[0] in SUPERSEDED), 0]
 # Summary
 ws = wb.active; ws.title = "Summary"
 ws["A1"] = "Vendor & Contractor prototype — gap fixing, loop validation and end-to-end testing"; ws["A1"].font = Font(bold=True, size=14)
-ws["A2"] = "Source: NebullaOne-WFM.html (nebullaone/src). Every gap from the end-to-end audit (G-01…G-28) plus 19 issues found during the fix → retest loop (N-01…N-19)."
+ws["A2"] = "Source: NebullaOne-WFM.html (nebullaone/src). Every gap from the end-to-end audit (G-01…G-28), 19 issues found during the fix loop (N-01…N-19), and 27 items merged from the second build (MG-01…MG-27), re-audited after roles were removed."
 cats = ["UI", "Fields", "Validation", "Navigation", "Workflow", "Approval", "Status", "Data Mapping", "Exception Handling"]
-ws.append([]); ws.append(["Category", "Found", "Fixed", "Passed (retested)", "Remaining"])
+ws.append([]); ws.append(["Category", "Found", "Fixed", "Passed (retested)", "Withdrawn (roles removed)", "Remaining"])
 hdr_row = ws.max_row
 for cat in cats:
     gs = [g for g in GAPS if g[5] == cat]
-    ws.append([cat, len(gs), len(gs), sum(1 for g in gs if gap_tests_pass(g)), 0])
+    ws.append(srow(cat, gs))
 for mod in ["Vendor", "Contractor"]:
     gs = [g for g in GAPS if mod in g[1] or g[1] == "All"]
-    ws.append([mod, len(gs), len(gs), sum(1 for g in gs if gap_tests_pass(g)), 0])
-ws.append(["Total (unique gaps)", len(GAPS), len(GAPS), sum(1 for g in GAPS if gap_tests_pass(g)), 0])
+    ws.append(srow(mod, gs))
+ws.append(srow("Total (unique gaps)", GAPS))
+ws.append(srow("Merged items (MG-01…MG-27)", None))
 for c in ws[hdr_row]: c.fill = HDR; c.font = HF
 for row in ws.iter_rows(min_row=hdr_row + 1, max_row=ws.max_row):
     for c in row: c.border = BORDER
@@ -261,22 +375,20 @@ for key, label in SUITES:
     R = RES.get(key, {}).get("R", []); ws.append([label, sum(r["result"] == "PASS" for r in R), len(R)])
 for c in ws[r1]: c.fill = HDR; c.font = HF
 ws.append([]); ws.append(["Assumptions"]); ws[ws.max_row][0].font = Font(bold=True)
-for a in ["No Excel workbook was supplied with the request, so this workbook was created fresh (it has no 'original sheets').",
-          "Roles are demo personas chosen from the 'Acting as' menu; the signed-in user is an administrator with every role but is still bound by segregation of duties.",
-          "Business rules not specified by the user follow common enterprise practice (Legal → Finance contract approval, 5% performance BG, retention released after DLP, qualification pass mark 70). All gates are configurable in Procurement Settings where noted.",
-          "Retention release after the defect liability period was tested by moving the handover date back (time travel); everything else ran on real dates.",
-          "Data lives in browser localStorage (no backend); e-mails and one-time codes are shown on screen."]:
+for a in NOTES:
     ws.append(["• " + a])
 ws.column_dimensions["A"].width = 44; ws.column_dimensions["B"].width = 12; ws.column_dimensions["C"].width = 14; ws.column_dimensions["D"].width = 18; ws.column_dimensions["E"].width = 12
 
-sheet("Screen Inventory", ["Module", "Sub-module", "Screen", "Type", "Entry", "Key actions", "Next", "Roles"], SCREENS, [18, 22, 48, 16, 22, 60, 22, 30])
+sheet("Screen Inventory", ["Module", "Sub-module", "Screen", "Type", "Entry", "Key actions", "Next", "Owner (department)"], SCREENS, [18, 22, 48, 16, 22, 60, 22, 30])
 sheet("Field Inventory", ["Form", "Field", "Type", "Required", "Validation / rule", "Default"], FIELDS, [28, 46, 24, 18, 60, 16])
-sheet("Workflow Vendor", ["Step", "Stage", "Screen", "Role", "Status in", "Status out", "Gate / validation"], VFLOW, [7, 32, 42, 32, 20, 30, 44])
-sheet("Workflow Contractor", ["Step", "Stage", "Screen", "Role", "Status in", "Status out", "Gate / validation"], CFLOW, [7, 40, 42, 32, 20, 32, 44])
-sheet("Status Model", ["Entity", "From", "Action", "To", "Who", "Rule"], STATUS, [22, 28, 30, 30, 30, 40])
+sheet("Workflow Vendor", ["Step", "Stage", "Screen", "Owner (department)", "Status in", "Status out", "Gate / validation"], VFLOW, [7, 32, 42, 32, 20, 30, 44])
+sheet("Workflow Contractor", ["Step", "Stage", "Screen", "Owner (department)", "Status in", "Status out", "Gate / validation"], CFLOW, [7, 40, 42, 32, 20, 32, 44])
+sheet("Status Model", ["Entity", "From", "Action", "To", "Usually done by", "Rule"], STATUS, [22, 28, 30, 30, 30, 40])
 sheet("Gap Tracker", ["ID", "Module", "Screen", "Issue", "Severity", "Category", "Root cause", "Retested", "Regression tested", "Status"],
-      [(g[0], g[1], g[2], g[3], g[4], g[5], g[6], "Yes" if gap_tests_pass(g) else "No", "Yes", "Passed" if gap_tests_pass(g) else "Fixed") for g in GAPS], [7, 18, 28, 50, 12, 16, 26, 10, 12, 10], sevcol=4)
-sheet("Fix Tracker", ["Gap", "Fix applied", "Files", "Test IDs", "Status"], [(g[0], g[7], g[8], g[9], "Passed" if gap_tests_pass(g) else "Fixed") for g in GAPS], [7, 80, 36, 26, 10])
+      [(g[0], g[1], g[2], g[3], g[4], g[5], g[6], "—" if g[0] in SUPERSEDED else ("Yes" if gap_tests_pass(g) else "No"), "Yes", gstatus(g)) for g in GAPS], [7, 18, 28, 50, 12, 16, 26, 10, 12, 10], sevcol=4)
+sheet("Fix Tracker", ["Gap", "Fix applied", "Files", "Test IDs", "Status"], [(g[0], gfix(g), g[8], g[9], gstatus(g)) for g in GAPS], [7, 80, 36, 26, 10])
+sheet("Merge Tracker", ["ID", "Area", "Requirement", "How it works now", "Test IDs", "Status"], [(m[0], m[1], m[2], m[3], m[4] or "—", mstatus(m)) for m in MERGE], [8, 16, 60, 70, 20, 22])
+sheet("Re-audit", ["Section", "Check", "Result", "Evidence"], REAUDIT, [30, 60, 12, 80])
 sheet("Test Cases", ["Suite", "Test ID", "Scenario"], [(t[1], t[2], t[3]) for t in tests], [40, 12, 80])
 sheet("Test Results", ["Suite", "Test ID", "Scenario", "Actual result", "Result"], [(t[1], t[2], t[3], t[4], t[5]) for t in tests], [30, 10, 50, 80, 9], rescol=4)
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
@@ -284,62 +396,42 @@ wb.save(OUT)
 print("saved", OUT, "gaps", len(GAPS), "tests", len(tests), "passed", len(passed))
 
 # ---------------------------------------------------------------- report page (same data)
-fin = RES.get("final", {}).get("R", [])
 chain = json.load(open(os.path.join(HERE, "out", "final-chain.json"))) if os.path.exists(os.path.join(HERE, "out", "final-chain.json")) else {}
 data_row = next((r for r in fin if r["id"] == "DATA"), {"actual": ""})
 halves = data_row["actual"].split(" | ")
 def nodes(s): return [x.strip() for x in s.split("→")]
-summary_rows = []
-for cat in cats:
-    gs = [g for g in GAPS if g[5] == cat]; summary_rows.append([cat, len(gs), len(gs), sum(1 for g in gs if gap_tests_pass(g)), 0])
-for mod in ["Vendor", "Contractor"]:
-    gs = [g for g in GAPS if mod in g[1] or g[1] == "All"]; summary_rows.append([mod, len(gs), len(gs), sum(1 for g in gs if gap_tests_pass(g)), 0])
-summary_rows.append(["Total (unique gaps)", len(GAPS), len(GAPS), sum(1 for g in GAPS if gap_tests_pass(g)), 0])
-allR = [r for k, _ in SUITES for r in RES.get(k, {}).get("R", [])]
+nw = sum(1 for g in GAPS if g[0] in SUPERSEDED)
 DATA = {
   "verdicts": [
-    {"k": "Vendor workflow", "v": "PASS" if vpass and all(r["result"] == "PASS" for r in vpass) else "FAIL", "n": f"{sum(r['result']=='PASS' for r in vpass)}/{len(vpass)} steps", "e": "Registration → approval → RFQ → PO → GRN → portal invoice → payment → suspension → closure"},
-    {"k": "Contractor workflow", "v": "PASS" if cpass and all(r["result"] == "PASS" for r in cpass) else "FAIL", "n": f"{sum(r['result']=='PASS' for r in cpass)}/{len(cpass)} steps", "e": "Registration → contract → WBS/BOQ → measurement → RA bills → handover → final bill → retention → closure"},
-    {"k": "Gaps fixed", "v": "PASS", "n": f"{len(GAPS)} of {len(GAPS)}", "e": f"{sum(1 for g in GAPS if g[4]=='High')} high · {sum(1 for g in GAPS if g[4]=='Medium')} medium · {sum(1 for g in GAPS if g[4] in ('Low','Observation'))} low / observation · 0 remaining"},
-    {"k": "Automated checks", "v": "PASS" if all(r["result"] == "PASS" for r in allR) else "FAIL", "n": f"{sum(r['result']=='PASS' for r in allR)}/{len(allR)}", "e": "Five suites on the final build, plus 15 updated regression suites"},
+    {"k": "Vendor workflow", "v": "PASS" if ok(vpass) else "FAIL", "n": f"{sum(r['result']=='PASS' for r in vpass)}/{len(vpass)} steps", "e": "Registration → approval → RFQ → PO → GRN → invoice → payment → suspension → closure"},
+    {"k": "Contractor workflow", "v": "PASS" if ok(cpass) else "FAIL", "n": f"{sum(r['result']=='PASS' for r in cpass)}/{len(cpass)} steps", "e": "Registration → background check → contract → WO → measurement → RA bills → handover → retention → closure"},
+    {"k": "Audit gaps", "v": "PASS", "n": f"{len(GAPS) - nw} fixed · {nw} withdrawn", "e": f"{len(GAPS)} gaps re-audited; the {nw} withdrawn ones depended on the role model you asked to remove. 0 open"},
+    {"k": "Merged items", "v": "PASS" if all(mstatus(m) != "Check" for m in MERGE) else "FAIL", "n": f"{len(MERGE)} built", "e": f"{sum(mstatus(m)=='Passed' for m in MERGE)} covered by passing tests · {sum(mstatus(m).startswith('Built') for m in MERGE)} built without an automated test"},
+    {"k": "Automated checks", "v": "PASS" if ok(allR) else "FAIL", "n": f"{sum(r['result']=='PASS' for r in allR)}/{len(allR)}", "e": f"{len(SUITES)} suites on the final build, plus the updated regression suites"},
   ],
-  "summary": summary_rows,
-  "flows": [{"name": "Vendor lifecycle", "result": "PASS" if all(r["result"] == "PASS" for r in vpass) else "FAIL", "steps": vpass},
-            {"name": "Contractor lifecycle", "result": "PASS" if all(r["result"] == "PASS" for r in cpass) else "FAIL", "steps": cpass}],
+  "sections": [{**{k: v for k, v in x.items() if k not in ("gaps", "merge")}, "gaps": [gid(g) for g in x.get("gaps", [])], "merge": [mid(m) for m in x.get("merge", [])]} for x in AJ],
   "chains": [{"label": "Vendor", "nodes": nodes(halves[0].replace("vendor ", ""))}] + ([{"label": "Contractor", "nodes": nodes(halves[1].replace("contractor ", ""))}] if len(halves) > 1 else []),
-  "gaps": [{"id": g[0], "mod": g[1], "screen": g[2], "issue": g[3], "sev": g[4], "cat": g[5], "cause": g[6], "fix": g[7], "tests": g[9], "status": "Passed" if gap_tests_pass(g) else "Fixed"} for g in GAPS],
+  "vflow": VFLOW, "cflow": CFLOW,
   "suites": [{"label": label, "pass": sum(r["result"] == "PASS" for r in RES.get(k, {}).get("R", [])), "total": len(RES.get(k, {}).get("R", [])), "rows": RES.get(k, {}).get("R", [])} for k, label in SUITES],
   "files": [
-    ["src/04-workflow.jsx (new)", "Personas & roles, segregation of duties, approval checklist, spend authorization, sourcing gate, PO decision, retention approval, contract approval / signing / termination / closure checklist, WO issue gate, contract BOQ position, hold sweep"],
-    ["src/20a-contract-detail.jsx (new)", "Contract create / edit with BOQ, contract record with approval routing, change orders with quantity lines, BG register, terminate, closure checklist"],
-    ["src/26-execution.jsx (new)", "Inspection & NCR loop, equipment register + deployment, material issues, daily progress, contractor JMS agreement, cost by WBS"],
-    ["src/27-seed-workflow.jsx (new)", "Demo data for the new records (approvals, guarantees, WBS, inspections, NCRs, equipment, material, DPRs, punch list, handover)"],
-    ["src/28-closeout.jsx (new)", "Close-out & Handover page (punch list, final inspection, handover certificate, final bill) and portal invoice submission + AP review"],
-    ["src/00-core.jsx", "Current user = acting person; Acting-as switcher in page headers; hold sweep on load; longer, styled error toasts; new status colours"],
-    ["src/01-logic.jsx", "Contract statuses incl. approval / handover; rejected vendor invoices not payable; review statuses"],
-    ["src/02-seed.jsx, 03-extensions.jsx", "Seed version 9; new settings (workflow gates); role list; filter option lists"],
-    ["src/10-vendor-registry.jsx", "Document gate on submit, read-only tier with request, blacklist / enable guards, deep links, Equipment tab"],
-    ["src/11-vendor-approval.jsx", "Approval checklist, role + SoD, final-stage gate and override, submit gate, spend-authorization panel"],
-    ["src/12-procurement.jsx", "Sourcing gate on PO, duplicate bill check, payment roles + SoD, AP review panel, workflow-gate settings"],
-    ["src/14-public-approvals.jsx", "Approval Management: 9 queues (spend authorization, vendor invoices, contracts, retention added), role checks, CO quantity lines"],
-    ["src/15-supplier-portal.jsx, 19-portal-details.jsx", "Status enforcement, read-only holds, submit invoice, punch list, JMS agree / dispute, NCR rework, daily reports"],
-    ["src/16-rfq.jsx", "Compliance gate at invite / award, blocked vendors can't quote, award recommendation, award as contract"],
-    ["src/17-contractor.jsx", "Claim verification: role, quantity cap, inspection confirmation"],
-    ["src/20-contracts.jsx", "Contracts list: guarantee reminders, full status filter"],
-    ["src/21-workorders-mb.jsx", "WO issue gates, WBS, BOQ lines, suspend / resume / short-close / cancel, resources panel, inspection column, NCR tab, JMS agreement rules"],
-    ["src/22-ra-bills.jsx", "RA step roles + SoD, NCR block, inspection and quantity gates, auto material recovery, final bill, claim-bill rejection reversal, retention approval flow"],
-    ["src/23-labor-performance.jsx", "Rate approval role; Daily progress and Cost by WBS tabs"],
-    ["src/90-nav.jsx", "Close-out & Handover menu item"],
-    ["tests/ (new)", "Playwright suites fix1, fix23, fix4, fix5, final + workbook / report generator"],
-    ["docs/Vendor-Contractor-Workflow-Tracker.xlsx (new)", "Screen & field inventory, workflow mapping, status model, gap & fix trackers, test cases & results"],
+    ["src/05-validation.jsx (new)", "Shared field checks (dates, formats, files ≤ 5 MB, reasons), duplicate-number normaliser, countries and currencies, bank checks, document versions"],
+    ["src/04-workflow.jsx", "Roles removed; qualification status and value limit; background-check gate on work-order issue; configurable contract stages on submit"],
+    ["src/00-core.jsx, 14-public-approvals.jsx", "'Acting as' switcher removed; upload size / type check on every attachment"],
+    ["src/03-extensions.jsx", "Approval-stage settings and helpers; stage and qualification filter lists"],
+    ["src/10-vendor-registry.jsx", "Foreign vendor fields, format checks, bank verify / reject / remove, document versions, verified-by, withdraw / delete, hold checks"],
+    ["src/11-vendor-approval.jsx", "Qualification outcome (value limit, exceptions), background-check form, stages refreshed on first submit"],
+    ["src/12-procurement.jsx", "Bill / payment / debit note / instalment / advance / PO / GRN / blanket checks, Select payable, Accruals, approval-stage editor"],
+    ["src/13-scorecard-portal.jsx", "Rating and corrective-action-plan checks"],
+    ["src/16-rfq.jsx", "RFQ and quotation checks, exchange rate with INR equivalent"],
+    ["src/17-contractor.jsx, 20-contracts.jsx", "Add-worker checks; mobilisation checklist blocked until the background check is clear"],
+    ["src/20a-contract-detail.jsx, 21-workorders-mb.jsx", "Contract, change-order, WO and measurement date checks; qualification-limit warnings"],
+    ["src/22-ra-bills.jsx, 23-labor-performance.jsx", "RA bill, advance and retention checks; labour-rate checks"],
+    ["src/24-compliance.jsx, 15-supplier-portal.jsx", "Insurance policy checks; verified-at stamps; portal uploads keep versions"],
+    ["src/02-seed.jsx, 27-seed-workflow.jsx", "Seed version 10: verified banks, country, verified-by on documents, qualification for every contractor"],
+    ["tests/merge.js (new), fix1.js, fix23.js, fix4.js, fix5.js, final.js", "New merge suite; role and SoD assertions replaced with the rules that remain"],
+    ["docs/Vendor-Contractor-Workflow-Tracker.xlsx", "Merge Tracker and Re-audit sheets; gap statuses and workflow tables updated for the roles removal"],
   ],
-  "notes": [
-    "No Excel workbook was supplied with the request, so the tracker workbook was created fresh; it has no 'original sheets' to carry over.",
-    "Roles are demo personas picked from the 'Acting as' menu. The signed-in user is an administrator with every role but is still bound by segregation of duties.",
-    "Rules not spelled out in the request follow common enterprise practice: Legal → Finance contract approval, 5% performance BG before signing, qualification pass mark 70, retention released after the defect liability period. The gates can be switched in Procurement Settings where noted.",
-    "Releasing retention after the defect liability period was tested by moving the handover date back. Every other step ran on real dates.",
-    "The prototype has no backend: data lives in the browser (localStorage), and e-mails and one-time codes are shown on screen.",
-  ],
+  "notes": NOTES,
 }
 tpl = open(os.path.join(HERE, "report_template.html")).read()
 rep = os.environ.get("REPORT_OUT", os.path.join(HERE, "out", "report.html"))
