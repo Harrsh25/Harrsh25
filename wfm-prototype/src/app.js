@@ -23464,7 +23464,21 @@ const NxVendor = (() => {
       v = A ? i.lines.filter(P => Number(P.qty) > 0) : i.lines,
       I = F(v, P => (Number(P.qty) || 0) * (Number(P.rate) || 0)),
       w = A && i.lines.some(P => Number(P.qty) > P.remaining + A.lines[P.blanketLine].qty * l.blanketAllowancePct / 100),
-      f = i.vendorId && v.length && v.every(P => P.desc && P.qty > 0 && P.rate > 0) && !b.block && !w,
+      poErr = {
+        vendor: i.vendorId ? "" : "Required",
+        deliveryDate: !i.deliveryDate ? "Required" : VX.notPast(i.deliveryDate, "Delivery date can't be in the past"),
+        tolerance: VX.num(i.tolerance, {
+          min: 0,
+          max: 20,
+          label: "Tolerance"
+        }),
+        lines: (A ? v : i.lines).map((P, h) => A ? VX.num(P.qty, {
+          gt: 0,
+          label: "Qty"
+        }) ? `Line ${h+1}: quantity must be greater than 0` : "" : !String(P.desc || "").trim() ? `Line ${h+1}: description required` : !String(P.unit || "").trim() ? `Line ${h+1}: unit required` : !(Number(P.qty) > 0) ? `Line ${h+1}: quantity must be greater than 0` : !(Number(P.rate) > 0) ? `Line ${h+1}: rate must be greater than 0` : "").filter(Boolean).join(" \xB7 "),
+        noLines: v.length ? "" : "Required"
+      },
+      f = !VX.any(poErr) && i.vendorId && v.length && v.every(P => P.desc && P.qty > 0 && P.rate > 0) && !b.block && !w,
       C = a.blanketOrders.filter(P => Ut(a, P) === "Active");
     return e(we, {
       open: t,
@@ -23475,7 +23489,10 @@ const NxVendor = (() => {
         className: "mr-auto text-[13px]"
       }, "Total ", e("b", {
         className: "num"
-      }, Q(I)), " + GST"), e(M, {
+      }, Q(I)), " + GST"), nxFix({
+        ...poErr,
+        lines: poErr.lines && (i.lines.some(P => P.desc || P.qty || (!A && P.rate)) || A) ? "x" : poErr.lines ? "Required" : ""
+      }), e(M, {
         onClick: s
       }, "Cancel"), e(M, {
         variant: "primary",
@@ -23558,8 +23575,11 @@ const NxVendor = (() => {
       }),
       options: Me
     })), e(L, {
-      label: "Delivery by"
+      label: "Delivery by",
+      required: !0,
+      error: nxE(poErr, "deliveryDate")
     }, e(Re, {
+      min: ke(),
       value: i.deliveryDate,
       onChange: P => p({
         ...i,
@@ -23575,8 +23595,12 @@ const NxVendor = (() => {
       }),
       options: ["On received quantity", "On ordered quantity"]
     })), e(L, {
-      label: "Receipt tolerance (%)"
+      label: "Receipt tolerance (%)",
+      hint: "0\u201320%",
+      error: nxE(poErr, "tolerance")
     }, e(ge, {
+      min: 0,
+      max: 20,
       value: i.tolerance,
       onChange: P => p({
         ...i,
@@ -23657,7 +23681,9 @@ const NxVendor = (() => {
           lines: i.lines.filter((k, q) => q !== h)
         })
       }))
-    }))), w && e(re, {
+    }))), poErr.lines && i.lines.some(P => P.desc || P.qty || P.rate) && e(re, {
+      tone: "red"
+    }, poErr.lines), w && e(re, {
       tone: "red"
     }, "Quantity exceeds what's left on the blanket order plus the ", l.blanketAllowancePct, "% allowance.")))
   }
@@ -23682,6 +23708,15 @@ const NxVendor = (() => {
       o = n.some((c, d) => c.received + (Number(a.lines[d].qty) || 0) > c.qty * (1 + (t.tolerance || 0) / 100)),
       i = a.lines.some(c => Number(c.accepted) > Number(c.qty) || Number(c.qty) < 0),
       p = F(a.lines, c => (Number(c.qty) || 0) - (Number(c.accepted) || 0)),
+      nxAcc = F(a.lines, c => Number(c.accepted) || 0),
+      grnErr = {
+        date: !a.date ? "Required" : VX.notFuture(a.date, "Receipt date can't be in the future") || (t.date && a.date < t.date ? `Before the PO date (${_(t.date)})` : ""),
+        neg: a.lines.some(c => Number(c.accepted) < 0) ? "Accepted quantity can't be negative" : "",
+        qc: a.qc === "Passed" && p > 0 ? `Inspection says Passed but ${de(p)} units are rejected \u2014 choose \u201CPartially rejected\u201D` : a.qc === "Failed" && nxAcc > 0 ? "Inspection Failed \u2014 accepted quantity must be 0" : a.qc === "Partially rejected" && p <= 0 ? "Enter the rejected quantity (accepted < received)" : "",
+        reason: p > 0 && VX.blank(a.reason) ? "Required" : "",
+        location: p > 0 && VX.blank(a.rejectedLocation) ? "Required" : "",
+        accLoc: nxAcc > 0 && VX.blank(a.acceptedLocation) ? "Required" : ""
+      },
       m = () => {
         const c = je("GRN", r.purchaseOrders.flatMap(b => b.receipts));
         let d = "";
@@ -23742,11 +23777,11 @@ const NxVendor = (() => {
       width: 820,
       title: `Goods receipt \u2014 ${t.id}`,
       subtitle: `Tolerance \xB1${t.tolerance||0}% \xB7 quality inspection splits accepted and rejected quantity`,
-      footer: e(z, null, e(M, {
+      footer: e(z, null, nxFix(grnErr), e(M, {
         onClick: s
       }, "Cancel"), e(M, {
         variant: "primary",
-        disabled: o || i || !a.lines.some(c => c.qty > 0),
+        disabled: o || i || VX.any(grnErr) || !a.lines.some(c => c.qty > 0),
         onClick: m
       }, "Post GRN"))
     }, e("div", {
@@ -23754,15 +23789,20 @@ const NxVendor = (() => {
     }, e("div", {
       className: "grid grid-cols-3 gap-3"
     }, e(L, {
-      label: "Receipt date"
+      label: "Receipt date",
+      required: !0,
+      error: nxE(grnErr, "date")
     }, e(Re, {
+      max: ke(),
+      min: t.date,
       value: a.date,
       onChange: c => l({
         ...a,
         date: c
       })
     })), e(L, {
-      label: "Quality inspection"
+      label: "Quality inspection",
+      error: nxE(grnErr, "qc")
     }, e(ue, {
       value: a.qc,
       onChange: c => l({
@@ -23834,7 +23874,8 @@ const NxVendor = (() => {
         rejectedLocation: c
       })
     })), e(L, {
-      label: "Rejection reason"
+      label: "Rejection reason",
+      required: !0
     }, e(ee, {
       value: a.reason,
       onChange: c => l({

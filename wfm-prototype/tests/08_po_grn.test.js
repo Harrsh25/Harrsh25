@@ -1,0 +1,45 @@
+const H = require('../tools/lib');
+module.exports = async () => {
+  const t = H.T('Purchase order + goods receipt validation');
+  const { b, p, errors } = await H.open();
+  await H.go(p, '/productivity/vendor-management/purchase-orders');
+  await H.click(p, 'New PO', { dlg: false });
+  t.ok(await H.disabled(p, 'Create & send for approval') === true, 'empty PO cannot be created');
+  await H.pick(p, 'Vendor', 'Deccan Steel');
+  await H.fill(p, 'Delivery by', '2020-01-01');
+  await H.fill(p, 'Receipt tolerance (%)', '50');
+  let a = (await H.alerts(p)).join(' | ');
+  t.ok(/can't be in the past/.test(a), 'past delivery date rejected');
+  t.ok(/Tolerance can't exceed 20/.test(a), 'tolerance > 20% rejected');
+  const d = new Date(); d.setDate(d.getDate() + 20);
+  await H.fill(p, 'Delivery by', d.toISOString().slice(0, 10));
+  await H.fill(p, 'Receipt tolerance (%)', '2');
+  const li = await p.$$('[role=dialog] .space-y-2.p-3 input');
+  await li[0].fill('TMT 20 mm'); await li[2].fill('10'); await li[3].fill('-1'); await H.sleep(100);
+  t.ok(/rate must be greater than 0/.test(await H.text(p)), 'negative rate rejected');
+  await li[3].fill('56000'); await H.sleep(100);
+  t.ok(await H.disabled(p, 'Create & send for approval') === false, 'valid PO can be created');
+  await H.click(p, 'Create & send for approval'); await H.sleep(300);
+  const st = await H.store(p);
+  t.ok(st.purchaseOrders.some(x => x.lines[0].desc === 'TMT 20 mm' && x.status === 'Draft'), 'PO saved as Draft for approval');
+  if (await H.dialogs(p)) { await p.keyboard.press('Escape'); await H.sleep(300); }
+  // GRN on seeded PO with open qty
+  await p.evaluate(() => { const r = [...document.querySelectorAll('main tr')].find(r => r.innerText.includes('Pioneer Cement')); r && r.click(); }); await H.sleep(600);
+  await H.click(p, 'Receive goods');
+  await H.fill(p, 'Receipt date', '2099-01-01');
+  t.ok(/can't be in the future/.test((await H.alerts(p)).join(' ')), 'future receipt date rejected');
+  await H.fill(p, 'Receipt date', new Date().toISOString().slice(0, 10));
+  const q = await p.$$('[role=dialog]:last-of-type table tbody input[type=number]');
+  await q[0].fill('10'); await q[1].fill('8'); await H.sleep(100);
+  a = (await H.alerts(p)).join(' | ');
+  t.ok(/Inspection says Passed but 2 units are rejected/.test(a), 'QC Passed with rejections is inconsistent');
+  await H.pick(p, 'Quality inspection', 'Partially rejected');
+  t.ok(await H.disabled(p, 'Post GRN') === true, 'rejection reason is mandatory');
+  await H.fill(p, 'Rejection reason', 'Bags torn');
+  t.ok(await H.disabled(p, 'Post GRN') === false, 'valid GRN can be posted');
+  await H.click(p, 'Post GRN'); await H.sleep(300);
+  const po = (await H.store(p)).purchaseOrders.find(x => (x.returns || []).some(r => r.reason === 'Bags torn')) || { receipts: [], returns: [] };
+  t.ok(po.receipts.some(r => r.qc === 'Partially rejected') && po.returns.some(r => r.reason === 'Bags torn'), 'GRN posted with return-to-vendor');
+  t.ok(errors.length === 0, 'no page errors: ' + errors.join('; '));
+  await b.close(); return t.done();
+};
