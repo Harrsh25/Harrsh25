@@ -21,6 +21,13 @@ Tailwind classes the bundle doesn't already contain. Demo data lives in the brow
 | `src/02-seed.jsx` | demo data |
 | `src/10`–`13` | Vendor Management pages |
 | `src/03-extensions.jsx` | settings, scorecard standings, vendor sign-in, quote maths, billing status, seed extensions |
+| `src/04-workflow.jsx` | roles ("Acting as"), segregation of duties, approval checklists, spend authorization, sourcing gate, contract approval / signing / closure, work-order gates |
+| `src/20a-contract-detail.jsx` | contract create / edit (BOQ), contract record, change orders with quantity lines, bank-guarantee register |
+| `src/26-execution.jsx` | inspection & NCRs, equipment, material issues, daily progress, contractor JMS agreement, cost by WBS |
+| `src/27-seed-workflow.jsx` | demo data for the workflow records |
+| `src/28-closeout.jsx` | Close-out & Handover (punch list, final inspection, handover certificate, final bill), portal invoices + AP review |
+| `tests/` | Playwright suites (`final.js` runs both lifecycles end to end) and the tracker workbook / report generator |
+| `docs/` | `Vendor-Contractor-Workflow-Tracker.xlsx` — screens, fields, workflow, status model, gap & fix tracker, test results |
 | `src/14-public-approvals.jsx` | self-registration page, share-link dialog, Approval Management |
 | `src/15-supplier-portal.jsx` | supplier sign-in (one-time code) and portal: RFQs, POs, work orders, RA claims, attendance, users |
 | `src/16-rfq.jsx` | RFQ create / e-mail / PDF, vendor quote form, review, split award |
