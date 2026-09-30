@@ -48,20 +48,23 @@ function BillSummary({ calc, contract, vendor }) {
   );
 }
 
-function PrepareBillModal({ woId: presetWo, onClose, onCreated }) {
+function PrepareBillModal({ woId: presetWo, onClose, onCreated, finalFor }) {
   const st = useStore();
   const qcOn = settingsOf(st).qcBeforeBilling;
   // Billable = JMS-signed, not yet billed, inspection passed, on a work order that is still open for billing
   const billable = (m) => m.jms.status === "Signed" && !m.billedIn && (!qcOn || m.qc?.status === "Passed");
-  const woOpen = (w) => !["Draft", "Cancelled", "Closed", "Suspended"].includes(w.status) && !["Closed"].includes(byId(st.contracts, w.contractId)?.status);
+  // A work order stops billing after its final bill; a close-out final bill only lists that contract's work orders
+  const woOpen = (w) => !["Draft", "Cancelled", "Closed", "Suspended"].includes(w.status) && !["Closed"].includes(byId(st.contracts, w.contractId)?.status)
+    && !st.raBills.some((b) => b.woId === w.id && b.final && b.status !== "Rejected") && (!finalFor || w.contractId === finalFor);
   const eligibleWos = st.workOrders.filter((w) => woOpen(w) && st.measurements.some((m) => m.woId === w.id && billable(m)));
   const [woId, setWoId] = y.useState(presetWo && eligibleWos.some((w) => w.id === presetWo) ? presetWo : eligibleWos[0]?.id || "");
   const [ids, setIds] = y.useState([]);
   const [manual, setManual] = y.useState({ materials: 0, penalty: 0, other: 0, otherNote: "" });
   const [period, setPeriod] = y.useState({ from: shiftDays(-30), to: todayISO() });
+  const [final, setFinal] = y.useState(!!finalFor);
   const wo = byId(st.workOrders, woId);
   const avail = st.measurements.filter((m) => m.woId === woId && billable(m));
-  const unsigned = st.measurements.filter((m) => m.woId === woId && m.jms.status !== "Signed").length;
+  const unsigned = st.measurements.filter((m) => m.woId === woId && m.jms.status !== "Signed" && !m.voided).length;
   const waitingQc = st.measurements.filter((m) => m.woId === woId && m.jms.status === "Signed" && !m.billedIn && qcOn && m.qc?.status !== "Passed");
   // Free-issue material not yet recovered is deducted automatically
   const issues = (st.materialIssues || []).filter((m) => m.woId === woId && !m.recoveredIn);
@@ -79,10 +82,11 @@ function PrepareBillModal({ woId: presetWo, onClose, onCreated }) {
   const over = calc ? calc.lines.filter((l) => l.woQty !== undefined && l.cumQty > l.woQty + 0.001) : [];
   const create = () => {
     if (over.length) return toast("Quantity above the work order — raise a change order first", "red");
+    if (final && (unsigned > 0 || waitingQc.length > 0 || ids.length < avail.length)) return toast("A final bill must include every measurement — sign, inspect and include them all first", "red");
     const id = nextId("RA", st.raBills);
     setState((s) => {
       const fresh = computeRABill(s, woId, ids, manual);
-      s.raBills.unshift({ id, woId, contractId: wo.contractId, vendorId: wo.vendorId, seq, date: todayISO(), periodFrom: period.from, periodTo: period.to, mbIds: ids, manual, materialIssueIds: issues.map((m) => m.id), ...fresh, status: "Submitted", history: [{ status: "Submitted", by: currentUser(), at: new Date().toISOString(), remark: "" }] });
+      s.raBills.unshift({ id, woId, contractId: wo.contractId, vendorId: wo.vendorId, seq, date: todayISO(), periodFrom: period.from, periodTo: period.to, mbIds: ids, manual, materialIssueIds: issues.map((m) => m.id), ...fresh, status: "Submitted", final: !!final, history: [{ status: "Submitted", by: currentUser(), at: new Date().toISOString(), remark: final ? "Final bill" : "" }] });
       ids.forEach((m) => (byId(s.measurements, m).billedIn = id));
       issues.forEach((m) => (byId(s.materialIssues, m.id).recoveredIn = id));
     }, { entity: "RA Bill", id, action: `RA-${seq} submitted for ${woId} — net ${inr(calc.net)}` });
@@ -97,6 +101,8 @@ function PrepareBillModal({ woId: presetWo, onClose, onCreated }) {
           <Field label="Period from"><DateInput value={period.from} onChange={(x) => setPeriod({ ...period, from: x })} /></Field>
           <Field label="Period to"><DateInput value={period.to} onChange={(x) => setPeriod({ ...period, to: x })} /></Field>
         </div>
+        {c && (c.handover || c.status === "Terminated") && <Check checked={final} onChange={setFinal} label={`Final bill for ${wo.id} — settles all remaining work; no further RA bills on this work order`} />}
+        {c && !c.handover && c.status !== "Terminated" && finalFor && <Note tone="amber">A final bill needs the handover certificate first.</Note>}
         {unsigned > 0 && <Note tone="amber">{unsigned} measurement(s) on this WO are still pending/disputed in JMS and are not included.</Note>}
         {waitingQc.length > 0 && <Note tone="amber">{waitingQc.length} signed measurement(s) are waiting for a passed quality inspection ({waitingQc.map((m) => m.id).join(", ")}) and are not included.</Note>}
         {over.length > 0 && <Note tone="red">Quantity above the work order on {over.map((l) => `${l.code} ${l.desc} (${num(l.cumQty, 3)} of ${num(l.woQty)} ${l.unit})`).join("; ")}. Untick the excess measurements, or raise a change order with a quantity line on the contract — once approved the WO quantity rises and the bill can go through.</Note>}
@@ -346,11 +352,15 @@ function RetentionPage() {
       {rel && (() => {
         const c = byId(st.contracts, rel.contractId), led = c && contractLedger(st, c);
         const dlpEnd = c && shiftDays((c.dlpMonths || 0) * 30, c.end);
-        const early = rel.type === "After DLP" && c && daysUntil(dlpEnd) > 0;
+        const early = rel.type === "After DLP" && c && daysUntil(shiftDays((c.dlpMonths || 0) * 30, c.handover?.date || c.end)) > 0;
+        // Release on completion / after DLP needs the handover certificate; against a BG needs a live retention guarantee
+        const needHo = c && ["After DLP", "50% on completion"].includes(rel.type) && !c.handover && c.status !== "Terminated";
+        const bgCover = c ? sum(liveGuarantees(c, "Retention"), (g) => g.amount) : 0;
+        const needBg = c && rel.type === "Against bank guarantee" && bgCover < (Number(rel.amount) || 0) - 0.5;
         const max = led ? led.retentionBalance - sum(st.retentionReleases.filter((r) => r.contractId === c.id && r.status !== "Released"), (r) => r.amount) : 0;
         return (
           <Modal open onClose={() => setRel(null)} width={560} title="Request retention release"
-            footer={<><Btn onClick={() => setRel(null)}>Cancel</Btn><Btn variant="primary" disabled={!c || !(rel.amount > 0) || rel.amount > max + 0.5 || early} onClick={() => {
+            footer={<><Btn onClick={() => setRel(null)}>Cancel</Btn><Btn variant="primary" disabled={!c || !(rel.amount > 0) || rel.amount > max + 0.5 || early || needHo || needBg} onClick={() => {
               const id = nextId("RR", st.retentionReleases);
               setState((s) => s.retentionReleases.unshift({ id, contractId: c.id, amount: Number(rel.amount), type: rel.type, status: "Pending Approval", requestedOn: todayISO(), requestedBy: currentUser(), note: rel.note }), { entity: "Retention", id, action: `Release requested for ${c.id} — waiting for Finance approval` });
               toast(`${id} raised`); setRel(null); setTab("rel");
@@ -361,7 +371,9 @@ function RetentionPage() {
               <Field label="Amount (₹)" hint={c ? `Available ${inr(max)}` : ""}><NumInput value={rel.amount} onChange={(x) => setRel({ ...rel, amount: x })} /></Field>
               <Field label="Note" span={2}><TextInput value={rel.note} onChange={(x) => setRel({ ...rel, note: x })} placeholder="e.g. BG/ICICI/2026/551 received" /></Field>
             </div>
-            {early && <div className="mt-3"><Note tone="amber">DLP runs until {fmtDate(dlpEnd)}. Release now only against a bank guarantee.</Note></div>}
+            {early && <div className="mt-3"><Note tone="amber">DLP runs until {fmtDate(shiftDays((c.dlpMonths || 0) * 30, c.handover?.date || c.end))}. Release now only against a bank guarantee.</Note></div>}
+            {needHo && <div className="mt-3"><Note tone="red">No handover certificate yet — issue it in Close-out & Handover first.</Note></div>}
+            {needBg && <div className="mt-3"><Note tone="red">Live retention bank guarantees cover {inr(bgCover)} — add a retention BG on the contract for at least the release amount.</Note></div>}
           </Modal>
         );
       })()}

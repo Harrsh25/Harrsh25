@@ -372,6 +372,8 @@ function paymentGate(st, inv) {
   if (comp.blocking.length) add(set0.complianceGate, `Compliance: ${comp.blocking.slice(0, 2).join("; ")}${comp.blocking.length > 2 ? ` +${comp.blocking.length - 2} more` : ""}`);
   if (inv.hold && (!inv.hold.until || daysUntil(inv.hold.until) >= 0)) stops.push(`Invoice on hold — ${inv.hold.reason}${inv.hold.until ? ` until ${fmtDate(inv.hold.until)}` : ""}`);
   if (!v.bankAccounts.some((b) => b.isDefault)) stops.push("No default bank account");
+  if (inv.review === "Pending") stops.push("Vendor invoice on hold — waiting for AP review");
+  if (inv.review === "Rejected") stops.push("Vendor invoice on hold — rejected by AP");
   if (inv.source === "Purchase Order") {
     const m = threeWay(st, inv);
     if (m.rows.some((r) => !r.qtyOk) && !m.qtyCovered) add(set0.threeWayQty, "Billed quantity exceeds accepted quantity");
@@ -557,8 +559,9 @@ function InvoiceDrawer({ id, onClose }) {
   return (
     <Drawer open onClose={onClose} width={920} title={`${inv.id} · ${vendorName(st, inv.vendorId)}`}
       subtitle={<><Status>{status}</Status><span>{inv.source}{inv.poId ? ` ${inv.poId}` : inv.raBillId ? ` ${inv.raBillId}` : ""}</span><span>· vendor ref {inv.number}</span><span>· due {fmtDate(inv.due)}</span><span>· should be paid: <b className={cls(sbp === "No" ? "text-red-600" : sbp === "Exception" ? "text-amber-700" : "text-green-700")}>{sbp}</b></span></>}
-      actions={t.balance > 0.5 && <Btn variant="primary" icon={Icon.rupee} onClick={() => setPay(true)}>Record payment</Btn>}>
+      actions={t.balance > 0.5 && inv.review !== "Pending" && <Btn variant="primary" icon={Icon.rupee} onClick={() => setPay(true)}>Record payment</Btn>}>
       <div className="space-y-4 px-6 py-5">
+        {inv.review && <VendorInvoiceReview inv={inv} />}
         <div className="grid grid-cols-4 gap-3">
           <StatTile tone="blue" label="Bill amount" value={inr(t.gross)} sub={inv.source === "RA Bill" ? "net of deductions" : `incl. GST ${inv.gstPct}%`} icon={Icon.receipt} />
           <StatTile tone="purple" label="Credit / debit notes" value={inr(t.notes)} icon={Icon.file} />
@@ -688,7 +691,7 @@ function InvoicesPage() {
         <Btn icon={Icon.plus} onClick={() => setBill(true)}>Enter vendor bill</Btn>
         <Btn variant="primary" icon={Icon.rupee} disabled={!sel.length} onClick={() => setRun(true)}>Payment run{sel.length ? ` (${sel.length})` : ""}</Btn>
       </>}>
-      <DataTable noun="bills" summary={(r) => [{ value: inrShort(sum(r, (i) => invoiceTotals(i).balance)), label: "outstanding" }, { value: inrShort(sum(st.vendorAdvances, (a) => a.amount - sum(a.allocated, (x) => x.amount))), label: "unadjusted advances" }]} filters={<><FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Unpaid", "Partially Paid", "Overdue", "On Hold", "Paid"]} /></>} rows={rows} onRow={(i) => setOpen(i.id)} columns={[
+      <DataTable noun="bills" summary={(r) => [{ value: inrShort(sum(r, (i) => invoiceTotals(i).balance)), label: "outstanding" }, { value: inrShort(sum(st.vendorAdvances, (a) => a.amount - sum(a.allocated, (x) => x.amount))), label: "unadjusted advances" }]} filters={<><FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Awaiting Review", "Unpaid", "Partially Paid", "Overdue", "On Hold", "Paid", "Rejected"]} /></>} rows={rows} onRow={(i) => setOpen(i.id)} columns={[
         { key: "sel", label: "", render: (i) => invoiceStatus(i) !== "Paid" && <input type="checkbox" className="h-4 w-4 accent-[#0b5ed7]" checked={sel.includes(i.id)} onClick={(e) => e.stopPropagation()} onChange={(e) => setSel(e.target.checked ? [...sel, i.id] : sel.filter((x) => x !== i.id))} /> },
         { key: "v", label: "Vendor", filterOptions: FO.vendors, filter: (x) => vendorName(st, x.vendorId), render: (i) => <span className="font-medium">{vendorName(st, i.vendorId)}</span> },
         { key: "src", label: "Against", filterOptions: FO.billType, filterLabel: "Bill type", filter: (i) => (i.source === "RA Bill" ? "RA bill" : i.source === "Direct" ? "Direct bill" : "Purchase order"), render: (i) => { const [a, b] = billAgainst(st, i); return <TwoLine a={a} b={b} />; } },
@@ -866,5 +869,25 @@ function SpendByGroup({ onOpenVendor }) {
         </Modal>
       )}
     </div>
+  );
+}
+
+// AP review of an invoice the vendor submitted in the portal
+function VendorInvoiceReview({ inv }) {
+  const [remark, setRemark] = y.useState("");
+  if (inv.review === "Accepted") return <Note tone="green" icon={Icon.check}>Submitted by the vendor in the portal ({inv.submittedBy}); accepted by {inv.reviewedBy} on {fmtDate(inv.reviewedAt)}.{inv.attachment && <> <FileLink name={inv.attachment.name} dataUrl={inv.attachment.dataUrl} /></>}</Note>;
+  if (inv.review === "Rejected") return <Note tone="red">Rejected by {inv.reviewedBy}: {inv.reviewRemark}. The vendor can submit a corrected invoice.</Note>;
+  return (
+    <Section title="Vendor-submitted invoice — AP review" icon={Icon.clipboardCheck}>
+      <div className="space-y-3 p-4">
+        <p className="text-[13px] text-ink-soft">Submitted in the portal by <b>{inv.submittedBy}</b> on {fmtDate(inv.date)}.{inv.attachment && <> Copy: <FileLink name={inv.attachment.name} dataUrl={inv.attachment.dataUrl} /></>} Check it against the PO and goods receipt (3-way match below), then accept or reject.</p>
+        <ActNote roles={["Accounts", "Finance Controller"]} involved={[]} what="reviewing vendor invoices" />
+        <div className="grid grid-cols-[1fr_auto_auto] items-end gap-2">
+          <Field label="AP remark"><TextInput value={remark} onChange={setRemark} placeholder="Required to reject" /></Field>
+          <Btn variant="danger" disabled={!remark.trim()} onClick={() => reviewVendorInvoice(inv, false, remark.trim())}>Reject</Btn>
+          <Btn variant="success" icon={Icon.check} onClick={() => reviewVendorInvoice(inv, true, remark.trim())}>Accept invoice</Btn>
+        </div>
+      </div>
+    </Section>
   );
 }

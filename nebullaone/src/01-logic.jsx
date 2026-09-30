@@ -252,10 +252,13 @@ function invoiceTotals(inv) {
   const gross = inv.source === "RA Bill" ? inv.amount : round2(taxable + gst);
   const paid = sum(inv.payments, (p) => p.amount + (p.tds || 0));
   const notes = sum(inv.notes || [], (n) => (n.type === "Debit Note" ? -n.amount : n.amount));
-  const payable = round2(gross + notes);
+  // A vendor invoice rejected by AP is not payable
+  const payable = inv.review === "Rejected" ? 0 : round2(gross + notes);
   return { taxable, gst, gross, paid, notes, payable, balance: round2(payable - paid) };
 }
 function invoiceStatus(inv) {
+  if (inv.review === "Pending") return "Awaiting Review";
+  if (inv.review === "Rejected") return "Rejected";
   const t = invoiceTotals(inv);
   if (t.balance <= 0.5) return "Paid";
   if (inv.hold && (!inv.hold.until || daysUntil(inv.hold.until) >= 0)) return "On Hold";

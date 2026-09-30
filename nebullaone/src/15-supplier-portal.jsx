@@ -147,6 +147,7 @@ function PortalBody({ vid, vendorMode }) {
   const [reup, setReup] = y.useState(null);
   const [newUser, setNewUser] = y.useState({ name: "", email: "" });
   const [detail, setDetail] = y.useState(null);
+  const [invNew, setInvNew] = y.useState(false);
   const open = (kind, id) => setDetail({ kind, id });
   const stop = (e) => e.stopPropagation();
   const pos = st.purchaseOrders.filter((p) => p.vendorId === vid && p.status !== "Draft");
@@ -165,6 +166,7 @@ function PortalBody({ vid, vendorMode }) {
     { id: "orders", label: "Purchase orders", icon: Icon.truck },
     ...(isContractor ? [{ id: "wo", label: "Work orders", icon: Icon.clipboardList }, { id: "claims", label: "RA claims", icon: Icon.receipt }] : []),
     ...(isContractor && st.workers.some((w) => w.vendorId === vid) ? [{ id: "att", label: "Daily attendance", icon: Icon.users }] : []),
+    ...(isContractor && (st.punchItems || []).some((pi) => byId(st.contracts, pi.contractId)?.vendorId === vid) ? [{ id: "punch", label: "Punch list", icon: Icon.listChecks }] : []),
     { id: "bills", label: "Bills & payments", icon: Icon.rupee },
     { id: "price", label: "Pricelist", icon: Icon.sheet },
     { id: "docs", label: "Documents", icon: Icon.folderCheck },
@@ -230,7 +232,8 @@ function PortalBody({ vid, vendorMode }) {
           { key: "a", label: "", align: "right", render: (c) => c.status === "Returned" && !c.resubmittedAs && !billBlocked && <span onClick={stop}><Btn size="sm" onClick={() => setClaimFor({ woId: c.woId, from: c.id })}>Revise & resubmit</Btn></span> },
         ]} />}
         {tab === "att" && (txBlocked ? <div className="p-4"><Note tone="red">Attendance entry is paused while the account is on hold.</Note></div> : <AttendanceSheet vendorId={vid} portal />)}
-        {tab === "bills" && <DataTable rows={[...invs.map((i) => ({ key: i.id, kind: "inv", ref: i.number, what: i.source === "RA Bill" ? i.raBillId : i.poId, amt: invoiceTotals(i).payable, bal: invoiceTotals(i).balance, status: invoiceStatus(i), due: i.due })),
+        {tab === "punch" && <PunchTable rows={(st.punchItems || []).filter((pi) => byId(st.contracts, pi.contractId)?.vendorId === vid)} portal by={vendorMode ? getVendorSession()?.email : v.contact.name} />}
+        {tab === "bills" && <DataTable actions={pos.length > 0 && <Btn size="sm" variant="primary" icon={Icon.receipt} disabled={billBlocked} title={billBlocked ? "Invoices are paused while your account is on hold" : ""} onClick={() => setInvNew(true)}>Submit invoice</Btn>} rows={[...invs.map((i) => ({ key: i.id, kind: "inv", ref: i.number, what: i.source === "RA Bill" ? i.raBillId : i.poId, amt: invoiceTotals(i).payable, bal: invoiceTotals(i).balance, status: invoiceStatus(i), due: i.due })),
           ...bills.filter((b) => !b.invoiceId).map((b) => ({ key: b.id, kind: "bill", ref: b.id, what: `${b.woId} · RA ${b.seq}`, amt: b.net, bal: b.net, status: b.status, due: null }))]} rowKey={(r) => r.key} onRow={(r) => open(r.kind, r.key)} columns={[
           { key: "ref", label: "Reference", className: "mono text-[12px]" }, { key: "what", label: "Against" },
           { key: "amt", label: "Amount", align: "right", num: true, render: (r) => inr(r.amt) }, { key: "bal", label: "Balance", align: "right", num: true, render: (r) => inr(r.bal) },
@@ -293,6 +296,7 @@ function PortalBody({ vid, vendorMode }) {
           </div>
         )}
       </div>
+      {invNew && <PortalInvoiceModal v={v} by={vendorMode ? getVendorSession()?.email || v.contact.name : v.contact.name} onClose={() => setInvNew(false)} />}
       {detail?.kind === "po" && <PortalPoDrawer key={detail.id} id={detail.id} open={open} onClose={() => setDetail(null)} />}
       {detail?.kind === "wo" && <PortalWoDrawer key={detail.id} id={detail.id} open={open} onClose={() => setDetail(null)} onAccept={(w) => (txBlocked ? toast("Your account is on hold — work orders can't be accepted", "red") : actWo(w, "Accepted"))} onDecline={(w) => setWoDecline({ wo: w, reason: "" })}
         onClaim={(wid) => (billBlocked ? toast("Claims are paused while your account is on hold", "red") : setClaimFor(wid))} />}

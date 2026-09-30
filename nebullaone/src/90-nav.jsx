@@ -24,6 +24,7 @@ const NXV_PAGES = [
   { group: "Contract & Labor", base: CL_BASE, path: "retention", label: "Retention & Deductions", icon: Icon.lock, el: RetentionPage },
   { group: "Contract & Labor", base: CL_BASE, path: "labor-rates", label: "Labor Rate Management", icon: Icon.hardHat, el: LaborRatesPage },
   { group: "Contract & Labor", base: CL_BASE, path: "performance", label: "Performance & Progress", icon: Icon.trending, el: PerformancePage },
+  { group: "Contract & Labor", base: CL_BASE, path: "closeout", label: "Close-out & Handover", icon: Icon.folderCheck, el: CloseoutPage },
 ];
 
 // Routes are children of the "/productivity" route, so paths are relative to it

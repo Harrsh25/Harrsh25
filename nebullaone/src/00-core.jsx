@@ -88,7 +88,8 @@ const TONE = {
   "changes requested": "amber", invited: "amber", registered: "green", declined: "red", quoted: "green", "not sent": "gray", "under review": "blue",
   returned: "red", ordered: "green", "partially ordered": "purple", "partially awarded": "purple", "to send": "blue", waiting: "amber", late: "red",
   "fully billed": "green", "partially billed": "purple", "waiting bills": "amber", "nothing to bill": "gray", "fully consumed": "gray", cancelled: "gray",
-  exception: "amber", "claim submitted": "blue",
+  exception: "amber", "claim submitted": "blue", "awaiting review": "blue", "rework done": "blue", rectified: "blue", "handed over": "purple",
+  "short-closed": "gray", suspended: "amber", terminated: "red", "ready to close": "green", passed: "green", failed: "red",
 };
 function Status({ children, tone }) {
   return <StatusPill tone={tone || TONE[String(children).toLowerCase()] || "gray"}>{children}</StatusPill>;
