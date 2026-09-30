@@ -16910,20 +16910,70 @@ const NxVendor = (() => {
     hint: s,
     required: r,
     span: n = 1,
+    error: er,
     children: a
   }) {
     return e(us.Provider, {
       value: typeof t == "string" ? t : null
     }, e("label", {
-      className: K("block", n === 2 && "col-span-2", n === 3 && "col-span-3", n === 4 && "col-span-4")
+      className: K("block", n === 2 && "col-span-2", n === 3 && "col-span-3", n === 4 && "col-span-4", er && "nx-invalid")
     }, e("span", {
       className: "mb-1 block text-[12px] font-medium text-ink-soft"
     }, t, r && e("span", {
       className: "text-red-500"
-    }, " *")), a, s && e("span", {
+    }, " *")), a, er ? e("span", {
+      role: "alert",
+      className: "mt-1 block text-[11px] text-red-600"
+    }, er) : s && e("span", {
       className: "mt-1 block text-[11px] text-ink-mute"
     }, s)))
   }
+  // ---- NX: shared application-level validators (return "" when valid, else a message)
+  const VX = {
+    blank: v => v === "" || v === null || v === void 0 || String(v).trim() === "",
+    req: (v, m = "Required") => VX.blank(v) ? m : "",
+    num: (v, {
+      min: a,
+      max: b,
+      gt: g,
+      int: i,
+      label: l = "Value",
+      optional: o
+    } = {}) => {
+      if (VX.blank(v)) return o ? "" : "Required";
+      const x = Number(v);
+      return Number.isNaN(x) ? "Enter a number" : i && !Number.isInteger(x) ? "Whole number only" : g !== void 0 && !(x > g) ? `${l} must be greater than ${g}` : a !== void 0 && x < a ? `${l} can't be below ${a}` : b !== void 0 && x > b ? `${l} can't exceed ${b}` : ""
+    },
+    pct: (v, o = {}) => VX.num(v, {
+      min: 0,
+      max: 100,
+      label: "Percentage",
+      ...o
+    }),
+    amount: (v, o = {}) => VX.num(v, {
+      min: 0,
+      label: "Amount",
+      ...o
+    }),
+    dateOrder: (a, b, m) => a && b && a > b ? m : "",
+    notFuture: (d, m = "Date can't be in the future") => d && d > new Date().toISOString().slice(0, 10) ? m : "",
+    notPast: (d, m = "Date can't be in the past") => d && d < new Date().toISOString().slice(0, 10) ? m : "",
+    email: v => VX.blank(v) ? "" : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v).trim()) ? "" : "Enter a valid email",
+    phone: v => VX.blank(v) ? "" : /^(\+?\d{1,3}[\s-]?)?\d[\d\s-]{8,13}\d$/.test(String(v).trim()) && String(v).replace(/\D/g, "").length >= 10 ? "" : "Enter a valid phone number (10+ digits)",
+    pin: (v, c = "India") => VX.blank(v) ? "" : c === "India" ? /^[1-9][0-9]{5}$/.test(String(v).trim()) ? "" : "PIN code must be 6 digits" : /^[A-Za-z0-9 -]{3,10}$/.test(String(v).trim()) ? "" : "Enter a valid postal code",
+    ifsc: v => VX.blank(v) ? "" : /^[A-Z]{4}0[A-Z0-9]{6}$/.test(String(v).trim().toUpperCase()) ? "" : "IFSC must be 11 characters, e.g. HDFC0001234",
+    acct: v => VX.blank(v) ? "" : /^[0-9]{9,18}$/.test(String(v).replace(/\s/g, "")) ? "" : "Account number must be 9\u201318 digits",
+    clra: v => VX.blank(v) ? "" : /^[A-Za-z0-9][A-Za-z0-9/-]{5,29}$/.test(String(v).trim()) ? "" : "Use letters, digits, / or - (6\u201330 chars), e.g. CLRA/PUN/2025/0412",
+    pf: v => VX.blank(v) ? "" : /^[A-Z]{5}[0-9]{7,10}$/.test(String(v).replace(/[\s/]/g, "").toUpperCase()) ? "" : "PF code: 5 letters + 7\u201310 digits, e.g. PUPUN1123344000",
+    esi: v => VX.blank(v) ? "" : /^[0-9]{17}$/.test(String(v).replace(/[\s-]/g, "")) ? "" : "ESI code must be 17 digits",
+    url: v => VX.blank(v) ? "" : /^(https?:\/\/)?[\w-]+(\.[\w-]+)+(\/\S*)?$/.test(String(v).trim()) ? "" : "Enter a valid website, e.g. www.example.com",
+    FILE_MAX: 5 * 1024 * 1024,
+    FILE_TYPES: /\.(pdf|jpe?g|png)$/i,
+    file: (f, types = VX.FILE_TYPES) => f ? f.size > VX.FILE_MAX ? `File is ${(f.size/1048576).toFixed(1)} MB \u2014 maximum is 5 MB` : types.test(f.name) ? "" : "Only PDF, JPG or PNG files are allowed" : "",
+    any: o => Object.values(o).some(Boolean),
+    count: o => Object.values(o).filter(Boolean).length
+  };
+  typeof window < "u" && (window.__NX_VX = VX);
 
   function ee({
     value: t,
@@ -18153,6 +18203,14 @@ const NxVendor = (() => {
       rate: 0
     }).rate,
     Kn = ["Procurement", "Legal", "Finance"],
+    nxStages = () => {
+      try {
+        const S = (Pe().settings || {}).approvalStages;
+        return S && S.length ? S.filter(x => x.enabled !== !1).map(x => x.dept) : Kn
+      } catch {
+        return Kn
+      }
+    },
     ct = [{
       status: "Submitted",
       label: "Submitted",
@@ -20767,7 +20825,8 @@ const NxVendor = (() => {
       className: "cursor-default rounded px-1 text-[11px] text-ink-mute hover:bg-gray-100"
     }, "+", t.length - s))
   }
-  const Aa = ["Company", "Partnership / LLP", "Individual / HUF", "Proprietorship"],
+  const nxCountries = ["India", "United Arab Emirates", "Singapore", "United Kingdom", "United States", "Germany", "France", "Italy", "Netherlands", "China", "Japan", "South Korea", "Other"],
+    Aa = ["Company", "Partnership / LLP", "Individual / HUF", "Proprietorship"],
     ba = (t, s) => t === "Goods" ? "194Q" : /Individual|Proprietor/.test(s || "") ? "194C-1" : "194C-2",
     Yt = () => ({
       supplierType: "Company",
@@ -20793,6 +20852,10 @@ const NxVendor = (() => {
       address: "",
       city: "",
       state: "Maharashtra",
+      country: "India",
+      pin: "",
+      website: "",
+      taxId: "",
       currency: "INR",
       paymentTerms: "Net 30",
       tds: "194Q",
@@ -20800,6 +20863,7 @@ const NxVendor = (() => {
       parentCompany: "",
       bank: {
         bank: "",
+        holder: "",
         account: "",
         ifsc: ""
       },
@@ -20825,10 +20889,33 @@ const NxVendor = (() => {
   }
 
   function Ps(t) {
-    const s = {};
-    t.name.trim() || (s.name = "Required"), ga.test(t.gstin.trim().toUpperCase()) || (s.gstin = "Enter a valid 15-character GSTIN"), Ss.test(t.pan.trim().toUpperCase()) ? ga.test(t.gstin.trim().toUpperCase()) && t.gstin.toUpperCase().slice(2, 12) !== t.pan.toUpperCase() && (s.pan = "PAN doesn't match GSTIN") : s.pan = "Enter a valid PAN (ABCDE1234F)";
-    const r = Rs(t).gstin;
-    return r && (s.gstin = `Already registered as ${r.id} \u2014 ${r.name}`), t.contact.name.trim() || (s.contactName = "Required"), Dn.test(t.contact.email) || (s.email = "Enter a valid email"), t.categories.length || (s.categories = "Pick at least one category"), s
+    const s = {},
+      IN = (t.country || "India") === "India";
+    t.name.trim() || (s.name = "Required"), IN ? (ga.test(t.gstin.trim().toUpperCase()) || (s.gstin = "Enter a valid 15-character GSTIN"), Ss.test(t.pan.trim().toUpperCase()) ? ga.test(t.gstin.trim().toUpperCase()) && t.gstin.toUpperCase().slice(2, 12) !== t.pan.toUpperCase() && (s.pan = "PAN doesn't match GSTIN") : s.pan = "Enter a valid PAN (ABCDE1234F)") : (t.taxId || "").trim().length < 5 && (s.taxId = "Enter the tax / VAT registration number");
+    const r = IN && Rs(t).gstin;
+    r && (s.gstin = `Already registered as ${r.id} \u2014 ${r.name}`), t.contact.name.trim() || (s.contactName = "Required"), Dn.test(t.contact.email) || (s.email = "Enter a valid email"), t.categories.length || (s.categories = "Pick at least one category");
+    const P = (k, v) => v && (s[k] = v);
+    P("phone", VX.phone(t.contact.phone)), P("pin", VX.pin(t.pin, t.country || "India")), P("website", VX.url(t.website));
+    const B = t.bank || {};
+    if (B.account || B.ifsc || B.holder) P("bankAccount", B.account ? VX.acct(B.account) : "Required when adding bank details"), P("bankIfsc", IN ? B.ifsc ? VX.ifsc(B.ifsc) : "Required" : ""), P("bankHolder", (B.holder || "").trim() ? "" : "Enter the account holder name as per bank records");
+    if (t.type === "Labor" || t.isContractor) {
+      const c = t.contractor || {};
+      P("clra", VX.clra(c.labourLicence)), P("pf", VX.pf(c.pfCode)), P("esi", VX.esi(c.esiCode)), P("workforce", VX.num(c.workforce, {
+        min: 1,
+        max: 1e5,
+        int: !0,
+        label: "Workforce",
+        optional: !0
+      })), P("experience", VX.num(c.experienceYrs, {
+        min: 0,
+        max: 100,
+        label: "Experience",
+        optional: !0
+      })), P("licenceExpiry", c.labourLicence && !c.licenceExpiry ? "Enter the licence expiry date" : VX.notPast(c.licenceExpiry, "Licence has already expired"))
+    }
+    const U = t.uploads || {};
+    for (const [k, v] of Object.entries(U)) v && v.error && (s.docs = `${k}: ${v.error}`), v && v.file && v.expiry && v.expiry < ke() && (s.docs = `${k}: expiry date is in the past`);
+    return s
   }
 
   function As(t, s, r = "Internal") {
@@ -20849,10 +20936,12 @@ const NxVendor = (() => {
         bankAccounts: t.bank.account ? [{
           id: 1,
           ...t.bank,
+          accountType: "Current",
+          status: "Unverified",
           isDefault: !0
         }] : [],
         approval: {
-          stages: Kn.map((o, i) => ({
+          stages: nxStages().map((o, i) => ({
             dept: o,
             status: s && i === 0 ? "Pending" : "Waiting",
             by: null,
@@ -21166,7 +21255,16 @@ const NxVendor = (() => {
       done: I && w
     }, e("div", {
       className: "grid grid-cols-3 gap-3"
-    }, e(L, {
+    }, (t.country || "India") !== "India" && e(L, {
+      label: "Tax / VAT registration no.",
+      required: !0,
+      span: 2,
+      hint: "Foreign vendor \u2014 GSTIN and PAN are not required"
+    }, e(ee, {
+      value: t.taxId || "",
+      onChange: W => i("taxId", W.toUpperCase()),
+      className: K(At, "mono")
+    }), d("taxId")), (t.country || "India") === "India" && e(L, {
       label: "GSTIN",
       required: !0
     }, e(ee, {
@@ -21175,7 +21273,7 @@ const NxVendor = (() => {
       placeholder: "27AAKCS4412M1Z3",
       maxLength: 15,
       className: K(At, "mono")
-    }), d("gstin") || k($.gstin, "Already registered:") || b(I, `Valid \xB7 ${kn[t.gstin.slice(0,2)]||"state code "+t.gstin.slice(0,2)}`)), e(L, {
+    }), d("gstin") || k($.gstin, "Already registered:") || b(I, `Valid \xB7 ${kn[t.gstin.slice(0,2)]||"state code "+t.gstin.slice(0,2)}`)), (t.country || "India") === "India" && e(L, {
       label: "PAN",
       required: !0
     }, e(ee, {
@@ -21243,7 +21341,7 @@ const NxVendor = (() => {
       value: t.contact.phone,
       onChange: W => p("phone", W),
       placeholder: "+91 98xxx xxxxx"
-    })), e(L, {
+    }), d("phone")), e(L, {
       label: "Registered address",
       span: 3
     }, e(ee, {
@@ -21255,14 +21353,44 @@ const NxVendor = (() => {
     }, e(ee, {
       value: t.city,
       onChange: W => i("city", W)
-    })), e(L, {
+    })), (t.country || "India") === "India" ? e(L, {
       label: "State",
       hint: kn[(t.gstin || "").slice(0, 2)] ? "From GSTIN" : ""
     }, e(ue, {
       value: t.state,
       onChange: W => i("state", W),
       options: Kt($s, t.state)
-    })))), v && e(zt, {
+    })) : e(L, {
+      label: "State / region"
+    }, e(ee, {
+      value: t.state,
+      onChange: W => i("state", W)
+    })), e(L, {
+      label: (t.country || "India") === "India" ? "PIN code" : "Postal code"
+    }, e(ee, {
+      value: t.pin || "",
+      onChange: W => i("pin", W.trim()),
+      maxLength: 10,
+      placeholder: (t.country || "India") === "India" ? "411026" : "",
+      className: K(At, "mono")
+    }), d("pin")), e(L, {
+      label: "Country"
+    }, e(ue, {
+      value: t.country || "India",
+      onChange: W => s({
+        ...t,
+        country: W,
+        currency: W === "India" ? "INR" : t.currency === "INR" ? (W === "United Arab Emirates" ? "AED" : ["Germany", "France", "Italy", "Netherlands"].includes(W) ? "EUR" : "USD") : t.currency,
+        state: W === "India" ? "Maharashtra" : ""
+      }),
+      options: nxCountries
+    })), e(L, {
+      label: "Website"
+    }, e(ee, {
+      value: t.website || "",
+      onChange: W => i("website", W.trim()),
+      placeholder: "www.company.com"
+    }), d("website")))), v && e(zt, {
       n: ++V,
       title: "Contractor statutory details",
       desc: "Required before a contractor can be mobilised to site",
@@ -21273,34 +21401,44 @@ const NxVendor = (() => {
       label: "Labour licence no. (CLRA)"
     }, e(ee, {
       value: t.contractor.labourLicence,
-      onChange: W => c("labourLicence", W)
-    })), e(L, {
+      onChange: W => c("labourLicence", W.toUpperCase()),
+      placeholder: "CLRA/PUN/2025/0412"
+    }), d("clra")), e(L, {
       label: "Licence valid till"
     }, e(Re, {
       value: t.contractor.licenceExpiry,
+      min: ke(),
       onChange: W => c("licenceExpiry", W)
-    })), e(L, {
+    }), d("licenceExpiry")), e(L, {
       label: "Workforce strength"
     }, e(ge, {
       value: t.contractor.workforce,
       onChange: W => c("workforce", W),
+      min: 1,
+      step: 1,
       placeholder: "Workers"
-    })), e(L, {
+    }), d("workforce")), e(L, {
       label: "PF establishment code"
     }, e(ee, {
       value: t.contractor.pfCode,
-      onChange: W => c("pfCode", W)
-    })), e(L, {
+      onChange: W => c("pfCode", W.toUpperCase()),
+      placeholder: "PUPUN1123344000",
+      className: K(At, "mono")
+    }), d("pf")), e(L, {
       label: "ESI code"
     }, e(ee, {
       value: t.contractor.esiCode,
-      onChange: W => c("esiCode", W)
-    })), e(L, {
+      onChange: W => c("esiCode", W),
+      placeholder: "17 digits",
+      maxLength: 20,
+      className: K(At, "mono")
+    }), d("esi")), e(L, {
       label: "Experience (years)"
     }, e(ge, {
       value: t.contractor.experienceYrs,
-      onChange: W => c("experienceYrs", W)
-    })), e(L, {
+      onChange: W => c("experienceYrs", W),
+      min: 0
+    }), d("experience")), e(L, {
       label: "Past projects",
       span: 3
     }, e(ee, {
@@ -21320,6 +21458,14 @@ const NxVendor = (() => {
     }, e("div", {
       className: "grid grid-cols-3 gap-3"
     }, e(L, {
+      label: "Account holder name",
+      hint: "Exactly as in bank records \u2014 used for penny-drop verification"
+    }, e(ee, {
+      value: t.bank.holder || "",
+      disabled: l,
+      onChange: W => m("holder", W),
+      placeholder: t.legalName || t.name || "Account holder"
+    }), d("bankHolder")), e(L, {
       label: "Bank"
     }, e(ee, {
       value: t.bank.bank,
@@ -21332,8 +21478,10 @@ const NxVendor = (() => {
       value: t.bank.account,
       disabled: l,
       onChange: W => m("account", W.replace(/\s/g, "")),
+      inputMode: "numeric",
+      maxLength: 18,
       className: K(At, "mono")
-    })), e(L, {
+    }), d("bankAccount")), e(L, {
       label: "IFSC"
     }, e(ee, {
       value: t.bank.ifsc,
@@ -21342,9 +21490,9 @@ const NxVendor = (() => {
       maxLength: 11,
       placeholder: "HDFC0001234",
       className: K(At, "mono")
-    }), t.bank.ifsc && !f ? e("span", {
+    }), d("bankIfsc") || (t.bank.ifsc && !f ? e("span", {
       className: "mt-1 block text-[11px] text-amber-700"
-    }, "Format: 4 letters, 0, then 6 characters") : b(f, "Valid IFSC")))), e(zt, {
+    }, "Format: 4 letters, 0, then 6 characters") : b(f, "Valid IFSC"))))), e(zt, {
       n: ++V,
       title: "Documents",
       desc: "PDF / JPG / PNG \u2014 each is verified by the approver",
@@ -21407,6 +21555,19 @@ const NxVendor = (() => {
   }) {
     const [n, a] = y.useState(null), l = async (o, i) => {
       if (!i) return;
+      const er = VX.file(i);
+      if (er) {
+        r({
+          ...s,
+          [o]: {
+            ...s[o] || {},
+            file: "",
+            dataUrl: null,
+            error: er
+          }
+        }), me(er, "red");
+        return
+      }
       a(o);
       const p = await Xt(i);
       a(null), r({
@@ -21414,7 +21575,9 @@ const NxVendor = (() => {
         [o]: {
           ...s[o] || {},
           file: p.name,
-          dataUrl: p.dataUrl
+          dataUrl: p.dataUrl,
+          size: p.size,
+          error: ""
         }
       })
     };
@@ -21434,8 +21597,11 @@ const NxVendor = (() => {
       }) : e(x.file, {
         size: 15,
         className: "text-ink-faint"
-      }), o), e("label", {
-        className: K("flex h-[30px] cursor-pointer items-center gap-2 truncate rounded-md border border-dashed px-2.5 text-[12.5px]", i.file ? "border-green-300 bg-green-50 text-green-700" : "border-gray-300 text-ink-soft hover:border-brand hover:text-brand")
+      }), o, i.error && e("span", {
+        role: "alert",
+        className: "text-[11px] text-red-600"
+      }, i.error)), e("label", {
+        className: K("flex h-[30px] cursor-pointer items-center gap-2 truncate rounded-md border border-dashed px-2.5 text-[12.5px]", i.file ? "border-green-300 bg-green-50 text-green-700" : i.error ? "border-red-300 text-red-600" : "border-gray-300 text-ink-soft hover:border-brand hover:text-brand")
       }, e(x.upload, {
         size: 13
       }), e("span", {
@@ -21447,6 +21613,7 @@ const NxVendor = (() => {
         onChange: m => l(o, m.target.files[0])
       })), p ? e(Re, {
         value: i.expiry || "",
+        min: ke(),
         onChange: m => r({
           ...s,
           [o]: {
