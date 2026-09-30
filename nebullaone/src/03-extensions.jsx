@@ -115,13 +115,13 @@ const DEFAULT_SETTINGS = {
   invoiceAmtTolPct: 0,
   earlyReceiptDays: 5,            // Oracle receiving: days before the delivery date a receipt is accepted
   lateReceiptDays: 10,
-  receiptDateAction: "Warn",      // Warn | Reject | None
-  overReceiptAction: "Warn",      // Warn | Reject
+  receiptDateAction: "Warn",      // Stop | Warn | Off
+  overReceiptAction: "Stop",      // Stop (reject) | Warn | Off
   blindReceiving: false,          // hide ordered quantity on the goods receipt
   dropshipping: true,             // deliver straight to site
   daysToPurchase: 2,              // lead added before the vendor's lead time
   rfqSenderEmail: "procurement@nebullaone.in",
-  autoPostBills: false,
+  autoPostBills: true,            // bills are payable as soon as they are saved; switch off to keep new bills as drafts
 };
 const APPLIES = [
   { value: "all", label: "All vendors" }, { value: "goods", label: "Goods suppliers" }, { value: "services", label: "Service vendors (not on site)" },

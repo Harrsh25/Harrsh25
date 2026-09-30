@@ -10,6 +10,7 @@ const NXV_PAGES = [
   { group: "Vendor Management", base: VM_BASE, path: "requisitions", label: "Purchase Requisitions", icon: Icon.clipboardList, el: RequisitionsPage },
   { group: "Vendor Management", base: VM_BASE, path: "rfq", label: "RFQ & Quotations", icon: Icon.scale, el: RfqPage },
   { group: "Vendor Management", base: VM_BASE, path: "blanket-orders", label: "Blanket Orders", icon: Icon.layers, el: BlanketOrdersPage },
+  { group: "Vendor Management", base: VM_BASE, path: "price-lists", label: "Vendor Price Lists", icon: Icon.receipt, el: VendorPriceListsPage },
   { group: "Vendor Management", base: VM_BASE, path: "purchase-orders", label: "Purchase Orders", icon: Icon.package, el: PurchaseOrdersPage },
   { group: "Vendor Management", base: VM_BASE, path: "invoices", label: "Invoices & Payments", icon: Icon.receipt, el: InvoicesPage },
   { group: "Vendor Management", base: VM_BASE, path: "scorecard", label: "Vendor Scorecard", icon: Icon.gauge, el: ScorecardPage },

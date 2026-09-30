@@ -808,3 +808,157 @@ function RfqAnswers({ rfq, value, onChange, readOnly }) {
   );
 }
 const rfqAnswerErr = (rfq, ans) => { const i = (rfq.questions || []).findIndex((q, n) => q.required && (ans?.[n] === undefined || ans?.[n] === "")); return i >= 0 ? `Answer question ${i + 1}: ${rfq.questions[i].text}` : ""; };
+
+// ---------------------------------------------------------------- vendor price lists / catalogue (Odoo vendor pricelist)
+// Best valid price for a vendor + item at a quantity (minimum quantity, validity, discount)
+function vendorPriceFor(st, vendorId, desc, qty, list) {
+  if (!vendorId || !desc) return null;
+  const d = String(desc).trim().toLowerCase(), today = todayISO();
+  const hits = (st.vendorPrices || []).filter((p) => p.vendorId === vendorId && (!list || !p.priceList || p.priceList === list)
+    && (String(p.product).toLowerCase() === d || (p.vendorProductName && String(p.vendorProductName).toLowerCase() === d) || (d.length > 4 && String(p.product).toLowerCase().includes(d)))
+    && (!p.validFrom || p.validFrom <= today) && (!p.validTo || p.validTo >= today) && (Number(qty) || 0) >= (Number(p.minQty) || 0));
+  if (!hits.length) return null;
+  const best = hits.map((p) => ({ ...p, price: round2(Number(p.unitPrice) * (1 - (Number(p.discount) || 0) / 100) * fxRate(p.currency)), list: p.priceList || "vendor" })).sort((a, b) => a.price - b.price)[0];
+  return best;
+}
+function priceErr(p, st, id) {
+  if (!p.vendorId) return "Pick the vendor";
+  if (!String(p.product || "").trim()) return "Enter the product";
+  if (!(Number(p.unitPrice) > 0)) return "Unit price must be above zero";
+  if (Number(p.minQty) < 0) return "Minimum quantity can't be negative";
+  if (Number(p.discount) < 0 || Number(p.discount) > 100) return "Discount must be 0–100%";
+  if (Number(p.leadDays) < 0) return "Lead time can't be negative";
+  if (p.validFrom && p.validTo && p.validTo < p.validFrom) return "Valid-to is before valid-from";
+  if ((st.vendorPrices || []).some((x) => x.id !== id && x.vendorId === p.vendorId && String(x.product).trim().toLowerCase() === String(p.product).trim().toLowerCase() && Number(x.minQty || 0) === Number(p.minQty || 0) && (x.priceList || "") === (p.priceList || "") && !(p.validTo && x.validFrom && p.validTo < x.validFrom) && !(x.validTo && p.validFrom && x.validTo < p.validFrom)))
+    return "An overlapping price for this vendor, product and minimum quantity already exists";
+  return "";
+}
+function PriceModal({ base, vendorId, portal, onClose }) {
+  const st = useStore();
+  const [f, setF] = y.useState(() => base ? { ...base } : { vendorId: vendorId || "", product: "", vendorProductName: "", vendorProductCode: "", unit: "nos", minQty: 1, unitPrice: "", currency: "INR", discount: 0, leadDays: 7, validFrom: todayISO(), validTo: shiftDays(180), priceList: "", company: settingsOf(st).ourCompany });
+  const err = priceErr(f, st, base?.id);
+  const save = () => {
+    if (err) return toast(err, "red");
+    const id = base?.id || nextId("VP", st.vendorPrices || []);
+    setState((s) => { s.vendorPrices = s.vendorPrices || []; const i = s.vendorPrices.findIndex((x) => x.id === id); const rec = { ...f, id, updatedBy: portal ? "Vendor portal" : currentUser(), updatedAt: new Date().toISOString() }; if (i >= 0) s.vendorPrices[i] = rec; else s.vendorPrices.unshift(rec); },
+      { entity: "Vendor", id: f.vendorId, action: `Price list ${base ? "updated" : "added"} — ${f.product} @ ${f.currency} ${f.unitPrice}${portal ? " (via portal)" : ""}` });
+    toast("Price saved"); onClose();
+  };
+  return (
+    <Modal open onClose={onClose} width={720} title={base ? "Edit price" : "Add vendor price"} footer={<>{err && <span className="mr-auto text-[12px] text-red-600">{err}</span>}<Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!!err} onClick={save}>Save price</Btn></>}>
+      <div className="grid grid-cols-3 gap-3">
+        <Field label="Vendor" required><Select value={f.vendorId} disabled={!!vendorId} placeholder="Select…" onChange={(x) => setF({ ...f, vendorId: x })} options={st.vendors.filter((v) => !["Blacklisted", "Rejected"].includes(v.status)).map((v) => ({ value: v.id, label: v.name }))} /></Field>
+        <Field label="Product (our name)" required span={2}><TextInput value={f.product} onChange={(x) => setF({ ...f, product: x })} placeholder="e.g. OPC 53 grade cement (50 kg bag)" /></Field>
+        <Field label="Vendor product name"><TextInput value={f.vendorProductName} onChange={(x) => setF({ ...f, vendorProductName: x })} /></Field>
+        <Field label="Vendor product code"><TextInput value={f.vendorProductCode} onChange={(x) => setF({ ...f, vendorProductCode: x })} /></Field>
+        <Field label="Unit"><TextInput value={f.unit} onChange={(x) => setF({ ...f, unit: x })} /></Field>
+        <Field label="Minimum quantity"><NumInput value={f.minQty} onChange={(x) => setF({ ...f, minQty: x })} /></Field>
+        <Field label="Unit price" required><NumInput value={f.unitPrice} onChange={(x) => setF({ ...f, unitPrice: x })} /></Field>
+        <Field label="Currency"><Select value={f.currency} onChange={(x) => setF({ ...f, currency: x })} options={CURRENCIES} /></Field>
+        <Field label="Discount (%)"><NumInput value={f.discount} onChange={(x) => setF({ ...f, discount: x })} /></Field>
+        <Field label="Lead time (days)"><NumInput value={f.leadDays} onChange={(x) => setF({ ...f, leadDays: x })} /></Field>
+        <Field label="Price list"><Select value={f.priceList} placeholder="Any" onChange={(x) => setF({ ...f, priceList: x })} options={settingsOf(st).priceLists} /></Field>
+        <Field label="Valid from"><DateInput value={f.validFrom} onChange={(x) => setF({ ...f, validFrom: x })} /></Field>
+        <Field label="Valid to"><DateInput value={f.validTo} onChange={(x) => setF({ ...f, validTo: x })} /></Field>
+        <Field label="Company"><Select value={f.company} onChange={(x) => setF({ ...f, company: x })} options={COMPANIES(st)} /></Field>
+      </div>
+    </Modal>
+  );
+}
+function PriceListTable({ rows, onEdit, showVendor = true }) {
+  const st = useStore();
+  const valid = (p) => (p.validTo && p.validTo < todayISO() ? "Expired" : p.validFrom && p.validFrom > todayISO() ? "Upcoming" : "Valid");
+  return (
+    <DataTable noun="prices" rows={rows} onRow={onEdit} empty={<EmptyState icon={Icon.receipt} title="No prices yet" text="Agreed vendor prices appear here and are suggested on new POs." />} columns={[
+      ...(showVendor ? [{ key: "v", label: "Vendor", className: "font-medium", filter: (p) => vendorName(st, p.vendorId), filterOptions: () => uniqSorted((st.vendorPrices || []).map((p) => vendorName(st, p.vendorId))), render: (p) => vendorName(st, p.vendorId) }] : []),
+      { key: "product", label: "Product", render: (p) => <span className="flex flex-col"><span>{p.product}</span>{(p.vendorProductName || p.vendorProductCode) && <span className="text-[11.5px] text-ink-mute">{[p.vendorProductCode, p.vendorProductName].filter(Boolean).join(" · ")}</span>}</span> },
+      { key: "min", label: "Min qty", align: "right", render: (p) => `${num(p.minQty || 0)} ${p.unit}` },
+      { key: "price", label: "Unit price", align: "right", render: (p) => <span className="num">{p.currency} {Number(p.unitPrice).toLocaleString("en-IN")}{Number(p.discount) ? ` −${p.discount}%` : ""}</span> },
+      { key: "lead", label: "Lead time", align: "right", render: (p) => `${p.leadDays || 0} d` },
+      { key: "list", label: "Price list", render: (p) => p.priceList || "Any" },
+      { key: "val", label: "Validity", render: (p) => <span className="flex items-center gap-2 text-[12px]">{fmtDate(p.validFrom)} → {fmtDate(p.validTo)}<Status tone={{ Valid: "green", Expired: "red", Upcoming: "blue" }[valid(p)]}>{valid(p)}</Status></span> },
+      { key: "co", label: "Company", render: (p) => p.company || "—" },
+    ]} />
+  );
+}
+function VendorPriceListsPage() {
+  const st = useStore();
+  const [edit, setEdit] = y.useState(null);
+  return (
+    <Page title="Vendor Price Lists" subtitle="Agreed prices by vendor, product and quantity break — suggested automatically on purchase orders" icon={Icon.receipt}
+      actions={<Btn variant="primary" icon={Icon.plus} onClick={() => setEdit({})}>Add price</Btn>}>
+      <PriceListTable rows={st.vendorPrices || []} onEdit={(p) => setEdit(p)} />
+      {edit && <PriceModal base={edit.id ? edit : null} onClose={() => setEdit(null)} />}
+    </Page>
+  );
+}
+
+// ---------------------------------------------------------------- bill-level TDS (ERPNext tax withholding)
+// Bill's own TDS settings override the vendor's: consider / category / ignore threshold / manual entries
+function billTds(st, inv, v, taxable, share) {
+  const t = inv.tdsSetup || {};
+  if (inv.source === "RA Bill" || t.consider === false) return 0;
+  const code = t.category || v.tds;
+  if (t.manual !== undefined && t.manual !== "" && t.edit) return round2(Number(t.manual) * (share ?? 1));
+  const cat = (settingsOf(st).tdsCategories || []).find((c) => c.code === code);
+  const rate = tdsRate(code);
+  if (!rate) return 0;
+  let base = taxable;
+  if (cat && !t.ignoreThreshold) {
+    const yearStart = `${new Date().getMonth() >= 3 ? new Date().getFullYear() : new Date().getFullYear() - 1}-04-01`;
+    const ytd = sum(st.invoices.filter((i) => i.vendorId === v.id && i.id !== inv.id && i.date >= yearStart && i.source !== "RA Bill"), (i) => invoiceTotals(i).taxable);
+    const singleOver = cat.disableTransaction || !Number(cat.singleThreshold) || taxable >= Number(cat.singleThreshold);
+    const cumOver = !cat.disableCumulative && Number(cat.cumulativeThreshold) > 0 && ytd + taxable > Number(cat.cumulativeThreshold);
+    if (!singleOver && !cumOver && (Number(cat.singleThreshold) || Number(cat.cumulativeThreshold))) return 0;
+    if (cat.onlyExcess && Number(cat.cumulativeThreshold) > 0) base = Math.max(0, ytd + taxable - Math.max(ytd, Number(cat.cumulativeThreshold)));
+  }
+  const amt = (base * rate) / 100 * (share ?? 1);
+  return cat?.roundOff ? Math.round(amt) : round2(amt);
+}
+// Bill form: TDS, payment-at-entry, recipient bank, bill copy
+function BillExtras({ f, setF, v }) {
+  const st = useStore();
+  const t = f.tdsSetup || {};
+  const setT = (k, x) => setF({ ...f, tdsSetup: { ...t, [k]: x } });
+  const attach = async (file) => { if (!file) return; const a = await readAttachment(file); if (a) setF({ ...f, attachment: { name: a.name, dataUrl: a.dataUrl } }); };
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-4 gap-3">
+        <Field label="Bill copy (attachment)">
+          <label className="flex h-[32px] cursor-pointer items-center gap-2 truncate rounded-md border border-dashed border-gray-300 px-2.5 text-[12.5px] text-ink-soft hover:border-brand hover:text-brand">{h(Icon.upload, { size: 13 })}<span className="truncate">{f.attachment?.name || "Attach PDF / image"}</span>
+            <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => attach(e.target.files[0])} /></label>
+        </Field>
+        <Field label="Payment reference"><TextInput value={f.payRef || ""} onChange={(x) => setF({ ...f, payRef: x })} placeholder="Vendor's reference to quote" /></Field>
+        <Field label="Recipient bank"><Select value={f.recipientBank || ""} placeholder="Default account" onChange={(x) => setF({ ...f, recipientBank: x })} options={vendorBankOptions(v)} /></Field>
+        <div className="flex items-end pb-1.5"><Check checked={!!f.isPaid} onChange={(b) => setF({ ...f, isPaid: b })} label="Paid at entry (cash / card purchase)" /></div>
+        {f.isPaid && <>
+          <Field label="Mode of payment"><Select value={f.paidMode || "NEFT"} onChange={(x) => setF({ ...f, paidMode: x })} options={PAY_MODES} /></Field>
+          <Field label="Paid amount (₹)"><NumInput value={f.paidAmount ?? ""} onChange={(x) => setF({ ...f, paidAmount: x })} /></Field>
+          <Field label="Cash / bank account"><Select value={f.paidFrom || ""} placeholder="Select…" onChange={(x) => setF({ ...f, paidFrom: x })} options={[...settingsOf(st).companyBanks, "Petty cash — site"]} /></Field>
+        </>}
+      </div>
+      <div className="rounded-lg border border-line p-3">
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-ink-mute">Tax withholding (TDS)</p>
+        <div className="grid grid-cols-4 gap-3">
+          <div className="flex items-end pb-1.5"><Check checked={t.consider !== false} onChange={(b) => setT("consider", b)} label="Consider for tax withholding" /></div>
+          <Field label="Tax withholding category"><Select value={t.category || v?.tds || ""} onChange={(x) => setT("category", x)} options={tdsOptions()} /></Field>
+          <Field label="Tax withholding group"><Select value={t.group || ""} placeholder="—" onChange={(x) => setT("group", x)} options={["Domestic vendors", "Contractors", "Non-resident (195)"]} /></Field>
+          <div className="flex flex-col justify-end gap-1 pb-1">
+            <Check checked={!!t.ignoreThreshold} onChange={(b) => setT("ignoreThreshold", b)} label="Ignore withholding threshold" />
+            <Check checked={!!t.edit} onChange={(b) => setT("edit", b)} label="Edit tax withholding entries" />
+          </div>
+          {t.edit && <Field label="TDS amount (manual, ₹)"><NumInput value={t.manual ?? ""} onChange={(x) => setT("manual", x)} /></Field>}
+        </div>
+      </div>
+    </div>
+  );
+}
+function billExtrasErr(f, total) {
+  if (f.isPaid) {
+    if (!(Number(f.paidAmount) > 0)) return "Enter the amount paid at entry";
+    if (Number(f.paidAmount) > total + 0.5) return "Paid amount is more than the bill";
+    if (!f.paidFrom) return "Pick the cash / bank account it was paid from";
+  }
+  if (f.tdsSetup?.edit && !(Number(f.tdsSetup.manual) >= 0)) return "Enter the manual TDS amount";
+  return "";
+}

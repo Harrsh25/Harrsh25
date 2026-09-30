@@ -20,7 +20,7 @@ function useQueryOpen() {
 function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket }) {
   const st = useStore();
   const set0 = settingsOf(st);
-  const blank = () => ({ vendorId: "", blanketId: presetBlanket || "", project: PROJECTS[0], deliveryDate: shiftDays(14), billingPolicy: "On received quantity", tolerance: 2, lines: [{ desc: "", unit: "nos", qty: "", rate: "" }] });
+  const blank = () => ({ vendorId: "", blanketId: presetBlanket || "", project: PROJECTS[0], deliveryDate: shiftDays(14), billingPolicy: "On received quantity", tolerance: 2, lines: [{ desc: "", unit: "nos", qty: "", rate: "" }], details: docDefaults("po", st) });
   const [f, setF] = y.useState(blank);
   y.useEffect(() => { if (open) { const b = blank(); if (presetBlanket) Object.assign(b, fromBlanket(presetBlanket)); setF(b); } }, [open]);
   function fromBlanket(boId) {
@@ -39,21 +39,32 @@ function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket }) {
   const total = sum(lines, (l) => (Number(l.qty) || 0) * (Number(l.rate) || 0));
   const overBlanket = bo && f.lines.some((l) => Number(l.qty) > l.remaining + (bo.lines[l.blanketLine].qty * set0.blanketAllowancePct) / 100);
   const poErr = { delivery: VX.req(f.deliveryDate) || VX.notPast(f.deliveryDate, "Delivery date can't be in the past"), tol: VX.num(f.tolerance, { min: 0, max: 20, label: "Tolerance" }) };
-  const ok = f.vendorId && lines.length && lines.every((l) => String(l.desc).trim() && String(l.unit || "").trim() && l.qty > 0 && l.rate > 0) && !gate.block && !overBlanket && !VX.any(poErr);
+  const qtyOk = (l) => (set0.allowZeroQty ? Number(l.qty) >= 0 && l.qty !== "" : Number(l.qty) > 0);
+  const rateOk = (l) => (set0.allowNegativeRates ? l.rate !== "" && Number(l.rate) !== 0 : Number(l.rate) > 0);
+  const descs = lines.map((l) => String(l.desc).trim().toLowerCase()).filter(Boolean);
+  const dupItem = !set0.allowDuplicateItems && new Set(descs).size !== descs.length;
+  const detErr = docDetailErrors("po", f.details || {});
+  const ok = f.vendorId && lines.length && lines.every((l) => String(l.desc).trim() && String(l.unit || "").trim() && qtyOk(l) && rateOk(l)) && !gate.block && !overBlanket && !VX.any(poErr) && !dupItem && !VX.any(detErr);
+  const needsApproval = total >= (Number(set0.poApprovalMin) || 0);
+  const outstanding = v ? sum(st.invoices.filter((i) => i.vendorId === v.id), (i) => invoiceTotals(i).balance) + sum(st.purchaseOrders.filter((p) => p.vendorId === v.id && ["Issued", "Partially Received"].includes(poStatus(p))), poValue) : 0;
+  const overCredit = v && Number(v.creditLimit) > 0 && outstanding + total > Number(v.creditLimit);
+  const tooSoon = f.deliveryDate && daysUntil(f.deliveryDate) < (Number(set0.daysToPurchase) || 0);
+  const plRate = (l) => vendorPriceFor(st, f.vendorId, l.desc, Number(l.qty) || 0, f.details?.priceList);
   const activeBlankets = st.blanketOrders.filter((b) => blanketStatus(st, b) === "Active");
   return (
     <Modal open={open} onClose={onClose} width={860} title={bo ? `Call-off PO against ${bo.id}` : "New purchase order"}
       footer={<><span className="mr-auto text-[13px]">Total <b className="num">{inr(total)}</b> + GST</span><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!ok} onClick={() => {
         const id = nextId("PO", st.purchaseOrders);
-        setState((s) => s.purchaseOrders.unshift({ ...f, id, date: todayISO(), status: "Draft", rfqId: null, receipts: [], returns: [], blanketId: f.blanketId || null,
+        const auto = !needsApproval;
+        setState((s) => s.purchaseOrders.unshift({ ...f, id, date: todayISO(), createdAt: new Date().toISOString(), status: auto ? "Issued" : "Draft", rfqId: null, ...(auto ? { approval: { by: currentUser(), at: new Date().toISOString(), decision: "Approved", remark: `Below the ${inrShort(set0.poApprovalMin)} approval threshold — issued directly` } } : {}), receipts: [], returns: [], blanketId: f.blanketId || null,
           lines: lines.map((l) => ({ desc: l.desc, unit: l.unit, qty: Number(l.qty), rate: Number(l.rate), ...(l.blanketLine !== undefined ? { blanketLine: l.blanketLine } : {}) })),
-          revisions: [{ rev: 0, at: new Date().toISOString(), by: currentUser(), note: bo ? `Call-off against ${bo.id}` : "PO created" }] }), { entity: "PO", id, action: `Created for ${v.name}${bo ? ` (call-off ${bo.id})` : ""} — sent for approval` });
-        toast(`${id} created — approve it in Approval Management`); onClose(); onCreated && onCreated(id);
-      }}>Create & send for approval</Btn></>}>
+          revisions: [{ rev: 0, at: new Date().toISOString(), by: currentUser(), note: bo ? `Call-off against ${bo.id}` : "PO created" }] }), { entity: "PO", id, action: `Created for ${v.name}${bo ? ` (call-off ${bo.id})` : ""} — ${auto ? "issued (below approval threshold)" : "sent for approval"}` });
+        toast(auto ? `${id} issued — below the approval threshold` : `${id} created — approve it in Approval Management`); onClose(); onCreated && onCreated(id);
+      }}>{needsApproval ? "Create & send for approval" : "Create & issue"}</Btn></>}>
       <div className="space-y-4">
         <div className="grid grid-cols-3 gap-3">
           <Field label="Draw from blanket order" hint="Uses the agreed rates"><Select value={f.blanketId} placeholder="— none (standalone PO) —" onChange={(x) => setF({ ...blank(), ...(x ? fromBlanket(x) : {}), project: f.project })} options={activeBlankets.map((b) => ({ value: b.id, label: `${b.id} — ${vendorName(st, b.vendorId)}` }))} /></Field>
-          <Field label="Vendor" required hint="Only spend-authorized, unblocked vendors"><Select value={f.vendorId} disabled={!!bo} placeholder="Select vendor…" onChange={(x) => setF({ ...f, vendorId: x })} options={vendors.map((x) => ({ value: x.id, label: x.name }))} /></Field>
+          <Field label="Vendor" required hint="Only spend-authorized, unblocked vendors"><Select value={f.vendorId} disabled={!!bo} placeholder="Select vendor…" onChange={(x) => { const nv = byId(st.vendors, x); setF({ ...f, vendorId: x, details: { ...(f.details || {}), currency: nv?.currency || "INR", fx: fxRate(nv?.currency), paymentTerms: nv?.paymentTerms, printLanguage: nv?.printLanguage || "English", priceList: nv?.priceList || f.details?.priceList, supplierAddress: "", supplierContact: "" } }); }} options={vendors.map((x) => ({ value: x.id, label: x.name }))} /></Field>
           <Field label="Project"><Select value={f.project} onChange={(x) => setF({ ...f, project: x })} options={PROJECTS} /></Field>
           <Field label="Delivery by"><DateInput value={f.deliveryDate} onChange={(x) => setF({ ...f, deliveryDate: x })} /><FieldErr m={poErr.delivery} /></Field>
           <Field label="Bill control"><Select value={f.billingPolicy} onChange={(x) => setF({ ...f, billingPolicy: x })} options={["On received quantity", "On ordered quantity"]} /></Field>
@@ -64,6 +75,11 @@ function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket }) {
         {!gate.block && gate.warn && <Note tone="amber">{v.name} is in the <b>{gate.standing.name}</b> scorecard standing — check performance before ordering.</Note>}
         {v && complianceOf(v).blocking.length > 0 && <Note tone={settingsOf(st).complianceGate === "Stop" ? "red" : "amber"} icon={Icon.shieldCheck}><b>Compliance:</b> {complianceOf(v).blocking.join(" · ")} — the PO can be issued, but payments {settingsOf(st).complianceGate === "Stop" ? "will be blocked" : "will be flagged"} until this is fixed.</Note>}
         {isGroupCompany(v) && <Note tone="blue" icon={Icon.building}><b>Group company</b> ({v.parentCompany}) — inter-company purchase: no RFQ or competitive quotes needed. Spend is reported separately under Vendor Scorecard → Spend by group.</Note>}
+        {v && v.purchaseWarning && set0.purchaseWarnings && <Note tone="amber" icon={Icon.warning}><b>Purchase warning:</b> {v.purchaseWarning}</Note>}
+        {v && v.frozen && <Note tone="red">{v.name} is frozen — no new POs.</Note>}
+        {overCredit && <Note tone="amber">Credit limit {inrShort(v.creditLimit)}: open POs and unpaid bills ({inrShort(outstanding)}) plus this PO ({inrShort(total)}) go over it.</Note>}
+        {tooSoon && <Note tone="amber">Delivery is sooner than the {set0.daysToPurchase} days-to-purchase lead time.</Note>}
+        {dupItem && <Note tone="red">The same item appears twice — combine the lines (Procurement Settings → allow the same item twice).</Note>}
         {v && v.preferred && !bo && <Note tone="green" icon={Icon.star}>Preferred supplier — pricelist rates from earlier POs are suggested below.</Note>}
         <Section title={bo ? `Lines from ${bo.id} (allowance ${set0.blanketAllowancePct}%)` : "Lines"} actions={!bo && <Btn size="sm" icon={Icon.plus} onClick={() => setF({ ...f, lines: [...f.lines, { desc: "", unit: "nos", qty: "", rate: "" }] })}>Add line</Btn>}>
           <div className="space-y-2 p-3">
@@ -73,7 +89,8 @@ function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket }) {
                 <div key={i} className="grid grid-cols-[1fr_90px_120px_130px_28px] items-start gap-2">
                   <div><TextInput value={l.desc} disabled={!!bo} onChange={(x) => setLine(i, "desc", x)} placeholder="Description" />
                     {bo && <span className="mt-1 block text-[11px] text-ink-mute">Remaining on agreement: {num(l.remaining)} {l.unit}</span>}
-                    {last && !l.rate && <button className="mt-1 text-[11px] text-brand" onClick={() => setF({ ...f, lines: f.lines.map((x, j) => (j === i ? { ...x, desc: last.desc, unit: last.unit, rate: last.rate } : x)) })}>Use pricelist: {last.desc} @ {inr(last.rate)}</button>}</div>
+                    {!bo && !l.rate && !f.details?.ignorePricing && plRate(l) && <button className="mt-1 block text-[11px] text-brand" onClick={() => setLine(i, "rate", plRate(l).price)}>Price list {plRate(l).list}: {inr(plRate(l).price)}{plRate(l).discount ? ` (−${plRate(l).discount}%)` : ""}</button>}
+                    {last && !l.rate && !set0.disableLastPurchaseRate && <button className="mt-1 text-[11px] text-brand" onClick={() => setF({ ...f, lines: f.lines.map((x, j) => (j === i ? { ...x, desc: last.desc, unit: last.unit, rate: last.rate } : x)) })}>Use pricelist: {last.desc} @ {inr(last.rate)}</button>}</div>
                   <TextInput value={l.unit} disabled={!!bo} onChange={(x) => setLine(i, "unit", x)} placeholder="Unit" />
                   <NumInput value={l.qty} onChange={(x) => setLine(i, "qty", x)} placeholder="Qty" />
                   <NumInput value={l.rate} disabled={!!bo} onChange={(x) => setLine(i, "rate", x)} placeholder="Rate" />
@@ -84,6 +101,8 @@ function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket }) {
           </div>
         </Section>
         {overBlanket && <Note tone="red">Quantity exceeds what's left on the blanket order plus the {set0.blanketAllowancePct}% allowance.</Note>}
+        <DocDetails kind="po" value={f.details} onChange={(d) => setF({ ...f, details: d })} vendor={v} subtotal={total} />
+        <p className="text-[12px] text-ink-mute">{needsApproval ? `At or above ${inrShort(set0.poApprovalMin)} — the PO goes for approval.` : `Below ${inrShort(set0.poApprovalMin)} — the PO is issued directly (Procurement Settings → PO approval minimum).`}</p>
       </div>
     </Modal>
   );
@@ -94,8 +113,18 @@ function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket }) {
 function GrnModal({ po, onClose }) {
   const st = useStore();
   const rec = poReceived(po);
+  const set0 = settingsOf(st), blind = !!set0.blindReceiving;
+  const [det, setDet] = y.useState(() => ({ ...docDefaults("grn", st, byId(st.vendors, po.vendorId)), ...(po.details ? { currency: po.details.currency, fx: po.details.fx, priceList: po.details.priceList, taxCategory: po.details.taxCategory, taxTemplate: po.details.taxTemplate, incoterm: po.details.incoterm, namedPlace: po.details.namedPlace, shipTo: po.details.shipTo, store: po.details.store, costCentre: po.details.costCentre, project: po.details.project || po.project, supplierAddress: po.details.supplierAddress, supplierContact: po.details.supplierContact } : { project: po.project }) }));
+  const tpl0 = set0.inspectionTemplates[0];
+  const [qi, setQi] = y.useState(() => ({ reportDate: todayISO(), type: "Incoming", template: "", params: {}, sampleSize: "", batch: "", manual: false, inspectedBy: currentUser(), verifiedBy: "", remarks: "" }));
+  const tpl = set0.inspectionTemplates.find((t) => t.name === qi.template);
   const [f, setF] = y.useState({ date: todayISO(), qc: "Passed", acceptedLocation: `Main store — ${po.project.split(" ")[0]}`, rejectedLocation: `Return bay — ${po.project.split(" ")[0]}`, reason: "", lines: rec.map((l) => ({ qty: Math.max(0, l.qty - l.received), accepted: Math.max(0, l.qty - l.received) })) });
-  const over = rec.some((l, i) => l.received + (Number(f.lines[i].qty) || 0) > l.qty * (1 + (po.tolerance || 0) / 100));
+  const over0 = rec.some((l, i) => l.received + (Number(f.lines[i].qty) || 0) > l.qty * (1 + (po.tolerance || 0) / 100));
+  const over = over0 && set0.overReceiptAction === "Stop";
+  // Oracle receiving window: early / late against the PO delivery date
+  const dd = po.deliveryDate ? Math.round((new Date(f.date) - new Date(po.deliveryDate)) / DAY) : 0;
+  const dateOut = po.deliveryDate && (dd < -(Number(set0.earlyReceiptDays) || 0) ? `${-dd} days early (window ${set0.earlyReceiptDays} days)` : dd > (Number(set0.lateReceiptDays) || 0) ? `${dd} days late (window ${set0.lateReceiptDays} days)` : "");
+  const dateBlock = dateOut && set0.receiptDateAction === "Stop";
   const bad = f.lines.some((l) => Number(l.accepted) > Number(l.qty) || Number(l.qty) < 0 || Number(l.accepted) < 0);
   const rejected = sum(f.lines, (l) => (Number(l.qty) || 0) - (Number(l.accepted) || 0));
   const accepted = sum(f.lines, (l) => Number(l.accepted) || 0);
@@ -105,12 +134,17 @@ function GrnModal({ po, onClose }) {
     || (["Passed", "Passed with remarks"].includes(f.qc) && rejected > 0 ? `Inspection says Passed but ${num(rejected)} units are rejected — choose “Partially rejected”` : "")
     || (f.qc === "Partially rejected" && rejected <= 0 ? "Enter the rejected quantity (accepted < received)" : "")
     || (rejected > 0 && VX.reason(f.reason) ? "Give the rejection reason (min 5 characters)" : "");
+  const qiErr = (qi.reportDate && qi.reportDate > todayISO() ? "Inspection report date can't be in the future" : "") || (qi.sampleSize !== "" && !(Number(qi.sampleSize) > 0) ? "Sample size must be above zero" : "")
+    || (tpl && f.qc !== "Failed" && tpl.params.some((p) => qi.params[p] === "Rejected") && rejected <= 0 ? "A parameter is marked Rejected — record the rejected quantity" : "")
+    || (qi.verifiedBy && qi.verifiedBy.trim() === qi.inspectedBy.trim() ? "Verified by must be a different person" : "")
+    || Object.values(docDetailErrors("grn", det)).filter(Boolean)[0] || "";
   const post = () => {
     const grnId = nextId("GRN", st.purchaseOrders.flatMap((p) => p.receipts));
     let dnInfo = "";
     setState((s) => {
       const p = byId(s.purchaseOrders, po.id);
-      p.receipts.push({ id: grnId, date: f.date, qc: f.qc, acceptedLocation: f.acceptedLocation, rejectedLocation: rejected ? f.rejectedLocation : "", lines: f.lines.map((l, i) => ({ line: i, qty: Number(l.qty) || 0, accepted: Number(l.accepted) || 0 })).filter((l) => l.qty > 0) });
+      p.receipts.push({ id: grnId, date: f.date, createdAt: new Date().toISOString(), qc: f.qc, acceptedLocation: f.acceptedLocation, rejectedLocation: rejected ? f.rejectedLocation : "", details: det, dateException: dateOut || null, overReceipt: over0 || false,
+        inspection: { ...qi, id: `QI-${grnId.slice(4)}`, refType: "Purchase receipt", refName: grnId, status: f.qc, template: qi.template || null, params: tpl ? Object.fromEntries(tpl.params.map((pp) => [pp, qi.params[pp] || "Accepted"])) : {} }, lines: f.lines.map((l, i) => ({ line: i, qty: Number(l.qty) || 0, accepted: Number(l.accepted) || 0 })).filter((l) => l.qty > 0) });
       p.returns = p.returns || [];
       f.lines.forEach((l, i) => {
         const rj = (Number(l.qty) || 0) - (Number(l.accepted) || 0);
@@ -134,7 +168,7 @@ function GrnModal({ po, onClose }) {
   };
   return (
     <Modal open onClose={onClose} width={820} title={`Goods receipt — ${po.id}`} subtitle={`Tolerance ±${po.tolerance || 0}% · quality inspection splits accepted and rejected quantity`}
-      footer={<><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={over || bad || !!grnErr || !f.lines.some((l) => l.qty > 0)} onClick={post}>Post GRN</Btn></>}>
+      footer={<>{(qiErr || (dateBlock && `Receipt ${dateOut}`)) && <span className="mr-auto text-[12px] text-red-600">{qiErr || `Receipt ${dateOut}`}</span>}<Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={over || bad || !!grnErr || !!qiErr || dateBlock || !f.lines.some((l) => l.qty > 0)} onClick={post}>Post GRN</Btn></>}>
       <div className="space-y-3">
         <div className="grid grid-cols-3 gap-3">
           <Field label="Receipt date"><DateInput value={f.date} onChange={(x) => setF({ ...f, date: x })} /></Field>
@@ -142,11 +176,11 @@ function GrnModal({ po, onClose }) {
           <Field label="Accepted into"><TextInput value={f.acceptedLocation} onChange={(x) => setF({ ...f, acceptedLocation: x })} /></Field>
         </div>
         <table className="w-full">
-          <thead><tr><Th>Item</Th><Th align="right">Ordered</Th><Th align="right">Received so far</Th><Th align="right">Receiving now</Th><Th align="right">Accepted</Th><Th align="right">Rejected</Th></tr></thead>
+          <thead><tr><Th>Item</Th>{!blind && <><Th align="right">Ordered</Th><Th align="right">Received so far</Th></>}<Th align="right">Receiving now</Th><Th align="right">Accepted</Th><Th align="right">Rejected</Th></tr></thead>
           <tbody>
             {rec.map((l, i) => (
               <tr key={i}>
-                <Td>{l.desc}</Td><Td align="right" className="num">{num(l.qty)} {l.unit}</Td><Td align="right" className="num">{num(l.received)}</Td>
+                <Td>{l.desc}{blind && <span className="block text-[11px] text-ink-mute">{l.unit} — blind receiving: count what arrived</span>}</Td>{!blind && <><Td align="right" className="num">{num(l.qty)} {l.unit}</Td><Td align="right" className="num">{num(l.received)}</Td></>}
                 <Td align="right"><NumInput value={f.lines[i].qty} onChange={(x) => setF({ ...f, lines: f.lines.map((z, j) => (j === i ? { qty: x, accepted: x } : z)) })} /></Td>
                 <Td align="right"><NumInput value={f.lines[i].accepted} onChange={(x) => setF({ ...f, lines: f.lines.map((z, j) => (j === i ? { ...z, accepted: x } : z)) })} /></Td>
                 <Td align="right" className={cls("num", (f.lines[i].qty - f.lines[i].accepted) > 0 && "font-semibold text-red-600")}>{num((Number(f.lines[i].qty) || 0) - (Number(f.lines[i].accepted) || 0))}</Td>
@@ -162,6 +196,25 @@ function GrnModal({ po, onClose }) {
           </div>
         )}
         {over && <Note tone="red">Receipt exceeds the ordered quantity plus {po.tolerance || 0}% tolerance.</Note>}
+        {over0 && !over && set0.overReceiptAction === "Warn" && <Note tone="amber">Over-receipt beyond the {po.tolerance || 0}% tolerance — allowed with a warning (Procurement Settings → over-receipt action).</Note>}
+        {dateOut && !dateBlock && set0.receiptDateAction === "Warn" && <Note tone="amber">Receipt is {dateOut} against the PO delivery date {fmtDate(po.deliveryDate)}.</Note>}
+        <Section title="Quality inspection" icon={Icon.clipboardCheck}>
+          <div className="grid grid-cols-4 gap-3 p-3">
+            <Field label="Report date"><DateInput value={qi.reportDate} onChange={(x) => setQi({ ...qi, reportDate: x })} /></Field>
+            <Field label="Inspection type"><Select value={qi.type} onChange={(x) => setQi({ ...qi, type: x })} options={["Incoming", "In process", "Outgoing"]} /></Field>
+            <Field label="Reference document"><TextInput value={`Purchase receipt · ${po.id}`} disabled /></Field>
+            <Field label="Item"><TextInput value={rec.length === 1 ? rec[0].desc : `${rec.length} items`} disabled /></Field>
+            <Field label="Batch / serial no."><TextInput value={qi.batch} onChange={(x) => setQi({ ...qi, batch: x })} placeholder="e.g. Heat no. H-4412" /></Field>
+            <Field label="Sample size"><NumInput value={qi.sampleSize} onChange={(x) => setQi({ ...qi, sampleSize: x })} /></Field>
+            <Field label="Inspection template"><Select value={qi.template} placeholder="—" onChange={(x) => setQi({ ...qi, template: x, params: {} })} options={set0.inspectionTemplates.map((t) => t.name)} /></Field>
+            <div className="flex items-end pb-1.5"><Check checked={qi.manual} onChange={(b) => setQi({ ...qi, manual: b })} label="Manual inspection" /></div>
+            <Field label="Inspected by"><TextInput value={qi.inspectedBy} onChange={(x) => setQi({ ...qi, inspectedBy: x })} /></Field>
+            <Field label="Verified by"><TextInput value={qi.verifiedBy} onChange={(x) => setQi({ ...qi, verifiedBy: x })} /></Field>
+            <Field label="Remarks" span={2}><TextInput value={qi.remarks} onChange={(x) => setQi({ ...qi, remarks: x })} /></Field>
+            {tpl && <div className="col-span-4 grid grid-cols-2 gap-2">{tpl.params.map((pp) => <div key={pp} className="flex items-center justify-between gap-2 rounded-md border border-line px-2 py-1 text-[12.5px]"><span>{pp}</span><div className="w-[130px]"><Select value={qi.params[pp] || "Accepted"} onChange={(x) => setQi({ ...qi, params: { ...qi.params, [pp]: x } })} options={["Accepted", "Rejected"]} /></div></div>)}</div>}
+          </div>
+        </Section>
+        <DocDetails kind="grn" value={det} onChange={setDet} vendor={byId(st.vendors, po.vendorId)} />
         {bad && <Note tone="red">Accepted quantity can't be negative or exceed the received quantity.</Note>}
         {!bad && grnErr && <Note tone="red">{grnErr}</Note>}
       </div>
@@ -194,7 +247,7 @@ function PoDrawer({ id, onClose }) {
         {po.status === "Draft" && <Btn variant="primary" onClick={() => decidePo(po, true)}>Approve & issue</Btn>}
         {!["Draft", "Closed", "Cancelled"].includes(po.status) && status !== "Received" && <Btn variant="primary" icon={Icon.truck} disabled={isBlockedFor(v, "All")} onClick={() => setGrn(true)}>Receive goods</Btn>}
         {["Waiting Bills", "Partially Billed"].includes(bstatus) && <Btn icon={Icon.receipt} onClick={() => setBill(true)}>Create bill</Btn>}
-        {!["Closed", "Cancelled"].includes(po.status) && <Btn icon={Icon.pencil} onClick={() => setAmend({ deliveryDate: po.deliveryDate, lines: po.lines.map((l) => ({ ...l })), note: "" })}>Edit</Btn>}
+        {!["Closed", "Cancelled"].includes(po.status) && <Btn icon={po.status !== "Draft" && settingsOf(st).lockConfirmedOrders ? Icon.lock : Icon.pencil} title={po.status !== "Draft" && settingsOf(st).lockConfirmedOrders ? "Confirmed orders are locked — the change is recorded as a new revision with a reason" : ""} onClick={() => setAmend({ deliveryDate: po.deliveryDate, lines: po.lines.map((l) => ({ ...l })), note: "" })}>{po.status !== "Draft" && settingsOf(st).lockConfirmedOrders ? "Unlock & amend" : "Edit"}</Btn>}
       </>}>
       <div className="space-y-4 px-6 py-5">
         <div className="grid grid-cols-4 gap-3">
@@ -215,6 +268,8 @@ function PoDrawer({ id, onClose }) {
             { key: "p", label: "Pending", align: "right", num: true, render: (l) => num(Math.max(0, l.qty - l.received)) },
           ]} />
         </Section>
+        <DocDetailsView kind="po" value={po.details} vendor={byId(st.vendors, po.vendorId)} />
+        {po.details && docAdjust(po.details, poValue(po)).total !== poValue(po) && <Note>Adjusted total after discount / freight / rounding: <b className="num">{inr(docAdjust(po.details, poValue(po)).total)}</b> (lines {inr(poValue(po))}).</Note>}
         <Section title="Goods receipts" icon={Icon.truck}>
           <DataTable dense rows={po.receipts} empty={<p className="p-4 text-[13px] text-ink-mute">Nothing received yet.</p>} columns={[
             { key: "id", label: "GRN", className: "mono text-[12px]" }, { key: "date", label: "Date", render: (r) => fmtDate(r.date) },
@@ -222,6 +277,8 @@ function PoDrawer({ id, onClose }) {
             { key: "q", label: "Received / accepted", render: (r) => `${num(sum(r.lines, (l) => l.qty))} / ${num(sum(r.lines, (l) => l.accepted))}` },
             { key: "loc", label: "Accepted → / rejected →", className: "text-[12px]", render: (r) => <span className="flex flex-col"><span>{r.acceptedLocation || "Main store"}</span>{r.rejectedLocation && <span className="text-red-600">{r.rejectedLocation}</span>}</span> },
             { key: "ot", label: "On time", render: (r) => (new Date(r.date) <= new Date(po.deliveryDate) ? <Status tone="green">On time</Status> : <Status tone="amber">Late</Status>) },
+            { key: "tr", label: "Challan · transport", className: "text-[12px]", render: (r) => [r.details?.deliveryNote, r.details?.transporter, r.details?.vehicleNo].filter(Boolean).join(" · ") || "—" },
+            { key: "qi", label: "Inspection", className: "text-[12px]", render: (r) => (r.inspection ? <span data-tip={[`${r.inspection.type} · ${fmtDate(r.inspection.reportDate)}`, r.inspection.template && `Template: ${r.inspection.template}`, ...Object.entries(r.inspection.params || {}).map(([k, v]) => `${k}: ${v}`), r.inspection.batch && `Batch ${r.inspection.batch}`, r.inspection.sampleSize && `Sample ${r.inspection.sampleSize}`, r.inspection.remarks].filter(Boolean).join("\n")}>{r.inspection.id} · {r.inspection.inspectedBy}{r.inspection.verifiedBy ? ` / ${r.inspection.verifiedBy}` : ""}</span> : "—") },
           ]} />
         </Section>
         {(po.returns || []).length > 0 && (
@@ -394,6 +451,7 @@ function paymentGate(st, inv) {
   else if (defB && defB.paymentsEnabled === false) stops.push("Payments are switched off for the default bank account");
   if (defB && isForeign(v) && !defB.allowIntl) warns.push("International payments not enabled on the default bank account");
   if (v.frozen) stops.push("Vendor is frozen");
+  if (inv.posted === false) stops.push("Draft bill — post it before paying");
   if (inv.review === "Pending") stops.push("Vendor invoice on hold — waiting for AP review");
   if (inv.review === "Rejected") stops.push("Vendor invoice on hold — rejected by AP");
   if (inv.source === "Purchase Order") {
@@ -420,19 +478,26 @@ function PayModal({ invIds, onClose }) {
   // Payment is released by Accounts / Finance, never by whoever entered or approved the bill
   const payBlock = (inv) => actBlock(PAY_ROLES, [inv.enteredBy, inv.review === "Accepted" ? inv.reviewedBy : null, inv.raBillId ? (byId(st.raBills, inv.raBillId)?.history || []).find((x) => x.status === "Approved")?.by : null], "releasing payment");
   const [mode, setMode] = y.useState("NEFT"), [date, setDate] = y.useState(todayISO());
+  const v0 = invs.length === 1 ? byId(st.vendors, invs[0].vendorId) : null;
+  const [pd, setPd] = y.useState(() => ({ ...docDefaults("payment", st, v0), paidFrom: set0.companyBanks[0], vendorBank: invs.length === 1 ? invs[0].recipientBank || String((v0?.bankAccounts || []).find((b) => b.isDefault)?.id || "") : "", refNo: "", refDate: todayISO(), received: "" }));
   const [override, setOverride] = y.useState({});
   const rows = invs.map((inv) => {
     const t = invoiceTotals(inv), v = byId(st.vendors, inv.vendorId), gate = paymentGate(st, inv);
     const next = nextInstalment(inv);
     const payNow = next ? Math.min(t.balance, next.amount - next.paid) : t.balance;
-    const tds = inv.source === "RA Bill" ? 0 : round2(((t.taxable * tdsRate(v.tds)) / 100) * (payNow / (t.payable || 1)));
+    const tds = billTds(st, inv, v, t.taxable, payNow / (t.payable || 1));
     const hard = gate.stops.some(hardStop);
     const who = payBlock(inv);
     const blocked = !!who || (gate.stops.length > 0 && !(override[inv.id] && !hard));
     return { inv, v, t, gate, tds, payNow, net: round2(payNow - tds), blocked, hard, next, who };
   });
   const dateErr = VX.req(date) || VX.notFuture(date, "Payment date can't be in the future") || (invs.some((i) => date < i.date) ? `Payment date is before the bill date (${fmtDate(invs.map((i) => i.date).sort().pop())})` : "");
-  const ok = dateErr ? [] : rows.filter((r) => !r.blocked && r.payNow > 0);
+  const netTotal = sum(rows.filter((r) => !r.blocked && r.payNow > 0), (r) => r.net);
+  const payErr = (mode === "Cheque" && !pd.refNo.trim() ? "Cheque no. is required" : "") || (mode === "Cheque" && !pd.refDate ? "Cheque date is required" : "")
+    || (pd.refDate && pd.refDate > shiftDays(90) ? "Reference date too far ahead" : "") || (pd.received !== "" && Number(pd.received) < netTotal - 0.5 && pd.paymentType === "Pay" ? "Amount paid can't be less than the bills selected — reduce the selection" : "")
+    || Object.values(docDetailErrors("payment", pd)).filter(Boolean)[0] || "";
+  const unallocated = pd.received !== "" ? round2(Number(pd.received) - netTotal) : 0;
+  const ok = dateErr || payErr ? [] : rows.filter((r) => !r.blocked && r.payNow > 0);
   return (
     <Modal open onClose={onClose} width={920} title={invIds.length > 1 ? `Payment run — ${invIds.length} bills` : `Record payment — ${invs[0].id}`}
       subtitle="TDS is withheld at payment for PO bills; RA bills already carry TDS. Pays the next due instalment where a schedule exists."
@@ -442,7 +507,7 @@ function PayModal({ invIds, onClose }) {
             let n = s.invoices.flatMap((i) => i.payments).length;
             for (const r of ok) {
               const x = byId(s.invoices, r.inv.id);
-              x.payments.push({ id: `PAY-${String(++n).padStart(3, "0")}`, date, amount: r.net, tds: r.tds, mode, ref: `${mode}${Date.now().toString().slice(-8)}`, paidBy: currentUser(), ...(override[r.inv.id] ? { override: { by: currentUser(),  reason: override[r.inv.id], stops: r.gate.stops } } : {}) });
+              x.payments.push({ id: `PAY-${String(++n).padStart(3, "0")}`, date, amount: r.net, tds: r.tds, mode, ref: pd.refNo.trim() || `${mode}${Date.now().toString().slice(-8)}`, refDate: pd.refDate, paidFrom: pd.paidFrom, vendorBank: pd.vendorBank, details: pd, unallocated: ok.length === 1 ? unallocated : 0, paidBy: currentUser(), ...(override[r.inv.id] ? { override: { by: currentUser(),  reason: override[r.inv.id], stops: r.gate.stops } } : {}) });
               if (x.raBillId && invoiceTotals(x).balance <= 0.5) { const b = byId(s.raBills, x.raBillId); b.status = "Paid"; b.history.push({ status: "Paid", by: currentUser(), at: new Date().toISOString(), remark: `${mode} payment` }); }
             }
           }, { entity: "Payment", id: ok.map((r) => r.inv.id).join(", "), action: `Paid via ${mode}${Object.keys(override).length ? ` (override by ${actor().name})` : ""}` });
@@ -452,8 +517,15 @@ function PayModal({ invIds, onClose }) {
         <div className="grid grid-cols-3 gap-3">
           <Field label="Payment mode"><Select value={mode} onChange={setMode} options={PAY_MODES} /></Field>
           <Field label="Value date"><DateInput value={date} onChange={setDate} /><FieldErr m={dateErr} /></Field>
+          <Field label="Company bank account (paid from)"><Select value={pd.paidFrom} onChange={(x) => setPd({ ...pd, paidFrom: x })} options={set0.companyBanks} /></Field>
+          <Field label="Vendor bank account (paid to)">{v0 ? <Select value={pd.vendorBank} placeholder="Default account" onChange={(x) => setPd({ ...pd, vendorBank: x })} options={vendorBankOptions(v0)} /> : <span className="flex h-[32px] items-center text-[12.5px] text-ink-mute">Each vendor's default account</span>}</Field>
+          <Field label={mode === "Cheque" ? "Cheque no." : "Reference / UTR no."} required={mode === "Cheque"}><TextInput value={pd.refNo} onChange={(x) => setPd({ ...pd, refNo: x })} placeholder={mode === "Cheque" ? "6-digit cheque no." : "Filled from the bank file if blank"} /></Field>
+          <Field label={mode === "Cheque" ? "Cheque date" : "Reference date"} required={mode === "Cheque"}><DateInput value={pd.refDate} onChange={(x) => setPd({ ...pd, refDate: x })} /></Field>
+          <Field label="Amount paid (₹)" hint={pd.received !== "" ? `Unallocated ${inr(unallocated)} — kept as an advance` : "Leave blank to pay exactly the bills"}><NumInput value={pd.received} onChange={(x) => setPd({ ...pd, received: x })} /></Field>
           <Field label="Released by"><span className="flex h-[32px] items-center text-[13px]">{actor().name}{canOverride && <span className="ml-2"><Status tone="purple">Can override</Status></span>}</span></Field>
         </div>
+        {payErr && <Note tone="red">{payErr}</Note>}
+        <DocDetails kind="payment" value={pd} onChange={(d) => setPd({ ...pd, ...d })} vendor={v0} />
         <table className="w-full">
           <thead><tr><Th>Bill</Th><Th>Vendor</Th><Th align="right">Paying now</Th><Th align="right">TDS</Th><Th align="right">Net</Th><Th>Checks</Th></tr></thead>
           <tbody>{rows.map((r) => (
@@ -496,8 +568,9 @@ function NewBillModal({ open, onClose, presetPoId }) {
     const base = (l) => (p0.billingPolicy === "On ordered quantity" ? l.qty : l.accepted + (set0.billRejectedQty ? l.rejected : 0));
     return { gstPct: p0.gstPct ?? 18, lines: poReceived(p0).map((l, i) => ({ line: i, desc: l.desc, qty: Math.max(0, base(l) - billed(i)), rate: l.rate })) };
   };
-  const pickPo = (id) => { setPoId(id); setF((ff) => ({ ...ff, ...linesFor(id) })); };
-  y.useEffect(() => { if (open) { setMode("po"); setPoId(presetPoId || ""); setVendorId(""); setF({ number: "", date: todayISO(), ...linesFor(presetPoId) }); } }, [open]);
+  const detFrom = (id, vid) => { const p0 = byId(getState().purchaseOrders, id); const vv = byId(getState().vendors, vid || p0?.vendorId); return { ...docDefaults("bill", getState(), vv), ...(p0?.details ? { currency: p0.details.currency, fx: p0.details.fx, costCentre: p0.details.costCentre, project: p0.details.project || p0.project, taxCategory: p0.details.taxCategory, taxTemplate: p0.details.taxTemplate, incoterm: p0.details.incoterm, namedPlace: p0.details.namedPlace, shipTo: p0.details.shipTo, supplierAddress: p0.details.supplierAddress, supplierContact: p0.details.supplierContact, discPct: p0.details.discPct, discAmt: p0.details.discAmt, shippingRule: p0.details.shippingRule, paymentTerms: p0.details.paymentTerms } : p0 ? { project: p0.project } : {}) }; };
+  const pickPo = (id) => { setPoId(id); setF((ff) => ({ ...ff, ...linesFor(id), details: detFrom(id) })); };
+  y.useEffect(() => { if (open) { setMode("po"); setPoId(presetPoId || ""); setVendorId(""); setF({ number: "", date: todayISO(), ...linesFor(presetPoId), details: detFrom(presetPoId), tdsSetup: {} }); } }, [open]);
   const v = byId(st.vendors, mode === "po" ? po?.vendorId : vendorId);
   const directAllowed = !set0.poRequiredForBill || (v && v.allowBillWithoutPO);
   const noReceipt = po && po.billingPolicy !== "On ordered quantity" && po.receipts.length === 0;
@@ -512,12 +585,17 @@ function NewBillModal({ open, onClose, presetPoId }) {
     : !String(l.desc || "").trim() ? `Line ${i + 1}: description required` : !(Number(l.qty) > 0) ? `Line ${i + 1}: quantity must be greater than 0` : !(Number(l.rate) > 0) ? `Line ${i + 1}: rate must be greater than 0` : "");
   const rateWarn = po ? f.lines.filter((l) => Number(l.qty) > 0 && po.lines[l.line] && Number(l.rate) > po.lines[l.line].rate + 0.001).map((l) => `${l.desc}: billed rate ${inr(l.rate)} is above the PO rate ${inr(po.lines[l.line].rate)} — will fail 3-way match`) : [];
   const dateErr = VX.req(f.date) || VX.notFuture(f.date, "Invoice date can't be in the future") || (po && f.date < po.date ? `Invoice date is before the PO date (${fmtDate(po.date)})` : "") || VX.dateOrder(f.date, due, "Due date can't be before the invoice date");
-  const ok = f.number.trim() && !dup && !dateErr && !lineErr.some(Boolean) && v && !isBlockedFor(v, "Invoices") && (mode === "po" ? po && f.lines.some((l) => l.qty > 0) && !receiptBlock : directAllowed && f.lines.some((l) => l.desc && l.qty > 0 && l.rate > 0));
+  const subtotal = sum(f.lines, (l) => (Number(l.qty) || 0) * (Number(l.rate) || 0));
+  const exErr = billExtrasErr(f, subtotal * (1 + (Number(f.gstPct) || 0) / 100)) || Object.values(docDetailErrors("bill", f.details || {})).filter(Boolean)[0] || "";
+  const ok = !exErr && f.number.trim() && !dup && !dateErr && !lineErr.some(Boolean) && v && !isBlockedFor(v, "Invoices") && (mode === "po" ? po && f.lines.some((l) => l.qty > 0) && !receiptBlock : directAllowed && f.lines.some((l) => l.desc && l.qty > 0 && l.rate > 0));
   const save = () => {
     const id = nextId("INV", st.invoices);
-    setState((s) => s.invoices.unshift({ id, vendorId: v.id, source: mode === "po" ? "Purchase Order" : "Direct", poId: mode === "po" ? poId : null, number: f.number.trim(), date: f.date, due, dueOverridden: !!f.due, gstPct: Number(f.gstPct), hold: null, notes: [], payments: [], schedule: null, enteredBy: currentUser(),
-      lines: f.lines.filter((l) => l.qty > 0).map((l) => ({ line: l.line ?? null, desc: l.desc, qty: Number(l.qty), rate: Number(l.rate) })) }), { entity: "Invoice", id, action: `Bill ${f.number} entered${mode === "po" ? ` against ${poId}` : " without PO"}` });
-    toast(`${id} created`); onClose();
+    const posted = !!(set0.autoPostBills || v.autoPostBills);
+    const extra = { details: f.details, tdsSetup: f.tdsSetup || {}, attachment: f.attachment || null, payRef: f.payRef || "", recipientBank: f.recipientBank || "", posted, createdAt: new Date().toISOString() };
+    const paidNow = f.isPaid ? [{ id: `PAY-${String(st.invoices.flatMap((i) => i.payments).length + 1).padStart(3, "0")}`, date: f.date, amount: Number(f.paidAmount), tds: 0, mode: f.paidMode || "NEFT", ref: f.payRef || "Paid at entry", paidBy: currentUser(), paidFrom: f.paidFrom, atEntry: true }] : null;
+    setState((s) => s.invoices.unshift({ id, vendorId: v.id, ...extra, source: mode === "po" ? "Purchase Order" : "Direct", poId: mode === "po" ? poId : null, number: f.number.trim(), date: f.date, due, dueOverridden: !!f.due, gstPct: Number(f.gstPct), hold: null, notes: [], payments: paidNow || [], schedule: null, enteredBy: currentUser(),
+      lines: f.lines.filter((l) => l.qty > 0).map((l) => ({ line: l.line ?? null, desc: l.desc, qty: Number(l.qty), rate: Number(l.rate) })) }), { entity: "Invoice", id, action: `Bill ${f.number} entered${mode === "po" ? ` against ${poId}` : " without PO"}${posted ? "" : " as draft"}${paidNow ? ` — paid at entry ${inr(f.paidAmount)}` : ""}` });
+    toast(`${id} created${posted ? "" : " as a draft — post it to make it payable"}`); onClose();
   };
   return (
     <Modal open={open} onClose={onClose} width={780} title="Enter vendor bill" subtitle={set0.poRequiredForBill ? "PO required for bills (Procurement Settings) unless the vendor is exempt" : "Bills can be entered with or without a PO"}
@@ -537,6 +615,8 @@ function NewBillModal({ open, onClose, presetPoId }) {
           <Field label="Due date" hint={f.due ? `Overridden (terms give ${fmtDate(autoDue)})` : v ? `${v.paymentTerms} from invoice date` : ""}><DateInput value={due} onChange={(x) => setF({ ...f, due: x === autoDue ? "" : x })} /></Field>
         </div>
         {dateErr && <Note tone="red">{dateErr}</Note>}
+        {exErr && <Note tone="red">{exErr}</Note>}
+        {v && v.purchaseWarning && set0.purchaseWarnings && <Note tone="amber" icon={Icon.warning}><b>Purchase warning:</b> {v.purchaseWarning}</Note>}
         {lineErr.some(Boolean) && <Note tone="red">{lineErr.filter(Boolean).join(" · ")}</Note>}
         {rateWarn.length > 0 && <Note tone="amber">{rateWarn.join(" · ")}</Note>}
         {v && isBlockedFor(v, "Invoices") && <Note tone="red">{v.name} is blocked for invoices.</Note>}
@@ -563,6 +643,8 @@ function NewBillModal({ open, onClose, presetPoId }) {
           </div>
         )}
         <div className="w-40"><Field label="GST %"><Select value={String(f.gstPct)} onChange={(x) => setF({ ...f, gstPct: Number(x) })} options={["0", "5", "12", "18", "28"]} /></Field></div>
+        {v && <BillExtras f={f} setF={setF} v={v} />}
+        {v && <DocDetails kind="bill" value={f.details} onChange={(d) => setF({ ...f, details: d })} vendor={v} subtotal={subtotal} />}
       </div>
     </Modal>
   );
@@ -595,7 +677,8 @@ function InvoiceDrawer({ id, onClose }) {
   return (
     <Drawer open onClose={onClose} width={920} title={`${inv.id} · ${vendorName(st, inv.vendorId)}`}
       subtitle={<><Status>{status}</Status><span>{inv.source}{inv.poId ? ` ${inv.poId}` : inv.raBillId ? ` ${inv.raBillId}` : ""}</span><span>· vendor ref {inv.number}</span><span>· due {fmtDate(inv.due)}</span><span>· should be paid: <b className={cls(sbp === "No" ? "text-red-600" : sbp === "Exception" ? "text-amber-700" : "text-green-700")}>{sbp}</b></span></>}
-      actions={t.balance > 0.5 && inv.review !== "Pending" && <Btn variant="primary" icon={Icon.rupee} onClick={() => setPay(true)}>Record payment</Btn>}>
+      actions={<>{inv.posted === false && <Btn variant="primary" onClick={() => mut((x) => { x.posted = true; x.postedBy = currentUser(); x.postedAt = new Date().toISOString(); }, "Bill posted — now payable")}>Post bill</Btn>}
+        {inv.posted !== false && t.balance > 0.5 && inv.review !== "Pending" && <Btn variant="primary" icon={Icon.rupee} onClick={() => setPay(true)}>Record payment</Btn>}</>}>
       <div className="space-y-4 px-6 py-5">
         {inv.review && <VendorInvoiceReview inv={inv} />}
         <div className="grid grid-cols-4 gap-3">
@@ -619,6 +702,15 @@ function InvoiceDrawer({ id, onClose }) {
         )}
         {inv.source === "RA Bill" && <Note>Raised automatically from certified RA bill <RefLink to={`${CL_BASE}/ra-bills?open=${inv.raBillId}`}>{inv.raBillId}</RefLink> — retention, advance recovery, TDS and cess are already deducted.</Note>}
         {inv.source === "Direct" && <Note>Direct bill without PO — allowed by settings / vendor exemption.</Note>}
+        {inv.posted === false && <Note tone="amber">Draft bill — post it to make it payable (auto-post is off in Procurement Settings and for this vendor).</Note>}
+        {(inv.attachment || inv.payRef || inv.recipientBank || inv.tdsSetup?.category || inv.tdsSetup?.consider === false) && (
+          <Section title="Bill copy, payment & TDS" icon={Icon.file}>
+            <KV items={[["Bill copy", inv.attachment ? <FileLink name={inv.attachment.name} dataUrl={inv.attachment.dataUrl} /> : null], ["Payment reference", inv.payRef || null],
+              ["Recipient bank", inv.recipientBank ? (vendorBankOptions(byId(st.vendors, inv.vendorId)).find((o) => o.value === inv.recipientBank) || {}).label : null],
+              ["TDS", inv.tdsSetup?.consider === false ? "Not considered" : [tdsLabel(inv.tdsSetup?.category || byId(st.vendors, inv.vendorId)?.tds), inv.tdsSetup?.group, inv.tdsSetup?.ignoreThreshold && "threshold ignored", inv.tdsSetup?.edit && `manual ${inr(inv.tdsSetup.manual)}`].filter(Boolean).join(" · ")]].filter((x) => x[1])} />
+          </Section>
+        )}
+        <DocDetailsView kind="bill" value={inv.details} vendor={byId(st.vendors, inv.vendorId)} />
         <Section title="Payment schedule" icon={Icon.calendar} actions={t.paid === 0 && <Btn size="sm" onClick={() => setSched((inv.schedule && inv.schedule.length ? inv.schedule : [{ due: inv.due, pct: 100 }]).map((x) => ({ ...x })))}>Split into instalments</Btn>}>
           <DataTable dense rows={instalments(inv)} rowKey={(r) => r.n} columns={[
             { key: "n", label: "#" }, { key: "due", label: "Due", render: (r) => fmtDate(r.due) }, { key: "pct", label: "Share", align: "right", render: (r) => `${r.pct}%` },
@@ -701,8 +793,12 @@ function InvoiceDrawer({ id, onClose }) {
         </Modal>
       )}
       {wo && (
-        <Modal open onClose={() => setWo(null)} width={460} title={`Write off ${inr(t.balance)}`} footer={<><Btn onClick={() => setWo(null)}>Cancel</Btn><Btn variant="danger" disabled={!!VX.reason(wo.reason)} onClick={() => { mut((x) => x.payments.push({ id: `WO-${x.id}`, date: todayISO(), amount: t.balance, tds: 0, mode: "Write-off", ref: wo.reason }), `Balance ${inr(t.balance)} written off — ${wo.reason}`); setWo(null); }}>Write off</Btn></>}>
-          <Field label="Reason"><TextInput value={wo.reason} onChange={(x) => setWo({ reason: x })} /></Field>
+        <Modal open onClose={() => setWo(null)} width={460} title={`Write off ${inr(t.balance)}`} footer={<><Btn onClick={() => setWo(null)}>Cancel</Btn><Btn variant="danger" disabled={!!VX.reason(wo.reason)} onClick={() => { mut((x) => x.payments.push({ id: `WO-${x.id}`, date: todayISO(), amount: t.balance, tds: 0, mode: "Write-off", ref: wo.reason, account: wo.account || "Write-off — small balances", costCentre: wo.costCentre || "" }), `Balance ${inr(t.balance)} written off — ${wo.reason}`); setWo(null); }}>Write off</Btn></>}>
+          <div className="grid gap-3">
+            <Field label="Reason"><TextInput value={wo.reason} onChange={(x) => setWo({ ...wo, reason: x })} /></Field>
+            <Field label="Write-off account"><Select value={wo.account || "Write-off — small balances"} onChange={(x) => setWo({ ...wo, account: x })} options={["Write-off — small balances", "Rounding difference", "Discount received"]} /></Field>
+            <Field label="Write-off cost centre"><Select value={wo.costCentre || ""} placeholder="—" onChange={(x) => setWo({ ...wo, costCentre: x })} options={settingsOf(getState()).costCentres} /></Field>
+          </div>
         </Modal>
       )}
     </Drawer>

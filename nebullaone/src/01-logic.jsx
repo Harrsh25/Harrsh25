@@ -282,7 +282,10 @@ function threeWay(st, inv) {
   const rec = poReceived(po);
   const rows = inv.lines.map((l) => {
     const p = rec[l.line];
-    const qtyOk = l.qty <= p.accepted + (st.settings && st.settings.billRejectedQty ? p.rejected : 0) + 0.001, rateOk = Math.abs(l.rate - p.rate) <= p.rate * tol + 0.01;
+    // Oracle invoice tolerances: quantity % and amount % on top of the rate tolerance
+    const qTol = ((st.settings && st.settings.invoiceQtyTolPct) || 0) / 100, aTol = ((st.settings && st.settings.invoiceAmtTolPct) || 0) / 100;
+    const qtyOk = l.qty <= (p.accepted + (st.settings && st.settings.billRejectedQty ? p.rejected : 0)) * (1 + qTol) + 0.001;
+    const rateOk = Math.abs(l.rate - p.rate) <= p.rate * tol + 0.01 || Math.abs(l.qty * l.rate - l.qty * p.rate) <= l.qty * p.rate * aTol + 0.01;
     return { desc: p.desc, poQty: p.qty, poRate: p.rate, grnQty: p.accepted, invQty: l.qty, invRate: l.rate, qtyOk, rateOk };
   });
   const ok = rows.every((r) => r.qtyOk && r.rateOk);
