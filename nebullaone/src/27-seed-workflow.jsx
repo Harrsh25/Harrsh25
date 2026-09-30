@@ -13,6 +13,11 @@ function extendSeed2(s) {
     if (["Pending Approval", "Changes Requested"].includes(v.status)) v.submittedBy = v.source === "Self-registration" ? v.contact.name : "Priya Nair";
     if (v.status === "Active" && v.approval?.stages?.every((x) => x.status === "Approved")) v.approvedOn = (v.approval.stages[2].at || "").slice(0, 10);
   }
+  // Contractors assessed later than the seed questionnaires: one qualified with exceptions
+  const qual = (vid, score, exceptions, valueLimit) => { const v = byId(s.vendors, vid); if (v && !v.qualification) v.qualification = { ruleSet: "Contractor — labour & HSE", score, answers: {}, at: D(-90), exceptions, ...(valueLimit ? { valueLimit } : {}) }; };
+  qual("VEN-005", 76, "ISO 45001 certificate pending — renewal due this quarter", 30000000);
+  qual("VEN-006", 74, "", 0);
+  qual("VEN-010", 80, "", 0);
   // Contracts: approval trail, performance guarantees, WBS
   for (const c of s.contracts) {
     c.guarantees = [];

@@ -31,6 +31,7 @@ function OnboardingPage() {
   );
 }
 
+const SITE_ITEMS = ["Safety induction completed", "Site gate passes / ID badges issued"];
 function OnboardingDrawer({ vendorId, onClose, onFull }) {
   const st = useStore();
   const v = byId(st.vendors, vendorId);
@@ -61,11 +62,14 @@ function OnboardingDrawer({ vendorId, onClose, onFull }) {
           </Note>
         )}
         {v.status === "Pending Approval" && <Note>Awaiting <b>{v.approval.stages.find((s) => s.status === "Pending")?.dept}</b> approval. <button className="font-medium text-brand" onClick={() => onFull("approval")}>Open approvals →</button></Note>}
+        {backgroundIssue(v) && <Note tone="red" icon={Icon.lock}>{backgroundIssue(v)}. Mobilisation (safety induction, gate passes, work orders) is blocked until the background check is clear — record it on the vendor's Approval tab.</Note>}
+        {v.qualification && <Note tone={qualStatus(v).tone === "green" ? "green" : qualStatus(v).tone === "amber" ? "amber" : "red"}>Qualification: <b>{qualStatus(v).status}</b>{qualStatus(v).limit ? ` · project value limit ${inrShort(qualStatus(v).limit)}` : ""}{qualStatus(v).exceptions ? ` · ${qualStatus(v).exceptions}` : ""}</Note>}
         <Section title="Mobilisation checklist" icon={Icon.listChecks} actions={<span className="text-[12px] text-ink-mute">{ck.filter((c) => c.done).length}/{ck.length} done</span>}>
           <ul className="divide-y divide-line">
             {ck.map((c, i) => (
               <li key={c.item} className="px-4 py-2">
-                <Check checked={c.done} onChange={() => (v.status === "Active" || v.status === "On Hold" ? toggle(i) : toast("Checklist opens once the contractor is approved", "red"))} label={c.item} />
+                <Check checked={c.done} onChange={() => (!(v.status === "Active" || v.status === "On Hold") ? toast("Checklist opens once the contractor is approved", "red")
+                  : !c.done && SITE_ITEMS.includes(c.item) && backgroundIssue(v) ? toast(`${backgroundIssue(v)} — mobilisation is blocked until it is clear`, "red") : toggle(i))} label={c.item} />
               </li>
             ))}
           </ul>

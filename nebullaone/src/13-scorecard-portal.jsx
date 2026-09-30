@@ -17,15 +17,32 @@ function evaluateAutoBlock() {
   return hits;
 }
 
+// Corrective action plan form checks
+function capErr(c) {
+  if ((c.issue || "").trim().length < 5) return "Describe the issue (at least 5 characters)";
+  if ((c.actions || "").trim().length < 10) return "List the required actions (at least 10 characters)";
+  if (!(c.owner || "").trim()) return "Enter the owner";
+  if (!c.dueDate) return "Enter the due date";
+  if (c.dueDate <= todayISO()) return "Due date must be in the future";
+  if (daysUntil(c.dueDate) > 180) return "Due date must be within 180 days";
+  return "";
+}
 function RatePerformanceModal({ open, onClose, vendorId: fixedVendor, woId: fixedWo }) {
   const st = useStore();
   const blank = () => ({ vendorId: fixedVendor || "", woId: fixedWo || "", period: new Date().toLocaleDateString("en-IN", { month: "short", year: "numeric" }), quality: 4, safety: 4, manpower: 4, incidents: 0, remarks: "" });
   const [f, setF] = y.useState(blank);
   y.useEffect(() => { if (open) setF(blank()); }, [open]);
   const wos = st.workOrders.filter((w) => w.vendorId === f.vendorId);
+  const stars = [f.quality, f.safety, f.manpower];
+  const rtErr = !f.vendorId ? "Select the contractor / vendor"
+    : !f.period.trim() ? "Enter the period"
+    : stars.some((n) => !(n >= 1 && n <= 5)) ? "Every rating must be between 1 and 5"
+    : !(Number(f.incidents) >= 0) || !Number.isInteger(Number(f.incidents)) ? "Safety incidents must be a whole number, 0 or more"
+    : (stars.some((n) => n <= 2) || Number(f.incidents) > 0) && f.remarks.trim().length < 10 ? "Remarks are required (at least 10 characters) when a rating is 2 or below or incidents are reported"
+    : st.ratings.some((r) => r.vendorId === f.vendorId && (r.woId || "") === (f.woId || "") && String(r.period).trim().toLowerCase() === f.period.trim().toLowerCase()) ? `Already rated for ${f.period.trim()}${f.woId ? ` on ${f.woId}` : ""}` : "";
   return (
     <Modal open={open} onClose={onClose} width={560} title="Rate contractor performance"
-      footer={<><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!f.vendorId} onClick={() => {
+      footer={<>{rtErr && <span className="mr-auto text-[12px] text-red-600">{rtErr}</span>}<Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!!rtErr} onClick={() => {
         setState((s) => s.ratings.push({ ...f, id: `RT-${Date.now().toString(36)}`, by: currentUser(), at: todayISO() }), { entity: "Vendor", id: f.vendorId, action: `Performance rated for ${f.period}` });
         const blocked = evaluateAutoBlock();
         toast(blocked.some((b) => b.id === f.vendorId) ? "Rating saved — vendor auto-held (score below threshold)" : "Rating saved", blocked.length ? "red" : "green");
@@ -197,7 +214,7 @@ function ScorecardPage() {
       <RatePerformanceModal open={rate} onClose={() => setRate(false)} />
       {cap && (
         <Modal open onClose={() => setCap(null)} width={560} title={`Corrective action plan — ${vendorName(st, cap.vendorId)}`}
-          footer={<><Btn onClick={() => setCap(null)}>Cancel</Btn><Btn variant="primary" disabled={!cap.issue || !cap.actions} onClick={() => {
+          footer={<>{capErr(cap) && <span className="mr-auto text-[12px] text-red-600">{capErr(cap)}</span>}<Btn onClick={() => setCap(null)}>Cancel</Btn><Btn variant="primary" disabled={!!capErr(cap)} onClick={() => {
             const id = nextId("CAP", st.caps);
             setState((s) => s.caps.unshift({ ...cap, id, issuedOn: todayISO(), status: "Open" }), { entity: "CAP", id, action: `Issued to ${vendorName(st, cap.vendorId)}` });
             toast(`${id} issued`); setCap(null);

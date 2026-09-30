@@ -11,6 +11,7 @@ function WorkOrderModal({ open, onClose, onCreated, contractId: presetContract }
   const c = byId(st.contracts, f.contractId);
   const contracts = st.contracts.filter((x) => ["Active", "Expiring"].includes(contractStatus(x)) && !isBlockedFor(byId(st.vendors, x.vendorId) || {}, "All"));
   const blockers = f.contractId ? woIssueBlockers(st, f.contractId) : [];
+  const qualWarn = c ? qualLimitWarn(st, byId(st.vendors, c.vendorId), f.type === "Lump Sum" ? Number(f.lumpSum) || 0 : sum(f.items, (i) => (Number(i.qty) || 0) * (Number(i.rate) || 0))) : "";
   // Lines still available on the contract BOQ (scope qty − already ordered on other work orders)
   const boqLeft = c ? contractBoq(st, c).filter((l) => l.balance > 0) : [];
   const loadBoq = () => setF({ ...f, type: "Item-Rate", items: boqLeft.map((l, i) => ({ id: `I${i + 1}`, code: l.code, desc: l.desc, unit: l.unit, qty: l.balance, rate: l.rate, boqRef: l.id })) });
@@ -53,6 +54,7 @@ function WorkOrderModal({ open, onClose, onCreated, contractId: presetContract }
         {c && (() => { const cv = byId(st.vendors, c.vendorId), cc = cv && complianceOf(cv); return cc && cc.blocking.length > 0 ? <Note tone="amber" icon={Icon.shieldCheck}><b>{cv.name} is not compliant:</b> {cc.blocking.join(" · ")}. Payments against this work order will be held until it is fixed.</Note> : null; })()}
         {c && dateErr && <Note tone="red">{dateErr}</Note>}
         {blockers.length > 0 && <Note tone="red" icon={Icon.lock}>Can be saved as a draft but not issued: {blockers.join(" · ")}.</Note>}
+        {qualWarn && <Note tone="amber" icon={Icon.alert}>{qualWarn}. You can still issue — the approver sees this warning.</Note>}
         {boqOver && <Note tone="red">A line is above what is left on the contract BOQ — raise a change order for the extra quantity.</Note>}
         {c && boqLeft.length > 0 && f.type !== "Lump Sum" && <div className="flex items-center justify-between rounded-lg border border-line px-3 py-2 text-[12.5px]"><span>Contract BOQ has <b>{boqLeft.length}</b> line(s) not yet ordered.</span><Btn size="sm" icon={Icon.sheet} onClick={loadBoq}>Load lines from contract BOQ</Btn></div>}
         {c && <Note>Contract terms applied to bills under this WO: retention {c.retentionPct}%, advance recovery {c.advanceRecoveryPct || 0}%, cess {c.cessPct}%, GST {c.gstPct}%.</Note>}
@@ -128,6 +130,7 @@ function WorkOrderDrawer({ id, onClose }) {
       </>}>
       <div className="space-y-4 px-6 py-5">
         {wo.status === "Draft" && woIssueBlockers(st, wo.contractId).length > 0 && <Note tone="red" icon={Icon.lock}>Can't be issued yet: {woIssueBlockers(st, wo.contractId).join(" · ")}.</Note>}
+        {wo.status === "Draft" && qualLimitWarn(st, byId(st.vendors, wo.vendorId), woValue(wo), wo.id) && <Note tone="amber" icon={Icon.alert}>{qualLimitWarn(st, byId(st.vendors, wo.vendorId), woValue(wo), wo.id)}.</Note>}
         {["Suspended", "Short-closed", "Cancelled", "Closed"].includes(wo.status) && <Note tone={wo.status === "Suspended" ? "amber" : "blue"}>{wo.status === "Suspended" ? "Stop-work: measurements, claims and new bills are paused until resumed." : wo.status === "Closed" ? "Closed with the contract — no further measurement or billing." : `${wo.status}${lastLog ? ` by ${lastLog.by} on ${fmtDate(lastLog.at)}` : ""}.`}{(wo.closedReason || lastLog?.reason) && ` Reason: ${wo.closedReason || lastLog.reason}`}</Note>}
         {wo.wbs && <p className="text-[12.5px] text-ink-soft">WBS <b className="text-ink">{wo.project} › {wo.wbs}</b></p>}
         {wo.acceptance?.status === "Pending" && <Note tone="amber">Waiting for the contractor to accept this work order in the supplier portal. Measurements open once it is accepted.</Note>}

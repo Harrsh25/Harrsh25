@@ -49,8 +49,20 @@ function InsurancePolicies({ v, mode = "registry", locked, portal }) {
   const mut = (fn, action) => setState((s) => fn(byId(s.vendors, v.id)), { entity: "Vendor", id: v.id, action });
   const blank = (type) => ({ type: type || items.find((i) => i.level > 0)?.rule.type || INS_TYPES[0], policy: "", insurer: "", cover: "", start: todayISO(), expiry: shiftDays(365), file: "", dataUrl: null });
   const policies = (v.insurance || []).slice().sort((a, b) => (b.expiry || "").localeCompare(a.expiry || ""));
+  // Policy form checks: number format, unique per insurer, cover > 0, dates in order, not already expired
+  const insErr = !edit ? "" : !edit.policy.trim() ? "Enter the policy number"
+    : !/^[A-Za-z0-9/\-. ]{4,40}$/.test(edit.policy.trim()) ? "Policy number: 4–40 letters, digits, / - ."
+    : (v.insurance || []).some((p) => p.id !== edit.id && normNo(p.policy) === normNo(edit.policy) && (p.insurer || "").trim().toLowerCase() === edit.insurer.trim().toLowerCase() && p.expiry === edit.expiry) ? "This policy is already on file"
+    : edit.insurer.trim().length < 3 ? "Enter the insurer"
+    : !(Number(edit.cover) > 0) ? "Sum insured must be more than zero"
+    : !edit.start || !edit.expiry ? "Enter valid-from and valid-till dates"
+    : edit.expiry <= edit.start ? "Valid till must be after valid from"
+    : edit.expiry < todayISO() ? "Policy has already expired — upload the current policy"
+    : edit.start > shiftDays(90) ? "Valid from can't be more than 90 days ahead"
+    : portal && !edit.file ? "Attach the policy copy" : "";
   const save = () => {
-    const p = { ...edit, cover: Number(edit.cover), status: "Pending", uploadedAt: todayISO(), id: edit.id || `POL-${Date.now()}` };
+    if (insErr) return toast(insErr, "red");
+    const p = { ...edit, policy: edit.policy.trim(), insurer: edit.insurer.trim(), cover: Number(edit.cover), status: "Pending", uploadedAt: todayISO(), id: edit.id || `POL-${Date.now()}` };
     mut((x) => { x.insurance = [...(x.insurance || []).filter((i) => i.id !== p.id), p]; }, `${p.type} policy ${p.policy} ${edit.id ? "updated" : "added"} — awaiting verification`);
     toast("Policy saved — awaiting verification"); setEdit(null);
   };
@@ -84,7 +96,7 @@ function InsurancePolicies({ v, mode = "registry", locked, portal }) {
       ]} />
       {edit && (
         <Modal open onClose={() => setEdit(null)} width={620} title={edit.id ? "Edit policy" : portal ? "Upload insurance policy" : "Add insurance policy"} subtitle="Saved as Pending until verified against the policy copy"
-          footer={<><Btn onClick={() => setEdit(null)}>Cancel</Btn><Btn variant="primary" disabled={!edit.policy || !edit.insurer || !(Number(edit.cover) > 0) || !edit.expiry || (portal && !edit.file)} onClick={save}>Save policy</Btn></>}>
+          footer={<>{insErr && <span className="mr-auto text-[12px] text-red-600">{insErr}</span>}<Btn onClick={() => setEdit(null)}>Cancel</Btn><Btn variant="primary" disabled={!!insErr} onClick={save}>Save policy</Btn></>}>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Coverage type" required><Select value={edit.type} onChange={(x) => setEdit({ ...edit, type: x })} options={withCurrent(INS_TYPES, edit.type)} /></Field>
             <Field label="Policy number" required><TextInput value={edit.policy} onChange={(x) => setEdit({ ...edit, policy: x })} placeholder="e.g. WC/2026/88121" /></Field>

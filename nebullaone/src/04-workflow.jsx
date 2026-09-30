@@ -111,6 +111,35 @@ function requalDue(v) {
   const sets = ruleSetsFor(v);
   return sets.length > 0 && daysUntil(shiftDays(Math.min(...sets.map((s) => s.requalifyDays)), v.qualification.at)) < 0;
 }
+// Qualification status with the project value it covers. The limit defaults from the
+// score (≥85 → ₹50 Cr, ≥70 → ₹10 Cr) and can be set on the Qualification tab.
+const QUAL_STATUSES = ["Qualified", "Qualified with exceptions", "Not qualified", "Expired", "Not assessed"];
+function qualStatus(v) {
+  const q = v?.qualification;
+  if (!q) return { status: "Not assessed", tone: "gray", limit: 0, exceptions: "" };
+  const limit = q.valueLimit != null && q.valueLimit !== "" ? Number(q.valueLimit) : q.score >= 85 ? 500000000 : q.score >= QUAL_PASS ? 100000000 : 0;
+  const exceptions = (q.exceptions || "").trim();
+  if (q.score < QUAL_PASS) return { status: "Not qualified", tone: "red", limit: 0, exceptions };
+  if (requalDue(v)) return { status: "Expired", tone: "red", limit, exceptions };
+  return { status: exceptions ? "Qualified with exceptions" : "Qualified", tone: exceptions ? "amber" : "green", limit, exceptions };
+}
+// Warning when a contractor's open work (plus a new order of `value`) goes over its qualification limit
+function qualLimitWarn(st, v, value, exceptWoId) {
+  const q = qualStatus(v);
+  if (!v || !v.isContractor || !q.limit) return "";
+  const open = sum(st.workOrders.filter((w) => w.vendorId === v.id && w.id !== exceptWoId && !["Draft", "Cancelled", "Closed", "Completed", "Short-closed"].includes(w.status)), (w) => woValue(w));
+  const total = open + (Number(value) || 0);
+  return total > q.limit ? `Over the qualification limit — open work ${inrShort(open)} + this ${inrShort(Number(value) || 0)} = ${inrShort(total)} against ${inrShort(q.limit)} (${q.status})` : "";
+}
+// Background check must be clear (litigation and watchlist) and done within the last 12 months
+function backgroundIssue(v) {
+  const b = v?.background;
+  if (!b || !b.checkedAt) return "Background check not done";
+  if (b.litigation !== "Clear") return `Background check: litigation ${String(b.litigation).toLowerCase()}`;
+  if (b.watchlist !== "Clear") return `Background check: watchlist / sanctions ${String(b.watchlist).toLowerCase()}`;
+  if (daysUntil(shiftDays(365, b.checkedAt)) < 0) return `Background check older than 12 months (${fmtDate(b.checkedAt)})`;
+  return "";
+}
 // "rfq" | "po" → { mode: Stop|Warn|Off, issues[] }
 function sourcingGate(st, v, what) {
   const set0 = settingsOf(st);
@@ -298,6 +327,10 @@ function woIssueBlockers(st, contractId) {
   if (!["Active", "Expiring"].includes(cs)) out.push(`Contract is ${cs}${cs === "Approved" ? " but not signed yet" : ""}`);
   const v = byId(st.vendors, c.vendorId);
   out.push(...contractorBlockers(st, v));
+  if (v) {
+    const bg = backgroundIssue(v); if (bg) out.push(`${bg} — mobilisation blocked until it is clear`);
+    const q = qualStatus(v); if (v.isContractor && ["Not qualified", "Not assessed"].includes(q.status)) out.push(`Contractor qualification: ${q.status}`);
+  }
   if (settingsOf(st).mobilisationBeforeWo && v && !st.workOrders.some((w) => w.vendorId === v.id && w.status !== "Draft" && w.status !== "Cancelled")) {
     const ck = v.onboarding?.checklist || [];
     const left = ck.filter((x) => !x.done).length;

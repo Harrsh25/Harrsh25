@@ -59,6 +59,7 @@ function Questionnaire({ v }) {
     }, { entity: "Vendor", id: v.id, action: `Qualification questionnaire scored ${score}/100` });
     toast(`Qualification saved — ${score}/100`);
   };
+  const qs0 = qualStatus(v);
   const due = v.qualification?.at && daysUntil(shiftDays(Math.min(...sets.map((s) => s.requalifyDays)), v.qualification.at)) < 0;
   return (
     <>
@@ -67,11 +68,13 @@ function Questionnaire({ v }) {
         <div className="flex items-center gap-3 rounded-lg border border-line p-3">
           <ScoreRing value={v.qualification.score} />
           <div className="text-[13px]">
-            <p className="font-medium">Qualification score {v.qualification.score}/100 {v.qualification.score >= 70 ? <Status tone="green">Qualified</Status> : <Status tone="red">Below 70 — not qualified</Status>}</p>
-            <p className="text-ink-mute">Last assessed {fmtDate(v.qualification.at)} {due && <Status tone="amber">Requalification due</Status>}</p>
+            <p className="font-medium">Qualification score {v.qualification.score}/100 <Status tone={qs0.tone}>{qs0.status}</Status></p>
+            <p className="text-ink-mute">Last assessed {fmtDate(v.qualification.at)} {due && <Status tone="amber">Requalification due</Status>}{qs0.limit > 0 && <> · project value limit <b className="num text-ink">{inrShort(qs0.limit)}</b></>}</p>
+            {qs0.exceptions && <p className="text-amber-700">Exceptions: {qs0.exceptions}</p>}
           </div>
         </div>
       )}
+      {v.qualification && v.qualification.score >= QUAL_PASS && <QualLimitForm v={v} />}
       <Section title="Questionnaire" icon={Icon.listChecks}>
         <div className="divide-y divide-line">
           {qs.map((q) => (
@@ -85,6 +88,57 @@ function Questionnaire({ v }) {
         <div className="flex justify-end border-t border-line p-3"><Btn variant="primary" disabled={!done} onClick={submit}>Save & score</Btn></div>
       </Section>
     </>
+  );
+}
+
+// Background check result — litigation and watchlist must be Clear before mobilisation
+function BackgroundModal({ v, onClose }) {
+  const [f, setF] = y.useState(() => ({ credit: v.background?.credit || "A", litigation: "Clear", watchlist: "Clear", checkedAt: todayISO(), note: "" }));
+  const adverse = f.litigation !== "Clear" || f.watchlist !== "Clear";
+  const err = !f.checkedAt ? "Enter the check date" : VX.notFuture(f.checkedAt, "Check date can't be in the future") || (adverse && f.note.trim().length < 5 ? "Describe the finding (at least 5 characters)" : "");
+  const save = () => {
+    if (err) return toast(err, "red");
+    setState((s) => { byId(s.vendors, v.id).background = { credit: f.credit, litigation: f.litigation, watchlist: f.watchlist, checkedAt: f.checkedAt, note: f.note.trim(), by: currentUser() }; },
+      { entity: "Vendor", id: v.id, action: `Background check recorded — ${adverse ? `not clear (${f.note.trim()})` : "clear"}` });
+    toast(adverse ? "Background check recorded — not clear, mobilisation blocked" : "Background check recorded — clear", adverse ? "amber" : "green"); onClose();
+  };
+  return (
+    <Modal open onClose={onClose} width={560} title="Record background check" footer={<><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!!err} onClick={save}>Save</Btn></>}>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Credit rating"><Select value={f.credit} onChange={(x) => setF({ ...f, credit: x })} options={["A+", "A", "A-", "B+", "B", "C", "D"]} /></Field>
+        <Field label="Checked on" required><DateInput value={f.checkedAt} onChange={(x) => setF({ ...f, checkedAt: x })} /></Field>
+        <Field label="Litigation"><Select value={f.litigation} onChange={(x) => setF({ ...f, litigation: x })} options={["Clear", "Pending case", "Adverse"]} /></Field>
+        <Field label="Watchlist / sanctions"><Select value={f.watchlist} onChange={(x) => setF({ ...f, watchlist: x })} options={["Clear", "Match found"]} /></Field>
+        <Field label="Finding / note" span={2} required={adverse}><TextInput value={f.note} onChange={(x) => setF({ ...f, note: x })} placeholder={adverse ? "Required when not clear" : "Optional"} /></Field>
+      </div>
+      {err && <FieldErr m={err} />}
+    </Modal>
+  );
+}
+
+// Qualification outcome: project value limit and any exceptions (qualified with exceptions)
+function QualLimitForm({ v }) {
+  const q = v.qualification;
+  const [lim, setLim] = y.useState(q.valueLimit != null && q.valueLimit !== "" ? q.valueLimit : qualStatus(v).limit);
+  const [exc, setExc] = y.useState(q.exceptions || "");
+  const err = !(Number(lim) > 0) ? "Enter a project value limit above zero" : exc.trim() && exc.trim().length < 5 ? "Describe the exception (at least 5 characters)" : "";
+  const dirty = Number(lim) !== qualStatus(v).limit || exc.trim() !== (q.exceptions || "").trim();
+  const save = () => {
+    if (err) return toast(err, "red");
+    setState((s) => { const x = byId(s.vendors, v.id).qualification; x.valueLimit = Number(lim); x.exceptions = exc.trim(); },
+      { entity: "Vendor", id: v.id, action: `Qualification outcome set — ${exc.trim() ? "qualified with exceptions" : "qualified"}, limit ${inrShort(Number(lim))}` });
+    toast("Qualification outcome saved");
+  };
+  return (
+    <Section title="Qualification outcome" icon={Icon.shieldCheck}>
+      <div className="grid grid-cols-[200px_1fr_auto] items-start gap-3 p-4">
+        <Field label="Project value limit (₹)"><NumInput value={lim} onChange={setLim} /></Field>
+        <Field label="Exceptions (leave blank if none)" hint="Anything that makes this 'Qualified with exceptions'"><TextInput value={exc} onChange={setExc} placeholder="e.g. ISO 45001 certificate pending" /></Field>
+        <div className="pt-6"><Btn variant="primary" disabled={!dirty || !!err} onClick={save}>Save outcome</Btn></div>
+      </div>
+      {err && <div className="px-4 pb-3"><FieldErr m={err} /></div>}
+      <p className="border-t border-line px-4 py-2 text-[11.5px] text-ink-mute">Work orders that take the contractor's open work above this limit show a warning. Expired or not-qualified contractors can't receive new work orders.</p>
+    </Section>
   );
 }
 
@@ -131,7 +185,7 @@ function resubmit(v) {
 function VendorApproval({ v, mode = "approval" }) {
   const decide = mode === "approval";
   const [remark, setRemark] = y.useState("");
-  const [rc, setRc] = y.useState(false), [edit, setEdit] = y.useState(false);
+  const [rc, setRc] = y.useState(false), [edit, setEdit] = y.useState(false); const [bg, setBg] = y.useState(false);
   const stages = v.approval.stages;
   const pending = stages.find((s) => s.status === "Pending");
   const comp = complianceOf(v);
@@ -193,10 +247,12 @@ function VendorApproval({ v, mode = "approval" }) {
         {v.status === "Active" && v.regTier === "Prospective" && <SpendAuthPanel v={v} />}
       </Section>
       <Section title="Background & financial checks" icon={Icon.shieldCheck}
-        actions={decide && <Btn size="sm" icon={Icon.refresh} onClick={() => setState((s) => (byId(s.vendors, v.id).background = { credit: ["A", "A-", "B+"][Math.floor(Math.random() * 3)], litigation: "Clear", watchlist: "Clear", checkedAt: todayISO() }), { entity: "Vendor", id: v.id, action: "Background check refreshed" })}>Run check</Btn>}>
+        actions={<Btn size="sm" icon={Icon.refresh} onClick={() => setBg(true)}>Record check</Btn>}>
         {v.background ? <KV cols={4} items={[["Credit rating", v.background.credit], ["Litigation", v.background.litigation], ["Watchlist / sanctions", v.background.watchlist], ["Checked on", fmtDate(v.background.checkedAt)]]} />
           : <p className="p-4 text-[13px] text-ink-mute">Not run yet.</p>}
+        {v.isContractor && backgroundIssue(v) && <div className="border-t border-line p-3"><Note tone="red" icon={Icon.lock}>{backgroundIssue(v)} — work orders (mobilisation) are blocked until it is clear.</Note></div>}
       </Section>
+      {bg && <BackgroundModal v={v} onClose={() => setBg(false)} />}
     </>
   );
 }
@@ -243,7 +299,8 @@ function VendorApprovalsPage() {
           { key: "name", label: "Vendor", className: "font-medium" },
           { key: "sets", label: "Rule sets", filterOptions: FO.ruleSets, filter: (v) => v.qualification.ruleSet, render: (v) => <span className="text-[12px] text-ink-soft">{v.qualification.ruleSet}</span> },
           { key: "score", label: "Score", render: (v) => <ScoreBadge value={v.qualification.score} /> },
-          { key: "res", label: "Result", filterOptions: FO.qualResult, filter: (v) => (v.qualification.score >= 70 ? "Qualified" : "Not qualified"), render: (v) => <Status tone={v.qualification.score >= 70 ? "green" : "red"}>{v.qualification.score >= 70 ? "Qualified" : "Not qualified"}</Status> },
+          { key: "res", label: "Result", filterOptions: FO.qualResult, filter: (v) => qualStatus(v).status, render: (v) => { const q = qualStatus(v); return <Status tone={q.tone}>{q.status}</Status>; } },
+          { key: "lim", label: "Value limit", align: "right", sort: (v) => qualStatus(v).limit, render: (v) => <span className="num">{qualStatus(v).limit ? inrShort(qualStatus(v).limit) : "—"}</span> },
           { key: "at", label: "Assessed", render: (v) => fmtDate(v.qualification.at || v.createdAt) },
         ]} />
       )}

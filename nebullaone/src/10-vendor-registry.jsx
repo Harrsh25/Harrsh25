@@ -526,7 +526,8 @@ function VendorFlags({ v }) {
               <Field label="Block"><Select value={hold.scope} onChange={(s) => setHold({ ...hold, scope: s })} options={["Invoices", "Payments", "All"]} /></Field>
               <Field label="Release date"><DateInput value={hold.until} onChange={(s) => setHold({ ...hold, until: s })} /></Field>
               <Field label="Reason"><TextInput value={hold.reason} onChange={(s) => setHold({ ...hold, reason: s })} placeholder="e.g. Pending reconciliation" /></Field>
-              <Btn variant="primary" disabled={!hold.reason || v.status === "Blacklisted"} onClick={() => mut((x) => { x.status = "On Hold"; x.hold = { ...hold, placedAt: todayISO() }; }, `Placed on hold (${hold.scope})`)}>Place hold</Btn>
+              <Btn variant="primary" disabled={!!holdErr(hold) || v.status === "Blacklisted"} onClick={() => mut((x) => { x.status = "On Hold"; x.hold = { ...hold, reason: hold.reason.trim(), until: hold.until || null, placedAt: todayISO() }; }, `Placed on hold (${hold.scope}) — ${hold.reason.trim()}`)}>Place hold</Btn>
+              {(hold.reason || hold.until !== shiftDays(30)) && holdErr(hold) && <div className="col-span-full"><FieldErr m={holdErr(hold)} /></div>}
             </div>
           )}
         </div>
@@ -541,7 +542,7 @@ function VendorFlags({ v }) {
           ) : (
             <>
               <div className="flex-1"><Field label="Reason (audit logged)"><TextInput value={reason} onChange={setReason} placeholder="e.g. Duplicate invoicing found in audit" /></Field></div>
-              <Btn variant="danger" icon={Icon.ban} disabled={!reason} onClick={() => { mut((x) => { x.status = "Blacklisted"; x.hold = null; x.notes.unshift({ at: todayISO(), by: currentUser(), text: `Blacklisted — ${reason}` }); }, `Blacklisted: ${reason}`); setReason(""); }}>Blacklist vendor</Btn>
+              <Btn variant="danger" icon={Icon.ban} disabled={reason.trim().length < 5} onClick={() => { mut((x) => { x.status = "Blacklisted"; x.hold = null; x.notes.unshift({ at: todayISO(), by: currentUser(), text: `Blacklisted — ${reason}` }); }, `Blacklisted: ${reason}`); setReason(""); }}>Blacklist vendor</Btn>
             </>
           )}
         </div>
@@ -759,15 +760,22 @@ function BulkBar({ sel, onClear, onHold }) {
     </div>
   );
 }
+// Placing a hold: a real reason, and a release date (if given) in the future, at most a year out
+function holdErr(h) {
+  if ((h.reason || "").trim().length < 5) return "Enter a reason (at least 5 characters)";
+  if (h.until && h.until <= todayISO()) return "Release date must be in the future";
+  if (h.until && daysUntil(h.until) > 365) return "Release date must be within a year — leave it blank for an indefinite hold";
+  return "";
+}
 function BulkHoldModal({ ids, onClose, onDone }) {
   const [hold, setHold] = y.useState({ scope: "Payments", until: shiftDays(30), reason: "" });
   const go = () => {
-    setState((s) => ids.forEach((id) => { const x = byId(s.vendors, id); if (x.status === "Blacklisted") return; x.status = "On Hold"; x.hold = { ...hold, placedAt: todayISO() }; }), { entity: "Vendor", id: ids.join(", "), action: `Placed on hold (${hold.scope}) — ${hold.reason}` });
+    setState((s) => ids.forEach((id) => { const x = byId(s.vendors, id); if (x.status === "Blacklisted") return; x.status = "On Hold"; x.hold = { ...hold, reason: hold.reason.trim(), until: hold.until || null, placedAt: todayISO() }; }), { entity: "Vendor", id: ids.join(", "), action: `Placed on hold (${hold.scope}) — ${hold.reason}` });
     toast(`${ids.length} vendor${ids.length > 1 ? "s" : ""} put on hold`); onDone();
   };
   return (
     <Modal open onClose={onClose} width={520} title={`Put ${ids.length} vendor${ids.length > 1 ? "s" : ""} on hold`} subtitle="Blacklisted vendors are skipped"
-      footer={<><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" icon={Icon.lock} disabled={!hold.reason.trim()} onClick={go}>Place hold</Btn></>}>
+      footer={<>{holdErr(hold) && <span className="mr-auto text-[12px] text-red-600">{holdErr(hold)}</span>}<Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" icon={Icon.lock} disabled={!!holdErr(hold)} onClick={go}>Place hold</Btn></>}>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Block"><Select value={hold.scope} onChange={(x) => setHold({ ...hold, scope: x })} options={["Invoices", "Payments", "All"]} /></Field>
         <Field label="Release date"><DateInput value={hold.until} onChange={(x) => setHold({ ...hold, until: x })} /></Field>

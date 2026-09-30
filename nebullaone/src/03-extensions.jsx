@@ -295,7 +295,7 @@ const FO = {
   regTier: ["Prospective", "Spend Authorized"],
   vendorType: ["Goods", "Services", "Services · Contractor", "Labor · Contractor"],
   stage: ["Procurement", "Legal", "Finance", "—"],
-  qualResult: ["Qualified", "Not qualified"],
+  qualResult: ["Qualified", "Qualified with exceptions", "Not qualified", "Expired"],
   preferred: ["Preferred", "Not preferred"],
   poStatus: ["Draft", "Issued", "Partially Received", "Received", "Closed", "Cancelled"],
   poBilling: ["Nothing to Bill", "Waiting Bills", "Partially Billed", "Fully Billed", "On ordered quantity", "Draft", "Cancelled"],

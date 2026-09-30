@@ -53,6 +53,7 @@ function ContractModal({ open, onClose, onCreated, edit }) {
           <Field label="Contract owner"><TextInput value={f.owner} onChange={set("owner")} /></Field>
         </div>
         {v && blockers.length > 0 && <Note tone="red">{v.name} can't be contracted right now: {blockers.join(" · ")}.</Note>}
+        {v && v.qualification && qualStatus(v).limit > 0 && value > qualStatus(v).limit && <Note tone="amber" icon={Icon.alert}>Contract value {inrShort(value)} is above {v.name}'s qualification limit of {inrShort(qualStatus(v).limit)} ({qualStatus(v).status}) — work orders beyond the limit will show a warning.</Note>}
         {f.rfqId && <Note>Created from the award of <b>{f.rfqId}</b>{f.awardNote ? ` — ${f.awardNote}` : ""}. Lines and rates come from the winning quotation.</Note>}
         <Section title={`Contract BOQ${f.scope.length ? ` — ${f.scope.length} line(s)` : " (optional)"}`} actions={<Btn size="sm" icon={Icon.plus} onClick={() => setF({ ...f, scope: [...f.scope, { code: String(f.scope.length + 1), desc: "", unit: "cum", qty: "", rate: "" }] })}>Add BOQ line</Btn>}>
           {f.scope.length === 0 ? <p className="p-3 text-[12.5px] text-ink-mute">Without BOQ lines the contract value is entered directly. With lines, work orders pick from this BOQ and the contract tracks ordered / measured / billed per line.</p> : (
