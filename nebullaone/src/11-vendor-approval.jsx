@@ -172,6 +172,8 @@ function resubmit(v) {
   if (b.length) { toast(`Upload the required documents first — ${b.join("; ")}`, "red"); return false; }
   setState((s) => {
     const x = byId(s.vendors, v.id);
+    // a first submission picks up the current approval stages from Procurement Settings
+    if (x.status === "Draft" && !x.approval.stages.some((st) => st.status === "Approved")) x.approval = { stages: vendorFlowFor(x, s).map((dept) => ({ dept, status: "Waiting", by: null, at: null, remark: "" })) };
     // approvals already given are kept; routing resumes at the first stage not yet approved
     const i = Math.max(0, x.approval.stages.findIndex((st) => st.status !== "Approved"));
     x.approval.stages.forEach((st, j) => { if (j >= i) Object.assign(st, { status: j === i ? "Pending" : "Waiting", by: null, at: null, remark: "" }); });
@@ -263,7 +265,7 @@ function VendorApprovalsPage() {
   const [tab, setTab] = y.useState("queue");
   const [open, setOpen] = useQueryOpen();
   const queue = st.vendors.filter((v) => ["Pending Approval", "Draft", "Rejected", "Changes Requested"].includes(v.status));
-  const byDept = APPROVAL_FLOW.map((d) => ({ d, n: st.vendors.filter((v) => v.approval.stages.some((s) => s.dept === d && s.status === "Pending")).length }));
+  const byDept = [...new Set([...(settingsOf(st).vendorFlow || []).map((x) => x.name), ...st.vendors.flatMap((v) => (v.approval?.stages || []).filter((s) => s.status === "Pending").map((s) => s.dept))])].filter(Boolean).map((d) => ({ d, n: st.vendors.filter((v) => v.approval.stages.some((s) => s.dept === d && s.status === "Pending")).length }));
   return (
     <Page title="Vendor Approvals" subtitle="Multi-stage approval, qualification rule sets and requalification" icon={Icon.clipboardCheck}>
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "queue", label: "Approval queue", icon: Icon.clipboardList }, { id: "scores", label: "Qualification results", icon: Icon.listChecks }]} />

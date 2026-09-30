@@ -22,6 +22,10 @@ const DEFAULT_SETTINGS = {
   poComplianceGate: "Stop",       // …and at PO / contract creation
   mobilisationBeforeWo: true,     // contractor's mobilisation checklist complete before the first work order is issued
   qcBeforeBilling: true,          // measurements need a passed quality inspection before an RA bill
+  // Configurable approval stages (Procurement Settings → Approval stages). Records already in
+  // approval keep the stages they were submitted with; new submissions use these.
+  vendorFlow: [{ name: "Procurement", scope: "All" }, { name: "Legal", scope: "All" }, { name: "Finance", scope: "All" }],
+  contractFlow: [{ name: "Legal Counsel", minValue: 0 }, { name: "Finance Controller", minValue: 0 }],
   // Vendor groups ("Parent › Child") for filtering and spend roll-up
   vendorGroups: [
     "Material Suppliers › Steel", "Material Suppliers › Cement", "Material Suppliers › Electrical", "Material Suppliers › General",
@@ -62,6 +66,16 @@ const appliesTo = (rule, v) => {
 };
 const ROLES = ["Procurement Executive", "Procurement Head", "Legal Counsel", "Project Manager", "Finance Controller", "Accounts"];
 const settingsOf = (st) => ({ ...DEFAULT_SETTINGS, ...(st.settings || {}) });
+// Stages that apply to a vendor registration: scope All | Contractors | Non-contractors
+function vendorFlowFor(v, st) {
+  const flow = (settingsOf(st || getState()).vendorFlow || []).filter((x) => x.name && (x.scope === "All" || !x.scope || (x.scope === "Contractors") === !!(v && (v.isContractor || v.type === "Labor"))));
+  return flow.length ? flow.map((x) => x.name) : APPROVAL_FLOW;
+}
+// Stages for a contract: a stage with a minimum value only applies at or above it
+function contractFlowFor(value, st) {
+  const flow = (settingsOf(st || getState()).contractFlow || []).filter((x) => x.name && (Number(value) || 0) >= (Number(x.minValue) || 0));
+  return flow.length ? flow.map((x) => x.name) : CONTRACT_FLOW;
+}
 // Readable descriptions used in list views instead of document codes
 const itemsSummary = (lines) => (lines && lines.length ? `${lines[0].desc}${lines.length > 1 ? ` +${lines.length - 1} more` : ""}` : "—");
 const modeLabel = (m) => (m === "Call for Tenders" ? "Multiple Vendors" : m);
@@ -294,7 +308,7 @@ const FO = {
   compliance: ["Compliant", "Expiring", "Non-Compliant"],
   regTier: ["Prospective", "Spend Authorized"],
   vendorType: ["Goods", "Services", "Services · Contractor", "Labor · Contractor"],
-  stage: ["Procurement", "Legal", "Finance", "—"],
+  stage: () => [...new Set([...(settingsOf(getState()).vendorFlow || []).map((x) => x.name), ...getState().vendors.flatMap((v) => (v.approval?.stages || []).map((s) => s.dept))]), "—"],
   qualResult: ["Qualified", "Qualified with exceptions", "Not qualified", "Expired"],
   preferred: ["Preferred", "Not preferred"],
   poStatus: ["Draft", "Issued", "Partially Received", "Received", "Closed", "Cancelled"],

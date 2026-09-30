@@ -33,7 +33,7 @@ const VX = {
   FILE_MAX: 5 * 1024 * 1024,
   FILE_TYPES: /\.(pdf|jpe?g|png)$/i,
   SHEET_TYPES: /\.(pdf|jpe?g|png|xlsx?|csv)$/i,
-  file: (f, types = VX.FILE_TYPES) => (!f ? "" : f.size > VX.FILE_MAX ? `File is ${(f.size / 1048576).toFixed(1)} MB — maximum is 5 MB` : types.test(f.name) ? "" : types === VX.FILE_TYPES ? "Only PDF, JPG or PNG files are allowed" : "Only PDF, JPG, PNG, Excel or CSV files are allowed"),
+  file: (f, types = VX.FILE_TYPES) => (!f ? "" : f.size > VX.FILE_MAX ? `File is ${(f.size / 1048576).toFixed(2)} MB — over the 5 MB limit` : types.test(f.name) ? "" : types === VX.FILE_TYPES ? "Only PDF, JPG or PNG files are allowed" : "Only PDF, JPG, PNG, Excel or CSV files are allowed"),
   any: (o) => Object.values(o).some(Boolean),
   count: (o) => Object.values(o).filter(Boolean).length,
 };

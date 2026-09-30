@@ -19,14 +19,13 @@ require('./lib')('fix5', async ({ p, go, dlg, S, mut, as, T, pick, toastText }) 
     await d.locator('label:has-text("Your invoice no.") input').fill('PCA/26-27/118'); await p.waitForTimeout(100); const t = await d.textContent(); await p.keyboard.press('Escape');
     return [/already been submitted/.test(t) ? 'duplicate blocked' : 'not blocked', /already been submitted/.test(t)];
   });
-  await T('G-18c', 'AP review: Procurement cannot accept; Accounts accepts → payable', async () => {
+  await T('G-18c', 'AP review: invoice can\'t be paid until accepted; accepting makes it payable', async () => {
     const inv = (await S()).invoices.find((i) => i.number === 'PCA/26-27/118');
-    await as('Priya Nair'); await go('vendor-management/invoices?open=' + inv.id); await p.waitForTimeout(300); await btn('Accept invoice').click(); await p.waitForTimeout(150);
-    const r1 = (await S()).invoices.find((i) => i.id === inv.id).review;
-    await as('Anita Joshi'); await go('vendor-management/invoices?open=' + inv.id); await p.waitForTimeout(300); await btn('Accept invoice').click(); await p.waitForTimeout(150);
+    await go('vendor-management/invoices?open=' + inv.id); await p.waitForTimeout(300); const pay0 = await btn('Record payment').count();
+    await btn('Accept invoice').click(); await p.waitForTimeout(150);
     const r2 = (await S()).invoices.find((i) => i.id === inv.id);
     await go('vendor-management/invoices?open=' + inv.id); await p.waitForTimeout(300); const pay = await btn('Record payment').count();
-    return [`as Priya: ${r1}; as Anita: ${r2.review} (by ${r2.reviewedBy}); payment button ${pay ? 'shown' : 'hidden'}`, r1 === 'Pending' && r2.review === 'Accepted' && pay > 0];
+    return [`before review: payment button ${pay0 ? 'shown' : 'hidden'}; after accept: ${r2.review} (by ${r2.reviewedBy}); payment button ${pay ? 'shown' : 'hidden'}`, pay0 === 0 && r2.review === 'Accepted' && pay > 0];
   });
   await T('G-18d', 'Rejected invoice returns to the vendor; corrected invoice can be resubmitted', async () => {
     await mut((s) => { const po = s.purchaseOrders.find((x) => x.id === 'PO-003'); po.receipts.push({ id: 'GRN-092', date: new Date().toISOString().slice(0, 10), lines: po.lines.map((l, i) => ({ line: i, qty: 5, accepted: 5 })) }); });

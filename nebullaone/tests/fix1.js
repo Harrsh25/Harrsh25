@@ -21,17 +21,15 @@ require('./lib')('fix1', async ({ p, go, dlg, S, mut, as, T, pick, toastText }) 
     const v2 = (await S()).vendors.find((x) => x.id === v.id); const t = await toastText();
     return [`draft ${v.id}; after submit click status ${v2.status}; toast "${t.slice(0, 70)}"`, v2.status === 'Draft' && /required documents/.test(t)];
   });
-  await T('G-13a', 'Wrong role cannot decide a vendor stage', async () => {
-    await as('Priya Nair'); await go('vendor-management/approvals?open=VEN-007'); await p.waitForTimeout(300);
-    const note = await dlg().textContent(); await p.locator('button:has-text("Approve as")').click(); await p.waitForTimeout(150);
+  await T('G-13a', 'Roles removed: no "Acting as" switcher; the pending stage can be decided by the signed-in user', async () => {
+    await go('vendor-management/approvals?open=VEN-007'); await p.waitForTimeout(300);
+    const body = await p.textContent('body'); await p.locator('button:has-text("Approve as Legal")').click(); await p.waitForTimeout(200);
     const v = (await S()).vendors.find((x) => x.id === 'VEN-007');
-    return [`as Priya (Proc. Exec.) Legal stage stays ${v.approval.stages[1].status}; note shown: ${/needs the Legal Counsel role/.test(note)}`, v.approval.stages[1].status === 'Pending' && /needs the Legal Counsel role/.test(note)];
+    return [`switcher shown: ${/Acting as/.test(body)}; Legal ${v.approval.stages[1].status} by ${v.approval.stages[1].by}`, !/Acting as/.test(body) && v.approval.stages[1].status === 'Approved'];
   });
-  await T('G-13b', 'Legal Counsel approves; the same person cannot approve Finance', async () => {
-    await as('Neha Kulkarni'); await go('vendor-management/approvals?open=VEN-007'); await p.locator('button:has-text("Approve as Legal")').click(); await p.waitForTimeout(200);
-    await as('Neha Kulkarni'); await mut((s) => {}); await go('vendor-management/approvals?open=VEN-007'); await p.waitForTimeout(200);
-    const t = await dlg().textContent(); const v = (await S()).vendors.find((x) => x.id === 'VEN-007');
-    return [`Legal ${v.approval.stages[1].status} by ${v.approval.stages[1].by}; Finance stage shows block note: ${/needs the Finance Controller role/.test(t)}`, v.approval.stages[1].status === 'Approved' && /needs the Finance Controller role/.test(t)];
+  await T('G-13b', 'Stages still run in order: Finance opens only after Legal', async () => {
+    const v = (await S()).vendors.find((x) => x.id === 'VEN-007');
+    return [v.approval.stages.map((x) => `${x.dept} ${x.status}`).join(' → '), v.approval.stages[1].status === 'Approved' && v.approval.stages[2].status === 'Pending'];
   });
   await T('G-01', 'Final approval blocked by open checklist (no WC insurance)', async () => {
     await as('Rohit Shah'); await go('vendor-management/approvals?open=VEN-007'); await p.waitForTimeout(250);
@@ -44,19 +42,16 @@ require('./lib')('fix1', async ({ p, go, dlg, S, mut, as, T, pick, toastText }) 
     return [`status ${v.status}; override recorded: ${JSON.stringify(v.approval.stages[2].override || null).slice(0, 80)}`, v.status === 'Active' && (v.approval.stages[2].override || []).length > 0];
   });
   await T('G-02', 'Registration tier cannot be switched directly; request → Finance approval', async () => {
-    await as('Priya Nair'); await go('vendor-management/registry?open=VEN-007'); await p.waitForTimeout(300);
+    await go('vendor-management/registry?open=VEN-007'); await p.waitForTimeout(300);
     await dlg().locator('[role=tab]:has-text("Status & flags")').click(); await p.waitForTimeout(150);
     const combo = await dlg().locator('label:has-text("Registration tier") [role=combobox]').count();
     await dlg().locator('[role=tab]:has-text("Approval")').click(); await p.waitForTimeout(150);
     await dlg().locator('button:has-text("Request spend authorization")').click(); await p.waitForTimeout(200);
-    let v = (await S()).vendors.find((x) => x.id === 'VEN-007'); const r1 = v.tierRequest?.status;
+    let v = (await S()).vendors.find((x) => x.id === 'VEN-007'); const r1 = v.tierRequest?.status, t1 = v.regTier;
     await go('approvals/approval-management?module=Spend%20Authorization'); await p.waitForTimeout(300);
-    await p.locator('tr:has-text("Greenline") button:has-text("Approve")').click(); await p.waitForTimeout(150);
-    v = (await S()).vendors.find((x) => x.id === 'VEN-007'); const r2 = v.regTier;
-    await as('Rohit Shah'); await go('approvals/approval-management?module=Spend%20Authorization'); await p.waitForTimeout(300);
     await p.locator('tr:has-text("Greenline") button:has-text("Approve")').click(); await p.waitForTimeout(200);
     v = (await S()).vendors.find((x) => x.id === 'VEN-007');
-    return [`tier dropdown present=${combo > 0}; request ${r1}; after requester tries to approve: ${r2}; after Finance: ${v.regTier}`, combo === 0 && r1 === 'Pending' && r2 === 'Prospective' && v.regTier === 'Spend Authorized'];
+    return [`tier dropdown present=${combo > 0}; request ${r1} (tier still ${t1}); after approval: ${v.regTier}`, combo === 0 && r1 === 'Pending' && t1 === 'Prospective' && v.regTier === 'Spend Authorized'];
   });
   await T('G-28', 'Hold past its release date ends automatically', async () => {
     await mut((s) => { const v = s.vendors.find((x) => x.id === 'VEN-006'); v.hold.until = new Date(Date.now() - 2 * 864e5).toISOString().slice(0, 10); });
@@ -91,12 +86,12 @@ require('./lib')('fix1', async ({ p, go, dlg, S, mut, as, T, pick, toastText }) 
     await mut((s) => { s.vendors.find((x) => x.id === 'VEN-011').status = 'Active'; });
     return [/Portal access suspended/.test(t) ? 'Access suspended page shown' : 'portal still open', /Portal access suspended/.test(t)];
   });
-  await T('G-13c', 'Payment needs Accounts/Finance role', async () => {
-    await as('Priya Nair'); await go('vendor-management/invoices'); await p.waitForTimeout(200);
-    const s = await S(); const inv = s.invoices.find((i) => i.payments.length === 0);
+  await T('G-13c', 'Payment dialog has no role check (roles removed) but keeps the payment gates', async () => {
+    await go('vendor-management/invoices'); await p.waitForTimeout(200);
+    const s0 = await S(); const inv = s0.invoices.find((i) => i.payments.length === 0);
     await go('vendor-management/invoices?open=' + inv.id); await p.waitForTimeout(300);
     const b = dlg().locator('button:has-text("Record payment"), button:has-text("Release payment"), button:has-text("Pay")').first(); await b.click(); await p.waitForTimeout(200);
-    const t = await dlg().textContent(); await as(null);
-    return [/needs the Accounts or Finance Controller role/.test(t) ? 'Stop: needs Accounts / Finance role' : t.slice(0, 100), /needs the Accounts or Finance Controller role/.test(t)];
+    const t = await dlg().textContent(); await p.keyboard.press('Escape');
+    return [`role note: ${/role/i.test(t) && /needs the/.test(t)}; dialog: ${t.slice(0, 80)}`, !/needs the Accounts or Finance Controller role/.test(t) && /payment/i.test(t)];
   });
 });

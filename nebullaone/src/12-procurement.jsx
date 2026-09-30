@@ -785,7 +785,7 @@ function ProcurementSettingsPage() {
   );
   return (
     <Page title="Procurement Settings" subtitle="Which checks stop a transaction, which only warn, and who may override — like ERPNext Buying Settings" icon={Icon.settings}
-      actions={<Btn variant="primary" icon={Icon.save} onClick={() => { setState((s) => (s.settings = { ...f }), { entity: "Settings", id: "PROCUREMENT", action: "Procurement settings updated" }); toast("Settings saved"); }}>Save settings</Btn>}>
+      actions={<Btn variant="primary" icon={Icon.save} onClick={() => { const e = flowErr(f.vendorFlow, "Vendor") || flowErr(f.contractFlow, "Contract"); if (e) return toast(e, "red"); setState((s) => (s.settings = { ...f }), { entity: "Settings", id: "PROCUREMENT", action: `Procurement settings updated — vendor stages ${f.vendorFlow.map((x) => x.name).join(" → ")}; contract stages ${f.contractFlow.map((x) => x.name).join(" → ")}` }); toast("Settings saved"); }}>Save settings</Btn>}>
       <div className="grid grid-cols-2 gap-4 p-4">
         <Section title="Billing rules" icon={Icon.receipt}>
           {yesNo("poRequiredForBill", "Purchase order required for vendor bills", "Vendors can be exempted individually (Status & flags tab)")}
@@ -805,6 +805,10 @@ function ProcurementSettingsPage() {
           {yesNo("mobilisationBeforeWo", "Mobilisation checklist before the first work order", "Contractor Onboarding → mobilisation checklist must be complete")}
           {yesNo("qcBeforeBilling", "Quality inspection before RA billing", "Only measurements with a passed inspection can be billed")}
         </Section>
+        <FlowEditor title="Vendor approval stages" hint="Each registration is routed through these stages in order. Records already in approval keep their stages."
+          rows={f.vendorFlow} onChange={set("vendorFlow")} extra={{ key: "scope", label: "Applies to", options: ["All", "Contractors", "Non-contractors"], blank: "All" }} />
+        <FlowEditor title="Contract approval stages" hint="A stage with a minimum value only applies to contracts at or above it. The last stage also checks the contractor gates."
+          rows={f.contractFlow} onChange={set("contractFlow")} extra={{ key: "minValue", label: "Min value (₹)", num: true, blank: 0 }} />
         <Section title="Ordering & vendor access" icon={Icon.package}>
           <div className="grid grid-cols-2 gap-3 p-4">
             <Field label="Over-order allowance (%)" hint="Above RFQ / requisition quantity"><NumInput value={f.overOrderPct} onChange={set("overOrderPct")} /></Field>
@@ -818,6 +822,44 @@ function ProcurementSettingsPage() {
           items={f.groupCompanies} onChange={set("groupCompanies")} placeholder="NebullaOne Infra Ltd" usage={(g) => getState().vendors.filter((v) => v.parentCompany === g).length} />
       </div>
     </Page>
+  );
+}
+
+// Approval stage list: add, rename, reorder, remove — at least one stage, names unique
+function flowErr(rows, what) {
+  if (!rows || !rows.length) return `${what} approval needs at least one stage`;
+  if (rows.some((r) => !(r.name || "").trim())) return `${what} approval: every stage needs a name`;
+  const n = rows.map((r) => r.name.trim().toLowerCase());
+  if (new Set(n).size !== n.length) return `${what} approval: stage names must be unique`;
+  if (rows.some((r) => r.minValue != null && r.minValue !== "" && !(Number(r.minValue) >= 0))) return `${what} approval: minimum value can't be negative`;
+  if (what === "Vendor" && !rows.some((r) => (r.scope || "All") === "All") && !(rows.some((r) => r.scope === "Contractors") && rows.some((r) => r.scope === "Non-contractors"))) return "Vendor approval: every vendor must get at least one stage";
+  if (what === "Contract" && !rows.some((r) => !(Number(r.minValue) > 0))) return "Contract approval: at least one stage must apply to every contract (minimum value 0)";
+  return "";
+}
+function FlowEditor({ title, hint, rows, onChange, extra }) {
+  const upd = (i, patch) => onChange(rows.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+  const move = (i, d) => { const a = rows.slice(); const [x] = a.splice(i, 1); a.splice(i + d, 0, x); onChange(a); };
+  const err = flowErr(rows, title.startsWith("Vendor") ? "Vendor" : "Contract");
+  return (
+    <Section title={title} icon={Icon.clipboardCheck} actions={<Btn size="sm" icon={Icon.plus} onClick={() => onChange([...rows, { name: "", [extra.key]: extra.blank }])}>Add stage</Btn>}>
+      <p className="border-b border-line px-4 py-2 text-[12px] text-ink-mute">{hint}</p>
+      <div className="divide-y divide-line">
+        {rows.map((r, i) => (
+          <div key={i} className="grid grid-cols-[28px_1fr_170px_auto] items-center gap-2 px-4 py-2">
+            <span className="num text-[12px] text-ink-mute">L{i + 1}</span>
+            <TextInput value={r.name} onChange={(x) => upd(i, { name: x })} placeholder="Stage name (e.g. Legal)" />
+            {extra.num ? <NumInput value={r[extra.key]} onChange={(x) => upd(i, { [extra.key]: x })} placeholder={extra.label} />
+              : <Select value={r[extra.key] || extra.blank} onChange={(x) => upd(i, { [extra.key]: x })} options={extra.options} />}
+            <span className="flex gap-1">
+              <Btn size="sm" disabled={i === 0} onClick={() => move(i, -1)} title="Move up">↑</Btn>
+              <Btn size="sm" disabled={i === rows.length - 1} onClick={() => move(i, 1)} title="Move down">↓</Btn>
+              <Btn size="sm" variant="danger" disabled={rows.length <= 1} onClick={() => onChange(rows.filter((_, j) => j !== i))}>Remove</Btn>
+            </span>
+          </div>
+        ))}
+      </div>
+      <p className="border-t border-line px-4 py-2 text-[12px]">{err ? <span className="text-red-600">{err}</span> : <span className="text-ink-soft">Route: {rows.map((r) => r.name).join(" → ")}</span>}</p>
+    </Section>
   );
 }
 

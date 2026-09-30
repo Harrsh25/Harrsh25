@@ -219,12 +219,13 @@ function submitContract(c) {
   if (!(c.end > c.start)) errs.push("completion after start");
   errs.push(...contractorBlockers(st, v));
   if (errs.length) { toast(`Can't submit — ${errs.join("; ")}`, "red"); return false; }
+  const flow = contractFlowFor(contractValue(c), st);
   setState((s) => {
     const x = byId(s.contracts, c.id);
     x.status = "Pending Approval"; x.submittedBy = currentUser(); x.submittedAt = new Date().toISOString();
-    x.approval = { stages: CONTRACT_FLOW.map((role, i) => ({ role, status: i === 0 ? "Pending" : "Waiting", by: null, at: null, remark: "" })) };
-  }, { entity: "Contract", id: c.id, action: `Submitted for approval (${CONTRACT_FLOW.join(" → ")})` });
-  toast(`${c.id} submitted — ${CONTRACT_FLOW[0]} approves next`);
+    x.approval = { stages: flow.map((role, i) => ({ role, status: i === 0 ? "Pending" : "Waiting", by: null, at: null, remark: "" })) };
+  }, { entity: "Contract", id: c.id, action: `Submitted for approval (${flow.join(" → ")})` });
+  toast(`${c.id} submitted — ${flow[0]} approves next`);
   return true;
 }
 function decideContract(c, approve, remark) {

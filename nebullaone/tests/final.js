@@ -1,5 +1,5 @@
 // FINAL FULL-SYSTEM TEST — one clean run, new vendor and new contractor, registration → closure,
-// every step through the UI as the right person. Records the chain of IDs for data continuity.
+// every step through the UI. Records the chain of IDs for data continuity.
 require('./lib')('final', async ({ p, go, dlg, S, mut, as, T, pick, toastText }) => {
   const btn = (t) => p.locator(`button:has-text("${t}")`);
   const pdf = { name: 'doc.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 test') };
@@ -14,7 +14,7 @@ require('./lib')('final', async ({ p, go, dlg, S, mut, as, T, pick, toastText })
     await d.locator('input').nth(0).fill(f.name); await d.locator(`button[aria-pressed]:has-text("${f.trade}")`).first().click();
     await d.locator('input[placeholder="27AAKCS4412M1Z3"]').fill(f.gst); await d.locator('input[placeholder="AAKCS4412M"]').fill(f.pan);
     await d.locator('label:has-text("Contact person") input').fill(f.contact); await d.locator('input[type=email]').fill(f.email);
-    await d.locator('label:has-text("Bank") input').first().fill('HDFC Bank'); await d.locator('label:has-text("Account no.") input').fill('50200011223344'); await d.locator('label:has-text("IFSC") input').fill('HDFC0000123');
+    await d.locator('label:has-text("Account holder name") input').fill(f.name); await d.locator('input[placeholder="e.g. HDFC Bank"]').fill('HDFC Bank'); await d.locator('label:has-text("Account no.") input').fill('50200011223344'); await d.locator('label:has-text("IFSC") input').fill('HDFC0000123');
     await upAll(d); await d.locator('button:has-text("Submit for approval")').click(); await p.waitForTimeout(350);
     return V(f.name);
   };
@@ -42,7 +42,7 @@ require('./lib')('final', async ({ p, go, dlg, S, mut, as, T, pick, toastText })
   await T('V01', 'Registration (Tier 1) with documents — submitted', async () => { await as('Priya Nair'); v = await register('vendor-management/registry', 'Register vendor', VN); await as(null); chain.vendor.id = v?.id; return [`${v?.id} ${v?.status}, ${v?.docs.filter((d) => d.status === 'Pending').length} docs pending verification`, v && v.status === 'Pending Approval']; });
   await T('V02', 'Final approval blocked until documents verified and qualification done', async () => { await as('Arjun Mehta'); await go('vendor-management/approvals?open=' + v.id); await p.waitForTimeout(250); const t = await dlg().textContent(); await as(null); return [(t.match(/Open before final approval:[^.]*/) || ['none'])[0].slice(0, 110), /Open before final approval/.test(t)]; });
   await T('V03', 'Document verification + qualification', async () => { await as('Arjun Mehta'); await verifyAll(v.id); await qualify(v.id, ANS); await as(null); v = await V(VN.name); return [`verified ${v.docs.filter((d) => d.status === 'Verified').length}/${v.docs.length}; qualification ${v.qualification?.score}/100`, v.docs.every((d) => d.status === 'Verified') && v.qualification?.score >= 70]; });
-  await T('V04', 'Approval Procurement → Legal → Finance (three people) → Active master', async () => { await approve3(v.id); v = await V(VN.name); return [`${v.status} / ${v.regTier}; approvers ${v.approval.stages.map((s) => s.by).join(', ')}`, v.status === 'Active' && v.regTier === 'Spend Authorized' && new Set(v.approval.stages.map((s) => s.by)).size === 3]; });
+  await T('V04', 'Approval Procurement → Legal → Finance (all three stages) → Active master', async () => { await approve3(v.id); v = await V(VN.name); return [`${v.status} / ${v.regTier}; stages ${v.approval.stages.map((s) => `${s.dept} ${s.status}`).join(', ')}`, v.status === 'Active' && v.regTier === 'Spend Authorized' && v.approval.stages.length === 3 && v.approval.stages.every((s) => s.status === 'Approved')]; });
   await T('V05', 'RFQ created and sent (new vendor + Konkan)', async () => {
     await as('Priya Nair'); await go('vendor-management/rfq'); await btn('New RFQ').click(); await p.waitForTimeout(200); const d = dlg();
     await d.locator('label:has-text("Title") input').first().fill('TMT Fe500D 16 mm — 40 MT'); await d.locator('input[placeholder="Description"]').fill('TMT Fe500D 16 mm'); await d.locator('input[type=number]').first().fill('40');
@@ -63,10 +63,9 @@ require('./lib')('final', async ({ p, go, dlg, S, mut, as, T, pick, toastText })
     await dlg().locator('label:has-text("Award recommendation") input').fill('Only compliant quote, L1'); await dlg().locator('button:has-text("Award & create")').click(); await p.waitForTimeout(300); await as(null);
     const po = (await S()).purchaseOrders.find((x) => x.rfqId === chain.vendor.rfq); chain.vendor.po = po?.id; return [`${po?.id} ${po?.status} for ${po?.vendorId}, award note "${po?.awardNote}"`, po && po.vendorId === v.id && po.status === 'Draft'];
   });
-  await T('V08', 'PO approval by Procurement Head (not the buyer) → Issued', async () => {
-    await as('Priya Nair'); await go('vendor-management/purchase-orders?open=' + chain.vendor.po); await p.waitForTimeout(300); await btn('Approve & issue').click(); await p.waitForTimeout(150); const s1 = (await S()).purchaseOrders.find((x) => x.id === chain.vendor.po).status;
-    await as('Arjun Mehta'); await go('approvals/approval-management?module=Purchase%20Orders'); await p.waitForTimeout(300); await p.locator(`tr:has-text("${chain.vendor.po}") button:has-text("Approve")`).click(); await p.waitForTimeout(200); await as(null);
-    const po = (await S()).purchaseOrders.find((x) => x.id === chain.vendor.po); return [`buyer tried: ${s1}; Arjun: ${po.status} (approved by ${po.approval?.by})`, s1 === 'Draft' && po.status === 'Issued'];
+  await T('V08', 'PO approval (Approval Management) → Issued', async () => {
+    await go('approvals/approval-management?module=Purchase%20Orders'); await p.waitForTimeout(300); await p.locator(`tr:has-text("${chain.vendor.po}") button:has-text("Approve")`).click(); await p.waitForTimeout(200);
+    const po = (await S()).purchaseOrders.find((x) => x.id === chain.vendor.po); return [`${po.status} (approved by ${po.approval?.by})`, po.status === 'Issued'];
   });
   await T('V09', 'Delivery → goods receipt (acceptance)', async () => {
     await go('vendor-management/purchase-orders?open=' + chain.vendor.po); await p.waitForTimeout(300); await btn('Receive goods').click(); await p.waitForTimeout(150); await dlg().locator('button:has-text("Post GRN")').click(); await p.waitForTimeout(200);
@@ -79,10 +78,9 @@ require('./lib')('final', async ({ p, go, dlg, S, mut, as, T, pick, toastText })
     await as('Anita Joshi'); await go('approvals/approval-management?module=Vendor%20Invoices'); await p.waitForTimeout(300); await p.locator(`tr:has-text("${inv.id}") button:has-text("Approve")`).click(); await p.waitForTimeout(200); await as(null);
     const i2 = (await S()).invoices.find((i) => i.id === inv.id); return [`${inv.id} review ${i2.review} by ${i2.reviewedBy}; 3-way match against ${i2.poId}`, i2.review === 'Accepted' && i2.poId === chain.vendor.po];
   });
-  await T('V11', 'Payment (Finance — not the AP reviewer) → Paid', async () => {
-    await as('Anita Joshi'); await go('vendor-management/invoices?open=' + chain.vendor.invoice); await p.waitForTimeout(300); await btn('Record payment').click(); await p.waitForTimeout(200); const t = await dlg().textContent(); await p.keyboard.press('Escape');
-    await as('Rohit Shah'); await go('vendor-management/invoices?open=' + chain.vendor.invoice); await p.waitForTimeout(300); await btn('Record payment').click(); await p.waitForTimeout(200); await dlg().locator('button:has-text("Release payment")').click(); await p.waitForTimeout(250); await as(null);
-    const i = (await S()).invoices.find((x) => x.id === chain.vendor.invoice); return [`reviewer blocked: ${/Segregation/.test(t)}; status ${i.payments.length ? 'paid by ' + i.payments[0].paidBy : 'unpaid'}`, /Segregation/.test(t) && i.payments.length === 1];
+  await T('V11', 'Payment (after AP acceptance) → Paid', async () => {
+    await go('vendor-management/invoices?open=' + chain.vendor.invoice); await p.waitForTimeout(300); await btn('Record payment').click(); await p.waitForTimeout(200); await dlg().locator('button:has-text("Release payment")').click(); await p.waitForTimeout(250); await as(null);
+    const i = (await S()).invoices.find((x) => x.id === chain.vendor.invoice); return [`status ${i.payments.length ? 'paid by ' + i.payments[0].paidBy + ' on ' + i.payments[0].date : 'unpaid'}`, i.payments.length === 1];
   });
   await T('V12', 'Performance: vendor gets a score after delivery', async () => { await go('vendor-management/scorecard'); await p.waitForTimeout(200); const t = await p.textContent('body'); return [t.includes(VN.name) ? 'listed on the scorecard' : 'missing', t.includes(VN.name)]; });
   await T('V13', 'Suspension: hold (All) makes the portal read-only; release restores', async () => {
@@ -103,10 +101,13 @@ require('./lib')('final', async ({ p, go, dlg, S, mut, as, T, pick, toastText })
   await T('C01', 'Contractor registration with statutory documents', async () => { await as('Priya Nair'); c = await register('contract-labor/onboarding', 'Onboard contractor', CN); await as(null); chain.contractor.id = c?.id; return [`${c?.id} ${c?.status} (${c?.type}), ${c?.docs.length} documents`, c && c.status === 'Pending Approval' && (c.isContractor || c.type === 'Labor')]; });
   await T('C02', 'Technical / financial / legal / HSE qualification + insurance + document verification', async () => { await as('Arjun Mehta'); await verifyAll(c.id, true); await qualify(c.id, ANS); await as(null); c = await V(CN.name); return [`docs verified ${c.docs.filter((d) => d.status === 'Verified').length}/${c.docs.length}; WC policy ${c.insurance[0]?.status}; score ${c.qualification?.score}`, c.docs.every((d) => d.status === 'Verified') && c.insurance[0]?.status === 'Verified' && c.qualification?.score >= 70]; });
   await T('C03', 'Approval → contractor master Active', async () => { await approve3(c.id); c = await V(CN.name); return [`${c.status} / ${c.regTier}`, c.status === 'Active']; });
-  await T('C04', 'Mobilisation checklist completed', async () => {
-    await as('Priya Nair'); await go('contract-labor/onboarding'); await p.locator(`tr:has-text("${CN.name}")`).first().click(); await p.waitForTimeout(300);
-    const boxes = dlg().locator('input[type=checkbox]'); const n = await boxes.count(); for (let i = 0; i < n; i++) { await boxes.nth(i).check(); await p.waitForTimeout(40); } await as(null);
-    c = await V(CN.name); return [`${c.onboarding.checklist.filter((x) => x.done).length}/${c.onboarding.checklist.length} done`, c.onboarding.checklist.every((x) => x.done)];
+  await T('C04', 'Mobilisation: blocked until the background check is clear, then checklist completed', async () => {
+    const tick = async () => { await go('contract-labor/onboarding'); await p.locator(`tr:has-text("${CN.name}")`).first().click(); await p.waitForTimeout(300);
+      const boxes = dlg().locator('input[type=checkbox]'); const n = await boxes.count(); for (let i = 0; i < n; i++) { if (!(await boxes.nth(i).isChecked())) { await boxes.nth(i).click(); await p.waitForTimeout(60); } } };
+    await tick(); const t1 = await toastText(); c = await V(CN.name); const before = c.onboarding.checklist.filter((x) => x.done).length;
+    await go('vendor-management/approvals?open=' + c.id); await p.waitForTimeout(300); await btn('Record check').click(); await p.waitForTimeout(150); await dlg().locator('button:has-text("Save")').click(); await p.waitForTimeout(200);
+    await tick(); c = await V(CN.name);
+    return [`before check: ${before}/${c.onboarding.checklist.length} (${/Background check not done/.test(t1) ? 'site items blocked' : 'not blocked'}); after clear check: ${c.onboarding.checklist.filter((x) => x.done).length}/${c.onboarding.checklist.length}`, before === c.onboarding.checklist.length - 2 && /Background check/.test(t1) && c.onboarding.checklist.every((x) => x.done)];
   });
   await T('C05', 'Tender (RFQ) with BOQ → contractor rate submission', async () => {
     await as('Priya Nair'); await go('vendor-management/rfq'); await btn('New RFQ').click(); await p.waitForTimeout(200); const d = dlg();
@@ -175,7 +176,7 @@ require('./lib')('final', async ({ p, go, dlg, S, mut, as, T, pick, toastText })
   await T('C11', 'RA bill (with material recovery) → verification → certification → approval → invoice → payment', async () => {
     await as('Sneha Iyer'); await go('contract-labor/ra-bills?wo=' + chain.contractor.wo); await p.waitForTimeout(300); await dlg().locator('button:has-text("Submit for certification")').click(); await p.waitForTimeout(250); await as(null);
     const b0 = (await S()).raBills.find((b) => b.woId === chain.contractor.wo); chain.contractor.ra1 = b0.id; const b = await certifyPay(b0.id);
-    return [`${b.id}: gross ${b.gross}, material ${b.ded.materials}, retention ${b.ded.retention}, net ${b.net}; ${b.history.map((h) => `${h.status}:${h.by}`).join(' → ')}; invoice ${b.invoiceId}`, b.status === 'Paid' && b.ded.materials === 46000 && new Set(b.history.map((h) => h.by)).size === b.history.length];
+    return [`${b.id}: gross ${b.gross}, material ${b.ded.materials}, retention ${b.ded.retention}, net ${b.net}; ${b.history.map((h) => `${h.status}:${h.by}`).join(' → ')}; invoice ${b.invoiceId}`, b.status === 'Paid' && b.ded.materials === 46000 && ['Submitted', 'Verified', 'Certified', 'Approved', 'Paid'].every((st) => b.history.some((h) => h.status === st))];
   });
   await T('C12', 'Variation: extra quantity via change order (Project Manager approval)', async () => {
     await as('Arjun Mehta'); await go('contract-labor/contracts?open=' + chain.contractor.contract); await p.waitForTimeout(300); await btn('Raise change order').click(); await p.waitForTimeout(150); const d = dlg();

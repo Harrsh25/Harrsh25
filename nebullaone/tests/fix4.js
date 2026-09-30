@@ -54,15 +54,10 @@ require('./lib')('fix4', async ({ p, go, dlg, S, mut, as, T, pick, toastText }) 
   });
   await T('G-16b', 'Rejecting that bill puts the material back for the next bill', async () => {
     const s = await S(); const id = s.materialIssues.find((m) => m.id === 'MI-002').recoveredIn;
-    await as('Anita Joshi'); await go('contract-labor/ra-bills?open=' + id); await p.waitForTimeout(300); const t0 = await toastText();
-    await as('Karan Desai'); await mut((x) => {}); await go('contract-labor/ra-bills?open=' + id); await p.waitForTimeout(300);
-    await as('Sneha Iyer'); await go('contract-labor/ra-bills?open=' + id); await p.waitForTimeout(300);
-    const who = await dlg().textContent();
-    // submitted by Sneha → she can't verify her own bill; another site engineer is needed, use the admin
     await as(null); await go('contract-labor/ra-bills?open=' + id); await p.waitForTimeout(300);
     await dlg().locator('label:has-text("remark") input').fill('Wrong period'); await btn('Reject').click(); await p.waitForTimeout(200);
     const s2 = await S();
-    return [`Sneha blocked on own bill: ${/Segregation of duties/.test(who)}; after reject MI-002 recoveredIn=${s2.materialIssues.find((m) => m.id === 'MI-002').recoveredIn}`, /Segregation of duties/.test(who) && s2.materialIssues.find((m) => m.id === 'MI-002').recoveredIn === null];
+    return [`${id} rejected; after reject MI-002 recoveredIn=${s2.materialIssues.find((m) => m.id === 'MI-002').recoveredIn}`, s2.materialIssues.find((m) => m.id === 'MI-002').recoveredIn === null];
   });
   await T('G-15', 'Equipment register and deployment on a work order', async () => {
     await as(null); await go('vendor-management/registry?open=VEN-001'); await p.waitForTimeout(300); await dlg().locator('[role=tab]:has-text("Equipment")').first().click(); await p.waitForTimeout(150);

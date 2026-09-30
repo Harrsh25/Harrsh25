@@ -103,7 +103,7 @@ function SelfRegisterPage() {
           </div>
           <div>
             <p className="mb-3 text-[13px] font-semibold">What happens next</p>
-            <Stepper steps={[{ label: "Submitted", status: "done", meta: "Today" }, ...APPROVAL_FLOW.map((d, i) => ({ label: `${d} review`, status: i === 0 ? "current" : "todo" })), { label: "Activated", status: "todo", meta: "Portal login issued" }]} />
+            <Stepper steps={[{ label: "Submitted", status: "done", meta: "Today" }, ...vendorFlowFor(null).map((d, i) => ({ label: `${d} review`, status: i === 0 ? "current" : "todo" })), { label: "Activated", status: "todo", meta: "Portal login issued" }]} />
           </div>
           <Note>If we need anything else we'll e-mail you. Sign in to the <a className="font-medium text-brand" href={appUrl("/supplier/login")}>supplier portal</a> with <b>{v?.contact.email}</b> (one-time code) to track approval and fix anything we ask for.</Note>
           <Btn onClick={() => { setDone(null); setF({ ...emptyVendor(), regTier: "Prospective", tier: "Transactional" }); setAgree(false); }}>Register another company</Btn>

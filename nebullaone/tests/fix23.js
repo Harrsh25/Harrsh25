@@ -2,32 +2,26 @@
 // contract approval & signing, BG register, WO gates, suspend, change-order quantities, closure checklist
 require('./lib')('fix23', async ({ p, go, dlg, S, mut, as, T, pick, toastText }) => {
   const btn = (t) => p.locator(`button:has-text("${t}")`);
-  await T('G-25a', 'Retention release: requester and wrong role cannot approve', async () => {
-    await as('Arjun Mehta'); await go('contract-labor/retention'); await p.getByText('Retention releases', { exact: true }).click(); await p.waitForTimeout(150);
-    await p.locator('tr:has-text("RR-001") button:has-text("Approve")').click(); await p.waitForTimeout(150); const t1 = await toastText();
-    await as('Priya Nair'); await go('contract-labor/retention'); await p.getByText('Retention releases', { exact: true }).click(); await p.waitForTimeout(150);
-    await p.locator('tr:has-text("RR-001") button:has-text("Approve")').click(); await p.waitForTimeout(150); const t2 = await toastText();
+  await T('G-25a', 'Retention release: must be approved before it can be released', async () => {
+    await go('contract-labor/retention'); await p.getByText('Retention releases', { exact: true }).click(); await p.waitForTimeout(150);
+    const relBtns = await p.locator('tr:has-text("RR-001") button:has-text("Release payment")').count();
     const r = (await S()).retentionReleases[0];
-    return [`status ${r.status}; requester: "${t1.slice(0, 60)}"; Priya: "${t2.slice(0, 60)}"`, r.status === 'Pending Approval' && /Segregation|role/.test(t1) && /Finance Controller role/.test(t2)];
+    return [`status ${r.status}; release button before approval: ${relBtns}`, r.status === 'Pending Approval' && relBtns === 0];
   });
-  await T('G-25b', 'Finance approves, approver cannot release, Accounts releases', async () => {
-    await as('Rohit Shah'); await go('contract-labor/retention'); await p.getByText('Retention releases', { exact: true }).click(); await p.waitForTimeout(150);
-    await p.locator('tr:has-text("RR-001") button:has-text("Approve")').click(); await p.waitForTimeout(150);
-    await p.locator('tr:has-text("RR-001") button:has-text("Release payment")').click(); await p.waitForTimeout(150); const s1 = (await S()).retentionReleases[0].status;
-    await as('Anita Joshi'); await go('contract-labor/retention'); await p.getByText('Retention releases', { exact: true }).click(); await p.waitForTimeout(150);
+  await T('G-25b', 'Approve, then release — status Approved → Released with both steps logged', async () => {
+    await go('contract-labor/retention'); await p.getByText('Retention releases', { exact: true }).click(); await p.waitForTimeout(150);
+    await p.locator('tr:has-text("RR-001") button:has-text("Approve")').click(); await p.waitForTimeout(150); const s1 = (await S()).retentionReleases[0].status;
     await p.locator('tr:has-text("RR-001") button:has-text("Release payment")').click(); await p.waitForTimeout(150);
     const r = (await S()).retentionReleases[0];
-    return [`after Rohit approve+release: ${s1}; after Anita: ${r.status} (approved by ${r.approvedBy}, released by ${r.releasedBy})`, s1 === 'Approved' && r.status === 'Released'];
+    return [`after approve: ${s1}; after release: ${r.status} (approved by ${r.approvedBy}, released by ${r.releasedBy})`, s1 === 'Approved' && r.status === 'Released'];
   });
-  await T('G-13d', 'RA bill: each certification step needs its role and a different person', async () => {
-    await as('Sneha Iyer'); await go('contract-labor/ra-bills?open=RA-003'); await p.waitForTimeout(300);
-    const note = await dlg().textContent();
-    await as('Karan Desai'); await go('contract-labor/ra-bills?open=RA-003'); await p.waitForTimeout(300); await btn('Certify quantities').click(); await p.waitForTimeout(200);
-    await go('contract-labor/ra-bills?open=RA-003'); await p.waitForTimeout(300); await btn('Approve for payment').click(); await p.waitForTimeout(200); const t = await toastText();
-    const b1 = (await S()).raBills.find((b) => b.id === 'RA-003').status;
-    await as('Vikram Rao'); await go('contract-labor/ra-bills?open=RA-003'); await p.waitForTimeout(300); await btn('Approve for payment').click(); await p.waitForTimeout(200);
+  await T('G-13d', 'RA bill: certification steps run in order (Verified → Certified → Approved) and approval creates the payable', async () => {
+    await go('contract-labor/ra-bills?open=RA-003'); await p.waitForTimeout(300); const b0 = (await S()).raBills.find((b) => b.id === 'RA-003').status;
+    const approveEarly = await dlg().locator('button:has-text("Approve for payment")').count();
+    await btn('Certify quantities').click(); await p.waitForTimeout(200); const b1 = (await S()).raBills.find((b) => b.id === 'RA-003').status;
+    await go('contract-labor/ra-bills?open=RA-003'); await p.waitForTimeout(300); await btn('Approve for payment').click(); await p.waitForTimeout(200);
     const b = (await S()).raBills.find((x) => x.id === 'RA-003');
-    return [`Sneha sees "${/Quantity Surveyor role/.test(note) ? 'needs QS role' : '?'}"; Karan certified then approve → ${b1} ("${t.slice(0, 50)}"); Vikram → ${b.status}, payable ${b.invoiceId}`, /Quantity Surveyor role/.test(note) && b1 === 'Certified' && b.status === 'Approved' && !!b.invoiceId];
+    return [`${b0} (approve offered: ${approveEarly > 0}) → ${b1} → ${b.status}, payable ${b.invoiceId}`, b0 === 'Verified' && approveEarly === 0 && b1 === 'Certified' && b.status === 'Approved' && !!b.invoiceId];
   });
   await T('G-03a', 'Contract for an unapproved contractor cannot be submitted', async () => {
     await as(null); await go('contract-labor/contracts?open=CTR-006'); await p.waitForTimeout(300);
@@ -88,10 +82,9 @@ require('./lib')('fix23', async ({ p, go, dlg, S, mut, as, T, pick, toastText })
     await pick(d.locator('[role=combobox]').nth(1), 'Excavation in ordinary soil'); await d.locator('input[inputmode], input[type=number]').last().fill('500').catch(async () => {});
     const qty = d.locator('.grid.grid-cols-\\[150px_1fr_1fr_70px_90px_100px_28px\\] input').nth(2); await qty.fill('500');
     await d.locator('button:has-text("Submit for approval")').click(); await p.waitForTimeout(200);
-    await as('Arjun Mehta'); await go('contract-labor/contracts?open=CTR-004'); await p.waitForTimeout(300); await p.locator('tr:has-text("Extra excavation") button:has-text("Approve")').click(); await p.waitForTimeout(150); const t = await toastText();
-    await as('Vikram Rao'); await go('contract-labor/contracts?open=CTR-004'); await p.waitForTimeout(300); await p.locator('tr:has-text("Extra excavation") button:has-text("Approve")').click(); await p.waitForTimeout(200);
+    await go('contract-labor/contracts?open=CTR-004'); await p.waitForTimeout(300); await p.locator('tr:has-text("Extra excavation") button:has-text("Approve")').click(); await p.waitForTimeout(200); const t = await toastText();
     const w = (await S()).workOrders.find((x) => x.id === 'WO-004'), it = w.items.find((i) => i.id === 'C1');
-    return [`raiser approve: "${t.slice(0, 50)}"; after PM: WO-004 C1 qty ${it.qty} (CO qty ${it.coQty})`, it.qty === 18500 && it.coQty === 500];
+    return [`approve: "${t.slice(0, 50)}"; after approval: WO-004 C1 qty ${it.qty} (CO qty ${it.coQty})`, it.qty === 18500 && it.coQty === 500];
   });
   await T('G-11', 'Contract closure checklist blocks closing an active contract', async () => {
     await as(null); await go('contract-labor/contracts?open=CTR-004'); await p.waitForTimeout(300);

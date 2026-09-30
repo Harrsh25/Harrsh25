@@ -111,7 +111,7 @@ function createVendor(f, submit, source = "Internal") {
     ...f, id, name: f.name.trim(), legalName: f.legalName.trim() || f.name.trim(), gstin: isForeign(f) ? "" : f.gstin.toUpperCase(), pan: isForeign(f) ? "" : f.pan.toUpperCase(),
     status: submit ? "Pending Approval" : "Draft", preferred: false, hold: null, notes: [], insurance: [],
     bankAccounts: f.bank.account ? [{ id: 1, ...f.bank, account: String(f.bank.account).replace(/\s/g, ""), ifsc: (f.bank.ifsc || "").toUpperCase(), status: "Unverified", addedAt: todayISO(), isDefault: true }] : [],
-    approval: { stages: APPROVAL_FLOW.map((dept, i) => ({ dept, status: submit && i === 0 ? "Pending" : "Waiting", by: null, at: null, remark: "" })) },
+    approval: { stages: vendorFlowFor(f).map((dept, i) => ({ dept, status: submit && i === 0 ? "Pending" : "Waiting", by: null, at: null, remark: "" })) },
     qualification: null, background: null, createdAt: todayISO(),
     contractor: f.isContractor || f.type === "Labor" ? { ...f.contractor } : null,
     onboarding: f.isContractor || f.type === "Labor" ? { checklist: ONBOARD_CHECKLIST.map((item) => ({ item, done: false })), startedAt: todayISO() } : null,
