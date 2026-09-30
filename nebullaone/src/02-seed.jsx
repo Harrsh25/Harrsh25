@@ -1,6 +1,6 @@
 // Demo seed data. Dates are relative to "today" so expiry / renewal alerts
 // always have something to show. Bump SEED_VERSION when the shape changes.
-const SEED_VERSION = 7;
+const SEED_VERSION = 8;
 
 function buildSeed() {
   const D = (n) => shiftDays(n);
@@ -143,6 +143,23 @@ function buildSeed() {
       bankAccounts: [{ id: 1, bank: "Citibank", account: "0102441180", ifsc: "CITI0000002", isDefault: true }],
     }),
   ];
+  // Keep every vendor's timeline realistic: approvals happen after registration (1–2 days apart, never in the future)
+  // and each qualification carries the date it was assessed.
+  vendors.forEach((v) => {
+    const created = new Date(v.createdAt).getTime(), now = Date.now();
+    let prev = created;
+    (v.approval?.stages || []).forEach((s) => {
+      if (!s.at) return;
+      let t = new Date(s.at).getTime();
+      if (t <= prev) { const day = new Date(prev + (1 + (v.id.charCodeAt(v.id.length - 1) % 2)) * DAY); day.setHours(10 + (s.dept || "").length % 6, 30, 0, 0); t = day.getTime(); }
+      if (t > now) t = now - 3600 * 1000;
+      s.at = new Date(t).toISOString(); prev = t;
+    });
+    if (v.qualification && !v.qualification.at) {
+      const first = (v.approval?.stages || []).find((s) => s.at);
+      v.qualification.at = (first ? first.at : new Date(Math.min(now, created + 2 * DAY)).toISOString()).slice(0, 10);
+    }
+  });
   vendors.find((v) => v.id === "VEN-009").docs = vendors.find((v) => v.id === "VEN-009").docs.map((d, i) => (i === 1 ? { ...d, status: "Rejected" } : d));
 
   // ---------------------------------------------------- contracts
@@ -299,7 +316,7 @@ function buildSeed() {
       ],
       negotiation: [
         { at: ts(-3), vendorId: "VEN-003", by: "Procurement", text: "Requested ₹500/MT reduction to match L1.", amount: null },
-        { at: ts(-2), vendorId: "VEN-003", by: "Deccan Steel Traders", text: "Counter-offer: ₹58,100 / ₹57,600 with 7-day delivery.", amount: null },
+        { at: ts(-2), vendorId: "VEN-003", by: "Deccan Steel Traders", from: "vendor", text: "Counter-offer: ₹58,100 / ₹57,600 with 7-day delivery.", amount: null },
       ], awardedTo: null },
     { id: "RFQ-002", title: "OPC 53 grade cement — 4,000 bags", project: PROJECTS[3], mode: "Call for Tenders", status: "Awarded", createdOn: D(-45), dueDate: D(-38), template: "Cement supply",
       items: [{ desc: "OPC 53 grade cement (50 kg bag)", unit: "bag", qty: 4000 }], vendorIds: ["VEN-004", "VEN-012"], weights: { price: 50, quality: 30, delivery: 20 },

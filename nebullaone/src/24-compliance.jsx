@@ -203,15 +203,16 @@ function CompliancePage() {
   const [flt, setFlt] = y.useState("All"), [bucket, setBucket] = y.useState("All");
   const [rej, setRej] = y.useState(null);
   const set0 = settingsOf(st);
-  const live = st.vendors.filter((v) => !["Blacklisted", "Inactive", "Rejected", "Draft"].includes(v.status));
-  const rows = live.map((v) => { const c = complianceOf(v); return { v, c, next: c.items.map((i) => i.expiry).filter(Boolean).sort()[0] || null, due: c.items.filter((i) => reminderDue(v, i)) }; });
+  // Every vendor in the registry is listed (same count as the Registry); reminders only go to vendors we still work with
+  const isLive = (v) => !["Blacklisted", "Inactive", "Rejected", "Draft"].includes(v.status);
+  const rows = st.vendors.map((v) => { const c = complianceOf(v); return { v, c, next: c.items.map((i) => i.expiry).filter(Boolean).sort()[0] || null, due: isLive(v) ? c.items.filter((i) => reminderDue(v, i)) : [] }; });
   const allItems = rows.flatMap((r) => r.c.items.map((item) => ({ ...r, item, key: r.v.id + item.key })));
-  const dueAll = allItems.filter((x) => reminderDue(x.v, x.item));
+  const dueAll = allItems.filter((x) => isLive(x.v) && reminderDue(x.v, x.item));
   const bucketOf = (d) => (d === null ? null : d < 0 ? "Expired" : d <= 30 ? "≤ 30 days" : d <= 60 ? "31–60 days" : d <= 90 ? "61–90 days" : null);
   const expRows = allItems.filter((x) => x.item.expiry && bucketOf(daysUntil(x.item.expiry)) && (bucket === "All" || bucketOf(daysUntil(x.item.expiry)) === bucket))
     .sort((a, b) => a.item.expiry.localeCompare(b.item.expiry));
-  const pendDocs = live.flatMap((v) => v.docs.filter((d) => d.status === "Pending").map((d) => ({ v, kind: "Document", name: d.name, d, key: v.id + d.name })));
-  const pendIns = live.flatMap((v) => (v.insurance || []).filter((p) => p.status === "Pending").map((p) => ({ v, kind: "Insurance", name: `${p.type} — ${p.policy}`, p, key: v.id + (p.id || p.policy) })));
+  const pendDocs = st.vendors.flatMap((v) => v.docs.filter((d) => d.status === "Pending").map((d) => ({ v, kind: "Document", name: d.name, d, key: v.id + d.name })));
+  const pendIns = st.vendors.flatMap((v) => (v.insurance || []).filter((p) => p.status === "Pending").map((p) => ({ v, kind: "Insurance", name: `${p.type} — ${p.policy}`, p, key: v.id + (p.id || p.policy) })));
   const queue = [...pendDocs, ...pendIns];
   const counts = { Compliant: 0, Expiring: 0, "Non-Compliant": 0 };
   rows.forEach((r) => counts[r.c.status]++);

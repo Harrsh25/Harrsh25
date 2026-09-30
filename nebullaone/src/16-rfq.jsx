@@ -531,7 +531,7 @@ function RfqDrawer({ id, onClose, compose }) {
         <Section title="Negotiation log" icon={Icon.message}>
           <ul className="divide-y divide-line">
             {rfq.negotiation.length === 0 && <li className="p-3 text-[13px] text-ink-mute">No negotiation recorded.</li>}
-            {rfq.negotiation.map((n, i) => <li key={i} className="px-4 py-2 text-[13px]"><span className="font-medium">{n.by}</span> <span className="text-ink-mute">→ {vendorName(st, n.vendorId)} · {fmtDateTime(n.at)}</span><p className="text-ink-soft">{n.text}</p></li>)}
+            {rfq.negotiation.map((n, i) => <li key={i} className="px-4 py-2 text-[13px]"><span className="font-medium">{n.by}</span> <span className="text-ink-mute">→ {n.from === "vendor" || n.by === vendorName(st, n.vendorId) ? "Procurement" : vendorName(st, n.vendorId)} · {fmtDateTime(n.at)}</span><p className="text-ink-soft">{n.text}</p></li>)}
           </ul>
           {open && (
             <div className="grid grid-cols-[200px_1fr_auto] gap-2 border-t border-line p-3">

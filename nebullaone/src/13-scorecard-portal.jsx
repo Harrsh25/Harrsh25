@@ -83,7 +83,7 @@ function ScorecardPage() {
   const [open, setOpen] = y.useState(null), [rate, setRate] = y.useState(false), [cap, setCap] = y.useState(null), [off, setOff] = y.useState(null);
   const [cfg, setCfg] = y.useState(st.scoreConfig);
   y.useEffect(() => setCfg(st.scoreConfig), [st.scoreConfig]);
-  const rows = st.vendors.filter((v) => !["Draft", "Rejected"].includes(v.status)).map((v) => ({ v, ...vendorScore(st, v.id) }));
+  const rows = st.vendors.map((v) => ({ v, ...vendorScore(st, v.id) }));
   const cats = {};
   rows.forEach((r) => { if (r.score != null) (cats[primaryCategory(r.v)] = cats[primaryCategory(r.v)] || []).push(r.score); });
   const catAvg = (v) => { const a = cats[primaryCategory(v)] || []; return a.length ? sum(a) / a.length : null; };

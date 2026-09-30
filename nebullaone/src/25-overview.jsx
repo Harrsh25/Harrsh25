@@ -343,7 +343,7 @@ function VendorOverviewPage() {
   const st = useStore(), nav = useNavigate();
   const [f, setF] = y.useState({ period: "90", project: "All", vendor: "All" });
   const d = y.useMemo(() => buildVendorOverview(st, f), [st, f]);
-  const comp = d.live.map((v) => complianceOf(v).status);
+  const comp = d.vendors.map((v) => complianceOf(v).status);
   const maxAge = Math.max(1, ...d.aging.map((a) => a.v));
   const pc = (x) => (x == null ? <span className="text-ink-faint">—</span> : <span className={cls("num", x >= 80 ? "text-green-700" : x >= 60 ? "text-amber-700" : "text-red-600")}>{Math.round(x)}%</span>);
   return (
