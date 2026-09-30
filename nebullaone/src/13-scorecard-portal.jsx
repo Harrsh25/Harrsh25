@@ -169,6 +169,7 @@ function ScorecardPage() {
       )}
       {tab === "model" && (
         <div className="grid grid-cols-2 gap-4 p-4">
+          <ScoreCriteriaEditor cfg={cfg} setCfg={setCfg} />
           <Section title="Custom metric model" icon={Icon.sliders}>
             <div className="space-y-3 p-4">
               {Object.keys(cfg.weights).map((k) => (
@@ -188,7 +189,7 @@ function ScorecardPage() {
                 <tbody>
                   {(cfg.standings || DEFAULT_STANDINGS).map((b, i) => (
                     <tr key={i}>
-                      <Td><span className="flex items-center gap-2"><Status tone={b.color}>{b.name}</Status></span></Td>
+                      <Td><span className="flex items-center gap-2"><Status tone={b.color}>{b.name}</Status><div className="w-[96px]"><Select value={b.color} onChange={(x) => setCfg({ ...cfg, standings: (cfg.standings || DEFAULT_STANDINGS).map((z, j) => (j === i ? { ...z, color: x } : z)) })} options={["green", "blue", "amber", "red", "purple", "gray"]} /></div></span></Td>
                       {["min", "max"].map((k) => <Td key={k} align="right"><div className="ml-auto w-20"><NumInput value={b[k]} onChange={(x) => setCfg({ ...cfg, standings: cfg.standings.map((z, j) => (j === i ? { ...z, [k]: x } : z)) })} /></div></Td>)}
                       {["warnRfq", "warnPo", "preventRfq", "preventPo"].map((k) => <Td key={k} align="center"><input type="checkbox" className="h-4 w-4 accent-[#0b5ed7]" checked={!!b[k]} onChange={(e) => setCfg({ ...cfg, standings: cfg.standings.map((z, j) => (j === i ? { ...z, [k]: e.target.checked } : z)) })} /></Td>)}
                       <Td align="right" className="num">{rows.filter((r) => standingOf({ ...st, scoreConfig: cfg }, r.v.id)?.name === b.name).length}</Td>
@@ -204,9 +205,10 @@ function ScorecardPage() {
               <Field label="Auto-block below"><NumInput value={cfg.blockThreshold} onChange={(x) => setCfg({ ...cfg, blockThreshold: x })} /></Field>
               <Field label="Suggest CAP below"><NumInput value={cfg.capThreshold} onChange={(x) => setCfg({ ...cfg, capThreshold: x })} /></Field>
               <div className="col-span-2"><Check checked={cfg.autoBlock} onChange={(b) => setCfg({ ...cfg, autoBlock: b })} label="Automatically hold payments when a vendor drops below the block threshold" /></div>
-              <div className="col-span-2 flex justify-end"><Btn variant="primary" icon={Icon.save} disabled={sum(Object.values(cfg.weights)) !== 100}
+              <div className="col-span-2 flex justify-end"><Btn variant="primary" icon={Icon.save} disabled={sum(Object.values(cfg.weights)) !== 100 || !!criteriaErr(cfg)}
                 onClick={() => { setState((s) => (s.scoreConfig = cfg), { entity: "Scorecard", id: "MODEL", action: "Metric model updated" }); toast("Scoring model saved"); }}>Save model</Btn></div>
               {sum(Object.values(cfg.weights)) !== 100 && <p className="col-span-2 text-[12px] text-red-600">Weights must add up to 100%.</p>}
+              {criteriaErr(cfg) && <p className="col-span-2 text-[12px] text-red-600">{criteriaErr(cfg)}</p>}
             </div>
           </Section>
         </div>

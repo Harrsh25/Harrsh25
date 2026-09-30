@@ -271,7 +271,7 @@ function activateContract(c) {
   if (!tryAct(["Procurement Head", "Project Manager"], contractInvolved(c).slice(2), "signing the contract")) return false;
   const b = signBlockers(getState(), c);
   if (b.length) { toast(`Can't sign — ${b.join("; ")}`, "red"); return false; }
-  setState((s) => { const x = byId(s.contracts, c.id); x.status = "Active"; x.signedOn = todayISO(); x.signedBy = currentUser(); }, { entity: "Contract", id: c.id, action: "Signed & activated" });
+  setState((s) => { const x = byId(s.contracts, c.id); x.status = "Active"; x.signedOn = todayISO(); x.signedBy = currentUser(); x.signedReceivedOn = x.signedReceivedOn || todayISO(); }, { entity: "Contract", id: c.id, action: "Signed & activated" });
   toast(`${c.id} signed — work orders can now be issued`);
   return true;
 }

@@ -1,6 +1,6 @@
 // Demo seed data. Dates are relative to "today" so expiry / renewal alerts
 // always have something to show. Bump SEED_VERSION when the shape changes.
-const SEED_VERSION = 10;
+const SEED_VERSION = 11;
 
 function buildSeed() {
   const D = (n) => shiftDays(n);
@@ -312,7 +312,7 @@ function buildSeed() {
       vendorIds: ["VEN-003", "VEN-011"], weights: { price: 60, quality: 25, delivery: 15 },
       quotes: [
         { vendorId: "VEN-003", rates: [58400, 57900], currency: "INR", fx: 1, deliveryDays: 7, validUntil: D(9), submittedOn: D(-4), note: "Ex-Chakan, incl. loading" },
-        { vendorId: "VEN-011", rates: [57800, 57300], currency: "INR", fx: 1, deliveryDays: 12, validUntil: D(3), submittedOn: D(-3), note: "Mill test certificates with each lot" },
+        { vendorId: "VEN-011", rates: [57800, 57300], currency: "INR", fx: 1, deliveryDays: 12, validUntil: D(21), submittedOn: D(-3), note: "Mill test certificates with each lot" },
       ],
       negotiation: [
         { at: ts(-3), vendorId: "VEN-003", by: "Procurement", text: "Requested ₹500/MT reduction to match L1.", amount: null },
@@ -423,7 +423,8 @@ function buildSeed() {
   return extendSeed2(extendSeed({
     version: SEED_VERSION, vendors, contracts, workOrders, measurements, raBills: st.raBills, retentionReleases, invoices, rfqs, purchaseOrders,
     laborRates, ratings, caps, tickets, audit,
-    scoreConfig: { weights: { quality: 30, timeliness: 30, safety: 20, compliance: 20 }, blockThreshold: 55, capThreshold: 70, autoBlock: true },
+    scoreConfig: { weights: { quality: 30, timeliness: 30, safety: 20, compliance: 20 }, blockThreshold: 55, capThreshold: 70, autoBlock: true, weighting: "Weighted average", period: { length: "Monthly", start: `${new Date().getMonth() >= 3 ? new Date().getFullYear() : new Date().getFullYear() - 1}-04-01` },
+      criteria: [{ name: "Quality", formula: "{quality}", maxScore: 100, weight: 30 }, { name: "On-time delivery", formula: "{timeliness}", maxScore: 100, weight: 30 }, { name: "Safety", formula: "{safety}", maxScore: 100, weight: 20 }, { name: "Compliance", formula: "{compliance}", maxScore: 100, weight: 20 }] },
     rfqTemplates: ["Steel supply", "Cement supply", "Hardware", "Labour — item rate", "Equipment hire"],
   }));
 }

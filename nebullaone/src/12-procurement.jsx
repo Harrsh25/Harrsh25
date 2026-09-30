@@ -355,7 +355,7 @@ function BlanketOrdersPage() {
   const [open, setOpen] = useQueryOpen();
   const [create, setCreate] = y.useState(false);
   const [calloff, setCalloff] = y.useState(null);
-  const blank = { vendorId: "", title: "", start: todayISO(), deadline: shiftDays(365), terms: "", lines: [{ desc: "", unit: "nos", qty: "", rate: "" }] };
+  const blank = { vendorId: "", title: "", start: todayISO(), deadline: shiftDays(365), terms: "", reference: "", lines: [{ desc: "", unit: "nos", qty: "", rate: "" }], details: docDefaults("blanket", st) };
   const [f, setF] = y.useState(blank);
   const bo = open && byId(st.blanketOrders, open);
   const setL = (i, k, v) => setF({ ...f, lines: f.lines.map((x, j) => (j === i ? { ...x, [k]: v } : x)) });
@@ -364,6 +364,9 @@ function BlanketOrdersPage() {
     !f.start || !f.deadline ? "Enter start and finish dates" : f.deadline <= f.start ? "Finish must be after start" : f.deadline < todayISO() ? "Agreement has already ended" : "",
     ...f.lines.map((l, i) => !String(l.desc).trim() ? `Line ${i + 1}: item required` : !String(l.unit || "").trim() ? `Line ${i + 1}: unit required` : !(Number(l.qty) > 0) ? `Line ${i + 1}: agreed qty must be greater than 0` : !(Number(l.rate) > 0) ? `Line ${i + 1}: rate must be greater than 0` : ""),
     f.lines.some((l, i) => l.desc && f.lines.findIndex((x) => normNo(x.desc) === normNo(l.desc)) !== i) && "The same item appears twice — merge the lines",
+    f.details?.orderDate && f.details.orderDate > todayISO() && "Order date can't be in the future",
+    f.reference && st.blanketOrders.some((b) => normNo(b.reference) === normNo(f.reference)) && "Agreement reference already used",
+    ...Object.values(docDetailErrors("blanket", f.details || {})),
   ].filter(Boolean);
   const ok = bErr.length === 0;
   const value = (b) => sum(b.lines, (l) => l.qty * l.rate);
@@ -401,6 +404,8 @@ function BlanketOrdersPage() {
               ]} />
             </Section>
             {bo.terms && <Note icon={Icon.file}>{bo.terms}</Note>}
+            {bo.reference && <p className="text-[12.5px] text-ink-soft">Agreement reference <b className="mono">{bo.reference}</b></p>}
+            <DocDetailsView kind="blanket" value={bo.details} />
           </div>
         </Drawer>
       )}
@@ -408,7 +413,7 @@ function BlanketOrdersPage() {
       <Modal open={create} onClose={() => setCreate(false)} width={820} title="New blanket order" subtitle="Rates are fixed for the agreement period; POs are drawn against it"
         footer={<><span className="mr-auto text-[12px] text-red-600">{bErr[0] || ""}{bErr.length > 1 ? ` (+${bErr.length - 1} more)` : ""}</span><Btn onClick={() => setCreate(false)}>Cancel</Btn><Btn variant="primary" disabled={!ok} onClick={() => {
           const id = nextId("BO", st.blanketOrders);
-          setState((s) => s.blanketOrders.unshift({ ...f, id, status: "Active", currency: "INR", lines: f.lines.map((l) => ({ ...l, qty: Number(l.qty), rate: Number(l.rate) })) }), { entity: "Blanket Order", id, action: `Created with ${vendorName(st, f.vendorId)}` });
+          setState((s) => s.blanketOrders.unshift({ ...f, id, status: "Active", currency: f.details?.currency || "INR", createdAt: new Date().toISOString(), lines: f.lines.map((l) => ({ ...l, qty: Number(l.qty), rate: Number(l.rate) })) }), { entity: "Blanket Order", id, action: `Created with ${vendorName(st, f.vendorId)}` });
           setCreate(false); setOpen(id);
         }}>Save agreement</Btn></>}>
         <div className="space-y-3">
@@ -417,7 +422,9 @@ function BlanketOrdersPage() {
             <Field label="Title" required span={2}><TextInput value={f.title} onChange={(x) => setF({ ...f, title: x })} placeholder="e.g. TMT steel — annual rate agreement" /></Field>
             <Field label="Start"><DateInput value={f.start} onChange={(x) => setF({ ...f, start: x })} /></Field>
             <Field label="Agreement deadline"><DateInput value={f.deadline} onChange={(x) => setF({ ...f, deadline: x })} /></Field>
+            <Field label="Agreement no. / vendor reference"><TextInput value={f.reference} onChange={(x) => setF({ ...f, reference: x })} placeholder="e.g. RC/2026/STEEL/04" /></Field>
           </div>
+          <DocDetails kind="blanket" value={f.details} onChange={(d) => setF({ ...f, details: d })} vendor={byId(st.vendors, f.vendorId)} open />
           {f.lines.map((l, i) => (
             <div key={i} className="grid grid-cols-[1fr_90px_120px_130px_28px] gap-2">
               <TextInput value={l.desc} onChange={(x) => setL(i, "desc", x)} placeholder="Item" /><TextInput value={l.unit} onChange={(x) => setL(i, "unit", x)} />

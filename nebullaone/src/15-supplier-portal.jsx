@@ -239,6 +239,7 @@ function PortalBody({ vid, vendorMode }) {
           { key: "amt", label: "Amount", align: "right", num: true, render: (r) => inr(r.amt) }, { key: "bal", label: "Balance", align: "right", num: true, render: (r) => inr(r.bal) },
           { key: "due", label: "Due", render: (r) => fmtDate(r.due) }, { key: "status", label: "Status", filter: true, render: (r) => <Status>{r.status}</Status> },
         ]} />}
+        {tab === "price" && <PortalPriceList v={v} readOnly={txBlocked} />}
         {tab === "price" && <DataTable rows={pricelist} onRow={(r) => open("po", r.po)} rowKey={(r, i) => r.po + i} empty={<EmptyState icon={Icon.sheet} title="No agreed prices yet" />} columns={[
           { key: "desc", label: "Item" }, { key: "unit", label: "Unit" }, { key: "rate", label: "Agreed rate", align: "right", num: true, render: (r) => inr(r.rate) }, { key: "po", label: "Last PO", className: "mono text-[12px]" }, { key: "date", label: "Since", render: (r) => fmtDate(r.date) },
         ]} />}
@@ -276,7 +277,8 @@ function PortalBody({ vid, vendorMode }) {
           </div>
         )}
         {tab === "users" && (
-          <div className="p-4">
+          <div className="space-y-4 p-4">
+            <PortalProfileFields v={v} readOnly={txBlocked} />
             <Section title="Portal users" icon={Icon.users} actions={<span className="text-[12px] text-ink-mute">Anyone listed can sign in with a one-time code</span>}>
               <DataTable dense rows={v.portalUsers || []} rowKey={(u) => u.email} columns={[
                 { key: "name", label: "Name", className: "font-medium" }, { key: "email", label: "E-mail" }, { key: "role", label: "Role" },

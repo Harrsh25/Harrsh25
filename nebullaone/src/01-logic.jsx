@@ -16,7 +16,7 @@ const TDS_SECTIONS = [
   { value: "NONE", label: "No withholding", rate: 0 },
 ];
 // TDS categories are editable in Procurement Settings; the built-in list is the fallback
-const tdsOptions = () => { try { const c = settingsOf(getState()).tdsCategories || []; if (c.length) return [...c.map((t) => ({ value: t.code, label: `${t.name} · ${t.rate}%`, rate: Number(t.rate) || 0 })), ...TDS_SECTIONS.filter((t) => !c.some((x) => x.code === t.value))]; } catch {} return TDS_SECTIONS; };
+const tdsOptions = () => { try { const c = currentSettings().tdsCategories || []; if (c.length) return [...c.map((t) => ({ value: t.code, label: `${t.name} · ${t.rate}%`, rate: Number(t.rate) || 0 })), ...TDS_SECTIONS.filter((t) => !c.some((x) => x.code === t.value))]; } catch {} return TDS_SECTIONS; };
 const tdsRate = (code) => (tdsOptions().find((t) => t.value === code) || { rate: 0 }).rate;
 const tdsLabel = (code) => (tdsOptions().find((t) => t.value === code) || {}).label;
 const APPROVAL_FLOW = ["Procurement", "Legal", "Finance"];
@@ -327,11 +327,48 @@ function vendorScore(st, vendorId) {
   const comp = complianceOf(v).status;
   parts.compliance = comp === "Compliant" ? 100 : comp === "Expiring" ? 70 : 30;
   let tw = 0, ts = 0;
+  // Scorecard criteria (ERPNext Supplier Scorecard Criteria): formula over the variables, capped at max score, weighted
+  const crit = (st.scoreConfig.criteria || []).filter((c) => c.name && Number(c.weight) > 0);
+  if (crit.length) {
+    const vars = scoreVariables(st, v, parts);
+    const vals = crit.map((c) => ({ c, x: evalScoreFormula(c.formula, vars) })).filter((r) => r.x != null);
+    if (!vals.length) return { score: null, parts, isNew: true };
+    const pc = vals.map((r) => ({ w: Number(r.c.weight), p: Math.max(0, Math.min(100, (r.x / (Number(r.c.maxScore) || 100)) * 100)), name: r.c.name }));
+    const fn = st.scoreConfig.weighting || "Weighted average";
+    const score = fn === "Lowest criterion" ? Math.min(...pc.map((r) => r.p)) : sum(pc, (r) => r.w * r.p) / (sum(pc, (r) => r.w) || 1);
+    return { score: round2(score), parts: { ...parts, ...Object.fromEntries(pc.map((r) => [r.name, r.p])) } };
+  }
   for (const k of Object.keys(parts)) {
     tw += w[k] || 0;
     ts += (w[k] || 0) * parts[k];
   }
   return { score: tw ? round2(ts / tw) : null, parts };
+}
+// Variables a criteria formula can use (ERPNext Supplier Scorecard Variable)
+const SCORE_VARIABLES = [
+  { name: "quality", param: "quality_score", path: "ratings.quality / GRN acceptance", desc: "Quality rating or goods acceptance rate, 0–100", custom: false },
+  { name: "timeliness", param: "on_time_score", path: "receipts.date vs PO delivery date; WO SPI", desc: "On-time delivery / schedule index, 0–100", custom: false },
+  { name: "safety", param: "safety_score", path: "ratings.safety", desc: "Safety rating, 0–100", custom: false },
+  { name: "compliance", param: "compliance_score", path: "complianceOf(vendor)", desc: "100 compliant, 70 expiring, 30 non-compliant", custom: false },
+  { name: "rejection_pct", param: "rejected_qty / received_qty", path: "purchaseOrders.receipts.lines", desc: "Share of received quantity rejected, %", custom: true },
+  { name: "ncr_count", param: "open_ncrs", path: "ncrs (status ≠ Closed)", desc: "Open non-conformance reports", custom: true },
+  { name: "late_deliveries", param: "late_receipt_count", path: "receipts after delivery date", desc: "Number of late receipts", custom: true },
+];
+function scoreVariables(st, v, parts) {
+  const rec = st.purchaseOrders.filter((p) => p.vendorId === v.id).flatMap(poReceived);
+  const r = sum(rec, (x) => x.received), a = sum(rec, (x) => x.accepted);
+  const late = st.purchaseOrders.filter((p) => p.vendorId === v.id).flatMap((p) => p.receipts.filter((g) => new Date(g.date) > new Date(p.deliveryDate))).length;
+  const woIds = st.workOrders.filter((w) => w.vendorId === v.id).map((w) => w.id);
+  return { quality: parts.quality, timeliness: parts.timeliness, safety: parts.safety, compliance: parts.compliance, rejection_pct: r ? ((r - a) / r) * 100 : 0,
+    ncr_count: (st.ncrs || []).filter((n) => woIds.includes(n.woId) && n.status !== "Closed").length, late_deliveries: late };
+}
+// "{quality} * 0.8 + {timeliness} * 0.2" → number; null when a variable has no data
+function evalScoreFormula(formula, vars) {
+  let miss = false;
+  const expr = String(formula || "").replace(/\{(\w+)\}/g, (_, k) => { const x = vars[k]; if (x == null || Number.isNaN(x)) { miss = true; return "0"; } return `(${Number(x)})`; });
+  if (miss) return null;
+  if (!/^[\d\s.+\-*/()]+$/.test(expr) || !expr.trim()) return null;
+  try { const x = Function(`"use strict";return (${expr});`)(); return Number.isFinite(x) ? x : null; } catch { return null; }
 }
 
 // Onboarding stage for a contractor

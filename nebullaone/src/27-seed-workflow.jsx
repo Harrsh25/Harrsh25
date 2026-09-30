@@ -66,6 +66,25 @@ function extendSeed2(s) {
     { id: "MI-001", woId: "WO-001", material: "OPC 53 cement (free issue)", unit: "bag", qty: 250, rate: 500, date: D(-95), issuedBy: "Stores — Skyline", recoveredIn: "RA-002" },
     { id: "MI-002", woId: "WO-001", material: "Binding wire 18 SWG", unit: "kg", qty: 400, rate: 92, date: D(-18), issuedBy: "Stores — Skyline", recoveredIn: null },
   ];
+  // Benchmark fields: requisitions, vendor price lists, contacts / addresses, vendor extras
+  s.requisitions = [
+    { id: "MR-001", purpose: "Purchase", date: D(-3), requiredBy: D(12), project: "Skyline Towers — Phase 1", costCentre: "CC-210 Skyline Towers", company: "NebullaOne Infra Pvt Ltd", priceList: "Standard Buying", client: "", sourceStore: "", targetStore: "Site store — Skyline Towers",
+      items: [{ desc: "OPC 53 grade cement (50 kg bag)", unit: "bag", qty: 1200, rate: 395 }, { desc: "TMT Fe500D 12 mm", unit: "MT", qty: 18, rate: 56500 }], terms: "", notes: "Slab L4–L5 pour", status: "Approved", requestedBy: "Sneha Iyer", createdAt: ts(-3), decidedBy: "Arjun Mehta", decidedAt: ts(-2), rfqIds: [] },
+    { id: "MR-002", purpose: "Manpower (labour)", date: D(-1), requiredBy: D(6), project: "Metro Line Extension", costCentre: "CC-220 Metro Line Extension", company: "NebullaOne Infra Pvt Ltd", priceList: "Standard Buying", client: "", sourceStore: "", targetStore: "",
+      items: [{ desc: "Mason (Skilled) — 12 workers", unit: "man-day", qty: 1080, rate: "" }], terms: "", notes: "Station 4 finishing push", status: "Submitted", requestedBy: "N. Bhat", createdAt: ts(-1), rfqIds: [],
+      labour: { contingentType: "Daily-rated gang", category: "Mason", labourType: "Skilled", headcount: 12, start: D(6), end: D(96), site: "Metro Line Extension", bu: "NebullaOne Infra Pvt Ltd", costCentre: "CC-220 Metro Line Extension", rateCard: "LR-002", distribution: ["VEN-005", "VEN-001"], rule: "All invited at once", qualifications: "3 years plaster / tiling experience; ID and height pass" } },
+  ];
+  const vp = (id, vendorId, product, unit, minQty, unitPrice, discount, leadDays, list) => ({ id, vendorId, product, vendorProductName: "", vendorProductCode: "", unit, minQty, unitPrice, currency: "INR", discount, leadDays, validFrom: D(-60), validTo: D(120), priceList: list, company: "NebullaOne Infra Pvt Ltd", updatedBy: "Priya Nair", updatedAt: ts(-60) });
+  s.vendorPrices = [
+    vp("VP-001", "VEN-004", "OPC 53 grade cement (50 kg bag)", "bag", 100, 398, 0, 3, "Rate contract 2026–27"), vp("VP-002", "VEN-004", "OPC 53 grade cement (50 kg bag)", "bag", 1000, 398, 2, 5, "Rate contract 2026–27"),
+    vp("VP-003", "VEN-011", "TMT Fe500D 12 mm", "MT", 5, 57200, 0, 7, "Standard Buying"), vp("VP-004", "VEN-003", "TMT Fe500D 12 mm", "MT", 10, 56800, 1, 10, "Standard Buying"),
+    vp("VP-005", "VEN-009", "Binding wire 18 SWG", "kg", 50, 92, 0, 2, ""),
+  ];
+  const v4 = byId(s.vendors, "VEN-004");
+  if (v4) Object.assign(v4, { entityType: "Private limited company", gstTreatment: "Registered — regular", msmeType: "Small", udyamNo: "UDYAM-MH-26-0048812", paymentMethod: "NEFT", priceList: "Rate contract 2026–27", creditLimit: 5000000, payableAccount: "Sundry creditors — Goods", billDelivery: "Supplier portal",
+    purchaseWarning: "Confirm rake arrival before ordering above 2,000 bags", tags: ["Rate contract", "Cement"],
+    contacts: [{ id: "CT-1", salutation: "Mr", firstName: "Rakesh", lastName: "Kulkarni", designation: "Accounts manager", department: "Accounts", email: "accounts@ultrabuild.in", phone: "020-2711 4410", mobile: "9822012345", status: "Active", primary: false }],
+    addresses: [{ id: "AD-1", title: "Chakan depot", type: "Warehouse", line1: "Gat 212, Chakan MIDC Phase II", line2: "", city: "Pune", district: "Pune", state: "Maharashtra", pin: "410501", country: "India", purposes: ["Purchasing", "Sourcing only"], bu: "NebullaOne Infra Pvt Ltd", preferredShipping: true }] });
   // Daily progress reports
   s.dprs = [
     { id: "DPR-001", woId: "WO-001", date: D(-2), manpower: 86, work: "Slab L3 shuttering 70% complete; column rebar L3–L4 in progress", hindrance: "", weather: "Clear", by: "Sneha Iyer" },

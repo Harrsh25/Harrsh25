@@ -173,6 +173,7 @@ function WoResources({ wo }) {
           { key: "id", label: "Issue", className: "mono text-[12px]" }, { key: "date", label: "Date", render: (m) => fmtDate(m.date) }, { key: "material", label: "Material" },
           { key: "q", label: "Qty", align: "right", num: true, render: (m) => `${num(m.qty)} ${m.unit}` }, { key: "r", label: "Recovery rate", align: "right", num: true, render: (m) => inr(m.rate) },
           { key: "v", label: "Value", align: "right", num: true, render: (m) => inr(m.qty * m.rate) },
+          { key: "st", label: "From → to", className: "text-[12px]", render: (m) => [m.fromStore, m.toStore].filter(Boolean).join(" → ") || "—" },
           { key: "rec", label: "Recovered in", render: (m) => (m.recoveredIn ? <RefLink to={`${CL_BASE}/ra-bills?open=${m.recoveredIn}`}>{m.recoveredIn}</RefLink> : <Status tone="amber">Next RA bill</Status>) },
         ]} />
       </Section>
@@ -190,7 +191,7 @@ function WoResources({ wo }) {
       {mi && (
         <Modal open onClose={() => setMi(null)} width={560} title={`Issue material — ${wo.id}`} subtitle="Recovered automatically in the contractor's next RA bill"
           footer={<><Btn onClick={() => setMi(null)}>Cancel</Btn><Btn variant="primary" disabled={!mi.material.trim() || !(Number(mi.qty) > 0) || !(Number(mi.rate) > 0)} onClick={() => {
-            setState((s) => { s.materialIssues = s.materialIssues || []; s.materialIssues.unshift({ id: nextId("MI", s.materialIssues), woId: wo.id, material: mi.material.trim(), unit: mi.unit, qty: Number(mi.qty), rate: Number(mi.rate), date: mi.date, issuedBy: currentUser(), recoveredIn: null }); }, { entity: "Work Order", id: wo.id, action: `Material issued — ${mi.qty} ${mi.unit} ${mi.material}` });
+            setState((s) => { s.materialIssues = s.materialIssues || []; s.materialIssues.unshift({ id: nextId("MI", s.materialIssues), woId: wo.id, material: mi.material.trim(), unit: mi.unit, qty: Number(mi.qty), rate: Number(mi.rate), date: mi.date, issuedBy: currentUser(), recoveredIn: null, fromStore: mi.fromStore || "", toStore: mi.toStore || "", remarks: mi.remarks || "" }); }, { entity: "Work Order", id: wo.id, action: `Material issued — ${mi.qty} ${mi.unit} ${mi.material}` });
             toast("Material issue recorded"); setMi(null);
           }}>Save</Btn></>}>
           <div className="grid grid-cols-3 gap-3">
@@ -199,6 +200,9 @@ function WoResources({ wo }) {
             <Field label="Unit"><Select value={mi.unit} onChange={(x) => setMi({ ...mi, unit: x })} options={["bag", "MT", "kg", "cum", "nos", "ltr", "m"]} /></Field>
             <Field label="Recovery rate (₹)" required><NumInput value={mi.rate} onChange={(x) => setMi({ ...mi, rate: x })} /></Field>
             <Field label="Date"><DateInput value={mi.date} onChange={(x) => setMi({ ...mi, date: x })} /></Field>
+            <Field label="Issue from store"><Select value={mi.fromStore || ""} placeholder="—" onChange={(x) => setMi({ ...mi, fromStore: x })} options={settingsOf(getState()).stores} /></Field>
+            <Field label="Contractor's site store (job worker store)"><TextInput value={mi.toStore || ""} onChange={(x) => setMi({ ...mi, toStore: x })} placeholder={`${vendorName(getState(), wo.vendorId)} — site shed`} /></Field>
+            <Field label="Remarks"><TextInput value={mi.remarks || ""} onChange={(x) => setMi({ ...mi, remarks: x })} /></Field>
           </div>
         </Modal>
       )}

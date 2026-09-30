@@ -17,7 +17,7 @@ require('./lib')('merge', async ({ p, go, dlg, S, mut, T, pick, toastText }) => 
   await T('M-01', 'Bank account added from the Bank tab starts Unverified; Verify stamps who and when', async () => {
     await go('vendor-management/registry?open=VEN-011'); await p.waitForTimeout(300); await dlg().locator('[role=tab]:has-text("Bank")').click(); await p.waitForTimeout(150);
     const d = dlg(); await d.locator('label:has-text("Account holder name") input').fill((await S()).vendors.find((x) => x.id === 'VEN-011').legalName); await d.locator('label:has-text("Bank") input').nth(1).fill('Axis Bank');
-    await d.locator('label:has-text("Account no.") input').fill('918020012345678'); await d.locator('label:has-text("IFSC") input').fill('UTIB0000123'); await d.locator('button:has-text("Add")').last().click(); await p.waitForTimeout(200);
+    await d.locator('label:has-text("Account no.") input').first().fill('918020012345678'); await d.locator('label:has-text("Re-enter account no.") input').fill('918020012345678'); await d.locator('label:has-text("IFSC") input').fill('UTIB0000123'); await d.locator('button:has-text("Add")').last().click(); await p.waitForTimeout(200);
     let v = (await S()).vendors.find((x) => x.id === 'VEN-011'); const a = v.bankAccounts.find((b) => b.account === '918020012345678'); const st0 = a?.status;
     await d.locator(`tr:has-text("5678") button:has-text("Verify")`).click(); await p.waitForTimeout(200);
     v = (await S()).vendors.find((x) => x.id === 'VEN-011'); const a2 = v.bankAccounts.find((b) => b.account === '918020012345678');
@@ -25,7 +25,7 @@ require('./lib')('merge', async ({ p, go, dlg, S, mut, T, pick, toastText }) => 
   });
   await T('M-02', 'Bank form rejects a bad IFSC', async () => {
     const d = dlg(); await d.locator('label:has-text("Account holder name") input').fill('Konkan Steel'); await d.locator('label:has-text("Bank") input').nth(1).fill('HDFC');
-    await d.locator('label:has-text("Account no.") input').fill('50200099887766'); await d.locator('label:has-text("IFSC") input').fill('HDFC123'); await d.locator('button:has-text("Add")').last().click(); await p.waitForTimeout(150);
+    await d.locator('label:has-text("Account no.") input').first().fill('50200099887766'); await d.locator('label:has-text("Re-enter account no.") input').fill('50200099887766'); await d.locator('label:has-text("IFSC") input').fill('HDFC123'); await d.locator('button:has-text("Add")').last().click(); await p.waitForTimeout(150);
     const t = await d.textContent(); const n = (await S()).vendors.find((x) => x.id === 'VEN-011').bankAccounts.filter((b) => b.account === '50200099887766').length; await esc();
     return [`IFSC error shown: ${/IFSC/i.test(t) && /11|format|valid/i.test(t)}; saved ${n}`, n === 0];
   });
@@ -88,7 +88,7 @@ require('./lib')('merge', async ({ p, go, dlg, S, mut, T, pick, toastText }) => 
   // ---------------------------------------------------------------- qualification & background
   await T('Q-01', 'Qualification results show status and value limit (incl. "Qualified with exceptions")', async () => {
     await go('vendor-management/approvals'); await p.getByText('Qualification results', { exact: true }).click(); await p.waitForTimeout(250); const t = await body();
-    return [`with exceptions: ${/Qualified with exceptions/.test(t)}; value limit column: ${/Value limit/.test(t)}`, /Qualified with exceptions/.test(t) && /Value limit/.test(t)];
+    return [`with exceptions: ${/Qualified with exceptions/.test(t)}; limit column: ${/Aggregate \/ single limit/.test(t)}`, /Qualified with exceptions/.test(t) && /Aggregate \/ single limit/.test(t)];
   });
   await T('Q-02', 'Work order above the contractor\'s qualification limit shows a warning', async () => {
     await mut((s) => { s.vendors.find((v) => v.id === 'VEN-001').qualification.valueLimit = 1000000; });
@@ -97,7 +97,7 @@ require('./lib')('merge', async ({ p, go, dlg, S, mut, T, pick, toastText }) => 
     await d.locator('input[placeholder="Rate"], input[placeholder="Qty"]').first().fill('100').catch(() => {});
     const t = await d.textContent(); await esc();
     await mut((s) => { delete s.vendors.find((v) => v.id === 'VEN-001').qualification.valueLimit; });
-    return [(t.match(/Over the qualification limit[^.]*/) || ['no warning'])[0].slice(0, 110), /Over the qualification limit/.test(t)];
+    return [(t.match(/Over the (aggregate qualification|single-project) limit[^.]*/) || ['no warning'])[0].slice(0, 110), /Over the (aggregate qualification|single-project) limit/.test(t)];
   });
   await T('Q-03', 'Background check not clear → work order cannot be issued (mobilisation blocked)', async () => {
     await mut((s) => { s.vendors.find((v) => v.id === 'VEN-001').background.litigation = 'Pending case'; });
@@ -150,7 +150,7 @@ require('./lib')('merge', async ({ p, go, dlg, S, mut, T, pick, toastText }) => 
     await d.locator('input').nth(0).fill('Stage Test Traders'); await d.locator('button[aria-pressed]:has-text("Steel")').first().click();
     await d.locator('input[placeholder="27AAKCS4412M1Z3"]').fill('27STGTE4411K1Z5'); await d.locator('input[placeholder="AAKCS4412M"]').fill('STGTE4411K');
     await d.locator('label:has-text("Contact person") input').fill('Ravi Test'); await d.locator('input[type=email]').fill('ravi@stagetest.in');
-    await d.locator('label:has-text("Account holder name") input').fill('Stage Test Traders'); await d.locator('input[placeholder="e.g. HDFC Bank"]').fill('HDFC Bank'); await d.locator('label:has-text("Account no.") input').fill('50200011229988'); await d.locator('label:has-text("IFSC") input').fill('HDFC0000123');
+    await d.locator('label:has-text("Account holder name") input').fill('Stage Test Traders'); await d.locator('input[placeholder="e.g. HDFC Bank"]').fill('HDFC Bank'); await d.locator('label:has-text("Account no.") input').first().fill('50200011229988'); await d.locator('label:has-text("IFSC") input').fill('HDFC0000123');
     await d.locator('button:has-text("Save draft")').first().click(); await p.waitForTimeout(300);
     const v = (await S()).vendors.find((x) => x.name === 'Stage Test Traders');
     return [`settings: ${flow.join(' → ')}; new vendor stages: ${v?.approval.stages.map((x) => x.dept).join(' → ')}`, flow.length === 4 && v?.approval.stages.length === 4 && v.approval.stages[3].dept === 'Compliance'];

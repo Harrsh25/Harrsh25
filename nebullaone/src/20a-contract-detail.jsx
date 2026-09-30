@@ -23,7 +23,7 @@ function ContractModal({ open, onClose, onCreated, edit }) {
     f.bgNo && f.bgExpiry && f.bgExpiry < todayISO() && "BG has already expired",
     !edit && f.start && f.start < shiftDays(-90) && "start is more than 90 days in the past",
   ].filter(Boolean);
-  const missing = [!f.vendorId && "contractor", !f.title.trim() && "title", !(value > 0) && "value", !(f.end > f.start) && "completion after start", !scopeOk && "complete BOQ lines", f.bgNo && !f.bgExpiry && "BG validity date", ...termErr].filter(Boolean);
+  const missing = [contractExtrasErr(f), !f.vendorId && "contractor", !f.title.trim() && "title", !(value > 0) && "value", !(f.end > f.start) && "completion after start", !scopeOk && "complete BOQ lines", f.bgNo && !f.bgExpiry && "BG validity date", ...termErr].filter(Boolean);
   const save = (submit) => {
     const id = edit ? edit.id : nextId("CTR", st.contracts);
     const scope = f.scope.map((l, i) => ({ id: l.id || `S${i + 1}`, code: l.code || String(i + 1), desc: l.desc, unit: l.unit || "nos", qty: Number(l.qty), rate: Number(l.rate) }));
@@ -55,6 +55,7 @@ function ContractModal({ open, onClose, onCreated, edit }) {
         {v && blockers.length > 0 && <Note tone="red">{v.name} can't be contracted right now: {blockers.join(" · ")}.</Note>}
         {v && v.qualification && qualStatus(v).limit > 0 && value > qualStatus(v).limit && <Note tone="amber" icon={Icon.alert}>Contract value {inrShort(value)} is above {v.name}'s qualification limit of {inrShort(qualStatus(v).limit)} ({qualStatus(v).status}) — work orders beyond the limit will show a warning.</Note>}
         {f.rfqId && <Note>Created from the award of <b>{f.rfqId}</b>{f.awardNote ? ` — ${f.awardNote}` : ""}. Lines and rates come from the winning quotation.</Note>}
+        <ContractExtras f={f} setF={setF} />
         <Section title={`Contract BOQ${f.scope.length ? ` — ${f.scope.length} line(s)` : " (optional)"}`} actions={<Btn size="sm" icon={Icon.plus} onClick={() => setF({ ...f, scope: [...f.scope, { code: String(f.scope.length + 1), desc: "", unit: "cum", qty: "", rate: "" }] })}>Add BOQ line</Btn>}>
           {f.scope.length === 0 ? <p className="p-3 text-[12.5px] text-ink-mute">Without BOQ lines the contract value is entered directly. With lines, work orders pick from this BOQ and the contract tracks ordered / measured / billed per line.</p> : (
             <div className="space-y-2 p-3">
@@ -228,6 +229,7 @@ function ContractDrawer({ id, onClose }) {
           <StatTile tone="green" label="Billed (gross)" value={inrShort(led.gross)} sub={`${pct(led.gross, cv)}%`} icon={Icon.receipt} />
           <StatTile tone="amber" label="Retention held" value={inrShort(led.retentionBalance)} sub={`adv. ${inrShort(led.advanceBalance)}`} icon={Icon.lock} />
         </div>
+        <ContractExtrasView c={c} />
         <Section title="Terms" icon={Icon.scale}>
           <KV cols={4} items={[
             ["Start", fmtDate(c.start)], ["Completion", fmtDate(c.end)], ["Signed on", fmtDate(c.signedOn)], ["Owner", c.owner],

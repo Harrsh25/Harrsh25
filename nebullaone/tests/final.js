@@ -14,7 +14,7 @@ require('./lib')('final', async ({ p, go, dlg, S, mut, as, T, pick, toastText })
     await d.locator('input').nth(0).fill(f.name); await d.locator(`button[aria-pressed]:has-text("${f.trade}")`).first().click();
     await d.locator('input[placeholder="27AAKCS4412M1Z3"]').fill(f.gst); await d.locator('input[placeholder="AAKCS4412M"]').fill(f.pan);
     await d.locator('label:has-text("Contact person") input').fill(f.contact); await d.locator('input[type=email]').fill(f.email);
-    await d.locator('label:has-text("Account holder name") input').fill(f.name); await d.locator('input[placeholder="e.g. HDFC Bank"]').fill('HDFC Bank'); await d.locator('label:has-text("Account no.") input').fill('50200011223344'); await d.locator('label:has-text("IFSC") input').fill('HDFC0000123');
+    await d.locator('label:has-text("Account holder name") input').fill(f.name); await d.locator('input[placeholder="e.g. HDFC Bank"]').fill('HDFC Bank'); await d.locator('label:has-text("Account no.") input').first().fill('50200011223344'); await d.locator('label:has-text("IFSC") input').fill('HDFC0000123');
     await upAll(d); await d.locator('button:has-text("Submit for approval")').click(); await p.waitForTimeout(350);
     return V(f.name);
   };
@@ -34,7 +34,7 @@ require('./lib')('final', async ({ p, go, dlg, S, mut, as, T, pick, toastText })
     await btn('Save & score').click(); await p.waitForTimeout(150);
   };
   const approve3 = async (id) => { for (const who of ['Arjun Mehta', 'Neha Kulkarni', 'Rohit Shah']) { await as(who); await go('vendor-management/approvals?open=' + id); await p.waitForTimeout(250); await p.locator('button:has-text("Approve as")').click(); await p.waitForTimeout(200); } await as(null); };
-  const ANS = [['years', 12], ['turnover', 45], ['iso', 'Yes'], ['litigation', 'No'], ['manufacturer or trader', 'Manufacturer'], ['capacity', 300], ['test certificates', 'Yes'], ['workforce', 180], ['clra', 'Yes'], ['lost-time', 0], ['hse officer', 'Yes']];
+  const ANS = [['written hse policy', 'Yes'], ['site supervisors', 4], ['years', 12], ['turnover', 45], ['iso', 'Yes'], ['litigation', 'No'], ['manufacturer or trader', 'Manufacturer'], ['capacity', 300], ['test certificates', 'Yes'], ['workforce', 180], ['clra', 'Yes'], ['lost-time', 0], ['hse officer', 'Yes']];
 
   // ===================================================== VENDOR LIFECYCLE
   const VN = { name: 'Sahyadri Steel Traders', trade: 'Steel', gst: '27SAHYD4411K1Z5', pan: 'SAHYD4411K', contact: 'Meera Kulkarni', email: 'sales@sahyadristeel.in' };

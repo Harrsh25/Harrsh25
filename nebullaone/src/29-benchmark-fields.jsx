@@ -962,3 +962,128 @@ function billExtrasErr(f, total) {
   if (f.tdsSetup?.edit && !(Number(f.tdsSetup.manual) >= 0)) return "Enter the manual TDS amount";
   return "";
 }
+
+// ---------------------------------------------------------------- contract extras (ERPNext Contract, Procore commitment, Fieldglass SOW)
+const CONTRACT_TEMPLATES = {
+  "Standard item-rate works": "Works measured jointly and paid on certified RA bills. Retention and LD as per commercial terms. Defects liability as stated. Disputes: arbitration at Pune under the Arbitration and Conciliation Act, 1996.",
+  "Lump-sum EPC": "Fixed price for the complete scope; milestone payments as per schedule. Variations only by approved change order. Performance guarantee valid till the end of DLP.",
+  "Labour supply": "Contractor supplies skilled and unskilled workers, pays wages as per the Minimum Wages Act, and complies with CLRA, PF, ESI and BOCW. Principal employer's safety rules apply.",
+  "Rate contract (call-off)": "Rates fixed for the contract period; quantities are indicative and ordered by work order. No minimum commitment.",
+};
+function ContractExtras({ f, setF }) {
+  const st = useStore();
+  const set = (k) => (x) => setF({ ...f, [k]: x });
+  return (
+    <Section title="Signing, terms & fulfilment" icon={Icon.file}>
+      <div className="grid grid-cols-3 gap-3 p-4">
+        <Field label="Authorised signatory (our company)"><TextInput value={f.signatory || ""} onChange={set("signatory")} placeholder="e.g. R. Deshpande, Director — Projects" /></Field>
+        <Field label="Contract template"><Select value={f.template || ""} placeholder="—" onChange={(x) => setF({ ...f, template: x, legalTerms: f.legalTerms && f.template === x ? f.legalTerms : CONTRACT_TEMPLATES[x] || f.legalTerms })} options={Object.keys(CONTRACT_TEMPLATES)} /></Field>
+        <Field label="Fee characteristics"><Select value={f.feeType || ""} placeholder="—" onChange={set("feeType")} options={["Fixed fee", "Time & material", "Milestone-based", "Unit rate"]} /></Field>
+        <Field label="Legal terms" span={3}><TextArea rows={2} value={f.legalTerms || ""} onChange={set("legalTerms")} /></Field>
+        <div className="flex items-end pb-1.5"><Check checked={!!f.fulfilmentRequired} onChange={set("fulfilmentRequired")} label="Fulfilment required (checklist to close)" /></div>
+        {f.fulfilmentRequired && <Field label="Fulfilment deadline"><DateInput value={f.fulfilmentDeadline || ""} onChange={set("fulfilmentDeadline")} /></Field>}
+        {f.fulfilmentRequired && <Field label="Fulfilment terms"><TextInput value={f.fulfilmentTerms || ""} onChange={set("fulfilmentTerms")} placeholder="e.g. As-built drawings, O&M manuals" /></Field>}
+        <Field label="Reference document type"><Select value={f.refDocType || ""} placeholder="—" onChange={set("refDocType")} options={["RFQ", "Purchase requisition", "Letter of intent", "Work order (client)"]} /></Field>
+        <Field label="Reference document name"><TextInput value={f.refDocName || f.rfqId || ""} onChange={set("refDocName")} /></Field>
+        <Field label="Company"><Select value={f.company || settingsOf(st).ourCompany} onChange={set("company")} options={COMPANIES(st)} /></Field>
+        <Field label="Cost centre"><Select value={f.costCentre || ""} placeholder="—" onChange={set("costCentre")} options={settingsOf(st).costCentres} /></Field>
+      </div>
+    </Section>
+  );
+}
+function contractExtrasErr(f) {
+  if (f.fulfilmentRequired && !f.fulfilmentDeadline) return "enter the fulfilment deadline";
+  if (f.fulfilmentRequired && f.fulfilmentDeadline && f.start && f.fulfilmentDeadline < f.start) return "fulfilment deadline before the start";
+  if (f.signatory && f.signatory.trim().length < 3) return "authorised signatory name";
+  return "";
+}
+function ContractExtrasView({ c }) {
+  const items = [["Authorised signatory", c.signatory], ["Template", c.template], ["Fee characteristics", c.feeType], ["Company", c.company], ["Cost centre", c.costCentre],
+    ["Reference", [c.refDocType, c.refDocName].filter(Boolean).join(" · ") || null], ["Fulfilment", c.fulfilmentRequired ? `Required by ${fmtDate(c.fulfilmentDeadline)}${c.fulfilmentTerms ? ` — ${c.fulfilmentTerms}` : ""}` : null],
+    ["Signed contract received", c.signedReceivedOn ? fmtDate(c.signedReceivedOn) : null], ["Legal terms", c.legalTerms]].filter((x) => x[1]);
+  return items.length ? <Section title="Signing, terms & fulfilment" icon={Icon.file}><KV items={items} /></Section> : null;
+}
+
+// ---------------------------------------------------------------- scorecard setup (ERPNext Supplier Scorecard, Criteria, Variable, Period)
+function criteriaErr(cfg) {
+  const c = (cfg.criteria || []).filter((x) => x.name || x.formula);
+  if (!c.length) return "";
+  if (c.some((x) => !String(x.name || "").trim())) return "Every criterion needs a name";
+  if (c.some((x) => !(Number(x.maxScore) > 0))) return "Max score must be above zero";
+  if (Math.round(sum(c, (x) => Number(x.weight) || 0)) !== 100) return `Criteria weights total ${sum(c, (x) => Number(x.weight) || 0)}% — must be 100%`;
+  const test = Object.fromEntries(SCORE_VARIABLES.map((v) => [v.name, 50]));
+  const bad = c.find((x) => evalScoreFormula(x.formula, test) == null);
+  if (bad) return `Formula for "${bad.name}" is not valid — use {variable} names, numbers and + − × ÷ ( )`;
+  return "";
+}
+function ScoreCriteriaEditor({ cfg, setCfg }) {
+  const crit = cfg.criteria || [];
+  const set = (i, k, x) => setCfg({ ...cfg, criteria: crit.map((c, j) => (j === i ? { ...c, [k]: x } : c)) });
+  const per = cfg.period || { length: "Monthly", start: `${new Date().getFullYear()}-04-01` };
+  const periods = (() => { const out = []; let d = new Date(per.start); const step = per.length === "Quarterly" ? 3 : per.length === "Half-yearly" ? 6 : 1;
+    for (let i = 0; i < 12 / step; i++) { const e = new Date(d); e.setMonth(e.getMonth() + step); e.setDate(e.getDate() - 1); out.push({ n: i + 1, start: d.toISOString().slice(0, 10), end: e.toISOString().slice(0, 10) }); d = new Date(e); d.setDate(d.getDate() + 1); } return out; })();
+  return (
+    <>
+      <Section title="Scorecard criteria" icon={Icon.listChecks} className="col-span-2" actions={<Btn size="sm" icon={Icon.plus} onClick={() => setCfg({ ...cfg, criteria: [...crit, { name: "", formula: "", maxScore: 100, weight: 0 }] })}>Add criterion</Btn>}>
+        <div className="grid grid-cols-3 gap-3 border-b border-line p-4">
+          <Field label="Weighting function"><Select value={cfg.weighting || "Weighted average"} onChange={(x) => setCfg({ ...cfg, weighting: x })} options={["Weighted average", "Lowest criterion"]} /></Field>
+          <Field label="Scorecard period"><Select value={per.length} onChange={(x) => setCfg({ ...cfg, period: { ...per, length: x } })} options={["Monthly", "Quarterly", "Half-yearly"]} /></Field>
+          <Field label="Periods start on"><DateInput value={per.start} onChange={(x) => setCfg({ ...cfg, period: { ...per, start: x } })} /></Field>
+        </div>
+        {crit.length === 0 ? <p className="p-4 text-[12.5px] text-ink-mute">No criteria — the metric weights below are used. Add criteria to score with your own formulas.</p> : (
+          <div className="overflow-x-auto"><table className="w-full text-[12.5px]">
+            <thead><tr>{["Criteria name", "Formula", "Max score", "Weight %", ""].map((x) => <th key={x} className="border-b border-line px-2 py-1.5 text-left text-[11px] font-medium text-ink-mute">{x}</th>)}</tr></thead>
+            <tbody>{crit.map((c, i) => (
+              <tr key={i} className="border-b border-line last:border-0">
+                <td className="px-2 py-1" style={{ minWidth: 150 }}><TextInput value={c.name} onChange={(x) => set(i, "name", x)} /></td>
+                <td className="px-2 py-1" style={{ minWidth: 320 }}><TextInput value={c.formula} onChange={(x) => set(i, "formula", x)} placeholder="e.g. 100 - {rejection_pct} * 2" /></td>
+                <td className="px-2 py-1" style={{ minWidth: 90 }}><NumInput value={c.maxScore} onChange={(x) => set(i, "maxScore", x)} /></td>
+                <td className="px-2 py-1" style={{ minWidth: 90 }}><NumInput value={c.weight} onChange={(x) => set(i, "weight", x)} /></td>
+                <td className="px-2 py-1 text-right"><Btn size="sm" variant="danger" onClick={() => setCfg({ ...cfg, criteria: crit.filter((_, j) => j !== i) })}>Remove</Btn></td>
+              </tr>))}</tbody>
+          </table></div>
+        )}
+      </Section>
+      <Section title="Scoring variables" icon={Icon.sliders} className="col-span-2">
+        <DataTable dense rows={SCORE_VARIABLES} rowKey={(r) => r.name} columns={[
+          { key: "name", label: "Variable", render: (r) => <span className="mono text-[12px]">{`{${r.name}}`}</span> }, { key: "param", label: "Parameter name", className: "mono text-[12px]" },
+          { key: "path", label: "Path (source data)", className: "text-[12px]" }, { key: "desc", label: "Description", className: "text-[12px]" },
+          { key: "custom", label: "Custom variable", render: (r) => (r.custom ? "Yes" : "Standard") },
+        ]} />
+      </Section>
+      <Section title="Scorecard periods" icon={Icon.calendar} className="col-span-2">
+        <DataTable dense rows={periods} rowKey={(r) => r.n} columns={[
+          { key: "n", label: "Period" }, { key: "start", label: "Start date", render: (r) => fmtDate(r.start) }, { key: "end", label: "End date", render: (r) => fmtDate(r.end) },
+          { key: "ref", label: "Scorecard setup", render: () => `Supplier scorecard — ${per.length.toLowerCase()} (${cfg.weighting || "Weighted average"})` },
+          { key: "s", label: "", render: (r) => (r.start <= todayISO() && r.end >= todayISO() ? <Status tone="blue">Current</Status> : r.end < todayISO() ? <Status tone="gray">Closed</Status> : null) },
+        ]} />
+      </Section>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------- supplier portal: own price list and custom profile fields
+function PortalPriceList({ v, readOnly }) {
+  const st = useStore();
+  const [edit, setEdit] = y.useState(null);
+  return (
+    <div className="p-4">
+      <Section title="My price list (catalogue)" icon={Icon.receipt} actions={!readOnly && <Btn size="sm" icon={Icon.plus} onClick={() => setEdit({})}>Add price</Btn>}>
+        <PriceListTable rows={(st.vendorPrices || []).filter((p) => p.vendorId === v.id)} onEdit={(p) => !readOnly && setEdit(p)} showVendor={false} />
+      </Section>
+      <p className="mt-2 text-[12px] text-ink-mute">Prices you list here are suggested to buyers when they raise a purchase order. Agreed rates from past POs are listed below.</p>
+      {edit && <PriceModal base={edit.id ? edit : null} vendorId={v.id} portal onClose={() => setEdit(null)} />}
+    </div>
+  );
+}
+function PortalProfileFields({ v, readOnly }) {
+  const st = useStore();
+  const defs = (settingsOf(st).customFields || {}).vendor || [];
+  const [val, setVal] = y.useState(() => ({ ...(v.custom || {}) }));
+  if (!defs.length) return null;
+  return (
+    <Section title="Company profile — additional details" icon={Icon.building} actions={!readOnly && <Btn size="sm" variant="primary" onClick={() => { setState((s) => { byId(s.vendors, v.id).custom = { ...val }; }, { entity: "Vendor", id: v.id, action: "Profile details updated via portal" }); toast("Profile saved"); }}>Save</Btn>}>
+      <div className="p-4"><fieldset disabled={readOnly} className="contents"><CustomFieldInputs defs={defs} value={val} onChange={setVal} /></fieldset></div>
+    </Section>
+  );
+}

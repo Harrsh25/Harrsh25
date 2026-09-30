@@ -39,7 +39,7 @@ function NewRfqModal({ open, onClose, onCreated, preset }) {
   const st = useStore();
   const blank = () => ({ questions: [], ranking: "Hidden", multiResponse: true, attachments: [], details: docDefaults("rfq", st), requisitionId: "", ...(preset || {}), title: preset?.title || "", project: preset?.project || PROJECTS[0], mode: "Multiple Vendors", template: "", sourceRef: "", dueDate: shiftDays(7), incoterm: INCOTERMS[0],
     tnc: "Prices firm for the validity period. Delivery to site, unloading by vendor. Payment as per agreed terms after GRN and bill.",
-    items: preset?.items || [{ desc: "", unit: "nos", qty: "", requiredBy: shiftDays(14) }], vendorIds: preset?.vendorIds || [], weights: { price: 60, quality: 25, delivery: 15 } });
+    items: [{ desc: "", unit: "nos", qty: "", requiredBy: shiftDays(14) }], vendorIds: [], weights: { price: 60, quality: 25, delivery: 15 }, ...(preset || {}) });
   const [f, setF] = y.useState(blank);
   y.useEffect(() => { if (open) setF(blank()); }, [open]);
   const vendors = st.vendors.filter(eligibleForRfq);
@@ -556,7 +556,7 @@ function RfqDrawer({ id, onClose, compose }) {
         {open && rfq.status !== "Draft" && <Btn icon={Icon.plus} onClick={() => setRecord(rfq.vendorIds.find((v) => !rfq.quotes.some((q) => q.vendorId === v)) || rfq.vendorIds[0])}>Record quote on vendor's behalf</Btn>}
       </>}>
       <div className="space-y-4 px-6 py-5">
-        {alt && <NewRfqModal open preset={{ ...JSON.parse(JSON.stringify(rfq)), title: `${rfq.title} — alternative`, vendorIds: [], sourceRef: `Alternative to ${rfq.id}`, altOf: rfq.id }} onClose={() => setAlt(false)} onCreated={() => setAlt(false)} />}
+        {alt && <NewRfqModal open preset={{ ...JSON.parse(JSON.stringify({ project: rfq.project, items: rfq.items, tnc: rfq.tnc, incoterm: rfq.incoterm, weights: rfq.weights, questions: rfq.questions || [], ranking: rfq.ranking || "Hidden", details: rfq.details || {}, attachments: rfq.attachments || [] })), title: `${rfq.title} — alternative`, vendorIds: [], sourceRef: `Alternative to ${rfq.id}`, altOf: rfq.id, dueDate: shiftDays(7) }} onClose={() => setAlt(false)} onCreated={() => setAlt(false)} />}
         {(rfq.questions || []).length > 0 && <Note icon={Icon.listChecks}>{rfq.questions.length} requirement question(s) · ranking shown to vendors: <b>{rfq.ranking || "Hidden"}</b>{rfq.multiResponse === false ? " · one response only" : ""}</Note>}
         {(rfq.attachments || []).length > 0 && <div className="flex flex-wrap items-center gap-2 text-[12.5px]"><span className="text-ink-mute">Attachments:</span>{rfq.attachments.map((a) => <FileLink key={a.name} name={a.name} dataUrl={a.dataUrl} />)}</div>}
         {rfq.status === "Draft" && <Note>Draft — press <b>Compose & send</b> to e-mail the invitation. Vendors sign in to the supplier portal with a one-time code to respond.</Note>}
@@ -677,7 +677,9 @@ function RfqPage() {
     const q = fromReq && (st.requisitions || []).find((x) => x.id === fromReq);
     if (!q) return;
     const man = q.purpose === "Manpower (labour)";
-    setPreset({ title: `${man ? q.labour.category + " — manpower" : itemsSummary(q.items)} (${q.id})`, project: q.project, sourceRef: q.id, requisitionId: q.id, mode: "Multiple Vendors",
+    // quotes must be in before the site needs the material: due 2 days before required-by, at the latest in 7 days, at least tomorrow
+    const due = [shiftDays(7), shiftDays(-2, q.requiredBy)].sort()[0];
+    setPreset({ title: `${man ? q.labour.category + " — manpower" : itemsSummary(q.items)} (${q.id})`, project: q.project, sourceRef: q.id, requisitionId: q.id, mode: "Multiple Vendors", dueDate: due > todayISO() ? due : shiftDays(1),
       items: q.items.map((i) => ({ desc: i.desc, unit: i.unit, qty: i.qty, requiredBy: q.requiredBy })), vendorIds: man ? (q.labour.distribution || []) : [],
       tnc: q.terms || undefined, details: { ...docDefaults("rfq", st), company: q.company, shipTo: `Site — ${q.project}` } });
     setCreate(true);

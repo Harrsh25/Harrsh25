@@ -53,7 +53,7 @@ const emptyVendor = () => ({
   supplierType: "Company", allowBillWithoutPO: false, allowBillWithoutReceipt: false, portalUsers: [], changeRequest: null,
   uploads: {}, name: "", legalName: "", type: "Goods", isContractor: false, categories: [], tier: "Approved", regTier: "Spend Authorized",
   gstin: "", pan: "", contact: { name: "", email: "", phone: "" }, address: "", city: "", state: "Maharashtra", country: "India", pin: "", website: "", taxId: "", currency: "INR",
-  paymentTerms: "Net 30", tds: "194Q", group: "", parentCompany: "", bank: { holder: "", bank: "", account: "", accountConfirm: "", ifsc: "", swift: "", iban: "", accountType: "Current", currency: "", branch: "" },
+  paymentTerms: "Net 30", tds: "194Q", group: currentSettings().defaultSupplierGroup || "", parentCompany: "", bank: { holder: "", bank: "", account: "", accountConfirm: "", ifsc: "", swift: "", iban: "", accountType: "Current", currency: "", branch: "" },
   ...vendorExtraDefaults(),
   contractor: { labourLicence: "", licenceExpiry: "", pfCode: "", esiCode: "", workforce: "", experienceYrs: "", pastProjects: "" },
 });

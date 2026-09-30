@@ -267,7 +267,11 @@ function AttendanceSheet({ vendorId, portal }) {
           dob: !nw.dob ? "Required" : nw.dob > todayISO() ? "Date can't be in the future" : age < 18 ? "Worker must be at least 18 (Child & Adolescent Labour Act / BOCW)" : age > 70 ? "Check the date of birth — age over 70" : "",
           mobile: VX.mobile(nw.mobile),
           gatePass: nw.gatePass && st.workers.some((w) => normNo(w.gatePass) === normNo(nw.gatePass)) ? "Gate pass already issued to another worker" : "",
+          email: nw.email && !EMAIL_RE.test(nw.email) ? "Enter a valid e-mail" : "",
+          rates: nw.payRate !== undefined && nw.payRate !== "" && nw.billRate !== undefined && nw.billRate !== "" && Number(nw.billRate) < Number(nw.payRate) ? "Bill rate can't be below the pay rate" : Number(nw.payRate) < 0 || Number(nw.billRate) < 0 ? "Rates can't be negative" : "",
+          available: nw.availableFrom && nw.availableFrom < shiftDays(-365) ? "Available date looks wrong" : "",
         };
+        const card = st.laborRates.find((r) => r.status === "Active" && r.trade === nw.trade);
         const dupName = nw.name && st.workers.find((w) => w.vendorId === vid && normNo(w.name) === normNo(nw.name));
         return (
         <Modal open onClose={() => setNw(null)} width={560} title="Add worker" footer={<><Btn onClick={() => setNw(null)}>Cancel</Btn><Btn variant="primary" disabled={VX.any(e)} onClick={() => {
@@ -283,6 +287,18 @@ function AttendanceSheet({ vendorId, portal }) {
             <Field label="Trade"><Select value={nw.trade} onChange={(x) => setNw({ ...nw, trade: x })} options={[...new Set(st.laborRates.map((r) => r.trade))]} /></Field>
             <Field label="Skill"><Select value={nw.skill} onChange={(x) => setNw({ ...nw, skill: x })} options={SKILLS} /></Field>
             <Field label="Gate pass no."><TextInput value={nw.gatePass} onChange={(x) => setNw({ ...nw, gatePass: x })} placeholder="Auto" /><FieldErr m={e.gatePass} /></Field>
+            <Field label="Preferred name"><TextInput value={nw.preferredName || ""} onChange={(x) => setNw({ ...nw, preferredName: x })} /></Field>
+            <Field label="E-mail"><TextInput value={nw.email || ""} onChange={(x) => setNw({ ...nw, email: x })} /><FieldErr m={e.email} /></Field>
+            <Field label="Residential status" hint="Inter-state migrant workers need ISMW registration"><Select value={nw.residential || "Local"} onChange={(x) => setNw({ ...nw, residential: x })} options={["Local", "Inter-state migrant", "Intra-state migrant"]} /></Field>
+            <Field label="Address" span={2}><TextInput value={nw.address || ""} onChange={(x) => setNw({ ...nw, address: x })} placeholder="Permanent address" /></Field>
+            <Field label="Pay rate / day (₹)" hint={card ? `Rate card ${card.id}: min wage ₹${card.minWage || "—"}` : ""}><NumInput value={nw.payRate ?? ""} onChange={(x) => setNw({ ...nw, payRate: x })} /></Field>
+            <Field label="Bill rate / day (₹)" hint={card ? `Rate card ₹${card.rate}` : ""}><NumInput value={nw.billRate ?? (card ? card.rate : "")} onChange={(x) => setNw({ ...nw, billRate: x })} /><FieldErr m={e.rates} /></Field>
+            <Field label="Available from"><DateInput value={nw.availableFrom || ""} onChange={(x) => setNw({ ...nw, availableFrom: x })} /><FieldErr m={e.available} /></Field>
+            <Field label="Skill rating (1–5)"><Select value={String(nw.skillRating || "")} placeholder="—" onChange={(x) => setNw({ ...nw, skillRating: Number(x) })} options={["1", "2", "3", "4", "5"]} /></Field>
+            <Field label="ID proof / CV" span={2}>
+              <label className="flex h-[32px] cursor-pointer items-center gap-2 truncate rounded-md border border-dashed border-gray-300 px-2.5 text-[12.5px] text-ink-soft hover:border-brand hover:text-brand">{h(Icon.upload, { size: 13 })}<span className="truncate">{nw.cv?.name || "Attach Aadhaar / CV (PDF, JPG, PNG)"}</span>
+                <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={async (ev) => { const a = ev.target.files[0] && await readAttachment(ev.target.files[0]); if (a) setNw({ ...nw, cv: { name: a.name, dataUrl: a.dataUrl } }); }} /></label>
+            </Field>
           </div>
         </Modal>);
       })()}
