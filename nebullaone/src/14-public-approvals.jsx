@@ -9,9 +9,12 @@ function appUrl(path) {
 }
 
 // Files are kept as data URLs only when small, so localStorage doesn't overflow
-function readAttachment(file) {
+// Every upload dialog goes through here: 5 MB limit and allowed file types
+function readAttachment(file, types) {
   return new Promise((resolve) => {
     if (!file) return resolve(null);
+    const bad = VX.file(file, types);
+    if (bad) { toast(bad, "red"); return resolve(null); }
     if (file.size > 400 * 1024) return resolve({ name: file.name, dataUrl: null, size: file.size });
     const r = new FileReader();
     r.onload = () => resolve({ name: file.name, dataUrl: r.result, size: file.size });
@@ -237,7 +240,7 @@ function ApprovalManagementPage() {
   const total = [...d0, ...NXV_APPROVAL_MODULES].reduce((n, m) => n + count(m), 0);
   return (
     <Card>
-      <PageHeader title="Approval Management" actions={<>{h(tr)}{h(ve, { value: project, onChange: setProject })}{isNew && <ActorSwitcher />}</>} />
+      <PageHeader title="Approval Management" actions={<>{h(tr)}{h(ve, { value: project, onChange: setProject })}</>} />
       <Toolbar left={<>
         <div className="w-[260px]"><Select label="Module" value={module} onChange={setModule} placeholder="Select module" options={[
           { header: true, value: "__h1", label: "Vendor & contracts" }, ...NXV_APPROVAL_MODULES.map((m) => ({ value: m, label: `${m} (${count(m)})` })),

@@ -77,7 +77,7 @@ function InsurancePolicies({ v, mode = "registry", locked, portal }) {
         { key: "a", label: "", align: "right", render: (p) => (
           <span className="flex justify-end gap-1">
             {mode === "approval" && p.status === "Pending" && <>
-              <Btn size="sm" variant="success" onClick={() => mut((x) => { const q = x.insurance.find((i) => i === p || i.id === p.id); q.status = "Verified"; q.verifiedBy = currentUser(); }, `${p.type} policy ${p.policy} verified`)}>Verify</Btn>
+              <Btn size="sm" variant="success" onClick={() => mut((x) => { const q = x.insurance.find((i) => i === p || i.id === p.id); q.status = "Verified"; q.verifiedBy = currentUser(); q.verifiedAt = new Date().toISOString(); }, `${p.type} policy ${p.policy} verified`)}>Verify</Btn>
               <Btn size="sm" variant="danger" onClick={() => setRej(p)}>Reject</Btn></>}
             {!locked && <Btn size="sm" icon={Icon.refresh} onClick={() => setEdit({ ...blank(p.type), insurer: p.insurer, cover: p.cover })}>Renew</Btn>}
           </span>) },
@@ -92,7 +92,7 @@ function InsurancePolicies({ v, mode = "registry", locked, portal }) {
             <Field label="Sum insured (₹)" required hint={(() => { const r = items.find((i) => i.rule.type === edit.type); return r ? `Required minimum ${inrShort(r.rule.min)}` : ""; })()}><NumInput value={edit.cover} onChange={(x) => setEdit({ ...edit, cover: x })} /></Field>
             <Field label="Valid from"><DateInput value={edit.start} onChange={(x) => setEdit({ ...edit, start: x })} /></Field>
             <Field label="Valid till" required><DateInput value={edit.expiry} onChange={(x) => setEdit({ ...edit, expiry: x })} /></Field>
-            <Field label="Policy copy" required={portal} span={2}><input type="file" accept=".pdf,.jpg,.jpeg,.png" className="block w-full text-[13px]" onChange={async (e) => { const f0 = e.target.files[0]; if (f0) { const a = await readAttachment(f0); setEdit((x) => ({ ...x, file: a.name, dataUrl: a.dataUrl })); } }} /></Field>
+            <Field label="Policy copy" required={portal} span={2}><input type="file" accept=".pdf,.jpg,.jpeg,.png" className="block w-full text-[13px]" onChange={async (e) => { const f0 = e.target.files[0]; if (f0) { const a = await readAttachment(f0); if (!a) { e.target.value = ""; return; } setEdit((x) => ({ ...x, file: a.name, dataUrl: a.dataUrl })); } }} /></Field>
           </div>
           {(() => { const r = items.find((i) => i.rule.type === edit.type); return r && Number(edit.cover) > 0 && Number(edit.cover) < r.rule.min ? <div className="mt-3"><Note tone="amber">Cover is below the required {inrShort(r.rule.min)} — the vendor will stay non-compliant.</Note></div> : null; })()}
         </Modal>
@@ -263,7 +263,7 @@ function CompliancePage() {
           { key: "f", label: "File", render: (x) => { const o = x.d || x.p; return o.file ? <FileLink name={o.file} dataUrl={o.dataUrl} /> : "—"; } },
           { key: "a", label: "", align: "right", render: (x) => (
             <span className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-              <Btn size="sm" variant="success" onClick={() => (x.d ? mutDoc(x.v, x.name, (d) => { d.status = "Verified"; d.remark = ""; }, `${x.name} verified`) : mutPol(x.v, x.p, (p) => { p.status = "Verified"; }, `${x.name} policy verified`))}>Verify</Btn>
+              <Btn size="sm" variant="success" onClick={() => (x.d ? mutDoc(x.v, x.name, (d) => { Object.assign(d, { status: "Verified", remark: "", verifiedBy: currentUser(), verifiedAt: new Date().toISOString() }); }, `${x.name} verified`) : mutPol(x.v, x.p, (p) => { p.status = "Verified"; }, `${x.name} policy verified`))}>Verify</Btn>
               <Btn size="sm" variant="danger" onClick={() => setRej(x)}>Reject</Btn>
             </span>) },
         ]} />

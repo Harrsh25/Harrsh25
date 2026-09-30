@@ -920,7 +920,7 @@ function Page({ title, subtitle, icon, actions, children }) {
   return (
     <Card>
       <PageHeader title={title} icon={icon}
-        actions={<>{actions}<ActorSwitcher /><DemoMenu /></>} />
+        actions={<>{actions}<DemoMenu /></>} />
       {children}
       <Toaster />
     </Card>

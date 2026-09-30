@@ -52,8 +52,8 @@ const autoTds = (type, st) => (type === "Goods" ? "194Q" : /Individual|Proprieto
 const emptyVendor = () => ({
   supplierType: "Company", allowBillWithoutPO: false, allowBillWithoutReceipt: false, portalUsers: [], changeRequest: null,
   uploads: {}, name: "", legalName: "", type: "Goods", isContractor: false, categories: [], tier: "Approved", regTier: "Spend Authorized",
-  gstin: "", pan: "", contact: { name: "", email: "", phone: "" }, address: "", city: "", state: "Maharashtra", currency: "INR",
-  paymentTerms: "Net 30", tds: "194Q", group: "", parentCompany: "", bank: { bank: "", account: "", ifsc: "" },
+  gstin: "", pan: "", contact: { name: "", email: "", phone: "" }, address: "", city: "", state: "Maharashtra", country: "India", pin: "", website: "", taxId: "", currency: "INR",
+  paymentTerms: "Net 30", tds: "194Q", group: "", parentCompany: "", bank: { holder: "", bank: "", account: "", ifsc: "", swift: "" },
   contractor: { labourLicence: "", licenceExpiry: "", pfCode: "", esiCode: "", workforce: "", experienceYrs: "", pastProjects: "" },
 });
 
@@ -66,15 +66,41 @@ function findDuplicate(f) {
 }
 function validateVendor(f) {
   const e = {};
+  const foreign = isForeign(f);
   if (!f.name.trim()) e.name = "Required";
-  if (!GSTIN_RE.test(f.gstin.trim().toUpperCase())) e.gstin = "Enter a valid 15-character GSTIN";
-  if (!PAN_RE.test(f.pan.trim().toUpperCase())) e.pan = "Enter a valid PAN (ABCDE1234F)";
-  else if (GSTIN_RE.test(f.gstin.trim().toUpperCase()) && f.gstin.toUpperCase().slice(2, 12) !== f.pan.toUpperCase()) e.pan = "PAN doesn't match GSTIN";
-  const dupe = findDuplicate(f).gstin;
-  if (dupe) e.gstin = `Already registered as ${dupe.id} — ${dupe.name}`;
+  if (!foreign) {
+    if (!GSTIN_RE.test(f.gstin.trim().toUpperCase())) e.gstin = "Enter a valid 15-character GSTIN";
+    if (!PAN_RE.test(f.pan.trim().toUpperCase())) e.pan = "Enter a valid PAN (ABCDE1234F)";
+    else if (GSTIN_RE.test(f.gstin.trim().toUpperCase()) && f.gstin.toUpperCase().slice(2, 12) !== f.pan.toUpperCase()) e.pan = "PAN doesn't match GSTIN";
+    const dupe = findDuplicate(f).gstin;
+    if (dupe) e.gstin = `Already registered as ${dupe.id} — ${dupe.name}`;
+  } else {
+    if (!String(f.taxId || "").trim()) e.taxId = "Enter the tax / VAT registration no.";
+    else if (getState().vendors.some((v) => v.id !== f.id && normNo(v.taxId) === normNo(f.taxId))) e.taxId = "Already registered with this tax number";
+  }
   if (!f.contact.name.trim()) e.contactName = "Required";
   if (!EMAIL_RE.test(f.contact.email)) e.email = "Enter a valid email";
+  const ph = VX.phone(f.contact.phone); if (ph) e.phone = ph;
+  const pn = VX.pin(f.pin, f.country || "India"); if (pn) e.pin = pn;
+  const w = VX.url(f.website); if (w) e.website = w;
   if (!f.categories.length) e.categories = "Pick at least one category";
+  // Bank details are optional at registration, but if any is entered the set must be complete and valid
+  const b = f.bank || {};
+  if (["holder", "bank", "account", "ifsc", "swift"].some((k) => !VX.blank(b[k]))) {
+    const be = bankErrors(b, f);
+    for (const k of Object.keys(be)) if (be[k]) e["bank_" + k] = be[k];
+  }
+  // Contractor statutory formats
+  if (f.isContractor || f.type === "Labor") {
+    const k = f.contractor || {};
+    const c1 = VX.clra(k.labourLicence); if (c1) e.labourLicence = c1;
+    if (k.labourLicence && !k.licenceExpiry) e.licenceExpiry = "Enter the licence expiry date";
+    else if (k.licenceExpiry && k.licenceExpiry < todayISO()) e.licenceExpiry = "Licence has already expired";
+    const c2 = VX.pf(k.pfCode); if (c2) e.pfCode = c2;
+    const c3 = VX.esi(k.esiCode); if (c3) e.esiCode = c3;
+    if (!VX.blank(k.workforce)) { const c4 = VX.num(k.workforce, { min: 1, int: true, label: "Workforce" }); if (c4) e.workforce = c4; }
+    if (!VX.blank(k.experienceYrs)) { const c5 = VX.num(k.experienceYrs, { min: 0, max: 100, label: "Experience" }); if (c5) e.experienceYrs = c5; }
+  }
   return e;
 }
 
@@ -82,9 +108,9 @@ function createVendor(f, submit, source = "Internal") {
   const st = getState();
   const id = nextId("VEN", st.vendors);
   const v = {
-    ...f, id, name: f.name.trim(), legalName: f.legalName.trim() || f.name.trim(), gstin: f.gstin.toUpperCase(), pan: f.pan.toUpperCase(),
+    ...f, id, name: f.name.trim(), legalName: f.legalName.trim() || f.name.trim(), gstin: isForeign(f) ? "" : f.gstin.toUpperCase(), pan: isForeign(f) ? "" : f.pan.toUpperCase(),
     status: submit ? "Pending Approval" : "Draft", preferred: false, hold: null, notes: [], insurance: [],
-    bankAccounts: f.bank.account ? [{ id: 1, ...f.bank, isDefault: true }] : [],
+    bankAccounts: f.bank.account ? [{ id: 1, ...f.bank, account: String(f.bank.account).replace(/\s/g, ""), ifsc: (f.bank.ifsc || "").toUpperCase(), status: "Unverified", addedAt: todayISO(), isDefault: true }] : [],
     approval: { stages: APPROVAL_FLOW.map((dept, i) => ({ dept, status: submit && i === 0 ? "Pending" : "Waiting", by: null, at: null, remark: "" })) },
     qualification: null, background: null, createdAt: todayISO(),
     contractor: f.isContractor || f.type === "Labor" ? { ...f.contractor } : null,
@@ -157,6 +183,7 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
   const err = (k) => errors[k] && <span className="mt-1 block text-[11px] text-red-600">{errors[k]}</span>;
   const ok = (cond, text) => cond && <span className="mt-1 flex items-center gap-1 text-[11px] text-green-700">{h(Icon.check, { size: 11 })}{text}</span>;
   const isLabour = f.type === "Labor";
+  const foreign = isForeign(f);
   const onSite = isLabour || f.isContractor;
   const showContractor = contractorMode || onSite;
   const gstOk = GSTIN_RE.test((f.gstin || "").toUpperCase()), panOk = PAN_RE.test((f.pan || "").toUpperCase());
@@ -213,13 +240,15 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
         </div>
       </FormSection>
 
-      <FormSection n={++n} title="Tax & payment" desc="GSTIN fills the PAN and state automatically" done={gstOk && panOk}>
+      <FormSection n={++n} title="Tax & payment" desc={foreign ? "Foreign vendor — GSTIN and PAN are not required" : "GSTIN fills the PAN and state automatically"} done={foreign ? !!f.taxId : gstOk && panOk}>
         <div className="grid grid-cols-3 gap-3">
-          <Field label="GSTIN" required><TextInput value={f.gstin} onChange={setGstin} placeholder="27AAKCS4412M1Z3" maxLength={15} className={cls(inputCls, "mono")} />{err("gstin") || dupNote(dup.gstin, "Already registered:") || ok(gstOk, `Valid · ${GST_STATES[f.gstin.slice(0, 2)] || "state code " + f.gstin.slice(0, 2)}`)}</Field>
-          <Field label="PAN" required><TextInput value={f.pan} onChange={(v) => upd("pan", v.toUpperCase())} placeholder="AAKCS4412M" maxLength={10} className={cls(inputCls, "mono")} />{err("pan") || (dup.pan && <span className="mt-1 block text-[11px] text-amber-700">Same PAN as <b>{dup.pan.name}</b> ({dup.pan.id}) — another branch of the same company?</span>) || ok(panOk && gstOk && f.gstin.slice(2, 12) === f.pan, "Matches GSTIN")}</Field>
+          <Field label="Country" required><Select value={f.country || "India"} onChange={(v) => set({ ...f, country: v, currency: COUNTRY_CURRENCY[v] || f.currency, tds: v === "India" ? autoTds(f.type, f.supplierType) : "NONE" })} options={COUNTRIES} /></Field>
+          {foreign && <Field label="Tax / VAT registration no." required span={2}><TextInput value={f.taxId || ""} onChange={(v) => upd("taxId", v.toUpperCase())} placeholder="e.g. TRN 100234567800003" className={cls(inputCls, "mono")} />{err("taxId")}</Field>}
+          {!foreign && <Field label="GSTIN" required><TextInput value={f.gstin} onChange={setGstin} placeholder="27AAKCS4412M1Z3" maxLength={15} className={cls(inputCls, "mono")} />{err("gstin") || dupNote(dup.gstin, "Already registered:") || ok(gstOk, `Valid · ${GST_STATES[f.gstin.slice(0, 2)] || "state code " + f.gstin.slice(0, 2)}`)}</Field>}
+          {!foreign && <Field label="PAN" required><TextInput value={f.pan} onChange={(v) => upd("pan", v.toUpperCase())} placeholder="AAKCS4412M" maxLength={10} className={cls(inputCls, "mono")} />{err("pan") || (dup.pan && <span className="mt-1 block text-[11px] text-amber-700">Same PAN as <b>{dup.pan.name}</b> ({dup.pan.id}) — another branch of the same company?</span>) || ok(panOk && gstOk && f.gstin.slice(2, 12) === f.pan, "Matches GSTIN")}</Field>}
           <Field label="Supplier type" hint="Individual / HUF: 1% TDS, others 2%"><Select value={f.supplierType || "Company"} onChange={(v) => set({ ...f, supplierType: v, tds: autoTds(f.type, v) })} options={SUPPLIER_TYPES} /></Field>
           <Field label={publicMode ? "Preferred payment terms" : "Payment terms"}><Select value={f.paymentTerms} onChange={(v) => upd("paymentTerms", v)} options={PAYMENT_TERMS} /></Field>
-          <Field label="Currency"><Select value={f.currency} onChange={(v) => upd("currency", v)} options={["INR", "USD", "EUR", "AED"]} /></Field>
+          <Field label="Currency"><Select value={f.currency} onChange={(v) => upd("currency", v)} options={withCurrent(CURRENCIES, f.currency)} /></Field>
           {!publicMode && <Field label="Withholding tax (TDS)" hint="Set automatically from vendor & supplier type"><Select value={f.tds} onChange={(v) => upd("tds", v)} options={TDS_SECTIONS} /></Field>}
         </div>
       </FormSection>
@@ -228,22 +257,25 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
         <div className="grid grid-cols-3 gap-3">
           <Field label="Contact person" required><TextInput value={f.contact.name} onChange={(v) => updC("name", v)} />{err("contactName")}</Field>
           <Field label="Email" required><TextInput type="email" value={f.contact.email} onChange={(v) => updC("email", v)} placeholder="name@company.com" />{err("email")}</Field>
-          <Field label="Phone"><TextInput value={f.contact.phone} onChange={(v) => updC("phone", v)} placeholder="+91 98xxx xxxxx" /></Field>
-          <Field label="Registered address" span={3}><TextInput value={f.address} onChange={(v) => upd("address", v)} placeholder="Building, street, area" /></Field>
+          <Field label="Phone"><TextInput value={f.contact.phone} onChange={(v) => updC("phone", v)} placeholder="+91 98xxx xxxxx" />{err("phone")}</Field>
+          <Field label="Registered address" span={2}><TextInput value={f.address} onChange={(v) => upd("address", v)} placeholder="Building, street, area" /></Field>
+          <Field label="Website"><TextInput value={f.website || ""} onChange={(v) => upd("website", v)} placeholder="www.example.com" />{err("website")}</Field>
           <Field label="City"><TextInput value={f.city} onChange={(v) => upd("city", v)} /></Field>
-          <Field label="State" hint={GST_STATES[(f.gstin || "").slice(0, 2)] ? "From GSTIN" : ""}><Select value={f.state} onChange={(v) => upd("state", v)} options={withCurrent(STATES, f.state)} /></Field>
+          {!foreign ? <Field label="State" hint={GST_STATES[(f.gstin || "").slice(0, 2)] ? "From GSTIN" : ""}><Select value={f.state} onChange={(v) => upd("state", v)} options={withCurrent(STATES, f.state)} /></Field>
+            : <Field label="State / province"><TextInput value={f.state === "Maharashtra" ? "" : f.state} onChange={(v) => upd("state", v)} /></Field>}
+          <Field label={foreign ? "Postal code" : "PIN code"}><TextInput value={f.pin || ""} onChange={(v) => upd("pin", v)} placeholder={foreign ? "" : "411026"} maxLength={10} />{err("pin")}</Field>
         </div>
       </FormSection>
 
       {showContractor && (
         <FormSection n={++n} title="Contractor statutory details" desc="Required before a contractor can be mobilised to site" done={!!f.contractor.labourLicence}>
           <div className="grid grid-cols-3 gap-3">
-            <Field label="Labour licence no. (CLRA)"><TextInput value={f.contractor.labourLicence} onChange={(v) => updK("labourLicence", v)} /></Field>
-            <Field label="Licence valid till"><DateInput value={f.contractor.licenceExpiry} onChange={(v) => updK("licenceExpiry", v)} /></Field>
-            <Field label="Workforce strength"><NumInput value={f.contractor.workforce} onChange={(v) => updK("workforce", v)} placeholder="Workers" /></Field>
-            <Field label="PF establishment code"><TextInput value={f.contractor.pfCode} onChange={(v) => updK("pfCode", v)} /></Field>
-            <Field label="ESI code"><TextInput value={f.contractor.esiCode} onChange={(v) => updK("esiCode", v)} /></Field>
-            <Field label="Experience (years)"><NumInput value={f.contractor.experienceYrs} onChange={(v) => updK("experienceYrs", v)} /></Field>
+            <Field label="Labour licence no. (CLRA)"><TextInput value={f.contractor.labourLicence} onChange={(v) => updK("labourLicence", v)} placeholder="CLRA/PUN/2025/0412" />{err("labourLicence")}</Field>
+            <Field label="Licence valid till"><DateInput value={f.contractor.licenceExpiry} onChange={(v) => updK("licenceExpiry", v)} />{err("licenceExpiry")}</Field>
+            <Field label="Workforce strength"><NumInput value={f.contractor.workforce} onChange={(v) => updK("workforce", v)} placeholder="Workers" />{err("workforce")}</Field>
+            <Field label="PF establishment code"><TextInput value={f.contractor.pfCode} onChange={(v) => updK("pfCode", v)} placeholder="PUPUN1123344000" />{err("pfCode")}</Field>
+            <Field label="ESI code"><TextInput value={f.contractor.esiCode} onChange={(v) => updK("esiCode", v)} placeholder="17 digits" />{err("esiCode")}</Field>
+            <Field label="Experience (years)"><NumInput value={f.contractor.experienceYrs} onChange={(v) => updK("experienceYrs", v)} />{err("experienceYrs")}</Field>
             <Field label="Past projects" span={3}><TextInput value={f.contractor.pastProjects} onChange={(v) => updK("pastProjects", v)} placeholder="Comma-separated, e.g. Lodha Park T3, Metro Line 2A depot" /></Field>
           </div>
         </FormSection>
@@ -252,10 +284,12 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
       <FormSection n={++n} title="Bank details" desc={lockBank ? "Locked — only the vendor can change bank details" : "Payments are blocked until a bank account is on file"} done={!!(f.bank.account && ifscOk)}
         right={lockBank && <span className="flex items-center gap-1 text-[12px] text-ink-mute">{h(Icon.lock, { size: 13 })}Locked</span>}>
         <div className="grid grid-cols-3 gap-3">
-          <Field label="Bank"><TextInput value={f.bank.bank} disabled={lockBank} onChange={(v) => updB("bank", v)} placeholder="e.g. HDFC Bank" /></Field>
-          <Field label="Account no."><TextInput value={f.bank.account} disabled={lockBank} onChange={(v) => updB("account", v.replace(/\s/g, ""))} className={cls(inputCls, "mono")} /></Field>
-          <Field label="IFSC"><TextInput value={f.bank.ifsc} disabled={lockBank} onChange={(v) => updB("ifsc", v.toUpperCase())} maxLength={11} placeholder="HDFC0001234" className={cls(inputCls, "mono")} />
-            {f.bank.ifsc && !ifscOk ? <span className="mt-1 block text-[11px] text-amber-700">Format: 4 letters, 0, then 6 characters</span> : ok(ifscOk, "Valid IFSC")}</Field>
+          <Field label="Account holder name" hint="Exactly as in bank records — used for penny-drop verification"><TextInput value={f.bank.holder || ""} disabled={lockBank} onChange={(v) => updB("holder", v)} placeholder={f.legalName || f.name || "Legal name"} />{err("bank_holder")}</Field>
+          <Field label="Bank"><TextInput value={f.bank.bank} disabled={lockBank} onChange={(v) => updB("bank", v)} placeholder="e.g. HDFC Bank" />{err("bank_bank")}</Field>
+          <Field label={foreign ? "Account no. / IBAN" : "Account no."}><TextInput value={f.bank.account} disabled={lockBank} onChange={(v) => updB("account", v.replace(/\s/g, ""))} className={cls(inputCls, "mono")} />{err("bank_account")}</Field>
+          {foreign ? <Field label="SWIFT / BIC"><TextInput value={f.bank.swift || ""} disabled={lockBank} onChange={(v) => updB("swift", v.toUpperCase())} maxLength={11} className={cls(inputCls, "mono")} />{err("bank_ifsc")}</Field>
+            : <Field label="IFSC"><TextInput value={f.bank.ifsc} disabled={lockBank} onChange={(v) => updB("ifsc", v.toUpperCase())} maxLength={11} placeholder="HDFC0001234" className={cls(inputCls, "mono")} />
+            {err("bank_ifsc") || (f.bank.ifsc && !ifscOk ? <span className="mt-1 block text-[11px] text-amber-700">Format: 4 letters, 0, then 6 characters</span> : ok(ifscOk, "Valid IFSC"))}</Field>}
         </div>
       </FormSection>
 
@@ -287,6 +321,7 @@ function DocUploadList({ docs, uploads, onChange }) {
     setBusy(name);
     const att = await readAttachment(file);
     setBusy(null);
+    if (!att) return;
     onChange({ ...uploads, [name]: { ...(uploads[name] || {}), file: att.name, dataUrl: att.dataUrl } });
   };
   return (
@@ -516,7 +551,7 @@ function VendorFlags({ v }) {
 }
 
 function VendorDocs({ v, mode = "registry", locked }) {
-  const [up, setUp] = y.useState(null), [rej, setRej] = y.useState(null);
+  const [up, setUp] = y.useState(null), [rej, setRej] = y.useState(null), [hist, setHist] = y.useState(null), [del, setDel] = y.useState(null);
   const other = up && up.other;
   const docs = requiredDocs(v).map((name) => v.docs.find((d) => d.name === name) || { name, status: "Missing" });
   const extra = v.docs.filter((d) => !requiredDocs(v).includes(d.name));
@@ -533,27 +568,60 @@ function VendorDocs({ v, mode = "registry", locked }) {
         { key: "name", label: "Document", className: "font-medium" },
         { key: "file", label: "File", render: (d) => (d.file ? <FileLink name={d.file} dataUrl={d.dataUrl} /> : <span className="text-ink-mute">—</span>) },
         { key: "expiry", label: "Valid till", render: (d) => <ExpiryCell iso={d.expiry} /> },
-        { key: "status", label: "Status", render: (d) => <span className="flex flex-col"><Status>{docState(d)}</Status>{d.status === "Rejected" && d.remark && <span className="max-w-[220px] whitespace-normal text-[11px] text-red-600">{d.remark}</span>}</span> },
+        { key: "status", label: "Status", render: (d) => <span className="flex flex-col"><Status>{docState(d)}</Status>
+          {d.verifiedAt && d.status !== "Pending" && <span className="text-[11px] text-ink-mute">{d.status === "Rejected" ? "Rejected" : "Verified"} by {d.verifiedBy} · {fmtDate(d.verifiedAt)}</span>}
+          {d.status === "Rejected" && d.remark && <span className="max-w-[220px] whitespace-normal text-[11px] text-red-600">{d.remark}</span>}</span> },
+        { key: "ver", label: "Versions", render: (d) => ((d.versions || []).length ? <button className="text-[12px] font-medium text-brand hover:underline" onClick={() => setHist(d)}>v{(d.versions || []).length + 1} · history</button> : d.file ? <span className="text-[12px] text-ink-mute">v1</span> : "—") },
         { key: "a", label: "", align: "right", render: (d) => (
           <span className="flex justify-end gap-1">
             {!locked && <Btn size="sm" icon={Icon.upload} onClick={() => setUp({ name: d.name, expiry: d.expiry || "", file: "" })}>{d.status === "Missing" ? "Upload" : "Replace"}</Btn>}
+            {!locked && d.status === "Pending" && d.file && <Btn size="sm" onClick={() => setDel({ d, withdraw: true })}>Withdraw</Btn>}
+            {!locked && !requiredDocs(v).includes(d.name) && <Btn size="sm" onClick={() => setDel({ d })}>Delete</Btn>}
             {mode === "approval" && d.status === "Pending" && <>
-              <Btn size="sm" variant="success" onClick={() => mut(d.name, (x) => { x.status = "Verified"; x.remark = ""; }, `${d.name} verified`)}>Verify</Btn>
+              <Btn size="sm" variant="success" onClick={() => mut(d.name, (x) => { Object.assign(x, { status: "Verified", remark: "", verifiedBy: currentUser(), verifiedAt: new Date().toISOString() }); }, `${d.name} verified`)}>Verify</Btn>
               <Btn size="sm" variant="danger" onClick={() => setRej(d.name)}>Reject</Btn>
             </>}
           </span>
         ) },
       ]} />
-      {rej && <RejectReasonModal title={`Reject — ${rej}`} onClose={() => setRej(null)} onReject={(reason) => mut(rej, (x) => { x.status = "Rejected"; x.remark = reason; }, `${rej} rejected — ${reason}`)} />}
+      {rej && <RejectReasonModal title={`Reject — ${rej}`} onClose={() => setRej(null)} onReject={(reason) => mut(rej, (x) => { Object.assign(x, { status: "Rejected", remark: reason, verifiedBy: currentUser(), verifiedAt: new Date().toISOString() }); }, `${rej} rejected — ${reason}`)} />}
+      {hist && (
+        <Modal open onClose={() => setHist(null)} width={640} title={`${hist.name} — version history`} footer={<Btn onClick={() => setHist(null)}>Close</Btn>}>
+          <DataTable dense rows={[{ ...hist, current: true }, ...(hist.versions || []).slice().reverse()]} rowKey={(x, i) => (x.current ? "cur" : x.replacedAt || i)} columns={[
+            { key: "v", label: "Version", render: (x) => (x.current ? <b>Current</b> : `Replaced ${fmtDate(x.replacedAt)}`) },
+            { key: "file", label: "File", render: (x) => (x.file ? <FileLink name={x.file} dataUrl={x.dataUrl} /> : "—") },
+            { key: "up", label: "Uploaded", render: (x) => fmtDate(x.uploadedAt) }, { key: "exp", label: "Valid till", render: (x) => fmtDate(x.expiry) },
+            { key: "st", label: "Status then", render: (x) => <Status>{x.status}</Status> }, { key: "by", label: "Verified by", render: (x) => (x.verifiedBy ? `${x.verifiedBy} · ${fmtDate(x.verifiedAt)}` : "—") },
+            { key: "rb", label: "Replaced by", render: (x) => x.replacedBy || "—" },
+          ]} />
+        </Modal>
+      )}
+      {del && (
+        <Modal open onClose={() => setDel(null)} width={460} title={del.withdraw ? `Withdraw ${del.d.name}?` : `Delete ${del.d.name}?`}
+          subtitle={del.withdraw ? ((del.d.versions || []).length ? "The previous version is restored" : "The document goes back to Missing") : "The document and its history are removed from this vendor"}
+          footer={<><Btn onClick={() => setDel(null)}>Cancel</Btn><Btn variant="danger" onClick={() => {
+            setState((s) => {
+              const x = byId(s.vendors, v.id);
+              if (del.withdraw) { const d = x.docs.find((q) => q.name === del.d.name); const prev = (d.versions || []).pop();
+                if (prev) Object.assign(d, { file: prev.file, dataUrl: prev.dataUrl, expiry: prev.expiry, status: prev.status, uploadedAt: prev.uploadedAt, verifiedBy: prev.verifiedBy, verifiedAt: prev.verifiedAt, remark: "" });
+                else Object.assign(d, { status: "Missing", file: null, dataUrl: null, expiry: null, uploadedAt: null }); }
+              else x.docs = x.docs.filter((q) => q.name !== del.d.name);
+            }, { entity: "Vendor", id: v.id, action: `${del.d.name} ${del.withdraw ? "upload withdrawn" : "deleted"}` });
+            toast(del.withdraw ? "Upload withdrawn" : "Document deleted"); setDel(null);
+          }}>{del.withdraw ? "Withdraw" : "Delete"}</Btn></>}>
+          <p className="text-[13px] text-ink-soft">{del.d.file}</p>
+        </Modal>
+      )}
       <Modal open={!!up} onClose={() => setUp(null)} title={`Upload — ${up?.name}`} width={480}
         footer={<><Btn onClick={() => setUp(null)}>Cancel</Btn><Btn variant="primary" disabled={!up?.file || !up?.name?.trim()} onClick={() => {
-          mut(up.name, (x) => Object.assign(x, { status: "Pending", remark: "", file: up.file, dataUrl: up.dataUrl || null, expiry: up.expiry || null, uploadedAt: todayISO() }), `${up.name} uploaded`);
+          if (up.expiry && up.expiry < todayISO()) return toast("Valid-till date is in the past — upload a current document", "red");
+          mut(up.name, (x) => withVersion(x, { status: "Pending", file: up.file, dataUrl: up.dataUrl || null, expiry: up.expiry || null, uploadedAt: todayISO() }, currentUser()), `${up.name} ${up.replace ? "replaced" : "uploaded"}`);
           toast("Document uploaded — awaiting verification"); setUp(null);
         }}>Upload</Btn></>}>
         {up && <div className="space-y-3">
           {up.pick && <Field label="Document" required><Select value={other ? "__other" : up.name} onChange={(x) => setUp({ ...up, name: x === "__other" ? "" : x, other: x === "__other" })} options={[...docs.map((d) => ({ value: d.name, label: `${d.name} — ${docState(d)}` })), { value: "__other", label: "Other document…" }]} /></Field>}
           {other && <Field label="Document name" required><TextInput value={up.name} onChange={(x) => setUp({ ...up, name: x })} placeholder="e.g. ISO 9001 certificate" /></Field>}
-          <Field label="File" required><input type="file" accept=".pdf,.jpg,.jpeg,.png" className="block w-full text-[13px]" onChange={async (e) => { const f0 = e.target.files[0]; if (f0) { const att = await readAttachment(f0); setUp((u) => ({ ...u, file: att.name, dataUrl: att.dataUrl })); } }} /></Field>
+          <Field label="File" required><input type="file" accept=".pdf,.jpg,.jpeg,.png" className="block w-full text-[13px]" onChange={async (e) => { const f0 = e.target.files[0]; if (f0) { const att = await readAttachment(f0); if (att) setUp((u) => ({ ...u, file: att.name, dataUrl: att.dataUrl })); else e.target.value = ""; } }} /></Field>
           <Field label="Valid till" hint="Leave empty for documents that don't expire"><DateInput value={up.expiry} onChange={(x) => setUp({ ...up, expiry: x })} /></Field>
         </div>}
       </Modal>
@@ -562,23 +630,63 @@ function VendorDocs({ v, mode = "registry", locked }) {
 }
 
 function VendorBanks({ v }) {
-  const [f, setF] = y.useState({ bank: "", account: "", ifsc: "" });
+  const blank = { holder: "", bank: "", account: "", ifsc: "", swift: "", accountType: "Current" };
+  const [f, setF] = y.useState(blank), [tried, setTried] = y.useState(false), [rej, setRej] = y.useState(null), [del, setDel] = y.useState(null);
   const mut = (fn, action) => setState((s) => fn(byId(s.vendors, v.id)), { entity: "Vendor", id: v.id, action });
+  const foreign = isForeign(v);
+  const er = bankErrors(f, v, v.bankAccounts);
+  const tail = (a) => "••" + String(a.account).slice(-4);
+  const verify = (a) => {
+    const ok = nameMatch(a.holder || v.legalName, v);
+    mut((x) => Object.assign(x.bankAccounts.find((o) => o.id === a.id), ok
+      ? { status: "Verified", remark: "", verifiedBy: currentUser(), verifiedAt: new Date().toISOString(), method: "Penny drop — name matched" }
+      : { status: "Rejected", remark: `Penny drop: beneficiary name does not match “${v.legalName || v.name}”`, verifiedBy: currentUser(), verifiedAt: new Date().toISOString(), method: "Penny drop" }),
+      ok ? `Bank account ${tail(a)} verified (penny drop)` : `Bank account ${tail(a)} failed verification — name mismatch`);
+    toast(ok ? "Bank account verified" : "Verification failed — holder name mismatch", ok ? "green" : "red");
+  };
   return (
     <Section title="Bank accounts" icon={Icon.wallet}>
       <DataTable dense rows={v.bankAccounts} empty={<p className="p-4 text-[13px] text-ink-mute">No bank account on file — payments are blocked until one is added.</p>}
         columns={[
-          { key: "bank", label: "Bank", className: "font-medium" }, { key: "account", label: "Account no.", className: "mono text-[12px]", render: (b) => "•••• " + b.account.slice(-4) },
-          { key: "ifsc", label: "IFSC", className: "mono text-[12px]" },
-          { key: "d", label: "", align: "right", render: (b) => b.isDefault ? <Status tone="green">Default</Status> : <Btn size="sm" onClick={() => mut((x) => x.bankAccounts.forEach((a) => (a.isDefault = a.id === b.id)), `Default bank set to ${b.bank}`)}>Make default</Btn> },
+          { key: "holder", label: "Account holder", render: (a) => a.holder || <span className="text-ink-mute">—</span> },
+          { key: "bank", label: "Bank", className: "font-medium" }, { key: "account", label: "Account no.", className: "mono text-[12px]", render: (a) => "•••• " + String(a.account).slice(-4) },
+          { key: "ifsc", label: foreign ? "SWIFT" : "IFSC", className: "mono text-[12px]", render: (a) => a.ifsc || a.swift || "—" },
+          { key: "st", label: "Verification", render: (a) => <span className="flex flex-col"><Status tone={{ Verified: "green", Rejected: "red" }[bankStatus(a)] || "amber"}>{bankStatus(a)}</Status>
+            {a.verifiedAt && <span className="text-[11px] text-ink-mute">{a.verifiedBy} · {fmtDate(a.verifiedAt)}{a.method ? ` · ${a.method}` : ""}</span>}
+            {a.remark && <span className="max-w-[220px] whitespace-normal text-[11px] text-red-600">{a.remark}</span>}</span> },
+          { key: "d", label: "", align: "right", render: (a) => (
+            <span className="flex justify-end gap-1">
+              {bankStatus(a) !== "Verified" && <Btn size="sm" variant="success" onClick={() => verify(a)}>Verify</Btn>}
+              {bankStatus(a) === "Unverified" && <Btn size="sm" variant="danger" onClick={() => setRej({ a, reason: "" })}>Reject</Btn>}
+              {a.isDefault ? <Status tone="green">Default</Status> : <Btn size="sm" disabled={bankStatus(a) === "Rejected"} title={bankStatus(a) === "Rejected" ? "A rejected account can't be the default" : ""} onClick={() => mut((x) => x.bankAccounts.forEach((o) => (o.isDefault = o.id === a.id)), `Default bank set to ${a.bank} ${tail(a)}`)}>Make default</Btn>}
+              <Btn size="sm" onClick={() => setDel(a)}>Remove</Btn>
+            </span>) },
         ]} />
-      <div className="grid grid-cols-[1fr_1fr_140px_auto] items-end gap-3 border-t border-line p-4">
-        <Field label="Bank"><TextInput value={f.bank} onChange={(x) => setF({ ...f, bank: x })} /></Field>
-        <Field label="Account no."><TextInput value={f.account} onChange={(x) => setF({ ...f, account: x })} /></Field>
-        <Field label="IFSC"><TextInput value={f.ifsc} onChange={(x) => setF({ ...f, ifsc: x.toUpperCase() })} maxLength={11} /></Field>
-        <Btn variant="primary" icon={Icon.plus} disabled={!f.bank || f.account.length < 6 || !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(f.ifsc)}
-          onClick={() => { mut((x) => x.bankAccounts.push({ id: Date.now(), ...f, isDefault: x.bankAccounts.length === 0 }), `Bank account added (${f.bank})`); setF({ bank: "", account: "", ifsc: "" }); }}>Add</Btn>
+      {v.bankAccounts.some((a) => a.isDefault && bankStatus(a) !== "Verified") && <div className="border-t border-line px-4 py-2"><Note tone="amber">The default account is not verified — payments show a warning until it is verified.</Note></div>}
+      <div className="grid grid-cols-[1.2fr_1fr_1fr_140px_auto] items-start gap-3 border-t border-line p-4">
+        <Field label="Account holder name" hint="Exactly as in bank records"><TextInput value={f.holder} onChange={(x) => setF({ ...f, holder: x })} placeholder={v.legalName} />{tried && <FieldErr m={er.holder} />}</Field>
+        <Field label="Bank"><TextInput value={f.bank} onChange={(x) => setF({ ...f, bank: x })} />{tried && <FieldErr m={er.bank} />}</Field>
+        <Field label={foreign ? "Account no. / IBAN" : "Account no."}><TextInput value={f.account} onChange={(x) => setF({ ...f, account: x.replace(/\s/g, "") })} className={cls(inputCls, "mono")} />{(tried || f.account) && <FieldErr m={er.account} />}</Field>
+        {foreign ? <Field label="SWIFT / BIC"><TextInput value={f.swift} onChange={(x) => setF({ ...f, swift: x.toUpperCase() })} maxLength={11} />{(tried || f.swift) && <FieldErr m={er.ifsc} />}</Field>
+          : <Field label="IFSC"><TextInput value={f.ifsc} onChange={(x) => setF({ ...f, ifsc: x.toUpperCase() })} maxLength={11} />{(tried || f.ifsc) && <FieldErr m={er.ifsc} />}</Field>}
+        <div className="pt-[22px]"><Btn variant="primary" icon={Icon.plus} onClick={() => {
+          setTried(true); if (VX.any(er)) return;
+          mut((x) => x.bankAccounts.push({ id: Date.now(), ...f, account: f.account.replace(/\s/g, ""), status: "Unverified", addedAt: todayISO(), isDefault: x.bankAccounts.length === 0 }), `Bank account added (${f.bank} ••${f.account.slice(-4)}) — pending verification`);
+          toast("Bank account added — verify it before payments"); setF(blank); setTried(false);
+        }}>Add</Btn></div>
       </div>
+      {rej && (
+        <Modal open onClose={() => setRej(null)} width={460} title={`Reject bank account ${tail(rej.a)}`}
+          footer={<><Btn onClick={() => setRej(null)}>Cancel</Btn><Btn variant="danger" disabled={!!VX.reason(rej.reason)} onClick={() => { mut((x) => Object.assign(x.bankAccounts.find((o) => o.id === rej.a.id), { status: "Rejected", remark: rej.reason.trim(), verifiedBy: currentUser(), verifiedAt: new Date().toISOString(), isDefault: false }), `Bank account ${tail(rej.a)} rejected — ${rej.reason.trim()}`); toast("Bank account rejected", "red"); setRej(null); }}>Reject</Btn></>}>
+          <Field label="Reason" required><TextInput value={rej.reason} onChange={(x) => setRej({ ...rej, reason: x })} placeholder="e.g. Cancelled cheque shows a different account" /><FieldErr m={rej.reason && VX.reason(rej.reason)} /></Field>
+        </Modal>
+      )}
+      {del && (
+        <Modal open onClose={() => setDel(null)} width={440} title={`Remove ${del.bank} ${tail(del)}?`} subtitle={del.isDefault && v.bankAccounts.length > 1 ? "Another account becomes the default" : ""}
+          footer={<><Btn onClick={() => setDel(null)}>Cancel</Btn><Btn variant="danger" onClick={() => { mut((x) => { x.bankAccounts = x.bankAccounts.filter((o) => o.id !== del.id); if (del.isDefault) { const nx = x.bankAccounts.find((o) => bankStatus(o) === "Verified") || x.bankAccounts[0]; if (nx) nx.isDefault = true; } }, `Bank account ${del.bank} ${tail(del)} removed`); toast("Bank account removed"); setDel(null); }}>Remove</Btn></>}>
+          <p className="text-[13px] text-ink-soft">Past payments keep their reference to this account.</p>
+        </Modal>
+      )}
     </Section>
   );
 }

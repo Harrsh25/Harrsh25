@@ -1,99 +1,24 @@
-// Workflow controls added after the end-to-end audit: demo personas and roles,
-// segregation of duties (maker ≠ checker, one person per approval stage),
-// approval preconditions, spend-authorization requests, sourcing gates and
+// Workflow controls added after the end-to-end audit: approval preconditions,
+// spend-authorization requests, sourcing gates, contract and work-order gates and
 // the daily sweep that ends expired holds.
+//
+// Role-based permissions and segregation of duties were removed at the user's request:
+// every signed-in user may perform every step. The helpers below keep their names so the
+// call sites stay readable (they document which department owns a step), but never block.
 
-// ---------------------------------------------------------------- personas & roles
-const ALL_ROLES = ["Procurement Executive", "Procurement Head", "Legal Counsel", "Finance Controller", "Project Manager", "Site Engineer", "Quantity Surveyor", "Accounts", "HSE Officer"];
-const DEMO_USERS = [
-  { name: "Priya Nair", role: "Procurement Executive" },
-  { name: "Arjun Mehta", role: "Procurement Head" },
-  { name: "Neha Kulkarni", role: "Legal Counsel" },
-  { name: "Rohit Shah", role: "Finance Controller" },
-  { name: "Vikram Rao", role: "Project Manager" },
-  { name: "Sneha Iyer", role: "Site Engineer" },
-  { name: "Karan Desai", role: "Quantity Surveyor" },
-  { name: "Anita Joshi", role: "Accounts" },
-  { name: "Rohan Singh", role: "HSE Officer" },
-];
-// Who decides each vendor-approval stage
+// Department that owns each step — shown in labels only
 const DEPT_ROLE = { Procurement: "Procurement Head", Legal: "Legal Counsel", Finance: "Finance Controller" };
-// Who performs each RA-bill step
 const RA_ROLE = { Verified: "Site Engineer", Certified: "Quantity Surveyor", Approved: "Project Manager", Paid: "Accounts" };
 const PAY_ROLES = ["Accounts", "Finance Controller"];
-const ACTOR_KEY = "nxv-actor";
 
 function hostUserName() {
   try { const u = at.user(); return (u && u.name) || "Demo User"; } catch { return "Demo User"; }
 }
-// The person using the app. The signed-in host user is an administrator (every role);
-// the persona switcher lets a demo walk through each approver in turn.
-function actor() {
-  let n = null;
-  try { n = localStorage.getItem(ACTOR_KEY); } catch {}
-  const u = DEMO_USERS.find((x) => x.name === n);
-  return u ? { name: u.name, role: u.role, roles: [u.role] } : { name: hostUserName(), role: "Administrator", roles: ALL_ROLES, admin: true };
-}
-function setActor(name) {
-  try { name ? localStorage.setItem(ACTOR_KEY, name) : localStorage.removeItem(ACTOR_KEY); } catch {}
-  listeners.forEach((l) => l());
-}
-if (typeof window !== "undefined") window.nxActAs = setActor;
-const hasRole = (role) => actor().roles.includes(role);
-const hasAnyRole = (roles) => roles.some(hasRole);
-
-// Returns why the current person may not do this step, or null.
-// roles: one role or a list (any of them); involved: people who already acted on the record.
-function actBlock(roles, involved = [], what = "this step") {
-  const a = actor(), list = [].concat(roles || []);
-  if (list.length && !hasAnyRole(list)) return `${what[0].toUpperCase() + what.slice(1)} needs the ${list.join(" or ")} role — you are acting as ${a.name} (${a.role}).`;
-  if (involved.filter(Boolean).includes(a.name)) return `Segregation of duties: ${a.name} already acted on this record — another person must do ${what}.`;
-  return null;
-}
-function tryAct(roles, involved, what) {
-  const e = actBlock(roles, involved, what);
-  if (e) { toast(e, "red"); return false; }
-  return true;
-}
-function ActNote({ roles, involved, what }) {
-  const e = actBlock(roles, involved, what);
-  return e ? <Note tone="amber" icon={Icon.lock}>{e} Switch person with the <b>Acting as</b> menu at the top.</Note> : null;
-}
-
-function ActorSwitcher() {
-  useStore();
-  const [open, setOpen] = y.useState(false);
-  const a = actor();
-  const initials = (n) => n.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
-  const people = [{ name: hostUserName(), role: "Administrator", admin: true }, ...DEMO_USERS];
-  return (
-    <div className="relative">
-      <button type="button" aria-label="Acting as" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}
-        className="flex h-[28px] items-center gap-1.5 rounded-md border border-line bg-white px-2 text-[12px] text-ink-soft hover:border-brand">
-        <span className="grid h-5 w-5 place-items-center rounded-full bg-brand-soft text-[10px] font-semibold text-brand">{initials(a.name)}</span>
-        <span className="max-w-[190px] truncate"><b className="font-medium text-ink">{a.name}</b> · {a.role}</span>
-        {h(Icon.chevronDown, { size: 12 })}
-      </button>
-      {open && (
-        <div role="menu" className="absolute right-0 z-[70] mt-1 w-[280px] overflow-hidden rounded-lg border border-line bg-white py-1 text-[13px] shadow-lg" onMouseLeave={() => setOpen(false)}>
-          <p className="px-3 pb-1 pt-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-ink-mute">Acting as (demo roles)</p>
-          {people.map((p) => {
-            const cur = p.name === a.name;
-            return (
-              <button key={p.name} type="button" role="menuitem" onClick={() => { setActor(p.admin ? null : p.name); setOpen(false); toast(`Now acting as ${p.name} — ${p.role}`, "blue"); }}
-                className={cls("flex w-full items-center gap-2 px-3 py-1.5 text-left", cur ? "bg-brand-soft/60 text-brand" : "hover:bg-gray-50")}>
-                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-gray-100 text-[10px] font-semibold text-ink-soft">{initials(p.name)}</span>
-                <span className="flex-1"><span className="block font-medium">{p.name}</span><span className="block text-[11.5px] text-ink-mute">{p.role}</span></span>
-                {cur && h(Icon.check, { size: 14 })}
-              </button>
-            );
-          })}
-          <p className="border-t border-line px-3 pb-1.5 pt-2 text-[11.5px] leading-snug text-ink-mute">Each approval needs its role, and one person can't act twice on the same record.</p>
-        </div>
-      )}
-    </div>
-  );
-}
+function actor() { return { name: hostUserName(), role: "User" }; }
+const hasRole = () => true;
+const actBlock = () => null;
+const tryAct = () => true;
+const ActNote = () => null;
 
 // ---------------------------------------------------------------- vendor approval preconditions
 // Documents that block payment must be verified, the qualification must pass, and a

@@ -46,7 +46,16 @@ function NewRfqModal({ open, onClose, onCreated }) {
   const setItem = (i, k, v) => setF({ ...f, items: f.items.map((x, j) => (j === i ? { ...x, [k]: v } : x)) });
   // lines left without a quantity are skipped, so a template can be trimmed just by leaving qty empty
   const lines = f.items.filter((i) => i.desc && Number(i.qty) > 0);
-  const ok = f.title && lines.length > 0 && f.vendorIds.length >= (f.mode === "Single Vendor" ? 1 : 2) && (f.mode !== "Single Vendor" || f.vendorIds.length === 1);
+  const wsum = Number(f.weights.price || 0) + Number(f.weights.quality || 0) + Number(f.weights.delivery || 0);
+  const errs = [
+    !f.title.trim() && "Title required",
+    (VX.req(f.dueDate, "Quotes due date required") || (f.dueDate <= todayISO() ? "Quotes due date must be in the future" : "")),
+    ["price", "quality", "delivery"].some((k) => VX.pct(f.weights[k])) ? "Each weight must be 0–100" : wsum !== 100 ? `Weights total ${wsum}% — must be 100%` : "",
+    !lines.length && "Add at least one line with a quantity",
+    ...f.items.map((it, i) => (!it.desc && !it.qty ? "" : !String(it.desc).trim() ? `Line ${i + 1}: description required` : !String(it.unit || "").trim() ? `Line ${i + 1}: unit required` : it.qty !== "" && Number(it.qty) < 0 ? `Line ${i + 1}: quantity can't be negative` : Number(it.qty) > 0 && !it.requiredBy ? `Line ${i + 1}: required-by date missing` : Number(it.qty) > 0 && it.requiredBy < f.dueDate ? `Line ${i + 1}: required by ${fmtDate(it.requiredBy)} is before quotes are due` : "")),
+    f.mode === "Single Vendor" ? (f.vendorIds.length !== 1 && "Pick exactly one vendor") : f.vendorIds.length < 2 && "Invite at least two vendors",
+  ].filter(Boolean);
+  const ok = errs.length === 0;
   const save = () => {
     const id = nextId("RFQ", st.rfqs);
     setState((s) => s.rfqs.unshift({ ...f, id, status: "Draft", createdOn: todayISO(), quotes: [], negotiation: [], awards: [], emails: [], awardedTo: null,
@@ -67,7 +76,7 @@ function NewRfqModal({ open, onClose, onCreated }) {
   };
   return (
     <Modal open={open} onClose={onClose} width={900} title="New request for quotation"
-      footer={<><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!ok} onClick={save}>Save & compose e-mail</Btn></>}>
+      footer={<><span className="mr-auto max-w-[520px] truncate text-[12px] text-red-600" title={errs.join("\n")}>{errs[0] || ""}{errs.length > 1 ? ` (+${errs.length - 1} more)` : ""}</span><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!ok} onClick={save}>Save & compose e-mail</Btn></>}>
       <div className="space-y-4">
         <div className="grid grid-cols-3 gap-3">
           <Field label="Title" required span={2}><TextInput value={f.title} onChange={(x) => setF({ ...f, title: x })} placeholder="e.g. TMT steel Fe500D — 120 MT" /></Field>
@@ -235,7 +244,12 @@ function QuoteForm({ rfq, vendorId, mode = "vendor", onDone }) {
   const net = (i) => (f.noBid[i] || f.rates[i] === "" ? 0 : Number(f.rates[i]) * (1 - (Number(f.discounts[i]) || 0) / 100));
   const taxable = sum(rfq.items, (it, i) => it.qty * net(i));
   const priced = rfq.items.filter((_, i) => !f.noBid[i] && Number(f.rates[i]) > 0).length;
-  const ok = priced > 0 && rfq.items.every((_, i) => f.noBid[i] || Number(f.rates[i]) > 0) && f.validUntil && agree;
+  const qErr = [
+    ...rfq.items.map((_, i) => f.noBid[i] ? "" : !(Number(f.rates[i]) > 0) ? `Line ${i + 1}: rate must be greater than 0` : VX.pct(f.discounts[i]) ? `Line ${i + 1}: discount must be 0–100%` : VX.num(f.leadDays[i], { min: 0, max: 365, int: true }) ? `Line ${i + 1}: lead days must be a whole number 0–365` : ""),
+    !f.validUntil ? "Validity date required" : f.validUntil < todayISO() ? "Validity date is in the past" : f.validUntil < rfq.dueDate ? `Must be valid at least until the RFQ closes (${fmtDate(rfq.dueDate)})` : "",
+    f.currency !== "INR" && !(Number(f.fx) > 0) ? "Enter the exchange rate" : "",
+  ].filter(Boolean);
+  const ok = priced > 0 && !qErr.length && agree;
   const upload = async (file) => {
     if (!file) return;
     const rows = parseCsv(await file.text()).slice(1);
@@ -295,7 +309,7 @@ function QuoteForm({ rfq, vendorId, mode = "vendor", onDone }) {
                 <Td align="right" className="num">{f.noBid[i] ? "—" : num(it.qty * net(i))}</Td>
                 <Td>
                   <label title={f.lineFiles[i]?.name || "Attach datasheet / test certificate"} className={cls("grid h-7 w-7 cursor-pointer place-items-center rounded-md border", f.lineFiles[i] ? "border-green-300 bg-green-50 text-green-700" : "border-dashed border-gray-300 text-ink-mute hover:text-brand")}>
-                    <Icon.upload size={12} /><input type="file" className="hidden" onChange={async (e) => { const a = await readAttachment(e.target.files[0]); a && set("lineFiles", i, a); }} />
+                    <Icon.upload size={12} /><input type="file" className="hidden" onChange={async (e) => { const a = await readAttachment(e.target.files[0], VX.SHEET_TYPES); a && set("lineFiles", i, a); }} />
                   </label>
                 </Td>
                 <Td><input type="checkbox" className="h-4 w-4 accent-[#0b5ed7]" checked={f.noBid[i]} onChange={(e) => set("noBid", i, e.target.checked)} /></Td>
@@ -303,24 +317,26 @@ function QuoteForm({ rfq, vendorId, mode = "vendor", onDone }) {
             ))}
             <tr className="bg-gray-50"><Td /><Td className="font-semibold">Taxable value</Td><Td /><Td /><Td /><Td /><Td /><Td align="right" className="num font-semibold">{num(taxable)}</Td><Td /><Td /></tr>
             <tr className="bg-gray-50"><Td /><Td>GST @ {f.gstPct}%</Td><Td /><Td /><Td /><Td /><Td /><Td align="right" className="num">{num((taxable * f.gstPct) / 100)}</Td><Td /><Td /></tr>
-            <tr className="bg-gray-50"><Td /><Td className="font-semibold">Total ({priced}/{n} lines)</Td><Td /><Td /><Td /><Td /><Td /><Td align="right" className="num font-bold">{f.currency} {num(taxable * (1 + f.gstPct / 100))}</Td><Td /><Td /></tr>
+            <tr className="bg-gray-50"><Td /><Td className="font-semibold">Total ({priced}/{n} lines)</Td><Td /><Td /><Td /><Td /><Td /><Td align="right" className="num font-bold">{f.currency} {num(taxable * (1 + f.gstPct / 100))}{f.currency !== "INR" && <span className="block text-[11px] font-normal text-ink-mute">≈ {inr(taxable * (1 + f.gstPct / 100) * (Number(f.fx) || 0))} @ {f.fx}</span>}</Td><Td /><Td /></tr>
           </tbody>
         </table>
       </div>
-      <div className="grid grid-cols-5 gap-3">
+      <div className="grid grid-cols-6 gap-3">
         <Field label="Your quotation no."><TextInput value={f.quoteNo} onChange={(x) => setF({ ...f, quoteNo: x })} placeholder="e.g. DST/Q/0412" /></Field>
-        <Field label="Currency"><Select value={f.currency} onChange={(x) => setF({ ...f, currency: x, fx: x === "INR" ? 1 : x === "USD" ? 83.2 : x === "EUR" ? 90.4 : 22.6 })} options={["INR", "USD", "EUR", "AED"]} /></Field>
+        <Field label="Currency"><Select value={f.currency} onChange={(x) => setF({ ...f, currency: x, fx: DEFAULT_FX[x] || 1 })} options={CURRENCIES} /></Field>
+        {f.currency !== "INR" && <Field label={`Exchange rate (₹ per ${f.currency})`} hint="Used to compare and award in INR"><NumInput value={f.fx} onChange={(x) => setF({ ...f, fx: x })} /></Field>}
         <Field label="GST %"><Select value={String(f.gstPct)} onChange={(x) => setF({ ...f, gstPct: Number(x) })} options={GST_RATES.map(String)} /></Field>
         <Field label="Valid until" required><DateInput value={f.validUntil} onChange={(x) => setF({ ...f, validUntil: x })} /></Field>
         <Field label="Quotation document">
           <label className={cls("flex h-[32px] cursor-pointer items-center gap-2 truncate rounded-md border border-dashed px-2.5 text-[12.5px]", f.attachment ? "border-green-300 bg-green-50 text-green-700" : "border-gray-300 text-ink-soft hover:border-brand hover:text-brand")}>
             <Icon.upload size={13} /><span className="truncate">{f.attachment ? f.attachment.name : "Attach PDF"}</span>
-            <input type="file" accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls" className="hidden" onChange={async (e) => { const a = await readAttachment(e.target.files[0]); a && setF((ff) => ({ ...ff, attachment: a })); }} />
+            <input type="file" accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls" className="hidden" onChange={async (e) => { const a = await readAttachment(e.target.files[0], VX.SHEET_TYPES); a && setF((ff) => ({ ...ff, attachment: a })); }} />
           </label>
         </Field>
-        <Field label="Terms, exclusions or remarks" span={5}><TextArea rows={2} value={f.note} onChange={(x) => setF({ ...f, note: x })} placeholder="e.g. Freight extra beyond 50 km; mill test certificate with each lot" /></Field>
+        <Field label="Terms, exclusions or remarks" span={6}><TextArea rows={2} value={f.note} onChange={(x) => setF({ ...f, note: x })} placeholder="e.g. Freight extra beyond 50 km; mill test certificate with each lot" /></Field>
       </div>
       <div className="flex items-center justify-between gap-4 border-t border-line pt-4">
+        {qErr.length > 0 && <span className="mr-auto text-[12px] text-red-600">{qErr[0]}{qErr.length > 1 ? ` (+${qErr.length - 1} more)` : ""}</span>}
         {mode === "vendor" ? <Check checked={agree} onChange={setAgree} label={`I accept the buyer's terms (${rfq.incoterm}); prices are firm until the validity date.`} /> : <span />}
         <Btn variant="primary" icon={Icon.send} disabled={!ok} onClick={submit}>{mode === "buyer" ? "Save quotation" : prev ? "Submit revised quotation" : "Submit quotation"}</Btn>
       </div>

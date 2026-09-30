@@ -1,6 +1,6 @@
 // Demo seed data. Dates are relative to "today" so expiry / renewal alerts
 // always have something to show. Bump SEED_VERSION when the shape changes.
-const SEED_VERSION = 9;
+const SEED_VERSION = 10;
 
 function buildSeed() {
   const D = (n) => shiftDays(n);

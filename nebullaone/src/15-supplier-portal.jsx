@@ -320,7 +320,8 @@ function PortalBody({ vid, vendorMode }) {
       {reup && (
         <Modal open onClose={() => setReup(null)} width={460} title={`Upload — ${reup.name}`}
           footer={<><Btn onClick={() => setReup(null)}>Cancel</Btn><Btn variant="primary" disabled={!reup.file} onClick={() => {
-            setState((s) => { const x = byId(s.vendors, vid); let d = x.docs.find((dd) => dd.name === reup.name); if (!d) { d = { name: reup.name }; x.docs.push(d); } Object.assign(d, { status: "Pending", remark: "", file: reup.file, dataUrl: reup.dataUrl, expiry: reup.expiry, uploadedAt: todayISO() }); }, { entity: "Vendor", id: vid, action: `${reup.name} uploaded via portal` });
+            if (reup.expiry && reup.expiry < todayISO()) return toast("Valid-till date is in the past — upload a current document", "red");
+            setState((s) => { const x = byId(s.vendors, vid); let d = x.docs.find((dd) => dd.name === reup.name); if (!d) { d = { name: reup.name }; x.docs.push(d); } withVersion(d, { status: "Pending", file: reup.file, dataUrl: reup.dataUrl, expiry: reup.expiry, uploadedAt: todayISO() }, vendorMode ? getVendorSession()?.email : v.contact.name); }, { entity: "Vendor", id: vid, action: `${reup.name} uploaded via portal` });
             toast("Uploaded — the buyer will verify it"); setReup(null);
           }}>Upload</Btn></>}>
           <div className="space-y-3">

@@ -14,7 +14,16 @@ function ContractModal({ open, onClose, onCreated, edit }) {
   const setLine = (i, k, x) => setF({ ...f, scope: f.scope.map((l, j) => (j === i ? { ...l, [k]: x } : l)) });
   const value = f.scope.length ? round2(sum(f.scope, (l) => (Number(l.qty) || 0) * (Number(l.rate) || 0))) : Number(f.value) || 0;
   const scopeOk = f.scope.every((l) => l.desc && Number(l.qty) > 0 && Number(l.rate) > 0);
-  const missing = [!f.vendorId && "contractor", !f.title.trim() && "title", !(value > 0) && "value", !(f.end > f.start) && "completion after start", !scopeOk && "complete BOQ lines", f.bgNo && !f.bgExpiry && "BG validity date"].filter(Boolean);
+  const termErr = [
+    ["retentionPct", "advancePct", "advanceRecoveryPct", "cessPct", "pbgPct"].some((k) => VX.pct(f[k])) && "percentages must be 0–100",
+    Number(f.advancePct) > 0 && !(Number(f.advanceRecoveryPct) > 0) && "set a recovery % when an advance is given",
+    VX.num(f.dlpMonths, { min: 0, max: 60, int: true }) && "DLP must be 0–60 whole months",
+    Number(f.ldCapPct) < Number(f.ldPctPerWeek) && "LD cap can't be lower than the weekly LD",
+    f.bgNo && f.bgExpiry && f.bgExpiry <= f.start && "BG must be valid beyond the contract start",
+    f.bgNo && f.bgExpiry && f.bgExpiry < todayISO() && "BG has already expired",
+    !edit && f.start && f.start < shiftDays(-90) && "start is more than 90 days in the past",
+  ].filter(Boolean);
+  const missing = [!f.vendorId && "contractor", !f.title.trim() && "title", !(value > 0) && "value", !(f.end > f.start) && "completion after start", !scopeOk && "complete BOQ lines", f.bgNo && !f.bgExpiry && "BG validity date", ...termErr].filter(Boolean);
   const save = (submit) => {
     const id = edit ? edit.id : nextId("CTR", st.contracts);
     const scope = f.scope.map((l, i) => ({ id: l.id || `S${i + 1}`, code: l.code || String(i + 1), desc: l.desc, unit: l.unit || "nos", qty: Number(l.qty), rate: Number(l.rate) }));
@@ -90,7 +99,9 @@ function ChangeOrderModal({ c, preset, onClose }) {
   const setL = (i, k, x) => setCo({ ...co, lines: co.lines.map((l, j) => { if (j !== i) return l; const n = { ...l, [k]: x }; if (k === "lineId" || k === "woId") { const w = byId(st.workOrders, n.woId), it = w && w.items.find((q) => q.id === n.lineId); if (it) Object.assign(n, { desc: it.desc, unit: it.unit, rate: it.rate, code: it.code }); else if (k === "lineId") Object.assign(n, { desc: "", rate: "" }); } return n; }) });
   const amount = co.lines.length ? round2(sum(co.lines, (l) => (Number(l.qty) || 0) * (Number(l.rate) || 0))) : Number(co.amount) || 0;
   const linesOk = co.lines.every((l) => l.woId && l.desc && Number(l.qty) > 0 && Number(l.rate) > 0);
-  const ok = co.desc.trim() && co.reason.trim() && linesOk && (co.lines.length ? amount > 0 : co.amount !== "" || Number(co.days) > 0);
+  const negErr = contractValue(c) + amount < 0 ? `Would make the contract value negative (current ${inr(contractValue(c))})` : "";
+  const daysErr = VX.num(co.days === "" ? 0 : co.days, { min: 0, max: 730, int: true, label: "Extension" }) ? "Extension must be 0–730 whole days" : "";
+  const ok = co.desc.trim() && co.reason.trim().length >= 5 && linesOk && !negErr && !daysErr && (co.lines.length ? amount > 0 : (co.amount !== "" && Number(co.amount) !== 0) || Number(co.days) > 0);
   return (
     <Modal open onClose={onClose} width={860} title={preset?.days ? "Extension of time (change order)" : "Raise change order"} subtitle="Approved by the Project Manager (not the person raising it). Quantity lines raise the work-order quantity on approval."
       footer={<><span className="mr-auto text-[13px]">Value <b className="num">{inr(amount)}</b>{Number(co.days) ? ` · +${co.days} days` : ""}</span><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!ok} onClick={() => {
@@ -104,6 +115,7 @@ function ChangeOrderModal({ c, preset, onClose }) {
           <Field label="Change description" required span={2}><TextInput value={co.desc} onChange={(x) => setCo({ ...co, desc: x })} /></Field>
           <Field label="Value (₹, can be negative)" hint={co.lines.length ? "From the lines below" : ""}>{co.lines.length ? <span className="flex h-[32px] items-center font-semibold num">{inr(amount)}</span> : <NumInput value={co.amount} onChange={(x) => setCo({ ...co, amount: x })} />}</Field>
           <Field label="Time extension (days)"><NumInput value={co.days} onChange={(x) => setCo({ ...co, days: x })} /></Field>
+          {(negErr || daysErr) && <div className="col-span-4"><Note tone="red">{negErr || daysErr}</Note></div>}
           <Field label="Reason / instruction ref." required span={4}><TextInput value={co.reason} onChange={(x) => setCo({ ...co, reason: x })} placeholder="e.g. Client revision R3; consultant instruction SCI-044" /></Field>
         </div>
         <Section title="Quantity lines (optional)" actions={wos.length > 0 && <Btn size="sm" icon={Icon.plus} onClick={() => setCo({ ...co, lines: [...co.lines, { woId: wos[0].id, lineId: "", desc: "", unit: "cum", qty: "", rate: "" }] })}>Add quantity line</Btn>}>

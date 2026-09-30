@@ -50,7 +50,7 @@ function ClaimModal({ woId, fromClaim, onClose }) {
           <Field label="Supporting sheet (optional)">
             <label className={cls("flex h-[32px] cursor-pointer items-center gap-2 truncate rounded-md border border-dashed px-2.5 text-[12.5px]", f.attachment ? "border-green-300 bg-green-50 text-green-700" : "border-gray-300 text-ink-soft")}>
               <Icon.upload size={13} /><span className="truncate">{f.attachment?.name || "Attach measurement sheet"}</span>
-              <input type="file" className="hidden" onChange={async (e) => { const a = await readAttachment(e.target.files[0]); a && setF((ff) => ({ ...ff, attachment: a })); }} />
+              <input type="file" className="hidden" onChange={async (e) => { const a = await readAttachment(e.target.files[0], VX.SHEET_TYPES); a && setF((ff) => ({ ...ff, attachment: a })); }} />
             </label>
           </Field>
         </div>
@@ -260,20 +260,32 @@ function AttendanceSheet({ vendorId, portal }) {
           </div>
         </>
       )}
-      {nw && (
-        <Modal open onClose={() => setNw(null)} width={520} title="Add worker" footer={<><Btn onClick={() => setNw(null)}>Cancel</Btn><Btn variant="primary" disabled={!nw.name} onClick={() => {
+      {nw && (() => {
+        const age = nw.dob ? Math.floor((Date.now() - new Date(nw.dob).getTime()) / (365.25 * DAY)) : null;
+        const e = {
+          name: !String(nw.name).trim() ? "Enter the full name" : "",
+          dob: !nw.dob ? "Required" : nw.dob > todayISO() ? "Date can't be in the future" : age < 18 ? "Worker must be at least 18 (Child & Adolescent Labour Act / BOCW)" : age > 70 ? "Check the date of birth — age over 70" : "",
+          mobile: VX.mobile(nw.mobile),
+          gatePass: nw.gatePass && st.workers.some((w) => normNo(w.gatePass) === normNo(nw.gatePass)) ? "Gate pass already issued to another worker" : "",
+        };
+        const dupName = nw.name && st.workers.find((w) => w.vendorId === vid && normNo(w.name) === normNo(nw.name));
+        return (
+        <Modal open onClose={() => setNw(null)} width={560} title="Add worker" footer={<><Btn onClick={() => setNw(null)}>Cancel</Btn><Btn variant="primary" disabled={VX.any(e)} onClick={() => {
           const id = nextId("WK", st.workers);
-          setState((s) => s.workers.push({ id, vendorId: vid, ...nw, gatePass: nw.gatePass || `GP-${4300 + s.workers.length}`, inductionOn: todayISO(), active: true, woId }), { entity: "Worker", id, action: `Added to ${vendorName(st, vid)}` });
+          setState((s) => s.workers.push({ id, vendorId: vid, ...nw, name: nw.name.trim(), gatePass: nw.gatePass || `GP-${4300 + s.workers.length}`, inductionOn: todayISO(), active: true, woId }), { entity: "Worker", id, action: `Added to ${vendorName(st, vid)}` });
           setNw(null);
         }}>Add</Btn></>}>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Name" span={2}><TextInput value={nw.name} onChange={(x) => setNw({ ...nw, name: x })} /></Field>
+            <Field label="Full name" required span={2}><TextInput value={nw.name} onChange={(x) => setNw({ ...nw, name: x })} /><FieldErr m={nw.name !== "" && e.name} />
+              {dupName && <span className="mt-1 block text-[11px] text-amber-700">{dupName.name} ({dupName.gatePass}) is already on this contractor's roll — check this is not a duplicate.</span>}</Field>
+            <Field label="Date of birth" required><DateInput value={nw.dob || ""} onChange={(x) => setNw({ ...nw, dob: x })} /><FieldErr m={nw.dob && e.dob} /></Field>
+            <Field label="Mobile"><TextInput value={nw.mobile || ""} onChange={(x) => setNw({ ...nw, mobile: x })} placeholder="98xxxxxxxx" /><FieldErr m={e.mobile} /></Field>
             <Field label="Trade"><Select value={nw.trade} onChange={(x) => setNw({ ...nw, trade: x })} options={[...new Set(st.laborRates.map((r) => r.trade))]} /></Field>
             <Field label="Skill"><Select value={nw.skill} onChange={(x) => setNw({ ...nw, skill: x })} options={SKILLS} /></Field>
-            <Field label="Gate pass no."><TextInput value={nw.gatePass} onChange={(x) => setNw({ ...nw, gatePass: x })} placeholder="Auto" /></Field>
+            <Field label="Gate pass no."><TextInput value={nw.gatePass} onChange={(x) => setNw({ ...nw, gatePass: x })} placeholder="Auto" /><FieldErr m={e.gatePass} /></Field>
           </div>
-        </Modal>
-      )}
+        </Modal>);
+      })()}
     </div>
   );
 }

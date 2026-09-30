@@ -22,7 +22,8 @@ function WorkOrderModal({ open, onClose, onCreated, contractId: presetContract }
   const setItem = (i, k, v) => setF({ ...f, items: f.items.map((x, j) => (j === i ? { ...x, [k]: v } : x)) });
   const setMs = (i, k, v) => setF({ ...f, milestones: f.milestones.map((x, j) => (j === i ? { ...x, [k]: v } : x)) });
   const boqOver = c && f.type !== "Lump Sum" && f.items.some((i) => { const l = i.boqRef && contractBoq(st, c).find((b) => b.id === i.boqRef); return l && Number(i.qty) > l.balance + 0.001; });
-  const ok = c && f.title && f.wbs && value > 0 && !boqOver && (f.type === "Lump Sum" ? wsum === 100 && f.milestones.every((m) => m.name) : f.items.every((i) => i.desc && i.qty > 0 && i.rate > 0));
+  const dateErr = !f.start || !f.end ? "Enter start and finish dates" : f.end <= f.start ? "Finish must be after start" : c && f.start < c.start ? `Starts before the contract (${fmtDate(c.start)})` : c && f.end > c.end ? `Finishes after the contract completion (${fmtDate(c.end)}) — extend the contract first` : "";
+  const ok = c && f.title && f.wbs && value > 0 && !boqOver && !dateErr && (f.type === "Lump Sum" ? wsum === 100 && f.milestones.every((m) => m.name) : f.items.every((i) => i.desc && i.qty > 0 && i.rate > 0));
   const save = (issue) => {
     const id = nextId("WO", st.workOrders);
     if (issue && blockers.length) return toast(`Can't issue — ${blockers.join("; ")}`, "red");
@@ -50,6 +51,7 @@ function WorkOrderModal({ open, onClose, onCreated, contractId: presetContract }
           <div className="grid grid-cols-2 gap-2"><Field label="Start"><DateInput value={f.start} onChange={(x) => setF({ ...f, start: x })} /></Field><Field label="Finish"><DateInput value={f.end} onChange={(x) => setF({ ...f, end: x })} /></Field></div>
         </div>
         {c && (() => { const cv = byId(st.vendors, c.vendorId), cc = cv && complianceOf(cv); return cc && cc.blocking.length > 0 ? <Note tone="amber" icon={Icon.shieldCheck}><b>{cv.name} is not compliant:</b> {cc.blocking.join(" · ")}. Payments against this work order will be held until it is fixed.</Note> : null; })()}
+        {c && dateErr && <Note tone="red">{dateErr}</Note>}
         {blockers.length > 0 && <Note tone="red" icon={Icon.lock}>Can be saved as a draft but not issued: {blockers.join(" · ")}.</Note>}
         {boqOver && <Note tone="red">A line is above what is left on the contract BOQ — raise a change order for the extra quantity.</Note>}
         {c && boqLeft.length > 0 && f.type !== "Lump Sum" && <div className="flex items-center justify-between rounded-lg border border-line px-3 py-2 text-[12.5px]"><span>Contract BOQ has <b>{boqLeft.length}</b> line(s) not yet ordered.</span><Btn size="sm" icon={Icon.sheet} onClick={loadBoq}>Load lines from contract BOQ</Btn></div>}
@@ -217,7 +219,8 @@ function MeasurementModal({ preset = {}, onClose }) {
   const pending = wo ? sum(st.measurements.filter((m) => m.woId === wo.id && m.lineId === f.lineId && m.jms.status === "Pending"), (m) => m.qty) : 0;
   const overQty = item && posLine && posLine.measured + pending + qty > item.qty;
   const lsBad = wo && wo.type === "Lump Sum" && posLine && (Number(f.pct) <= posLine.measured || Number(f.pct) > 100);
-  const ok = wo && f.lineId && f.location && (wo.type === "Lump Sum" ? f.pct !== "" && !lsBad : qty > 0);
+  const mDateErr = !f.date ? "Date required" : f.date > todayISO() ? "Measurement date can't be in the future" : wo && f.date < wo.start ? `Before the work order start (${fmtDate(wo.start)})` : "";
+  const ok = wo && f.lineId && f.location && !mDateErr && (wo.type === "Lump Sum" ? f.pct !== "" && !lsBad : qty > 0);
   return (
     <Modal open onClose={onClose} width={720} title="Record measurement" subtitle="Entry goes to the Measurement Book and waits for joint (JMS) sign-off"
       footer={<><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!ok} onClick={() => {
@@ -232,7 +235,7 @@ function MeasurementModal({ preset = {}, onClose }) {
         <div className="grid grid-cols-3 gap-3">
           <Field label="Work order" required><Select value={f.woId} placeholder="Select…" onChange={(x) => setF({ ...f, woId: x, lineId: "" })} options={st.workOrders.filter((w) => ["Issued", "In Progress"].includes(w.status) && woAccepted(w)).map((w) => ({ value: w.id, label: `${w.id} — ${w.title}` }))} /></Field>
           <Field label={wo?.type === "Lump Sum" ? "Milestone" : "BOQ item"} required span={2}><Select value={f.lineId} placeholder="Select…" onChange={(x) => setF({ ...f, lineId: x })} options={lines} /></Field>
-          <Field label="Date"><DateInput value={f.date} onChange={(x) => setF({ ...f, date: x })} /></Field>
+          <Field label="Date"><DateInput value={f.date} onChange={(x) => setF({ ...f, date: x })} /><FieldErr m={wo && mDateErr} /></Field>
           <Field label="Location / grid / chainage" required span={2}><TextInput value={f.location} onChange={(x) => setF({ ...f, location: x })} placeholder="e.g. Slab L4, grid A1–A6" /></Field>
         </div>
         {wo && wo.type === "Lump Sum" ? (

@@ -22,7 +22,17 @@ function RateModal({ base, onClose }) {
   const st = useStore();
   const [f, setF] = y.useState(base ? { ...base, rate: base.rate, minWage: base.minWage, effectiveFrom: shiftDays(1), reason: "" }
     : { trade: "", skill: "Skilled", region: REGIONS[0], vendorId: "", minWage: "", rate: "", otMultiplier: 2, basis: "Per 8-hr man-day", effectiveFrom: todayISO(), reason: "" });
-  const ok = f.trade && f.minWage > 0 && f.rate > 0 && f.effectiveFrom && (!base || f.reason);
+  const cur = base && st.laborRates.find((r) => r.status === "Active" && rateKey(r) === rateKey(base));
+  const lrErr = {
+    trade: VX.req(String(f.trade).trim()),
+    dupCard: !base && f.trade && st.laborRates.some((r) => ["Active", "Pending Approval"].includes(r.status) && rateKey(r) === rateKey({ ...f, trade: f.trade.trim(), vendorId: f.vendorId || null })) ? "A rate card for this trade, zone and contractor already exists — use Revise" : "",
+    minWage: VX.num(f.minWage, { gt: 0, label: "Minimum wage" }),
+    rate: VX.num(f.rate, { gt: 0, label: "Rate" }) || (Number(f.rate) < Number(f.minWage) ? "Billing rate can't be below the statutory minimum wage" : ""),
+    ot: VX.num(f.otMultiplier, { min: 1, max: 3, label: "Overtime multiplier" }),
+    from: VX.req(f.effectiveFrom) || (cur && f.effectiveFrom <= cur.effectiveFrom ? `Must be after the current version's start (${fmtDate(cur.effectiveFrom)})` : ""),
+    reason: base ? VX.reason(f.reason) : "",
+  };
+  const ok = !VX.any(lrErr);
   return (
     <Modal open onClose={onClose} width={640} title={base ? `Revise rate — ${base.trade}, ${base.region}` : "New labour rate"} subtitle="New versions go for approval; the approved one supersedes the current card from its effective date"
       footer={<><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!ok} onClick={() => {
@@ -37,13 +47,13 @@ function RateModal({ base, onClose }) {
         <Field label="Skill category"><Select value={f.skill} onChange={(x) => setF({ ...f, skill: x })} options={SKILLS} disabled={!!base} /></Field>
         <Field label="Region / wage zone"><Select value={f.region} onChange={(x) => setF({ ...f, region: x })} options={REGIONS} disabled={!!base} /></Field>
         <Field label="Applies to" span={2}><Select value={f.vendorId || ""} onChange={(x) => setF({ ...f, vendorId: x })} disabled={!!base} options={[{ value: "", label: "Standard schedule (all contractors)" }, ...contractorVendors(st).filter((v) => v.status === "Active").map((v) => ({ value: v.id, label: v.name }))]} /></Field>
-        <Field label="Statutory minimum wage / day (₹)" required><NumInput value={f.minWage} onChange={(x) => setF({ ...f, minWage: x })} /></Field>
-        <Field label="Billing rate / day (₹)" required hint={f.minWage && f.rate ? `${margin(f).toFixed(1)}% over minimum wage` : ""}><NumInput value={f.rate} onChange={(x) => setF({ ...f, rate: x })} /></Field>
-        <Field label="Overtime multiplier"><NumInput value={f.otMultiplier} onChange={(x) => setF({ ...f, otMultiplier: x })} /></Field>
-        <Field label="Effective from"><DateInput value={f.effectiveFrom} onChange={(x) => setF({ ...f, effectiveFrom: x })} /></Field>
+        <Field label="Statutory minimum wage / day (₹)" required><NumInput value={f.minWage} onChange={(x) => setF({ ...f, minWage: x })} /><FieldErr m={f.minWage !== "" && lrErr.minWage} /></Field>
+        <Field label="Billing rate / day (₹)" required hint={f.minWage && f.rate && !lrErr.rate ? `${margin(f).toFixed(1)}% over minimum wage` : ""}><NumInput value={f.rate} onChange={(x) => setF({ ...f, rate: x })} /><FieldErr m={f.rate !== "" && lrErr.rate} /></Field>
+        <Field label="Overtime multiplier" hint="1 – 3"><NumInput value={f.otMultiplier} onChange={(x) => setF({ ...f, otMultiplier: x })} /><FieldErr m={lrErr.ot} /></Field>
+        <Field label="Effective from"><DateInput value={f.effectiveFrom} onChange={(x) => setF({ ...f, effectiveFrom: x })} /><FieldErr m={lrErr.from} /></Field>
         <Field label={base ? "Reason for revision" : "Note"} required={!!base} span={2}><TextInput value={f.reason} onChange={(x) => setF({ ...f, reason: x })} placeholder="e.g. VDA notification w.e.f. 1 Oct" /></Field>
       </div>
-      {f.minWage > 0 && f.rate > 0 && f.rate < f.minWage && <div className="mt-3"><Note tone="red">Billing rate is below the statutory minimum wage — this card will be flagged non-compliant.</Note></div>}
+      {lrErr.dupCard && <div className="mt-3"><Note tone="red">{lrErr.dupCard}</Note></div>}
     </Modal>
   );
 }

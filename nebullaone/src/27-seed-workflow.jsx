@@ -7,6 +7,9 @@ function extendSeed2(s) {
   const ts = (n) => new Date(Date.now() + n * DAY).toISOString();
   // Vendors: who submitted the pending registrations
   for (const v of s.vendors) {
+    v.country = v.country || "India";
+    (v.bankAccounts || []).forEach((b) => Object.assign(b, { holder: b.holder || v.legalName, status: "Verified", verifiedBy: "Finance — onboarding", verifiedAt: v.createdAt, method: "Penny drop — name matched" }));
+    (v.docs || []).forEach((d) => { if (d.status === "Verified") Object.assign(d, { verifiedBy: "Procurement — onboarding", verifiedAt: d.uploadedAt || v.createdAt }); });
     if (["Pending Approval", "Changes Requested"].includes(v.status)) v.submittedBy = v.source === "Self-registration" ? v.contact.name : "Priya Nair";
     if (v.status === "Active" && v.approval?.stages?.every((x) => x.status === "Approved")) v.approvedOn = (v.approval.stages[2].at || "").slice(0, 10);
   }
