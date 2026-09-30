@@ -92,12 +92,19 @@ function ClaimReviewModal({ id, onClose, onBill }) {
   const [cert, setCert] = y.useState(() => c.lines.map((l) => (wo.type === "Lump Sum" ? l.pct : l.qty)));
   const [remark, setRemark] = y.useState("");
   const [rep, setRep] = y.useState(v.contact.name);
+  const [qcOk, setQcOk] = y.useState(false);
   const certifiedDraft = { woId: c.woId, lines: c.lines.map((l, i) => (wo.type === "Lump Sum" ? { ...l, pct: Number(cert[i]) || 0 } : { ...l, qty: Number(cert[i]) || 0 })) };
+  // Certified quantity may not take a line above its work-order quantity (approved change orders raise it)
+  const over = wo.type === "Lump Sum" ? [] : c.lines.filter((l, i) => { const p = pos.find((x) => x.line.id === l.lineId); return p && p.measured + (Number(cert[i]) || 0) > p.total + 0.001; });
+  const who = actBlock("Site Engineer", [], "claim verification");
   const ret = () => {
+    if (!tryAct("Site Engineer", [], "returning a claim")) return;
     setState((s) => { const x = byId(s.claims, id); x.status = "Returned"; x.history.push({ status: "Returned", by: currentUser(), at: new Date().toISOString(), remark }); }, { entity: "RA Claim", id, action: `Returned for revision — ${remark}` });
     toast(`${id} returned to contractor`, "red"); onClose();
   };
   const verify = () => {
+    if (!tryAct("Site Engineer", [], "claim verification")) return;
+    if (over.length) return toast("Certified quantity is above the work order — reduce it or raise a change order", "red");
     let billId;
     setState((s) => {
       const mbIds = [];
@@ -107,7 +114,8 @@ function ClaimReviewModal({ id, onClose, onBill }) {
         const mbId = nextId("MB", s.measurements);
         s.measurements.push({ id: mbId, woId: c.woId, lineId: l.lineId, date: c.periodTo, location: l.location || `Claim ${c.id}`, nos: null, l: null, b: null, d: null,
           qty: wo.type === "Lump Sum" ? 0 : val, pct: wo.type === "Lump Sum" ? val : null, recordedBy: `${currentUser()} (from ${c.id})`,
-          jms: { status: "Signed", contractorRep: rep, engineer: currentUser(), at: new Date().toISOString() }, remarks: `Claimed ${wo.type === "Lump Sum" ? l.pct + "%" : l.qty}`, billedIn: null });
+          jms: { status: "Signed", contractorRep: rep, engineer: currentUser(), at: new Date().toISOString(), contractorAgreed: { by: c.history[0].by, at: c.history[0].at } },
+          qc: { status: "Passed", by: currentUser(), at: new Date().toISOString(), atVerification: true }, remarks: `Claimed ${wo.type === "Lump Sum" ? l.pct + "%" : l.qty}`, billedIn: null });
         mbIds.push(mbId);
       });
       const w = byId(s.workOrders, c.woId); if (w.status === "Issued") w.status = "In Progress";
@@ -126,8 +134,11 @@ function ClaimReviewModal({ id, onClose, onBill }) {
   return (
     <Modal open onClose={onClose} width={980} title={`Verify contractor claim ${c.id}`} subtitle={`${v.name} · ${wo.id} ${wo.title} · period ${fmtDate(c.periodFrom)} – ${fmtDate(c.periodTo)}`}
       footer={<><span className="mr-auto text-[13px]">Claimed <b className="num">{inr(claimValue(st, c))}</b> · certified <b className="num">{inr(claimValue(st, certifiedDraft))}</b></span>
-        <Btn variant="danger" disabled={!remark} onClick={ret}>Return for revision</Btn><Btn variant="success" icon={Icon.check} disabled={!rep || claimValue(st, certifiedDraft) <= 0} onClick={verify}>Verify & create RA bill</Btn></>}>
+        <Btn variant="danger" disabled={!remark} onClick={ret}>Return for revision</Btn><Btn variant="success" icon={Icon.check} disabled={!rep || !qcOk || over.length > 0 || claimValue(st, certifiedDraft) <= 0} onClick={verify}>Verify & create RA bill</Btn></>}>
       <div className="space-y-3">
+        {who && <Note tone="amber" icon={Icon.lock}>{who}</Note>}
+        {over.length > 0 && <Note tone="red">Above the work-order quantity on {over.map((l) => pos.find((x) => x.line.id === l.lineId)?.line.desc).join(", ")}. Certify only up to the balance, or raise a change order first.</Note>}
+        {(st.ncrs || []).some((n) => n.woId === c.woId && n.status !== "Closed") && <Note tone="amber">This work order has open NCRs — the bill can be verified but QS certification waits until they close.</Note>}
         {c.note && <Note>Contractor's note: {c.note}</Note>}
         {c.attachment && <p className="text-[12.5px]">Supporting sheet: <FileLink name={c.attachment.name} dataUrl={c.attachment.dataUrl} /></p>}
         <table className="w-full">
@@ -152,6 +163,7 @@ function ClaimReviewModal({ id, onClose, onBill }) {
           <Field label="Contractor's representative at joint verification" required><TextInput value={rep} onChange={setRep} /></Field>
           <Field label="Engineer remark" hint="Required when returning"><TextInput value={remark} onChange={setRemark} placeholder="e.g. Slab L3 shuttering reduced to 756 sqm as per JMS" /></Field>
         </div>
+        <Check checked={qcOk} onChange={setQcOk} label="Work inspected at joint verification — quality and HSE acceptable (fail it by returning the claim or raising an NCR)" />
       </div>
     </Modal>
   );

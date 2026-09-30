@@ -50,15 +50,23 @@ function BillSummary({ calc, contract, vendor }) {
 
 function PrepareBillModal({ woId: presetWo, onClose, onCreated }) {
   const st = useStore();
-  const eligibleWos = st.workOrders.filter((w) => st.measurements.some((m) => m.woId === w.id && m.jms.status === "Signed" && !m.billedIn));
+  const qcOn = settingsOf(st).qcBeforeBilling;
+  // Billable = JMS-signed, not yet billed, inspection passed, on a work order that is still open for billing
+  const billable = (m) => m.jms.status === "Signed" && !m.billedIn && (!qcOn || m.qc?.status === "Passed");
+  const woOpen = (w) => !["Draft", "Cancelled", "Closed", "Suspended"].includes(w.status) && !["Closed"].includes(byId(st.contracts, w.contractId)?.status);
+  const eligibleWos = st.workOrders.filter((w) => woOpen(w) && st.measurements.some((m) => m.woId === w.id && billable(m)));
   const [woId, setWoId] = y.useState(presetWo && eligibleWos.some((w) => w.id === presetWo) ? presetWo : eligibleWos[0]?.id || "");
   const [ids, setIds] = y.useState([]);
   const [manual, setManual] = y.useState({ materials: 0, penalty: 0, other: 0, otherNote: "" });
   const [period, setPeriod] = y.useState({ from: shiftDays(-30), to: todayISO() });
   const wo = byId(st.workOrders, woId);
-  const avail = st.measurements.filter((m) => m.woId === woId && m.jms.status === "Signed" && !m.billedIn);
+  const avail = st.measurements.filter((m) => m.woId === woId && billable(m));
   const unsigned = st.measurements.filter((m) => m.woId === woId && m.jms.status !== "Signed").length;
-  y.useEffect(() => setIds(avail.map((m) => m.id)), [woId]);
+  const waitingQc = st.measurements.filter((m) => m.woId === woId && m.jms.status === "Signed" && !m.billedIn && qcOn && m.qc?.status !== "Passed");
+  // Free-issue material not yet recovered is deducted automatically
+  const issues = (st.materialIssues || []).filter((m) => m.woId === woId && !m.recoveredIn);
+  const matAuto = round2(sum(issues, (m) => m.qty * m.rate));
+  y.useEffect(() => { setIds(avail.map((m) => m.id)); setManual((x) => ({ ...x, materials: matAuto })); }, [woId]);
   if (!eligibleWos.length) return (
     <Modal open onClose={onClose} title="Prepare RA bill" width={520} footer={<Btn onClick={onClose}>Close</Btn>}>
       <EmptyState icon={Icon.ruler} title="Nothing to bill" text="RA bills are prepared from JMS-signed measurements. Record measurements and get them jointly signed first." className="py-6" />
@@ -67,18 +75,22 @@ function PrepareBillModal({ woId: presetWo, onClose, onCreated }) {
   const c = wo && byId(st.contracts, wo.contractId), v = wo && byId(st.vendors, wo.vendorId);
   const calc = wo ? computeRABill(st, woId, ids, manual) : null;
   const seq = wo ? st.raBills.filter((b) => b.woId === woId && b.status !== "Rejected").length + 1 : 1;
+  // Quantity control: cumulative billed may not exceed the WO quantity (which approved change orders raise)
+  const over = calc ? calc.lines.filter((l) => l.woQty !== undefined && l.cumQty > l.woQty + 0.001) : [];
   const create = () => {
+    if (over.length) return toast("Quantity above the work order — raise a change order first", "red");
     const id = nextId("RA", st.raBills);
     setState((s) => {
       const fresh = computeRABill(s, woId, ids, manual);
-      s.raBills.unshift({ id, woId, contractId: wo.contractId, vendorId: wo.vendorId, seq, date: todayISO(), periodFrom: period.from, periodTo: period.to, mbIds: ids, manual, ...fresh, status: "Submitted", history: [{ status: "Submitted", by: currentUser(), at: new Date().toISOString(), remark: "" }] });
+      s.raBills.unshift({ id, woId, contractId: wo.contractId, vendorId: wo.vendorId, seq, date: todayISO(), periodFrom: period.from, periodTo: period.to, mbIds: ids, manual, materialIssueIds: issues.map((m) => m.id), ...fresh, status: "Submitted", history: [{ status: "Submitted", by: currentUser(), at: new Date().toISOString(), remark: "" }] });
       ids.forEach((m) => (byId(s.measurements, m).billedIn = id));
+      issues.forEach((m) => (byId(s.materialIssues, m.id).recoveredIn = id));
     }, { entity: "RA Bill", id, action: `RA-${seq} submitted for ${woId} — net ${inr(calc.net)}` });
     toast(`${id} submitted for verification`); onClose(); onCreated && onCreated(id);
   };
   return (
     <Modal open onClose={onClose} width={980} title={`Prepare RA bill${wo ? ` — ${wo.id} · RA-${seq}` : ""}`} subtitle="Built from JMS-signed, unbilled measurement book entries; deductions follow the contract terms"
-      footer={<><span className="mr-auto text-[13px]">Net payable <b className="num">{calc ? inr(calc.net) : "—"}</b></span><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" icon={Icon.send} disabled={!ids.length || !calc || calc.gross <= 0} onClick={create}>Submit for certification</Btn></>}>
+      footer={<><span className="mr-auto text-[13px]">Net payable <b className="num">{calc ? inr(calc.net) : "—"}</b></span><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" icon={Icon.send} disabled={!ids.length || !calc || calc.gross <= 0 || over.length > 0} onClick={create}>Submit for certification</Btn></>}>
       <div className="space-y-4">
         <div className="grid grid-cols-3 gap-3">
           <Field label="Work order"><Select value={woId} onChange={(x) => setWoId(x)} options={eligibleWos.map((w) => ({ value: w.id, label: `${w.id} — ${vendorName(st, w.vendorId)}` }))} /></Field>
@@ -86,6 +98,9 @@ function PrepareBillModal({ woId: presetWo, onClose, onCreated }) {
           <Field label="Period to"><DateInput value={period.to} onChange={(x) => setPeriod({ ...period, to: x })} /></Field>
         </div>
         {unsigned > 0 && <Note tone="amber">{unsigned} measurement(s) on this WO are still pending/disputed in JMS and are not included.</Note>}
+        {waitingQc.length > 0 && <Note tone="amber">{waitingQc.length} signed measurement(s) are waiting for a passed quality inspection ({waitingQc.map((m) => m.id).join(", ")}) and are not included.</Note>}
+        {over.length > 0 && <Note tone="red">Quantity above the work order on {over.map((l) => `${l.code} ${l.desc} (${num(l.cumQty, 3)} of ${num(l.woQty)} ${l.unit})`).join("; ")}. Untick the excess measurements, or raise a change order with a quantity line on the contract — once approved the WO quantity rises and the bill can go through.</Note>}
+        {issues.length > 0 && <Note icon={Icon.package}>Material recovery of {inr(matAuto)} applied automatically for {issues.map((m) => `${m.id} (${num(m.qty)} ${m.unit} ${m.material})`).join(", ")}.</Note>}
         {isBlockedFor(v, "Invoices") && <Note tone="red">{v.name} is blocked for invoices — the bill can be prepared but won't be payable until the hold is lifted.</Note>}
         <Section title={`Measurements included (${ids.length}/${avail.length})`} icon={Icon.ruler}>
           <DataTable dense rows={avail} columns={[
@@ -102,7 +117,7 @@ function PrepareBillModal({ woId: presetWo, onClose, onCreated }) {
             <div className="space-y-3">
               <Section title="Manual deductions" icon={Icon.percent}>
                 <div className="grid grid-cols-2 gap-3 p-3">
-                  <Field label="Material recovery (₹)"><NumInput value={manual.materials} onChange={(x) => setManual({ ...manual, materials: x })} /></Field>
+                  <Field label="Material recovery (₹)" hint={issues.length ? "From material issues" : ""}>{issues.length ? <span className="flex h-[32px] items-center num font-medium">{inr(matAuto)}</span> : <NumInput value={manual.materials} onChange={(x) => setManual({ ...manual, materials: x })} />}</Field>
                   <Field label="Penalty / LD (₹)"><NumInput value={manual.penalty} onChange={(x) => setManual({ ...manual, penalty: x })} /></Field>
                   <Field label="Other (₹)"><NumInput value={manual.other} onChange={(x) => setManual({ ...manual, other: x })} /></Field>
                   <Field label="Note"><TextInput value={manual.otherNote} onChange={(x) => setManual({ ...manual, otherNote: x })} /></Field>
@@ -164,6 +179,11 @@ function rejectBill(id, remark) {
     b.status = "Rejected";
     b.history.push({ status: "Rejected", by: currentUser(), at: new Date().toISOString(), remark });
     b.mbIds.forEach((m) => (byId(s.measurements, m).billedIn = null)); // measurements return to the unbilled pool
+    (b.materialIssueIds || []).forEach((mid) => { const mi = byId(s.materialIssues || [], mid); if (mi) mi.recoveredIn = null; }); // …and material recovery to the next bill
+    // A bill raised from a contractor claim goes back to the contractor: its claim-generated measurements are voided
+    // (marked disputed) so the revised claim doesn't double-count them
+    if (b.claimId) b.mbIds.forEach((m) => { const x = byId(s.measurements, m); x.jms = { status: "Disputed", remark: `Bill ${b.id} rejected — claim returned for revision`, at: new Date().toISOString() }; x.voided = true; });
+    if (b.claimId) { const cl = byId(s.claims, b.claimId); if (cl) { cl.status = "Returned"; cl.history.push({ status: "Returned", by: currentUser(), at: new Date().toISOString(), remark: `RA bill ${b.id} rejected — ${remark}` }); } }
   }, { entity: "RA Bill", id, action: `Rejected — ${remark}` });
   toast(`${id} rejected`, "red");
   return true;

@@ -103,6 +103,7 @@ function PortalWoDrawer({ id, onClose, open, onAccept, onDecline, onClaim }) {
   const st = useStore();
   const wo = byId(st.workOrders, id);
   const [tab, setTab] = y.useState("scope");
+  const [dis, setDis] = y.useState(null), [dpr, setDpr] = y.useState(null);
   if (!wo) return null;
   const pos = woPosition(st, wo), pr = woProgress(st, wo);
   const c = byId(st.contracts, wo.contractId);
@@ -111,9 +112,15 @@ function PortalWoDrawer({ id, onClose, open, onAccept, onDecline, onClaim }) {
   const claims = st.claims.filter((x) => x.woId === id);
   const ls = wo.type === "Lump Sum";
   const lineOf = (lineId) => pos.find((p) => p.line.id === lineId);
+  const ncrs = (st.ncrs || []).filter((n) => n.woId === id);
+  const dprs = (st.dprs || []).filter((d) => d.woId === id).slice().sort((a, b) => b.date.localeCompare(a.date));
+  const me = getVendorSession()?.email || byId(st.vendors, wo.vendorId)?.contact.name || "Contractor";
+  const canWork = woAccepted(wo) && ["Issued", "In Progress"].includes(wo.status) && !isBlockedFor(byId(st.vendors, wo.vendorId), "All");
   const tabs = [
     { id: "scope", label: ls ? "Milestones" : "BOQ items" },
-    { id: "mb", label: "Measurements", count: mbs.length },
+    { id: "mb", label: "Measurements", count: mbs.filter((m) => m.jms.status === "Pending" && !m.jms.contractorAgreed).length ? `${mbs.filter((m) => m.jms.status === "Pending" && !m.jms.contractorAgreed).length} to agree` : mbs.length },
+    { id: "ncr", label: "NCRs", count: ncrs.filter((n) => n.status === "Open").length || null },
+    { id: "dpr", label: "Daily reports", count: dprs.length || null },
     { id: "claims", label: "Claims", count: claims.length },
     { id: "bills", label: "RA bills", count: bills.length },
     { id: "terms", label: "Contract terms" },
@@ -162,9 +169,27 @@ function PortalWoDrawer({ id, onClose, open, onAccept, onDecline, onClaim }) {
               { key: "q", label: "Qty", align: "right", num: true, render: (m) => (ls ? `${m.pct}%` : `${num(m.qty, 3)} ${lineOf(m.lineId)?.unit || ""}`) },
               { key: "j", label: "JMS", render: (m) => <span className="flex flex-col"><Status tone={{ Signed: "green", Pending: "amber", Disputed: "red" }[m.jms.status]}>{m.jms.status}</Status>{m.jms.status === "Disputed" && <span className="text-[11px] text-red-600">{m.jms.remark}</span>}</span> },
               { key: "b", label: "Billed in", render: (m) => (m.billedIn ? <button className="mono text-[12px] font-medium text-brand hover:underline" onClick={() => open("bill", m.billedIn)}>{m.billedIn}</button> : <span className="text-[12px] text-ink-mute">Not billed</span>) },
+              { key: "a", label: "Your JMS sign-off", align: "right", render: (m) => m.jms.status !== "Pending" ? (m.jms.contractorAgreed ? <span className="text-[12px] text-green-700">Agreed</span> : null)
+                : m.jms.contractorAgreed ? <span className="text-[12px] text-green-700">Agreed {fmtDate(m.jms.contractorAgreed.at)} — engineer to countersign</span>
+                : <span className="flex justify-end gap-1"><Btn size="sm" variant="success" onClick={() => contractorJms(m, true, "", me)}>Agree</Btn><Btn size="sm" variant="danger" onClick={() => setDis({ m, reason: "" })}>Dispute</Btn></span> },
             ]} />
           </Section>
         )}
+        {tab === "ncr" && <Section title="Non-conformance reports" icon={Icon.shieldCheck}><NcrTable rows={ncrs} portal by={me} /></Section>}
+        {tab === "dpr" && (
+          <Section title="Daily progress reports" icon={Icon.calendar} actions={canWork && <Btn size="sm" icon={Icon.plus} onClick={() => setDpr({ date: todayISO(), manpower: "", work: "", hindrance: "", weather: "Clear" })}>Submit daily report</Btn>}>
+            <DataTable dense rows={dprs} empty={<EmptyRow text="No daily reports yet." />} columns={[
+              { key: "date", label: "Date", render: (d) => fmtDate(d.date) }, { key: "manpower", label: "Manpower", align: "right", num: true },
+              { key: "work", label: "Work done", className: "max-w-[380px] whitespace-normal text-[12.5px]" }, { key: "hindrance", label: "Hindrance", className: "text-[12px]", render: (d) => d.hindrance || "—" }, { key: "by", label: "By", className: "text-[12px] text-ink-soft" },
+            ]} />
+          </Section>
+        )}
+        {dis && (
+          <Modal open onClose={() => setDis(null)} width={460} title={`Dispute ${dis.m.id}`} footer={<><Btn onClick={() => setDis(null)}>Cancel</Btn><Btn variant="danger" disabled={!dis.reason.trim()} onClick={() => { contractorJms(dis.m, false, dis.reason.trim(), me); setDis(null); }}>Send dispute</Btn></>}>
+            <Field label="What is wrong with the measurement?" required><TextArea value={dis.reason} onChange={(x) => setDis({ ...dis, reason: x })} placeholder="e.g. Drop beam sides not included — 790 sqm, not 756" /></Field>
+          </Modal>
+        )}
+        {dpr && <DprModal wo={wo} f={dpr} setF={setDpr} by={me} />}
         {tab === "claims" && (
           <Section title="Your RA claims" icon={Icon.receipt}>
             <DataTable dense rows={claims.slice().reverse()} onRow={(x) => open("claim", x.id)} empty={<EmptyRow text="No claims submitted for this work order." />} columns={[

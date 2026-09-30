@@ -335,7 +335,7 @@ function closureChecklist(st, c) {
   const billedAny = st.raBills.some((b) => b.contractId === c.id && b.status !== "Rejected");
   const items = [
     ["All work orders completed, short-closed or cancelled", wos.every((w) => ["Completed", "Short-closed", "Cancelled", "Closed"].includes(w.status))],
-    ["No measurements waiting for JMS sign-off", !st.measurements.some((m) => woIds.has(m.woId) && m.jms.status !== "Signed")],
+    ["No measurements waiting for JMS sign-off", !st.measurements.some((m) => woIds.has(m.woId) && m.jms.status !== "Signed" && !m.voided)],
     ["No signed measurements left unbilled", !st.measurements.some((m) => woIds.has(m.woId) && m.jms.status === "Signed" && !m.billedIn && (m.qty > 0 || m.pct > 0))],
     ["No contractor claims waiting", !st.claims.some((x) => woIds.has(x.woId) && x.status === "Submitted")],
     ["No change orders pending", !(c.changeOrders || []).some((o) => o.status === "Pending")],

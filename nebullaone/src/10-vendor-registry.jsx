@@ -366,6 +366,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
     { id: "docs", label: "Documents", count: `${v.docs.filter((d) => d.status === "Verified").length}/${requiredDocs(v).length}` },
     { id: "bank", label: "Bank", count: v.bankAccounts.length || null },
     { id: "qual", label: "Qualification" },
+    ...(v.isContractor || v.type === "Labor" ? [{ id: "equip", label: "Equipment", count: (v.equipment || []).length || null }] : []),
     { id: "approval", label: "Approvals" },
     { id: "activity", label: "Activity" },
   ];
@@ -382,6 +383,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
           {tab === "docs" && <><VendorDocs v={v} mode={mode} locked={locked} /><InsurancePolicies v={v} mode={mode} locked={locked} /></>}
           {tab === "bank" && <VendorBanks v={v} />}
           {tab === "qual" && <Questionnaire v={v} />}
+          {tab === "equip" && <EquipmentRegister v={v} />}
         </fieldset>
         {tab === "approval" && <VendorApproval v={v} mode={mode} />}
         {tab === "activity" && <VendorActivity v={v} />}

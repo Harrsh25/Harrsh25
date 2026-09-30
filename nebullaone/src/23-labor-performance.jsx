@@ -192,7 +192,7 @@ function PerformancePage() {
   return (
     <Page title="Performance & Progress" subtitle="Planned vs physical vs financial progress per work order, and contractor scorecards" icon={Icon.trending}
       actions={<Btn variant="primary" icon={Icon.star} onClick={() => setRate({})}>Rate contractor</Btn>}>
-      <TabBar active={tab} onChange={setTab} tabs={[{ id: "progress", label: "Work order progress", icon: Icon.trending }, { id: "chart", label: "Planned vs actual", icon: Icon.chart }, { id: "score", label: "Contractor scorecard", icon: Icon.gauge }, { id: "log", label: "Ratings log", icon: Icon.star }]} />
+      <TabBar active={tab} onChange={setTab} tabs={[{ id: "progress", label: "Work order progress", icon: Icon.trending }, { id: "chart", label: "Planned vs actual", icon: Icon.chart }, { id: "dpr", label: "Daily progress", icon: Icon.calendar }, { id: "wbs", label: "Cost by WBS", icon: Icon.layers }, { id: "score", label: "Contractor scorecard", icon: Icon.gauge }, { id: "log", label: "Ratings log", icon: Icon.star }]} />
       {tab === "progress" && <DataTable noun="work orders" rows={live} rowKey={(x) => x.wo.id} onRow={(x) => setOpen(x.wo.id)} columns={[
         { key: "id", label: "WO", className: "mono text-[12px] text-ink-soft", render: (x) => x.wo.id },
         { key: "t", label: "Scope", className: "max-w-[240px] truncate font-medium", render: (x) => <span title={x.wo.title}>{x.wo.title}</span> },
@@ -205,6 +205,8 @@ function PerformancePage() {
         { key: "s", label: "Status", filterOptions: FO.progress, filter: (x) => progressStatus(x.p), render: (x) => <Status tone={{ "On Track": "green", "At Risk": "amber", Delayed: "red" }[progressStatus(x.p)]}>{progressStatus(x.p)}</Status> },
       ]} />}
       {tab === "chart" && <PlanVsActual rows={live} />}
+      {tab === "dpr" && <DprTab />}
+      {tab === "wbs" && <WbsCostTab />}
       {tab === "score" && <DataTable noun="contractors" rows={rowsC} rowKey={(r) => r.v.id} onRow={(r) => setVd(r.v.id)} columns={[
         { key: "n", label: "Contractor", render: (r) => <span className="font-medium">{r.v.name}</span> },
         { key: "w", label: "WOs", align: "center", render: (r) => r.wos.length },

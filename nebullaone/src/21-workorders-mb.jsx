@@ -163,6 +163,7 @@ function WorkOrderDrawer({ id, onClose }) {
         </Section>
       </div>
       {mb && <MeasurementModal preset={mb} onClose={() => setMb(null)} />}
+      {wo.status !== "Draft" && <div className="space-y-4 px-6 pb-5"><WoResources wo={wo} /></div>}
       {act && (
         <Modal open onClose={() => setAct(null)} width={480} title={`${{ Suspended: "Suspend", "Short-closed": "Short-close", Cancelled: "Cancel" }[act.status]} ${wo.id}`}
           subtitle={{ Suspended: "Stop-work order: no measurements, claims or bills until resumed", "Short-closed": "Work stops here; measured work is still billed, the rest of the quantity is dropped", Cancelled: "Nothing has been measured or billed on this work order" }[act.status]}
@@ -222,7 +223,7 @@ function MeasurementModal({ preset = {}, onClose }) {
       footer={<><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!ok} onClick={() => {
         const id = nextId("MB", st.measurements);
         setState((s) => {
-          s.measurements.push({ id, woId: wo.id, lineId: f.lineId, date: f.date, location: f.location, nos: dimsUsed ? Number(f.nos) || 1 : null, l: f.l === "" ? null : Number(f.l), b: f.b === "" ? null : Number(f.b), d: f.d === "" ? null : Number(f.d), qty: wo.type === "Lump Sum" ? 0 : qty, pct: wo.type === "Lump Sum" ? Number(f.pct) : null, recordedBy: currentUser(), jms: { status: "Pending" }, remarks: f.remarks, billedIn: null });
+          s.measurements.push({ id, woId: wo.id, lineId: f.lineId, date: f.date, location: f.location, nos: dimsUsed ? Number(f.nos) || 1 : null, l: f.l === "" ? null : Number(f.l), b: f.b === "" ? null : Number(f.b), d: f.d === "" ? null : Number(f.d), qty: wo.type === "Lump Sum" ? 0 : qty, pct: wo.type === "Lump Sum" ? Number(f.pct) : null, recordedBy: currentUser(), jms: { status: "Pending" }, qc: { status: "Pending" }, remarks: f.remarks, billedIn: null });
           const w = byId(s.workOrders, wo.id); if (w.status === "Issued") w.status = "In Progress";
         }, { entity: "Measurement", id, action: `Recorded on ${wo.id} — awaiting JMS` });
         toast(`${id} recorded`); onClose();
@@ -265,7 +266,7 @@ function MeasurementModal({ preset = {}, onClose }) {
 function MeasurementBookPage() {
   const st = useStore();
   const [wo, setWo] = y.useState("All"), [jms, setJms] = y.useState("All"), [tab, setTab] = y.useState("mb");
-  const [add, setAdd] = y.useState(false), [sign, setSign] = y.useState(null), [sel, setSel] = y.useState([]), [openMb, setOpenMb] = y.useState(null);
+  const [add, setAdd] = y.useState(false), [sign, setSign] = y.useState(null), [sel, setSel] = y.useState([]), [openMb, setOpenMb] = y.useState(null), [ncrFor, setNcrFor] = y.useState(null);
   const lineName = (m) => {
     const w = byId(st.workOrders, m.woId);
     if (w.type === "Lump Sum") { const ms = w.milestones.find((x) => x.id === m.lineId); return ms ? ms.name : m.lineId; }
@@ -273,9 +274,10 @@ function MeasurementBookPage() {
   };
   const unitOf = (m) => { const w = byId(st.workOrders, m.woId); return w.type === "Lump Sum" ? "%" : (w.items.find((x) => x.id === m.lineId) || {}).unit; };
   const rows = st.measurements.filter((m) => (wo === "All" || m.woId === wo) && (jms === "All" || m.jms.status === jms)).slice().sort((a, b) => b.date.localeCompare(a.date));
-  const pendingRows = st.measurements.filter((m) => m.jms.status !== "Signed");
+  const pendingRows = st.measurements.filter((m) => m.jms.status !== "Signed" && !m.voided);
   const signAll = (ids, form) => {
-    setState((s) => ids.forEach((id) => { const m = byId(s.measurements, id); if (form.qty !== undefined && form.qty !== "") m.qty = Number(form.qty); m.jms = { status: "Signed", contractorRep: form.rep, engineer: form.eng, at: new Date().toISOString() }; }),
+    if (!tryAct("Site Engineer", [], "JMS sign-off")) return;
+    setState((s) => ids.forEach((id) => { const m = byId(s.measurements, id); if (form.qty !== undefined && form.qty !== "") m.qty = Number(form.qty); m.jms = { status: "Signed", contractorRep: form.rep, engineer: form.eng, at: new Date().toISOString(), ...(m.jms.contractorAgreed ? { contractorAgreed: m.jms.contractorAgreed } : { paperSigned: true }) }; if (!m.qc) m.qc = { status: "Pending" }; }),
       { entity: "Measurement", id: ids.join(", "), action: `JMS signed (${form.rep} / ${form.eng})` });
     toast(`${ids.length} measurement(s) signed`); setSel([]); setSign(null);
   };
@@ -284,7 +286,9 @@ function MeasurementBookPage() {
   return (
     <Page title="Measurement Book" subtitle="Site measurements and joint measurement sheets (JMS) — the basis for every RA bill" icon={Icon.ruler}
       actions={<Btn variant="primary" icon={Icon.plus} onClick={() => setAdd(true)}>Record measurement</Btn>}>
-      <TabBar active={tab} onChange={setTab} tabs={[{ id: "mb", label: "Measurement book", icon: Icon.book }, { id: "jms", label: "Joint measurement sheets", icon: Icon.users }, { id: "abs", label: "Abstract by item", icon: Icon.sheet }]} />
+      <TabBar active={tab} onChange={setTab} tabs={[{ id: "mb", label: "Measurement book", icon: Icon.book }, { id: "jms", label: "Joint measurement sheets", icon: Icon.users }, { id: "ncr", label: `Inspections & NCRs${(st.ncrs || []).filter((n) => n.status !== "Closed").length ? ` (${(st.ncrs || []).filter((n) => n.status !== "Closed").length})` : ""}`, icon: Icon.shieldCheck }, { id: "abs", label: "Abstract by item", icon: Icon.sheet }]} />
+      {tab === "ncr" && <NcrTable rows={(st.ncrs || []).filter((n) => wo === "All" || n.woId === wo)} />}
+      {ncrFor && <NcrModal woId={ncrFor.woId} mb={ncrFor} onClose={() => setNcrFor(null)} />}
       {tab === "mb" && <>
         <DataTable noun="measurements" filters={<><FilterSelect label="Work order" value={wo} onChange={setWo} options={woOpts} /><FilterSelect label="JMS" value={jms} onChange={setJms} options={[{ value: "All", label: "All JMS status" }, "Pending", "Signed", "Disputed"]} /></>} rows={rows} onRow={(m) => setOpenMb(m.id)} columns={[
           { key: "id", label: "MB no.", className: "mono text-[12px]" },
@@ -295,6 +299,11 @@ function MeasurementBookPage() {
           { key: "dims", label: "N × L × B × D", className: "num text-[12px] text-ink-soft", render: (m) => (m.l || m.b || m.d ? [m.nos || 1, m.l ?? "–", m.b ?? "–", m.d ?? "–"].join(" × ") : "—") },
           { key: "qty", label: "Quantity", align: "right", num: true, render: (m) => <b>{qtyText(m)}</b> },
           { key: "jms", label: "JMS", render: (m) => <span title={m.jms.remark || ""}><Status>{m.jms.status}</Status></span> },
+          { key: "qc", label: "Inspection", filterOptions: ["Pending", "Passed", "Failed"], filter: (m) => m.qc?.status || "Pending", render: (m) => (
+            <span className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+              <Status tone={{ Passed: "green", Failed: "red" }[m.qc?.status] || "amber"}>{m.qc?.status === "Failed" ? `Failed · ${m.qc.ncrId}` : m.qc?.status || "Pending"}</Status>
+              {(!m.qc || m.qc.status === "Pending") && !m.billedIn && <><button className="text-[11.5px] font-medium text-green-700 hover:underline" onClick={() => inspectMeasurement(m, true)}>Pass</button><button className="text-[11.5px] font-medium text-red-600 hover:underline" onClick={() => setNcrFor(m)}>Fail</button></>}
+            </span>) },
           { key: "bill", label: "Billed in", filterOptions: FO.billed, filter: (m) => (m.billedIn ? "Billed" : "Not billed"), filterLabel: "Billing", render: (m) => (m.billedIn ? <RefLink to={`${CL_BASE}/ra-bills?open=${m.billedIn}`}>{m.billedIn}</RefLink> : <span className="text-ink-faint">—</span>) },
         ]} />
       </>}
@@ -348,7 +357,8 @@ function MeasurementBookPage() {
               </Section>
               <Section title="Work order & billing" icon={Icon.receipt}>
                 <KV items={[["Work order", <RefLink to={`${CL_BASE}/work-orders?open=${w.id}`}>{w.title}</RefLink>], ["Type", w.type], ["Contractor", vendorName(st, w.vendorId)],
-                  ["Billed in", m.billedIn ? <RefLink to={`${CL_BASE}/ra-bills?open=${m.billedIn}`}>RA bill {byId(st.raBills, m.billedIn)?.seq ?? ""}</RefLink> : m.jms.status === "Signed" ? "Ready to bill" : "Not billable until JMS is signed"]]} />
+                  ["Billed in", m.billedIn ? <RefLink to={`${CL_BASE}/ra-bills?open=${m.billedIn}`}>RA bill {byId(st.raBills, m.billedIn)?.seq ?? ""}</RefLink> : m.jms.status !== "Signed" ? "Not billable until JMS is signed" : m.qc?.status === "Passed" || !settingsOf(st).qcBeforeBilling ? "Ready to bill" : m.qc?.status === "Failed" ? `Blocked — ${m.qc.ncrId} open` : "Waiting for quality inspection"],
+                  ["Inspection", m.qc?.status ? `${m.qc.status}${m.qc.by ? ` · ${m.qc.by}` : ""}` : "Pending"]]} />
               </Section>
             </div>
           </Drawer>
@@ -356,14 +366,18 @@ function MeasurementBookPage() {
       })()}
       {sign && !sign.dispute && (
         <Modal open onClose={() => setSign(null)} width={500} title={`Joint measurement sign-off — ${sign.ids.length} entr${sign.ids.length > 1 ? "ies" : "y"}`}
-          footer={<><Btn onClick={() => setSign(null)}>Cancel</Btn><Btn variant="primary" disabled={!sign.rep || !sign.eng} onClick={() => {
+          footer={<><Btn onClick={() => setSign(null)}>Cancel</Btn><Btn variant="primary" disabled={!sign.rep || !sign.eng || (!sign.ids.every((i) => byId(st.measurements, i)?.jms.contractorAgreed) && !sign.paper)} onClick={() => {
             if (sign.disputed && sign.isPct) { setState((s) => { const m = byId(s.measurements, sign.ids[0]); m.pct = Number(sign.qty); }); signAll(sign.ids, { rep: sign.rep, eng: sign.eng }); }
             else signAll(sign.ids, sign);
           }}>Sign JMS</Btn></>}>
           <div className="space-y-3">
             {sign.disputed && <Field label={sign.isPct ? "Agreed cumulative %" : "Agreed quantity after re-measurement"}><NumInput value={sign.qty} onChange={(x) => setSign({ ...sign, qty: x })} /></Field>}
+            {(() => { const ag = sign.ids.map((i) => byId(st.measurements, i)?.jms.contractorAgreed).filter(Boolean); return ag.length === sign.ids.length
+              ? <Note tone="green" icon={Icon.check}>The contractor agreed {sign.ids.length > 1 ? "these entries" : "this entry"} in the supplier portal ({ag[0].by}, {fmtDateTime(ag[0].at)}).</Note>
+              : <Note tone="amber">{ag.length ? `${sign.ids.length - ag.length} of ${sign.ids.length} entries` : "This entry"} not yet agreed by the contractor in the portal. Countersign only against a JMS sheet physically signed by their representative.</Note>; })()}
             <Field label="Contractor representative" required><TextInput value={sign.rep} onChange={(x) => setSign({ ...sign, rep: x })} placeholder="Name" /></Field>
             <Field label="Site engineer" required><TextInput value={sign.eng} onChange={(x) => setSign({ ...sign, eng: x })} /></Field>
+            {!sign.ids.every((i) => byId(st.measurements, i)?.jms.contractorAgreed) && <Check checked={!!sign.paper} onChange={(b) => setSign({ ...sign, paper: b })} label="Paper JMS signed by the contractor's representative is on file" />}
           </div>
         </Modal>
       )}
