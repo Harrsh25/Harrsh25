@@ -1,0 +1,57 @@
+const H = require('../tools/lib');
+module.exports = async () => {
+  const t = H.T('Contract / change order / extension validation');
+  const { b, p, errors } = await H.open();
+  await H.go(p, '/productivity/contract-labor/contracts');
+  await H.click(p, 'Create contract', { dlg: false });
+  t.ok(await H.disabled(p, 'Sign & activate') === true, 'activate disabled on empty form');
+  t.ok(/fill \d+ required/.test((await H.alerts(p)).join(' ')), 'footer tells how many required fields are missing');
+  await H.pick(p, 'Contractor', 'Shree Balaji');
+  await H.fill(p, 'Contract title / scope', 'Test civil package');
+  await H.fill(p, 'Contract value (₹, excl. GST)', '-100');
+  await H.fill(p, 'Retention (%)', '150');
+  await H.fill(p, 'LD cap (%)', '0.2');
+  await H.fill(p, 'Completion date', '2020-01-01');
+  await H.fill(p, 'Performance BG no.', 'BG/1');
+  let a = (await H.alerts(p)).join(' | ');
+  t.ok(/greater than 0/.test(a), 'negative contract value rejected');
+  t.ok(/Percentage can't exceed 100/.test(a), 'retention > 100 rejected');
+  t.ok(/after the start date/.test(a), 'completion before start rejected');
+  t.ok(/LD cap can't be lower/.test(a), 'LD cap < weekly LD rejected');
+  t.ok(/BG expiry/.test(a), 'BG number requires expiry');
+  await H.fill(p, 'Contract value (₹, excl. GST)', '2500000');
+  await H.fill(p, 'Retention (%)', '5');
+  await H.fill(p, 'LD cap (%)', '5');
+  await H.fill(p, 'Completion date', '2027-06-30');
+  await H.fill(p, 'BG valid till', '2027-09-30');
+  t.ok(await H.disabled(p, 'Sign & activate') === false, 'activate enabled once valid');
+  await H.click(p, 'Sign & activate'); await H.sleep(400);
+  let st = await H.store(p); const c = st.contracts.find(x => x.title === 'Test civil package');
+  t.ok(c && c.status === 'Active' && c.value === 2500000, 'contract created & active');
+  // change order
+  if (await H.dialogs(p) === 0) { await p.click('main >> text=Test civil package'); await H.sleep(500); }
+  await H.click(p, 'Change orders', { exact: false }).catch(() => {});
+  await H.click(p, 'Raise change order', { exact: false });
+  await H.fill(p, 'Change description', 'Extra work');
+  await H.fill(p, 'Value (₹, can be negative)', '-99999999');
+  a = (await H.alerts(p)).join(' | ');
+  t.ok(/contract value negative/.test(a), 'change order cannot drive contract value negative');
+  await H.fill(p, 'Value (₹, can be negative)', '0');
+  t.ok(/non-zero/.test((await H.alerts(p)).join(' ')), 'zero-value change order rejected');
+  await H.fill(p, 'Value (₹, can be negative)', '150000');
+  await H.fill(p, 'Time extension (days)', '1.5');
+  t.ok(/Whole number/.test((await H.alerts(p)).join(' ')), 'fractional days rejected');
+  await H.fill(p, 'Time extension (days)', '15');
+  t.ok(await H.disabled(p, 'Submit for approval') === true, 'reason is mandatory');
+  await H.fill(p, 'Reason / instruction ref.', 'Client instruction CI-12');
+  await H.click(p, 'Submit for approval'); await H.sleep(300);
+  st = await H.store(p);
+  const co = st.contracts.find(x => x.title === 'Test civil package').changeOrders[0];
+  t.ok(co && co.status === 'Pending' && co.amount === 150000 && co.days === 15, 'change order saved as Pending');
+  // extension
+  await H.click(p, 'Extend / renew');
+  await H.fill(p, 'New completion date', '2027-01-01');
+  t.ok(/Must be after the current completion date/.test((await H.alerts(p)).join(' ')), 'extension must move date forward');
+  t.ok(errors.length === 0, 'no page errors: ' + errors.join('; '));
+  await b.close(); return t.done();
+};

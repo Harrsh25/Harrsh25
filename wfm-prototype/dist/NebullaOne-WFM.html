@@ -16981,6 +16981,16 @@ const NxVendor = (() => {
     count: o => Object.values(o).filter(Boolean).length
   };
   typeof window < "u" && (window.__NX_VX = VX);
+  // inline error (hide plain "Required" until the user has typed something) + footer summary
+  const nxE = (er, k) => er[k] && er[k] !== "Required" ? er[k] : "",
+    nxFix = er => {
+      const n = VX.count(er),
+        m = Object.values(er).filter(v => v && v !== "Required").length;
+      return n ? e("span", {
+        role: "alert",
+        className: "mr-auto text-[12px] text-red-600"
+      }, m ? `Fix ${m} field${m>1?"s":""}` : "", m && n > m ? " and " : "", n > m ? `fill ${n-m} required field${n-m>1?"s":""}` : "", " to continue") : null
+    };
 
   function ee({
     value: t,
@@ -33237,7 +33247,37 @@ Procurement`;
         [d]: b
       }),
       p = Bn(n).filter(d => d.status === "Active" && d.regTier === "Spend Authorized"),
-      m = l.vendorId && l.title && l.value > 0 && l.end > l.start,
+      er = {
+        vendorId: VX.req(l.vendorId),
+        title: VX.req(l.title),
+        value: VX.amount(l.value, {
+          gt: 0,
+          label: "Contract value"
+        }),
+        end: VX.req(l.end) || (l.end <= l.start ? "Completion date must be after the start date" : ""),
+        retentionPct: VX.pct(l.retentionPct),
+        advancePct: VX.pct(l.advancePct),
+        advanceRecoveryPct: VX.pct(l.advanceRecoveryPct) || (Number(l.advancePct) > 0 && !(Number(l.advanceRecoveryPct) > 0) ? "Set a recovery % when an advance is given" : ""),
+        cessPct: VX.num(l.cessPct, {
+          min: 0,
+          max: 10,
+          label: "Cess %"
+        }),
+        dlpMonths: VX.num(l.dlpMonths, {
+          min: 0,
+          max: 120,
+          int: !0,
+          label: "DLP"
+        }),
+        ldPctPerWeek: VX.num(l.ldPctPerWeek, {
+          min: 0,
+          max: 10,
+          label: "LD per week"
+        }),
+        ldCapPct: VX.pct(l.ldCapPct) || (Number(l.ldCapPct) < Number(l.ldPctPerWeek) ? "LD cap can't be lower than the weekly LD" : ""),
+        bgExpiry: l.bgNo && !l.bgExpiry ? "Enter the BG expiry date" : VX.dateOrder(l.start, l.bgExpiry, "BG must be valid beyond the contract start")
+      },
+      m = !VX.any(er),
       c = d => {
         const b = je("CTR", n.contracts);
         oe(A => A.contracts.unshift({
@@ -33260,7 +33300,7 @@ Procurement`;
       width: 840,
       title: "Create contract",
       subtitle: "Commercial terms here drive every RA bill: retention, advance recovery, cess, GST and LD",
-      footer: e(z, null, e(M, {
+      footer: e(z, null, nxFix(er), e(M, {
         onClick: s
       }, "Cancel"), e(M, {
         disabled: !m,
@@ -33308,6 +33348,7 @@ Procurement`;
       placeholder: "e.g. Civil & structural works \u2014 Tower C"
     })), e(L, {
       label: "Contract value (\u20B9, excl. GST)",
+      error: nxE(er, "value"),
       required: !0
     }, e(ge, {
       value: l.value,
@@ -33318,7 +33359,8 @@ Procurement`;
       value: l.start,
       onChange: i("start")
     })), e(L, {
-      label: "Completion date"
+      label: "Completion date",
+      error: nxE(er, "end")
     }, e(Re, {
       value: l.end,
       onChange: i("end")
@@ -33332,23 +33374,27 @@ Procurement`;
     }, "Payment & security terms"), e("div", {
       className: "grid grid-cols-4 gap-3"
     }, e(L, {
-      label: "Retention (%)"
+      label: "Retention (%)",
+      error: nxE(er, "retentionPct")
     }, e(ge, {
       value: l.retentionPct,
       onChange: i("retentionPct")
     })), e(L, {
       label: "Mobilisation advance (%)",
+      error: nxE(er, "advancePct"),
       hint: l.value ? J(l.value * (l.advancePct || 0) / 100) : ""
     }, e(ge, {
       value: l.advancePct,
       onChange: i("advancePct")
     })), e(L, {
-      label: "Advance recovery per bill (%)"
+      label: "Advance recovery per bill (%)",
+      error: nxE(er, "advanceRecoveryPct")
     }, e(ge, {
       value: l.advanceRecoveryPct,
       onChange: i("advanceRecoveryPct")
     })), e(L, {
-      label: "Labour welfare cess (%)"
+      label: "Labour welfare cess (%)",
+      error: nxE(er, "cessPct")
     }, e(ge, {
       value: l.cessPct,
       onChange: i("cessPct")
@@ -33362,17 +33408,20 @@ Procurement`;
       }),
       options: ["18", "12", "5", "0"]
     })), e(L, {
-      label: "Defect liability (months)"
+      label: "Defect liability (months)",
+      error: nxE(er, "dlpMonths")
     }, e(ge, {
       value: l.dlpMonths,
       onChange: i("dlpMonths")
     })), e(L, {
-      label: "LD per week (%)"
+      label: "LD per week (%)",
+      error: nxE(er, "ldPctPerWeek")
     }, e(ge, {
       value: l.ldPctPerWeek,
       onChange: i("ldPctPerWeek")
     })), e(L, {
-      label: "LD cap (%)"
+      label: "LD cap (%)",
+      error: nxE(er, "ldCapPct")
     }, e(ge, {
       value: l.ldCapPct,
       onChange: i("ldCapPct")
@@ -33382,12 +33431,31 @@ Procurement`;
       value: l.bgNo,
       onChange: i("bgNo")
     })), e(L, {
-      label: "BG valid till"
+      label: "BG valid till",
+      error: nxE(er, "bgExpiry")
     }, e(Re, {
       value: l.bgExpiry,
       onChange: i("bgExpiry")
     })))))
   }
+
+  const nxCO = (a, n) => {
+    const cur = Tt(n);
+    return {
+      desc: VX.req(a.desc),
+      amount: VX.num(a.amount, {
+        label: "Value"
+      }) || (Number(a.amount) === 0 ? "Enter a non-zero value" : "") || (cur + Number(a.amount) < 0 ? `Would make the contract value negative (current ${J(cur)})` : ""),
+      days: VX.num(a.days, {
+        min: 0,
+        max: 3650,
+        int: !0,
+        label: "Extension",
+        optional: !0
+      }),
+      reason: VX.req(a.reason)
+    }
+  };
 
   function dr({
     id: t,
@@ -33596,11 +33664,11 @@ Procurement`;
       onClose: () => l(null),
       width: 560,
       title: "Raise change order",
-      footer: e(z, null, e(M, {
+      footer: e(z, null, nxFix(nxCO(a, n)), e(M, {
         onClick: () => l(null)
       }, "Cancel"), e(M, {
         variant: "primary",
-        disabled: !a.desc || !a.amount,
+        disabled: VX.any(nxCO(a, n)),
         onClick: () => {
           const v = `CO-${String(n.changeOrders.length+1).padStart(3,"0")}`;
           u(I => I.changeOrders.push({
@@ -33617,6 +33685,7 @@ Procurement`;
       className: "grid grid-cols-2 gap-3"
     }, e(L, {
       label: "Change description",
+      required: !0,
       span: 2
     }, e(ee, {
       value: a.desc,
@@ -33625,7 +33694,9 @@ Procurement`;
         desc: v
       })
     })), e(L, {
-      label: "Value (\u20B9, can be negative)"
+      label: "Value (\u20B9, can be negative)",
+      required: !0,
+      error: nxE(nxCO(a, n), "amount")
     }, e(ge, {
       value: a.amount,
       onChange: v => l({
@@ -33633,7 +33704,8 @@ Procurement`;
         amount: v
       })
     })), e(L, {
-      label: "Time extension (days)"
+      label: "Time extension (days)",
+      error: nxE(nxCO(a, n), "days")
     }, e(ge, {
       value: a.days,
       onChange: v => l({
@@ -33642,6 +33714,7 @@ Procurement`;
       })
     })), e(L, {
       label: "Reason / instruction ref.",
+      required: !0,
       span: 2
     }, e(ee, {
       value: a.reason,
@@ -33658,7 +33731,7 @@ Procurement`;
         onClick: () => i(null)
       }, "Cancel"), e(M, {
         variant: "primary",
-        disabled: !o.note || o.end <= n.end,
+        disabled: !o.note || !o.end || o.end <= n.end,
         onClick: () => {
           u(v => v.end = o.end, `Extended to ${_(o.end)} \u2014 ${o.note}`), me("Contract extended"), i(null)
         }
@@ -33666,15 +33739,19 @@ Procurement`;
     }, e("div", {
       className: "space-y-3"
     }, e(L, {
-      label: "New completion date"
+      label: "New completion date",
+      required: !0,
+      error: o.end && o.end <= n.end ? `Must be after the current completion date (${_(n.end)})` : ""
     }, e(Re, {
       value: o.end,
+      min: Ne(1, n.end),
       onChange: v => i({
         ...o,
         end: v
       })
     })), e(L, {
-      label: "Reason"
+      label: "Reason",
+      required: !0
     }, e(ee, {
       value: o.note,
       onChange: v => i({
