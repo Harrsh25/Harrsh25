@@ -29020,7 +29020,16 @@ const NxVendor = (() => {
         } : I)
       }),
       m = l.items.filter(A => A.desc && Number(A.qty) > 0),
-      c = l.title && m.length > 0 && l.vendorIds.length >= (l.mode === "Single Vendor" ? 1 : 2) && (l.mode !== "Single Vendor" || l.vendorIds.length === 1),
+      nxW = F(["price", "quality", "delivery"], A => Number(l.weights[A]) || 0),
+      rfqErr = {
+        title: VX.req(l.title),
+        dueDate: !l.dueDate ? "Required" : l.dueDate <= ke() ? "Quotes due date must be in the future" : "",
+        lines: l.items.map((A, u) => !A.desc && (A.qty === "" || A.qty == null) ? "" : !String(A.desc || "").trim() ? `Line ${u+1}: description required` : !(Number(A.qty) > 0) ? `Line ${u+1}: quantity must be greater than 0` : !String(A.unit || "").trim() ? `Line ${u+1}: unit required` : !A.requiredBy ? `Line ${u+1}: required-by date missing` : l.dueDate && A.requiredBy < l.dueDate ? `Line ${u+1}: required by ${_(A.requiredBy)} is before quotes are due` : "").filter(Boolean).join(" \xB7 "),
+        noLines: m.length ? "" : "Required",
+        weights: ["price", "quality", "delivery"].some(A => VX.pct(l.weights[A])) ? "Each weight must be 0\u2013100" : Math.abs(nxW - 100) > .01 ? `Weights total ${nxW}% \u2014 must be 100%` : "",
+        vendors: l.mode === "Single Vendor" ? l.vendorIds.length === 1 ? "" : "Required" : l.vendorIds.length >= 2 ? "" : "Invite at least two vendors"
+      },
+      c = !VX.any(rfqErr) && l.title && m.length > 0 && l.vendorIds.length >= (l.mode === "Single Vendor" ? 1 : 2) && (l.mode !== "Single Vendor" || l.vendorIds.length === 1),
       d = () => {
         const A = je("RFQ", n.rfqs);
         oe(u => u.rfqs.unshift({
@@ -29060,7 +29069,11 @@ const NxVendor = (() => {
       onClose: s,
       width: 900,
       title: "New request for quotation",
-      footer: e(z, null, e(M, {
+      footer: e(z, null, nxFix({
+        ...rfqErr,
+        lines: rfqErr.lines ? "x" : "",
+        vendors: rfqErr.vendors && l.vendorIds.length ? rfqErr.vendors : rfqErr.vendors ? "Required" : ""
+      }), e(M, {
         onClick: s
       }, "Cancel"), e(M, {
         variant: "primary",
@@ -29132,8 +29145,11 @@ const NxVendor = (() => {
       }),
       options: ["Multiple Vendors", "Single Vendor"]
     })), e(L, {
-      label: "Quotes due (order deadline)"
+      label: "Quotes due (order deadline)",
+      required: !0,
+      error: nxE(rfqErr, "dueDate")
     }, e(Re, {
+      min: Ne(1),
       value: l.dueDate,
       onChange: A => o({
         ...l,
@@ -29182,6 +29198,7 @@ const NxVendor = (() => {
       onChange: v => p(u, "qty", v)
     }), e(Re, {
       value: A.requiredBy,
+      min: l.dueDate,
       onChange: v => p(u, "requiredBy", v)
     }), e(kt, {
       icon: x.trash,
@@ -29190,7 +29207,9 @@ const NxVendor = (() => {
         ...l,
         items: l.items.filter((v, I) => I !== u)
       })
-    }))))), e(L, {
+    }))), rfqErr.lines && e(re, {
+      tone: "red"
+    }, rfqErr.lines))), e(L, {
       label: l.mode === "Single Vendor" ? "Vendor (exactly one)" : "Invite vendors (at least two)",
       hint: "Scorecard standing is shown; vendors in a 'prevent RFQ' standing can't be invited"
     }, e("div", {
@@ -29230,7 +29249,10 @@ const NxVendor = (() => {
           [A]: u
         }
       })
-    }))))))
+    })))), rfqErr.weights && e("p", {
+      role: "alert",
+      className: "text-[12px] text-red-600"
+    }, rfqErr.weights)))
   }
   const ns = (t, s) => `Dear ${s.contact.name},
 
@@ -29432,7 +29454,22 @@ Procurement`;
     const [m, c] = y.useState(r === "buyer"), d = (f, C, P) => p(h => ({
       ...h,
       [f]: h[f].map(($, k) => k === C ? P : $)
-    })), b = f => i.noBid[f] || i.rates[f] === "" ? 0 : Number(i.rates[f]) * (1 - (Number(i.discounts[f]) || 0) / 100), A = F(t.items, (f, C) => f.qty * b(C)), u = t.items.filter((f, C) => !i.noBid[C] && Number(i.rates[C]) > 0).length, v = u > 0 && t.items.every((f, C) => i.noBid[C] || Number(i.rates[C]) > 0) && i.validUntil && m, I = async f => {
+    })), b = f => i.noBid[f] || i.rates[f] === "" ? 0 : Number(i.rates[f]) * (1 - (Number(i.discounts[f]) || 0) / 100), A = F(t.items, (f, C) => f.qty * b(C)), u = t.items.filter((f, C) => !i.noBid[C] && Number(i.rates[C]) > 0).length, qErr = {
+      lines: t.items.map((f, C) => i.noBid[C] ? "" : i.rates[C] !== "" && !(Number(i.rates[C]) > 0) ? `Line ${C+1}: rate must be greater than 0` : VX.pct(i.discounts[C], {
+        optional: !0,
+        label: "Discount"
+      }) ? `Line ${C+1}: discount must be 0\u2013100%` : VX.num(i.leadDays[C], {
+        min: 0,
+        max: 365,
+        int: !0,
+        label: "Lead days"
+      }) ? `Line ${C+1}: lead days must be a whole number 0\u2013365` : "").filter(Boolean).join(" \xB7 "),
+      fx: i.currency === "INR" ? "" : VX.num(i.fx, {
+        gt: 0,
+        label: "Exchange rate"
+      }),
+      validUntil: !i.validUntil ? "Required" : VX.notPast(i.validUntil, "Validity can't be in the past") || (t.dueDate && i.validUntil < t.dueDate ? `Must be valid at least until the RFQ closes (${_(t.dueDate)})` : "")
+    }, v = u > 0 && !VX.any(qErr) && t.items.every((f, C) => i.noBid[C] || Number(i.rates[C]) > 0) && i.validUntil && m, I = async f => {
       if (!f) return;
       const C = Hi(await f.text()).slice(1);
       p(P => {
@@ -29600,7 +29637,11 @@ Procurement`;
     }, "Total (", u, "/", l, " lines)"), e(U, null), e(U, null), e(U, null), e(U, null), e(U, null), e(U, {
       align: "right",
       className: "num font-bold"
-    }, i.currency, " ", de(A * (1 + i.gstPct / 100))), e(U, null), e(U, null))))), e("div", {
+    }, i.currency, " ", de(A * (1 + i.gstPct / 100)), i.currency !== "INR" && Number(i.fx) > 0 && e("span", {
+      className: "block text-[11px] font-normal text-ink-mute"
+    }, "\u2248 ", Q(A * (1 + i.gstPct / 100) * Number(i.fx)))), e(U, null), e(U, null))))), qErr.lines && e(re, {
+      tone: "red"
+    }, qErr.lines), e("div", {
       className: "grid grid-cols-5 gap-3"
     }, e(L, {
       label: "Your quotation no."
@@ -29621,6 +29662,19 @@ Procurement`;
         fx: f === "INR" ? 1 : f === "USD" ? 83.2 : f === "EUR" ? 90.4 : 22.6
       }),
       options: ["INR", "USD", "EUR", "AED"]
+    })), i.currency !== "INR" && e(L, {
+      label: `Exchange rate (\u20B9 per ${i.currency})`,
+      required: !0,
+      hint: "Used to compare and award in INR",
+      error: nxE(qErr, "fx")
+    }, e(ge, {
+      value: i.fx,
+      min: 0,
+      step: .01,
+      onChange: f => p({
+        ...i,
+        fx: f
+      })
     })), e(L, {
       label: "GST %"
     }, e(ue, {
@@ -29632,8 +29686,10 @@ Procurement`;
       options: Vi.map(String)
     })), e(L, {
       label: "Valid until",
-      required: !0
+      required: !0,
+      error: nxE(qErr, "validUntil")
     }, e(Re, {
+      min: ke(),
       value: i.validUntil,
       onChange: f => p({
         ...i,
@@ -29675,7 +29731,10 @@ Procurement`;
       checked: m,
       onChange: c,
       label: `I accept the buyer's terms (${t.incoterm}); prices are firm until the validity date.`
-    }) : e("span", null), e(M, {
+    }) : e("span", null), nxFix({
+      ...qErr,
+      lines: qErr.lines ? "x" : ""
+    }), e(M, {
       variant: "primary",
       icon: x.send,
       disabled: !v,

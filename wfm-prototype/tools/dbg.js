@@ -1,10 +1,5 @@
 const H = require('./lib');
 (async () => { const { b, p } = await H.open();
-  await H.go(p, '/productivity/vendor-management/invoices');
-  await H.click(p, 'Enter vendor bill', { dlg: false });
-  await H.pick(p, 'Purchase order', 'PO-001');
-  const q = await p.$$('[role=dialog] table input[type=number]');
-  console.log(q.length);
-  await q[0].fill('99999'); await H.sleep(200);
-  console.log(await H.alerts(p)); console.log((await H.text(p)).slice(0,1500));
+  await H.go(p, '/productivity/vendor-management/rfq');
+  console.log((await H.text(p,false)).slice(0,1500));
   await b.close(); })();
