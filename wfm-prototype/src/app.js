@@ -33920,7 +33920,14 @@ Procurement`;
           [C]: P
         } : h)
       }),
-      I = p && o.title && c > 0 && (o.type === "Lump Sum" ? A === 100 && o.milestones.every(f => f.name) : o.items.every(f => f.desc && f.qty > 0 && f.rate > 0)),
+      woErr = {
+        dates: !o.start || !o.end ? "Enter start and finish dates" : o.end <= o.start ? "Finish must be after start" : "",
+        window: p && o.start && o.start < p.start ? `Starts before the contract (${_(p.start)})` : p && o.end && o.end > p.end ? `Finishes after the contract completion (${_(p.end)}) \u2014 extend the contract first` : "",
+        weights: o.type === "Lump Sum" && A !== 100 ? `Milestone weights total ${A}% \u2014 must be 100%` : "",
+        codes: o.type !== "Lump Sum" && new Set(o.items.map(f => (f.code || "").trim()).filter(Boolean)).size !== o.items.map(f => (f.code || "").trim()).filter(Boolean).length ? "Duplicate BOQ item codes" : "",
+        lines: o.type !== "Lump Sum" && o.items.some(f => f.qty !== "" && !(Number(f.qty) > 0) || f.rate !== "" && !(Number(f.rate) > 0)) ? "Quantities and rates must be greater than 0" : ""
+      },
+      I = p && o.title && c > 0 && !VX.any(woErr) && (o.type === "Lump Sum" ? A === 100 && o.milestones.every(f => f.name) : o.items.every(f => f.desc && f.qty > 0 && f.rate > 0)),
       w = f => {
         const C = je("WO", a.workOrders),
           P = {
@@ -33970,7 +33977,10 @@ Procurement`;
         className: "num"
       }, Q(c)), p && e("span", {
         className: K("ml-3", c > b ? "text-red-600" : "text-ink-mute")
-      }, "\xB7 contract headroom ", J(b))), e(M, {
+      }, "\xB7 contract headroom ", J(b)), VX.any(woErr) && e("span", {
+        role: "alert",
+        className: "ml-3 text-red-600"
+      }, Object.values(woErr).filter(Boolean).join(" \xB7 "))), e(M, {
         onClick: s
       }, "Cancel"), e(M, {
         disabled: !I,
@@ -34515,14 +34525,26 @@ Procurement`;
       d = l ? F(r.measurements.filter(v => v.woId === l.id && v.lineId === n.lineId && v.jms.status === "Pending"), v => v.qty) : 0,
       b = i && c && c.measured + d + m > i.qty,
       A = l && l.type === "Lump Sum" && c && (Number(n.pct) <= c.measured || Number(n.pct) > 100),
-      u = l && n.lineId && n.location && (l.type === "Lump Sum" ? n.pct !== "" && !A : m > 0);
+      mbErr = {
+        date: !n.date ? "Required" : VX.notFuture(n.date, "Measurement date can't be in the future") || (l && l.start && n.date < l.start ? `Before the work order start (${_(l.start)})` : ""),
+        nos: p ? VX.num(n.nos, {
+          min: 1,
+          int: !0,
+          label: "Nos"
+        }) : "",
+        l: n.l !== "" && n.l != null && !(Number(n.l) > 0) ? "Must be greater than 0" : "",
+        b: n.b !== "" && n.b != null && !(Number(n.b) > 0) ? "Must be greater than 0" : "",
+        d: n.d !== "" && n.d != null && !(Number(n.d) > 0) ? "Must be greater than 0" : "",
+        direct: !p && n.direct !== "" && !(Number(n.direct) > 0) ? "Must be greater than 0" : ""
+      },
+      u = l && n.lineId && n.location && !VX.any(mbErr) && (l.type === "Lump Sum" ? n.pct !== "" && !A : m > 0);
     return e(we, {
       open: !0,
       onClose: s,
       width: 720,
       title: "Record measurement",
       subtitle: "Entry goes to the Measurement Book and waits for joint (JMS) sign-off",
-      footer: e(z, null, e(M, {
+      footer: e(z, null, nxFix(mbErr), e(M, {
         onClick: s
       }, "Cancel"), e(M, {
         variant: "primary",
@@ -34590,9 +34612,11 @@ Procurement`;
       }),
       options: o
     })), e(L, {
-      label: "Date"
+      label: "Date",
+      error: nxE(mbErr, "date")
     }, e(Re, {
       value: n.date,
+      max: ke(),
       onChange: v => a({
         ...n,
         date: v
@@ -34626,32 +34650,40 @@ Procurement`;
     }, "Must be above the last signed ", c.measured, "% and at most 100%."))) : e(z, null, e("div", {
       className: "grid grid-cols-5 gap-3"
     }, e(L, {
-      label: "Nos"
+      label: "Nos",
+      error: nxE(mbErr, "nos")
     }, e(ge, {
+      min: 0,
       value: n.nos,
       onChange: v => a({
         ...n,
         nos: v
       })
     })), e(L, {
-      label: "Length (m)"
+      label: "Length (m)",
+      error: nxE(mbErr, "l")
     }, e(ge, {
+      min: 0,
       value: n.l,
       onChange: v => a({
         ...n,
         l: v
       })
     })), e(L, {
-      label: "Breadth (m)"
+      label: "Breadth (m)",
+      error: nxE(mbErr, "b")
     }, e(ge, {
+      min: 0,
       value: n.b,
       onChange: v => a({
         ...n,
         b: v
       })
     })), e(L, {
-      label: "Depth / height (m)"
+      label: "Depth / height (m)",
+      error: nxE(mbErr, "d")
     }, e(ge, {
+      min: 0,
       value: n.d,
       onChange: v => a({
         ...n,
@@ -34659,8 +34691,10 @@ Procurement`;
       })
     })), e(L, {
       label: "\u2026or direct qty",
-      hint: "MT / man-days etc."
+      hint: "MT / man-days etc.",
+      error: nxE(mbErr, "direct")
     }, e(ge, {
+      min: 0,
       value: n.direct,
       onChange: v => a({
         ...n,
