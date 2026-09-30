@@ -55,6 +55,73 @@ const DEFAULT_SETTINGS = {
   ],
   expiryWarnDays: 30,          // "Expiring" window
   reminderDays: [30, 15, 7],   // renewal reminders before expiry (and weekly once expired / missing)
+  // ---- masters used by the document "More details" panels (benchmark fields)
+  ourCompany: "NebullaOne Infra Pvt Ltd",
+  costCentres: ["CC-100 Head office", "CC-210 Skyline Towers", "CC-220 Metro Line Extension", "CC-230 Transmission Line A", "CC-240 Riverside Business Park", "CC-250 Solar Farm Substation"],
+  stores: ["Central store — Chakan", "Site store — Skyline Towers", "Site store — Metro Station 4", "Site store — Riverside Block C", "Yard — Transmission AP 1"],
+  priceLists: ["Standard Buying", "Rate contract 2026–27", "Emergency purchase"],
+  paymentTermTemplates: [
+    { name: "Net 30", days: 30, discountDays: 0, discountPct: 0 }, { name: "Net 45", days: 45, discountDays: 0, discountPct: 0 },
+    { name: "2/10 Net 30", days: 30, discountDays: 10, discountPct: 2 }, { name: "50% advance, 50% on delivery", days: 0, discountDays: 0, discountPct: 0 },
+  ],
+  taxCategories: ["In-state (CGST + SGST)", "Out-of-state (IGST)", "Import", "SEZ", "Exempt / Nil-rated", "Reverse charge"],
+  taxTemplates: [{ name: "GST 18%", rate: 18 }, { name: "GST 12%", rate: 12 }, { name: "GST 5%", rate: 5 }, { name: "GST 28%", rate: 28 }, { name: "Nil", rate: 0 }],
+  shippingRules: [{ name: "Free delivery", amount: 0 }, { name: "Truck load (local)", amount: 6500 }, { name: "Truck load (outstation)", amount: 18000 }, { name: "Courier", amount: 750 }],
+  letterHeads: ["NebullaOne — standard", "NebullaOne — projects"],
+  printHeadings: ["Purchase Order", "Work Order", "Service Order", "Request for Quotation"],
+  printLanguages: ["English", "Hindi", "Marathi"],
+  emailTemplates: [
+    { name: "RFQ — standard", subject: "Request for quotation {rfq}", body: "Dear {vendor},\nPlease quote for the items in {rfq} by {due}." },
+    { name: "RFQ — urgent", subject: "URGENT: quotation needed {rfq}", body: "Dear {vendor},\nWe need your quote for {rfq} by {due}. Please confirm receipt." },
+    { name: "PO — issue", subject: "Purchase order {po}", body: "Dear {vendor},\nPlease find our purchase order {po} attached." },
+  ],
+  companyBanks: ["HDFC Bank — Current ••4410 (Operations)", "ICICI Bank — Current ••0923 (Projects)", "SBI — Cash credit ••7781"],
+  payableAccounts: ["Sundry creditors — Goods", "Sundry creditors — Services", "Contractor payables", "Import payables"],
+  journals: ["Purchase journal", "Contractor bills journal", "Import purchase journal"],
+  tdsCategories: [
+    { code: "194C-1", name: "194C — Contractor (Individual/HUF)", rate: 1, basis: "Gross amount", singleThreshold: 30000, cumulativeThreshold: 100000, roundOff: true, onlyExcess: false, disableCumulative: false, disableTransaction: false },
+    { code: "194C-2", name: "194C — Contractor (Company/Firm)", rate: 2, basis: "Gross amount", singleThreshold: 30000, cumulativeThreshold: 100000, roundOff: true, onlyExcess: false, disableCumulative: false, disableTransaction: false },
+    { code: "194Q", name: "194Q — Purchase of goods", rate: 0.1, basis: "Net total", singleThreshold: 0, cumulativeThreshold: 5000000, roundOff: false, onlyExcess: true, disableCumulative: false, disableTransaction: true },
+    { code: "194J", name: "194J — Professional / technical services", rate: 10, basis: "Net total", singleThreshold: 30000, cumulativeThreshold: 0, roundOff: true, onlyExcess: false, disableCumulative: true, disableTransaction: false },
+  ],
+  inspectionTemplates: [
+    { name: "Cement (OPC 53)", params: ["Bag weight 50 kg ± 0.5", "Setting time", "Manufacturing date ≤ 90 days", "Test certificate received"] },
+    { name: "TMT steel", params: ["Diameter within tolerance", "Grade marking Fe500D", "Mill test certificate", "No rust / pitting"] },
+    { name: "General material", params: ["Quantity matches challan", "No visible damage", "Make / brand as ordered"] },
+  ],
+  customFields: { vendor: [{ label: "Nearest site (km)", type: "Number", options: "" }, { label: "ISO 45001 certified", type: "Dropdown", options: "Yes, No, In progress" }], rfq: [], po: [{ label: "Site in-charge", type: "Text", options: "" }] },
+  questionLibrary: [
+    { id: "QL-1", question: "Do you have a written HSE policy signed by a director?", status: "Active", owner: "HSE — Rohit S.", level: "Supplier", responder: "Supplier", required: true, critical: true, attribute: "", responseType: "Yes / No", options: "" },
+    { id: "QL-2", question: "Number of permanent site supervisors", status: "Active", owner: "Procurement — Priya Nair", level: "Supplier", responder: "Supplier", required: false, critical: false, attribute: "", responseType: "Number", options: "" },
+  ],
+  // ---- purchasing controls (benchmark: ERPNext Buying Settings, Odoo Purchase Settings, Oracle tolerances)
+  supplierNaming: "Naming series",   // Naming series | Supplier name
+  defaultSupplierGroup: "",
+  defaultPriceList: "Standard Buying",
+  poApprovalMin: 500000,          // POs at or above this need approval; below it "Approve & issue" is one step
+  lockConfirmedOrders: true,      // issued POs can't be edited (use a change / cancel)
+  purchaseWarnings: true,         // show the vendor's purchase warning on RFQ / PO
+  receiptReminderDays: 2,         // remind the vendor this many days before the delivery date
+  allowZeroQty: false,            // RFQ / quote / PO lines with zero quantity
+  allowDuplicateItems: false,     // same item twice on one PO
+  txnDateFx: true,                // use the exchange rate of the transaction date
+  disableLastPurchaseRate: false, // don't default rates from the last purchase
+  allowNegativeRates: false,
+  landedCostFromInvoice: false,
+  valuationRejected: false,
+  projectCostUpdate: "Each transaction",
+  showPayButton: false,
+  invoiceQtyTolPct: 0,            // Oracle invoice tolerances (on top of the 3-way match)
+  invoiceAmtTolPct: 0,
+  earlyReceiptDays: 5,            // Oracle receiving: days before the delivery date a receipt is accepted
+  lateReceiptDays: 10,
+  receiptDateAction: "Warn",      // Warn | Reject | None
+  overReceiptAction: "Warn",      // Warn | Reject
+  blindReceiving: false,          // hide ordered quantity on the goods receipt
+  dropshipping: true,             // deliver straight to site
+  daysToPurchase: 2,              // lead added before the vendor's lead time
+  rfqSenderEmail: "procurement@nebullaone.in",
+  autoPostBills: false,
 };
 const APPLIES = [
   { value: "all", label: "All vendors" }, { value: "goods", label: "Goods suppliers" }, { value: "services", label: "Service vendors (not on site)" },

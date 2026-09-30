@@ -31,6 +31,8 @@ function approvalBlockers(v) {
     if (i.kind === "Document" && !(i.doc && i.doc.status === "Verified" && i.level < 2)) out.push(`${i.name}: ${i.level === 1 ? "awaiting verification" : i.note.toLowerCase()}`);
     if (i.kind === "Insurance" && i.level === 2) out.push(`${i.name}: ${i.note.toLowerCase()}`);
   }
+  for (const q of (settingsOf(getState()).questionLibrary || []).filter((x) => x.status === "Active" && x.critical && x.responseType === "Yes / No"))
+    if (v.qualification?.libAnswers?.[q.id] === "No") out.push(`Critical question failed: ${q.question}`);
   if (!v.qualification) out.push("Qualification questionnaire not completed");
   else if (v.qualification.score < QUAL_PASS) out.push(`Qualification score ${v.qualification.score}/100 is below ${QUAL_PASS}`);
   if (v.regTier === "Spend Authorized" && !(v.bankAccounts || []).length) out.push("No bank account on file");
@@ -117,11 +119,14 @@ const QUAL_STATUSES = ["Qualified", "Qualified with exceptions", "Not qualified"
 function qualStatus(v) {
   const q = v?.qualification;
   if (!q) return { status: "Not assessed", tone: "gray", limit: 0, exceptions: "" };
+  // aggregate limit = all open work; single limit = one work order (Procore single / aggregate project limit)
   const limit = q.valueLimit != null && q.valueLimit !== "" ? Number(q.valueLimit) : q.score >= 85 ? 500000000 : q.score >= QUAL_PASS ? 100000000 : 0;
+  const single = q.singleLimit != null && q.singleLimit !== "" ? Number(q.singleLimit) : 0;
   const exceptions = (q.exceptions || "").trim();
-  if (q.score < QUAL_PASS) return { status: "Not qualified", tone: "red", limit: 0, exceptions };
-  if (requalDue(v)) return { status: "Expired", tone: "red", limit, exceptions };
-  return { status: exceptions ? "Qualified with exceptions" : "Qualified", tone: exceptions ? "amber" : "green", limit, exceptions };
+  const base = { limit, single, exceptions, expiry: q.expiryDate || null, risk: q.riskRating || "" };
+  if (q.score < QUAL_PASS) return { ...base, status: "Not qualified", tone: "red", limit: 0, single: 0 };
+  if (requalDue(v) || (q.expiryDate && q.expiryDate < todayISO())) return { ...base, status: "Expired", tone: "red" };
+  return { ...base, status: exceptions ? "Qualified with exceptions" : "Qualified", tone: exceptions ? "amber" : "green" };
 }
 // Warning when a contractor's open work (plus a new order of `value`) goes over its qualification limit
 function qualLimitWarn(st, v, value, exceptWoId) {
@@ -129,7 +134,8 @@ function qualLimitWarn(st, v, value, exceptWoId) {
   if (!v || !v.isContractor || !q.limit) return "";
   const open = sum(st.workOrders.filter((w) => w.vendorId === v.id && w.id !== exceptWoId && !["Draft", "Cancelled", "Closed", "Completed", "Short-closed"].includes(w.status)), (w) => woValue(w));
   const total = open + (Number(value) || 0);
-  return total > q.limit ? `Over the qualification limit — open work ${inrShort(open)} + this ${inrShort(Number(value) || 0)} = ${inrShort(total)} against ${inrShort(q.limit)} (${q.status})` : "";
+  if (q.single && (Number(value) || 0) > q.single) return `Over the single-project limit — this work order ${inrShort(Number(value) || 0)} against ${inrShort(q.single)} (${q.status})`;
+  return total > q.limit ? `Over the aggregate qualification limit — open work ${inrShort(open)} + this ${inrShort(Number(value) || 0)} = ${inrShort(total)} against ${inrShort(q.limit)} (${q.status})` : "";
 }
 // Background check must be clear (litigation and watchlist) and done within the last 12 months
 function backgroundIssue(v) {

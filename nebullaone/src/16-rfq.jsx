@@ -35,11 +35,11 @@ const RFQ_TEMPLATES = [
 const templateItems = (name) => { const t = RFQ_TEMPLATES.find((x) => x.name === name); return t && t.items.map(([desc, unit]) => ({ desc, unit, qty: "", requiredBy: shiftDays(t.days) })); };
 
 // ---------------------------------------------------------------- create RFQ
-function NewRfqModal({ open, onClose, onCreated }) {
+function NewRfqModal({ open, onClose, onCreated, preset }) {
   const st = useStore();
-  const blank = () => ({ title: "", project: PROJECTS[0], mode: "Multiple Vendors", template: "", sourceRef: "", dueDate: shiftDays(7), incoterm: INCOTERMS[0],
+  const blank = () => ({ questions: [], ranking: "Hidden", multiResponse: true, attachments: [], details: docDefaults("rfq", st), requisitionId: "", ...(preset || {}), title: preset?.title || "", project: preset?.project || PROJECTS[0], mode: "Multiple Vendors", template: "", sourceRef: "", dueDate: shiftDays(7), incoterm: INCOTERMS[0],
     tnc: "Prices firm for the validity period. Delivery to site, unloading by vendor. Payment as per agreed terms after GRN and bill.",
-    items: [{ desc: "", unit: "nos", qty: "", requiredBy: shiftDays(14) }], vendorIds: [], weights: { price: 60, quality: 25, delivery: 15 } });
+    items: preset?.items || [{ desc: "", unit: "nos", qty: "", requiredBy: shiftDays(14) }], vendorIds: preset?.vendorIds || [], weights: { price: 60, quality: 25, delivery: 15 } });
   const [f, setF] = y.useState(blank);
   y.useEffect(() => { if (open) setF(blank()); }, [open]);
   const vendors = st.vendors.filter(eligibleForRfq);
@@ -54,13 +54,15 @@ function NewRfqModal({ open, onClose, onCreated }) {
     !lines.length && "Add at least one line with a quantity",
     ...f.items.map((it, i) => (!it.desc && !it.qty ? "" : !String(it.desc).trim() ? `Line ${i + 1}: description required` : !String(it.unit || "").trim() ? `Line ${i + 1}: unit required` : it.qty !== "" && Number(it.qty) < 0 ? `Line ${i + 1}: quantity can't be negative` : Number(it.qty) > 0 && !it.requiredBy ? `Line ${i + 1}: required-by date missing` : Number(it.qty) > 0 && it.requiredBy < f.dueDate ? `Line ${i + 1}: required by ${fmtDate(it.requiredBy)} is before quotes are due` : "")),
     f.mode === "Single Vendor" ? (f.vendorIds.length !== 1 && "Pick exactly one vendor") : f.vendorIds.length < 2 && "Invite at least two vendors",
+    ...(f.questions || []).map((q, i) => (!String(q.text || "").trim() ? `Question ${i + 1}: enter the question` : q.type === "Choice" && !String(q.options || "").trim() ? `Question ${i + 1}: list the choices` : "")),
+    ...Object.values(docDetailErrors("rfq", f.details || {})),
   ].filter(Boolean);
   const ok = errs.length === 0;
   const save = () => {
     const id = nextId("RFQ", st.rfqs);
-    setState((s) => s.rfqs.unshift({ ...f, id, status: "Draft", createdOn: todayISO(), quotes: [], negotiation: [], awards: [], emails: [], awardedTo: null,
-      responses: Object.fromEntries(f.vendorIds.map((v) => [v, { status: "Not sent" }])), items: lines.map((i) => ({ ...i, qty: Number(i.qty) })) }),
-      { entity: "RFQ", id, action: "Created" });
+    setState((s) => { if (f.requisitionId) { const q = (s.requisitions || []).find((x) => x.id === f.requisitionId); if (q) q.rfqIds = [...(q.rfqIds || []), id]; } s.rfqs.unshift({ ...f, id, status: "Draft", createdOn: todayISO(), createdAt: new Date().toISOString(), quotes: [], negotiation: [], awards: [], emails: [], awardedTo: null,
+      responses: Object.fromEntries(f.vendorIds.map((v) => [v, { status: "Not sent" }])), items: lines.map((i) => ({ ...i, qty: Number(i.qty) })) }); },
+      { entity: "RFQ", id, action: `Created${f.requisitionId ? ` from ${f.requisitionId}` : ""}` });
     toast(`${id} created — compose the e-mail to send it`);
     onClose(); onCreated && onCreated(id, true);
   };
@@ -117,6 +119,7 @@ function NewRfqModal({ open, onClose, onCreated }) {
           </div>
         </Field>
         <Field label="Terms & conditions (sent to vendors)"><TextArea rows={2} value={f.tnc} onChange={(x) => setF({ ...f, tnc: x })} /></Field>
+        <RfqExtras f={f} setF={setF} />
         <div className="grid grid-cols-3 gap-3">
           {["price", "quality", "delivery"].map((k) => <Field key={k} label={`Weight — ${k} (%)`}><NumInput value={f.weights[k]} onChange={(x) => setF({ ...f, weights: { ...f.weights, [k]: x } })} /></Field>)}
         </div>
@@ -135,6 +138,9 @@ function SendRfqModal({ rfq, onClose, resendTo }) {
   const [subject, setSubject] = y.useState(`Request for Quotation ${rfq.id} — ${rfq.title}`);
   const [custom, setCustom] = y.useState(null); // null = use per-vendor template
   const [attachPdf, setAttachPdf] = y.useState(true);
+  const [attachFiles, setAttachFiles] = y.useState((rfq.attachments || []).length > 0);
+  const tpls = settingsOf(st).emailTemplates.filter((t) => /rfq/i.test(t.name));
+  const useTpl = (name) => { const t = tpls.find((x) => x.name === name); if (!t) return; const v0 = byId(st.vendors, targets[0]); const fill = (x) => x.replace(/\{rfq\}/g, rfq.id).replace(/\{vendor\}/g, v0.contact.name).replace(/\{due\}/g, fmtDate(rfq.dueDate)); setSubject(fill(t.subject)); setCustom(fill(t.body)); };
   const [preview, setPreview] = y.useState(targets[0]);
   const pv = byId(st.vendors, preview);
   const body = (v) => (custom ?? rfqEmailBody(rfq, byId(st.vendors, targets[0]))).replace(byId(st.vendors, targets[0]).contact.name, v.contact.name).replace(byId(st.vendors, targets[0]).name, v.name);
@@ -146,7 +152,7 @@ function SendRfqModal({ rfq, onClose, resendTo }) {
       for (const vid of targets) {
         const v = byId(s.vendors, vid);
         r.emails = r.emails || [];
-        r.emails.push({ to: vid, email: v.contact.email, subject, body: body(v), link: appUrl(`/vendor-quote/${rfq.id}/${vid}`), pdf: attachPdf, at: new Date().toISOString() });
+        r.emails.push({ to: vid, email: v.contact.email, from: settingsOf(s).rfqSenderEmail, subject, body: body(v), link: appUrl(`/vendor-quote/${rfq.id}/${vid}`), pdf: attachPdf, files: attachFiles ? (rfq.attachments || []).map((a) => a.name) : [], at: new Date().toISOString() });
         r.responses = r.responses || {};
         if (!r.responses[vid] || r.responses[vid].status === "Not sent") r.responses[vid] = { status: "Invited", at: new Date().toISOString() };
       }
@@ -162,9 +168,14 @@ function SendRfqModal({ rfq, onClose, resendTo }) {
           <Field label="To">
             <div className="flex flex-wrap gap-1.5">{targets.map((vid) => { const v = byId(st.vendors, vid); return <span key={vid} className="rounded-full bg-gray-100 px-2 py-[2px] text-[12px]">{v.name} &lt;{v.contact.email}&gt;</span>; })}</div>
           </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="From (fixed outgoing account)"><TextInput value={settingsOf(st).rfqSenderEmail} disabled /></Field>
+            <Field label="E-mail template"><Select value="" placeholder="Choose…" onChange={useTpl} options={tpls.map((t) => t.name)} /></Field>
+          </div>
           <Field label="Subject"><TextInput value={subject} onChange={setSubject} /></Field>
           <Field label="Message" hint="Vendor name is personalised for each recipient"><TextArea rows={12} value={custom ?? rfqEmailBody(rfq, byId(st.vendors, targets[0]))} onChange={setCustom} /></Field>
           <Check checked={attachPdf} onChange={setAttachPdf} label="Attach RFQ as PDF" />
+          <Check checked={attachFiles} onChange={setAttachFiles} label={`Send attached files (${(rfq.attachments || []).length})`} />
         </div>
         <div>
           <div className="mb-1 flex items-center justify-between"><span className="text-[12px] font-medium text-ink-soft">Preview</span>
@@ -236,6 +247,7 @@ function QuoteForm({ rfq, vendorId, mode = "vendor", onDone }) {
     noBid: prev?.noBid ? [...prev.noBid] : Array(n).fill(false), discounts: prev?.discounts ? [...prev.discounts] : Array(n).fill(0),
     leadDays: prev?.leadDays ? [...prev.leadDays] : Array(n).fill(prev?.deliveryDays || 7), lineFiles: prev?.lineFiles ? [...prev.lineFiles] : Array(n).fill(null),
     validUntil: prev?.validUntil || shiftDays(30), note: prev?.note || "", attachment: prev?.attachment || null,
+    answers: prev?.answers ? { ...prev.answers } : {}, details: prev?.details ? { ...prev.details } : docDefaults("quote", getState(), byId(getState().vendors, vendorId)),
   });
   const [f, setF] = y.useState(init);
   y.useEffect(() => setF(init()), [vendorId]);
@@ -248,6 +260,9 @@ function QuoteForm({ rfq, vendorId, mode = "vendor", onDone }) {
     ...rfq.items.map((_, i) => f.noBid[i] ? "" : !(Number(f.rates[i]) > 0) ? `Line ${i + 1}: rate must be greater than 0` : VX.pct(f.discounts[i]) ? `Line ${i + 1}: discount must be 0–100%` : VX.num(f.leadDays[i], { min: 0, max: 365, int: true }) ? `Line ${i + 1}: lead days must be a whole number 0–365` : ""),
     !f.validUntil ? "Validity date required" : f.validUntil < todayISO() ? "Validity date is in the past" : f.validUntil < rfq.dueDate ? `Must be valid at least until the RFQ closes (${fmtDate(rfq.dueDate)})` : "",
     f.currency !== "INR" && !(Number(f.fx) > 0) ? "Enter the exchange rate" : "",
+    rfqAnswerErr(rfq, f.answers),
+    ...Object.values(docDetailErrors("quote", f.details || {})),
+    mode === "vendor" && prev && rfq.multiResponse === false ? "This RFQ accepts one response only — contact the buyer to revise" : "",
   ].filter(Boolean);
   const ok = priced > 0 && !qErr.length && agree;
   const upload = async (file) => {
@@ -269,7 +284,7 @@ function QuoteForm({ rfq, vendorId, mode = "vendor", onDone }) {
     const quote = {
       vendorId, quoteNo: f.quoteNo, currency: f.currency, fx: Number(f.fx) || 1, gstPct: Number(f.gstPct),
       rates: f.rates.map((r, i) => (f.noBid[i] || r === "" ? null : Number(r))), noBid: f.noBid, discounts: f.discounts.map(Number), leadDays: f.leadDays.map(Number), lineFiles: f.lineFiles,
-      deliveryDays: Math.max(...f.leadDays.filter((_, i) => !f.noBid[i]).map(Number)), validUntil: f.validUntil, note: f.note, attachment: f.attachment,
+      deliveryDays: Math.max(...f.leadDays.filter((_, i) => !f.noBid[i]).map(Number)), validUntil: f.validUntil, note: f.note, attachment: f.attachment, answers: f.answers, details: f.details,
       submittedOn: todayISO(), via: mode === "buyer" ? "Recorded by buyer" : "Vendor portal", review: mode === "buyer" ? "Accepted" : "Under review",
     };
     setState((s) => {
@@ -286,6 +301,8 @@ function QuoteForm({ rfq, vendorId, mode = "vendor", onDone }) {
   };
   return (
     <div className="space-y-4">
+      {prev && mode === "vendor" && (rfq.ranking || "Hidden") !== "Hidden" && (() => { const all = rfq.quotes.map((q) => ({ v: q.vendorId, t: quoteTotal(rfq, q) })).sort((a, b) => a.t - b.t); const i = all.findIndex((x) => x.v === vendorId);
+        return i >= 0 ? <Note icon={Icon.trending}>Your current rank: <b>{i + 1} of {all.length}</b>{rfq.ranking === "Show rank and best price" ? <> · best price {inrShort(all[0].t)}</> : null}</Note> : null; })()}
       {prev?.review === "Returned" && mode === "vendor" && <Note tone="amber">The buyer returned your quotation: <b>{prev.returnReason}</b>. Please revise and resubmit.</Note>}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-[12.5px] text-ink-soft">Price the lines you can supply — tick <b>No bid</b> for the rest.</span>
@@ -334,6 +351,10 @@ function QuoteForm({ rfq, vendorId, mode = "vendor", onDone }) {
           </label>
         </Field>
         <Field label="Terms, exclusions or remarks" span={6}><TextArea rows={2} value={f.note} onChange={(x) => setF({ ...f, note: x })} placeholder="e.g. Freight extra beyond 50 km; mill test certificate with each lot" /></Field>
+        <div className="col-span-6 space-y-3">
+          <RfqAnswers rfq={rfq} value={f.answers} onChange={(a) => setF({ ...f, answers: a })} />
+          <DocDetails kind="quote" value={f.details} onChange={(d) => setF({ ...f, details: d })} vendor={byId(getState().vendors, vendorId)} subtotal={taxable} />
+        </div>
       </div>
       <div className="flex items-center justify-between gap-4 border-t border-line pt-4">
         {qErr.length > 0 && <span className="mr-auto text-[12px] text-red-600">{qErr[0]}{qErr.length > 1 ? ` (+${qErr.length - 1} more)` : ""}</span>}
@@ -516,6 +537,7 @@ function RfqDrawer({ id, onClose, compose }) {
   const [share, setShare] = y.useState(null);
   const [ret, setRet] = y.useState(null);
   const [msg, setMsg] = y.useState({ vendorId: "", text: "" });
+  const [alt, setAlt] = y.useState(false);
   if (!rfq) return null;
   const ranked = rankQuotes(st, rfq);
   const reviewed = ranked.filter((r) => r.q.review !== "Under review" && !r.expired);
@@ -529,10 +551,14 @@ function RfqDrawer({ id, onClose, compose }) {
       subtitle={<><span className="mono">{rfq.id}</span><Status>{rfq.status}</Status><span>{modeLabel(rfq.mode)}</span><span>· {rfq.project}</span><span>· due {fmtDate(rfq.dueDate)}</span>{rfq.sourceRef && <span>· {rfq.sourceRef}</span>}</>}
       actions={<>
         <Btn icon={Icon.download} onClick={() => printRfq(rfq)}>Print / PDF</Btn>
+        {open && <Btn icon={Icon.layers} onClick={() => setAlt(true)}>Alternative RFQ</Btn>}
         {rfq.status === "Draft" && <Btn variant="primary" icon={Icon.send} onClick={() => setSend({ all: true })}>Compose & send</Btn>}
         {open && rfq.status !== "Draft" && <Btn icon={Icon.plus} onClick={() => setRecord(rfq.vendorIds.find((v) => !rfq.quotes.some((q) => q.vendorId === v)) || rfq.vendorIds[0])}>Record quote on vendor's behalf</Btn>}
       </>}>
       <div className="space-y-4 px-6 py-5">
+        {alt && <NewRfqModal open preset={{ ...JSON.parse(JSON.stringify(rfq)), title: `${rfq.title} — alternative`, vendorIds: [], sourceRef: `Alternative to ${rfq.id}`, altOf: rfq.id }} onClose={() => setAlt(false)} onCreated={() => setAlt(false)} />}
+        {(rfq.questions || []).length > 0 && <Note icon={Icon.listChecks}>{rfq.questions.length} requirement question(s) · ranking shown to vendors: <b>{rfq.ranking || "Hidden"}</b>{rfq.multiResponse === false ? " · one response only" : ""}</Note>}
+        {(rfq.attachments || []).length > 0 && <div className="flex flex-wrap items-center gap-2 text-[12.5px]"><span className="text-ink-mute">Attachments:</span>{rfq.attachments.map((a) => <FileLink key={a.name} name={a.name} dataUrl={a.dataUrl} />)}</div>}
         {rfq.status === "Draft" && <Note>Draft — press <b>Compose & send</b> to e-mail the invitation. Vendors sign in to the supplier portal with a one-time code to respond.</Note>}
         <Section title="Invited vendors" icon={Icon.send}>
           <DataTable dense rows={rfq.vendorIds.map((vid) => ({ id: vid, q: rfq.quotes.find((x) => x.vendorId === vid), r: resp[vid] || { status: "Not sent" }, mails: (rfq.emails || []).filter((m) => m.to === vid) }))} columns={[
@@ -597,6 +623,13 @@ function RfqDrawer({ id, onClose, compose }) {
             </ul>
           </Section>
         </div>
+        <DocDetailsView kind="rfq" value={rfq.details} />
+        {(rfq.questions || []).length > 0 && rfq.quotes.length > 0 && (
+          <Section title="Answers to requirement questions" icon={Icon.listChecks}>
+            <DataTable dense rows={rfq.questions.map((q, i) => ({ q, i }))} rowKey={(r) => r.i} columns={[{ key: "q", label: "Question", render: (r) => r.q.text },
+              ...rfq.quotes.map((q) => ({ key: q.vendorId, label: vendorName(st, q.vendorId), render: (r) => q.answers?.[r.i] ?? "—" }))]} />
+          </Section>
+        )}
         <Section title="Negotiation log" icon={Icon.message}>
           <ul className="divide-y divide-line">
             {rfq.negotiation.length === 0 && <li className="p-3 text-[13px] text-ink-mute">No negotiation recorded.</li>}
@@ -637,6 +670,18 @@ function RfqPage() {
   const [compose, setCompose] = y.useState(false);
   const [create, setCreate] = y.useState(false);
   const [filter, setFilter] = y.useState("All");
+  const loc = Ht();
+  const fromReq = new URLSearchParams(loc.search).get("fromReq");
+  const [preset, setPreset] = y.useState(null);
+  y.useEffect(() => {
+    const q = fromReq && (st.requisitions || []).find((x) => x.id === fromReq);
+    if (!q) return;
+    const man = q.purpose === "Manpower (labour)";
+    setPreset({ title: `${man ? q.labour.category + " — manpower" : itemsSummary(q.items)} (${q.id})`, project: q.project, sourceRef: q.id, requisitionId: q.id, mode: "Multiple Vendors",
+      items: q.items.map((i) => ({ desc: i.desc, unit: i.unit, qty: i.qty, requiredBy: q.requiredBy })), vendorIds: man ? (q.labour.distribution || []) : [],
+      tnc: q.terms || undefined, details: { ...docDefaults("rfq", st), company: q.company, shipTo: `Site — ${q.project}` } });
+    setCreate(true);
+  }, [fromReq]);
   const bucket = (r) => {
     if (r.status === "Draft") return "To Send";
     if (["Awarded", "Closed", "Cancelled"].includes(r.status)) return "Done";
@@ -661,7 +706,7 @@ function RfqPage() {
         { key: "due", label: "Due", render: (r) => <span className={cls(bucket(r) === "Late" && "font-medium text-red-600")}>{fmtDate(r.dueDate)}</span> },
         { key: "s", label: "Status", filterOptions: FO.rfqStatus, filter: (r) => r.status, render: (r) => <Status>{r.status}</Status> },
       ]} />
-      <NewRfqModal open={create} onClose={() => setCreate(false)} onCreated={(id) => { setCompose(true); setOpen(id); }} />
+      <NewRfqModal open={create} preset={preset} onClose={() => { setCreate(false); setPreset(null); }} onCreated={(id) => { setCompose(true); setOpen(id); }} />
       {open && <RfqDrawer key={open} id={open} compose={compose} onClose={() => { setOpen(null); setCompose(false); }} />}
     </Page>
   );

@@ -4,8 +4,8 @@
 // rejected location + return & debit note (ERPNext), Stop / Warn / override
 // checks (ERPNext Buying Settings), payment schedule, advances, write-off.
 
-const eligibleForRfq = (v) => v.status === "Active" || (v.status === "On Hold" && v.hold?.scope !== "All");
-const eligibleForPo = (v) => eligibleForRfq(v) && v.regTier === "Spend Authorized" && !isBlockedFor(v, "All");
+const eligibleForRfq = (v) => !v.frozen && (v.status === "Active" || (v.status === "On Hold" && v.hold?.scope !== "All"));
+const eligibleForPo = (v) => eligibleForRfq(v) && !v.frozen && v.regTier === "Spend Authorized" && !isBlockedFor(v, "All");
 
 // ?open=ID deep links between pages
 function useQueryOpen() {
@@ -390,6 +390,10 @@ function paymentGate(st, inv) {
   if (!defB) stops.push("No default bank account");
   else if (bankStatus(defB) === "Rejected") stops.push("Default bank account failed verification");
   else if (bankStatus(defB) !== "Verified") warns.push("Default bank account not yet verified");
+  if (defB && defB.disabled) stops.push("Default bank account is disabled");
+  else if (defB && defB.paymentsEnabled === false) stops.push("Payments are switched off for the default bank account");
+  if (defB && isForeign(v) && !defB.allowIntl) warns.push("International payments not enabled on the default bank account");
+  if (v.frozen) stops.push("Vendor is frozen");
   if (inv.review === "Pending") stops.push("Vendor invoice on hold — waiting for AP review");
   if (inv.review === "Rejected") stops.push("Vendor invoice on hold — rejected by AP");
   if (inv.source === "Purchase Order") {
@@ -785,7 +789,7 @@ function ProcurementSettingsPage() {
   );
   return (
     <Page title="Procurement Settings" subtitle="Which checks stop a transaction, which only warn, and who may override — like ERPNext Buying Settings" icon={Icon.settings}
-      actions={<Btn variant="primary" icon={Icon.save} onClick={() => { const e = flowErr(f.vendorFlow, "Vendor") || flowErr(f.contractFlow, "Contract"); if (e) return toast(e, "red"); setState((s) => (s.settings = { ...f }), { entity: "Settings", id: "PROCUREMENT", action: `Procurement settings updated — vendor stages ${f.vendorFlow.map((x) => x.name).join(" → ")}; contract stages ${f.contractFlow.map((x) => x.name).join(" → ")}` }); toast("Settings saved"); }}>Save settings</Btn>}>
+      actions={<Btn variant="primary" icon={Icon.save} onClick={() => { const e = flowErr(f.vendorFlow, "Vendor") || flowErr(f.contractFlow, "Contract") || benchSettingsErr(f); if (e) return toast(e, "red"); setState((s) => (s.settings = { ...f }), { entity: "Settings", id: "PROCUREMENT", action: `Procurement settings updated — vendor stages ${f.vendorFlow.map((x) => x.name).join(" → ")}; contract stages ${f.contractFlow.map((x) => x.name).join(" → ")}` }); toast("Settings saved"); }}>Save settings</Btn>}>
       <div className="grid grid-cols-2 gap-4 p-4">
         <Section title="Billing rules" icon={Icon.receipt}>
           {yesNo("poRequiredForBill", "Purchase order required for vendor bills", "Vendors can be exempted individually (Status & flags tab)")}
@@ -816,6 +820,7 @@ function ProcurementSettingsPage() {
             <div className="col-span-2"><Check checked={f.quoteLogin} onChange={set("quoteLogin")} label="Vendors must sign in (one-time code) to open quote links" /></div>
           </div>
         </Section>
+        <BenchmarkSettings f={f} setF={setF} mode={mode} yesNo={yesNo} />
         <ListEditor title="Vendor groups" icon={Icon.layers} hint={'Use "Parent › Child" (e.g. Material Suppliers › Steel). Picking a parent in filters includes all its children.'}
           items={f.vendorGroups} onChange={set("vendorGroups")} placeholder="Material Suppliers › Aluminium" usage={(g) => getState().vendors.filter((v) => inGroup(v, g)).length} />
         <ListEditor title="Our group companies" icon={Icon.building} hint="Vendors linked to one of these are inter-company suppliers: no RFQ needed, spend reported separately."

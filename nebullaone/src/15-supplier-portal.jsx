@@ -337,11 +337,13 @@ function PortalBody({ vid, vendorMode }) {
 // ---------------------------------------------------------------- registration fixes (vendor side of "Request changes")
 const vendorToForm = (v) => ({
   ...emptyVendor(), ...v, contact: { ...v.contact }, uploads: {},
-  bank: v.bankAccounts.find((b) => b.isDefault) ? { bank: v.bankAccounts.find((b) => b.isDefault).bank, account: v.bankAccounts.find((b) => b.isDefault).account, ifsc: v.bankAccounts.find((b) => b.isDefault).ifsc } : { bank: "", account: "", ifsc: "" },
+  bank: v.bankAccounts.find((b) => b.isDefault) ? { ...emptyVendor().bank, ...v.bankAccounts.find((b) => b.isDefault), accountConfirm: v.bankAccounts.find((b) => b.isDefault).account } : emptyVendor().bank, notesText: "",
   contractor: v.contractor ? { ...v.contractor } : emptyVendor().contractor,
 });
 function applyForm(x, f, { lockBank } = {}) {
   for (const k of ["name", "legalName", "type", "supplierType", "categories", "gstin", "pan", "address", "city", "state", "currency", "paymentTerms", "tds", "tier", "group", "parentCompany", "isContractor"]) if (f[k] !== undefined) x[k] = f[k];
+  for (const k of VENDOR_FORM_KEYS) if (f[k] !== undefined) x[k] = f[k];
+  if (f.notesText && f.notesText.trim()) { x.notes = x.notes || []; x.notes.unshift({ at: todayISO(), by: currentUser(), text: f.notesText.trim() }); }
   x.contact = { ...f.contact };
   if (x.contractor || f.isContractor || f.type === "Labor") x.contractor = { ...f.contractor };
   if (!lockBank && f.bank.account) {

@@ -53,7 +53,8 @@ const emptyVendor = () => ({
   supplierType: "Company", allowBillWithoutPO: false, allowBillWithoutReceipt: false, portalUsers: [], changeRequest: null,
   uploads: {}, name: "", legalName: "", type: "Goods", isContractor: false, categories: [], tier: "Approved", regTier: "Spend Authorized",
   gstin: "", pan: "", contact: { name: "", email: "", phone: "" }, address: "", city: "", state: "Maharashtra", country: "India", pin: "", website: "", taxId: "", currency: "INR",
-  paymentTerms: "Net 30", tds: "194Q", group: "", parentCompany: "", bank: { holder: "", bank: "", account: "", ifsc: "", swift: "" },
+  paymentTerms: "Net 30", tds: "194Q", group: "", parentCompany: "", bank: { holder: "", bank: "", account: "", accountConfirm: "", ifsc: "", swift: "", iban: "", accountType: "Current", currency: "", branch: "" },
+  ...vendorExtraDefaults(),
   contractor: { labourLicence: "", licenceExpiry: "", pfCode: "", esiCode: "", workforce: "", experienceYrs: "", pastProjects: "" },
 });
 
@@ -90,6 +91,7 @@ function validateVendor(f) {
     const be = bankErrors(b, f);
     for (const k of Object.keys(be)) if (be[k]) e["bank_" + k] = be[k];
   }
+  Object.assign(e, vendorExtraErrors(f));
   // Contractor statutory formats
   if (f.isContractor || f.type === "Labor") {
     const k = f.contractor || {};
@@ -109,8 +111,8 @@ function createVendor(f, submit, source = "Internal") {
   const id = nextId("VEN", st.vendors);
   const v = {
     ...f, id, name: f.name.trim(), legalName: f.legalName.trim() || f.name.trim(), gstin: isForeign(f) ? "" : f.gstin.toUpperCase(), pan: isForeign(f) ? "" : f.pan.toUpperCase(),
-    status: submit ? "Pending Approval" : "Draft", preferred: false, hold: null, notes: [], insurance: [],
-    bankAccounts: f.bank.account ? [{ id: 1, ...f.bank, account: String(f.bank.account).replace(/\s/g, ""), ifsc: (f.bank.ifsc || "").toUpperCase(), status: "Unverified", addedAt: todayISO(), isDefault: true }] : [],
+    status: submit ? "Pending Approval" : "Draft", preferred: false, hold: null, notes: f.notesText && f.notesText.trim() ? [{ at: todayISO(), by: currentUser(), text: f.notesText.trim() }] : [], insurance: [],
+    bankAccounts: f.bank.account ? [{ id: 1, ...f.bank, accountConfirm: undefined, iban: (f.bank.iban || "").replace(/\s/g, "").toUpperCase(), currency: f.bank.currency || f.currency, account: String(f.bank.account).replace(/\s/g, ""), ifsc: (f.bank.ifsc || "").toUpperCase(), status: "Unverified", addedAt: todayISO(), isDefault: true }] : [],
     approval: { stages: vendorFlowFor(f).map((dept, i) => ({ dept, status: submit && i === 0 ? "Pending" : "Waiting", by: null, at: null, remark: "" })) },
     qualification: null, background: null, createdAt: todayISO(),
     contractor: f.isContractor || f.type === "Labor" ? { ...f.contractor } : null,
@@ -118,6 +120,7 @@ function createVendor(f, submit, source = "Internal") {
   };
   delete v.bank;
   delete v.uploads;
+  delete v.notesText;
   v.source = source;
   if (submit) v.submittedBy = source === "Internal" ? currentUser() : f.contact.name;
   v.portalUsers = v.contact.email ? [{ name: v.contact.name, email: v.contact.email.toLowerCase(), active: true, role: "Admin", lastLogin: null }] : [];
@@ -267,6 +270,10 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
         </div>
       </FormSection>
 
+      <FormSection n={++n} title="More details" desc="Contact details, tax & statutory, purchasing defaults, tags, notes" done>
+        <VendorMoreFields f={f} set={set} errors={errors} publicMode={publicMode} foreign={foreign} />
+      </FormSection>
+
       {showContractor && (
         <FormSection n={++n} title="Contractor statutory details" desc="Required before a contractor can be mobilised to site" done={!!f.contractor.labourLicence}>
           <div className="grid grid-cols-3 gap-3">
@@ -290,6 +297,11 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
           {foreign ? <Field label="SWIFT / BIC"><TextInput value={f.bank.swift || ""} disabled={lockBank} onChange={(v) => updB("swift", v.toUpperCase())} maxLength={11} className={cls(inputCls, "mono")} />{err("bank_ifsc")}</Field>
             : <Field label="IFSC"><TextInput value={f.bank.ifsc} disabled={lockBank} onChange={(v) => updB("ifsc", v.toUpperCase())} maxLength={11} placeholder="HDFC0001234" className={cls(inputCls, "mono")} />
             {err("bank_ifsc") || (f.bank.ifsc && !ifscOk ? <span className="mt-1 block text-[11px] text-amber-700">Format: 4 letters, 0, then 6 characters</span> : ok(ifscOk, "Valid IFSC"))}</Field>}
+          <Field label="Re-enter account no."><TextInput value={f.bank.accountConfirm || ""} disabled={lockBank} onChange={(v) => updB("accountConfirm", v.replace(/\s/g, ""))} className={cls(inputCls, "mono")} onPaste={(e) => e.preventDefault()} />{err("bank_confirm") || ok(f.bank.account && f.bank.accountConfirm === f.bank.account, "Matches")}</Field>
+          <Field label="Account type"><Select value={f.bank.accountType || "Current"} disabled={lockBank} onChange={(v) => updB("accountType", v)} options={ACCOUNT_TYPES} /></Field>
+          <Field label="Account currency"><Select value={f.bank.currency || f.currency} disabled={lockBank} onChange={(v) => updB("currency", v)} options={withCurrent(CURRENCIES, f.bank.currency || f.currency)} /></Field>
+          <Field label="Branch"><TextInput value={f.bank.branch || ""} disabled={lockBank} onChange={(v) => updB("branch", v)} /></Field>
+          {foreign && <Field label="IBAN"><TextInput value={f.bank.iban || ""} disabled={lockBank} onChange={(v) => updB("iban", v.toUpperCase())} className={cls(inputCls, "mono")} />{err("bank_iban")}</Field>}
         </div>
       </FormSection>
 
@@ -397,6 +409,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
   const canEdit = mode === "registry" && EDITABLE_STATUSES.includes(v.status);
   const tabs = [
     { id: "overview", label: "Overview" },
+    { id: "contacts", label: "Contacts & addresses", count: ((v.contacts || []).length + (v.addresses || []).length) || null },
     { id: "flags", label: "Status & flags" },
     { id: "docs", label: "Documents", count: `${v.docs.filter((d) => d.status === "Verified").length}/${requiredDocs(v).length}` },
     { id: "bank", label: "Bank", count: v.bankAccounts.length || null },
@@ -414,6 +427,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
         {locked && tab !== "activity" && <Note tone="amber" icon={Icon.lock}>Submitted for approval — details are locked until the approvers decide. {v.status === "Pending Approval" ? "If it is rejected or sent back, you can edit and resubmit." : ""}</Note>}
         {tab === "overview" && <VendorOverview v={v} comp={comp} />}
         <fieldset disabled={locked} className="contents">
+          {tab === "contacts" && <VendorContactsAddresses v={v} locked={locked} />}
           {tab === "flags" && <VendorFlags v={v} />}
           {tab === "docs" && <><VendorDocs v={v} mode={mode} locked={locked} /><InsurancePolicies v={v} mode={mode} locked={locked} /></>}
           {tab === "bank" && <VendorBanks v={v} />}
@@ -441,13 +455,15 @@ function VendorOverview({ v, comp }) {
         <KV items={[
           ["Legal name", v.legalName], ["Vendor ID", <span className="mono">{v.id}</span>], ["Tier", v.tier], ["Supplier type", v.supplierType || "Company"], ["Open orders", openOrdersText(v)], ["Outstanding", inrShort(sum(getState().invoices.filter((i) => i.vendorId === v.id), (i) => invoiceTotals(i).balance))],
           ["GSTIN", <span className="mono">{v.gstin}</span>], ["PAN", <span className="mono">{v.pan}</span>], ["Currency", v.currency],
-          ["Payment terms", v.paymentTerms], ["TDS", (TDS_SECTIONS.find((t) => t.value === v.tds) || {}).label], ["Vendor group", v.group || "Not grouped"],
+          ["Payment terms", v.paymentTerms], ["TDS", tdsLabel(v.tds)], ["Vendor group", v.group || "Not grouped"],
           ["Internal parent", v.parentCompany ? <span className="flex items-center gap-1.5">{v.parentCompany}<GroupCoTag v={v} /></span> : "External vendor"], ["Registered", fmtDate(v.createdAt)], ["Categories", <CategoryChips list={v.categories} max={99} wrap />],
         ]} />
       </Section>
       <Section title="Contact" icon={Icon.user}>
-        <KV items={[["Contact person", v.contact.name], ["Email", v.contact.email], ["Phone", v.contact.phone], ["Address", [v.address, v.city, v.state].filter(Boolean).join(", ")]]} />
+        <KV items={[["Contact person", [v.contact.salutation, v.contact.name].filter(Boolean).join(" ") + (v.contact.designation ? ` (${v.contact.designation})` : "")], ["Email", v.contact.email], ["Phone", [v.contact.phone, v.contact.mobile].filter(Boolean).join(" · ")],
+          ["Address", [v.address, v.addressLine2, v.city, v.district, v.state, v.pin, v.country].filter(Boolean).join(", ")], ["Other contacts", (v.contacts || []).length || null], ["Other addresses / sites", (v.addresses || []).length || null]]} />
       </Section>
+      <VendorMoreView v={v} />
       {v.contractor && (
         <Section title="Contractor profile" icon={Icon.hardHat}>
           <KV items={[
@@ -491,7 +507,7 @@ function VendorFlags({ v }) {
       <Section title="Classification" icon={Icon.shapes}>
         <div className="grid grid-cols-3 gap-4 p-4">
           <Field label="Vendor type"><Select value={v.type} onChange={(t) => edit("type", t, `Type changed to ${t}`)} options={VENDOR_TYPES} /></Field>
-          <Field label="Supplier type" hint={`TDS ${(TDS_SECTIONS.find((t) => t.value === v.tds) || {}).label || ""}`}><Select value={v.supplierType || "Company"} onChange={(t) => mut((x) => { x.supplierType = t; x.tds = autoTds(x.type, t); }, `Supplier type → ${t}`)} options={SUPPLIER_TYPES} /></Field>
+          <Field label="Supplier type" hint={`TDS ${tdsLabel(v.tds) || ""}`}><Select value={v.supplierType || "Company"} onChange={(t) => mut((x) => { x.supplierType = t; x.tds = autoTds(x.type, t); }, `Supplier type → ${t}`)} options={SUPPLIER_TYPES} /></Field>
           <Field label="Supplier tier"><Select value={v.tier} onChange={(t) => edit("tier", t, `Tier changed to ${t}`)} options={TIERS} /></Field>
           <Field label="Registration tier" hint={v.regTier === "Prospective" ? "Upgrade needs Finance approval (Approval tab)" : "Downgrade is immediate"}>
             <span className="flex h-[32px] items-center gap-2 text-[13px]"><Status>{v.regTier}</Status>
@@ -512,6 +528,7 @@ function VendorFlags({ v }) {
           {!APPROVAL_STATES.includes(v.status) && v.status !== "Blacklisted" && <Check checked={v.status !== "Inactive"} onChange={(b) => edit("status", b ? "Active" : "Inactive", b ? "Vendor enabled" : "Vendor disabled")} label="Enabled for new transactions" />}
           <Check checked={!!v.allowBillWithoutPO} onChange={(b) => edit("allowBillWithoutPO", b, b ? "Allowed bills without PO" : "PO required for bills")} label="Allow bills without PO" />
           <Check checked={!!v.allowBillWithoutReceipt} onChange={(b) => edit("allowBillWithoutReceipt", b, b ? "Allowed bills before receipt" : "Receipt required before billing")} label="Allow bills before goods receipt" />
+          <Check checked={!!v.frozen} onChange={(b) => edit("frozen", b, b ? "Vendor frozen — no new RFQs, POs or bills" : "Vendor unfrozen")} label="Freeze vendor (no new transactions)" />
         </div>
       </Section>
       <Section title="Hold / block" icon={Icon.lock}>
@@ -631,11 +648,13 @@ function VendorDocs({ v, mode = "registry", locked }) {
 }
 
 function VendorBanks({ v }) {
-  const blank = { holder: "", bank: "", account: "", ifsc: "", swift: "", accountType: "Current" };
+  const blank = { holder: "", bank: "", account: "", accountConfirm: "", ifsc: "", swift: "", iban: "", accountType: "Current", currency: v.currency || "INR", branch: "", allowIntl: isForeign(v), paymentsEnabled: true, notes: "" };
   const [f, setF] = y.useState(blank), [tried, setTried] = y.useState(false), [rej, setRej] = y.useState(null), [del, setDel] = y.useState(null);
   const mut = (fn, action) => setState((s) => fn(byId(s.vendors, v.id)), { entity: "Vendor", id: v.id, action });
   const foreign = isForeign(v);
-  const er = bankErrors(f, v, v.bankAccounts);
+  const er = { ...bankErrors(f, v, v.bankAccounts) };
+  { const x = vendorExtraErrors({ bank: f }); if (f.accountConfirm !== f.account) er.confirm = "Account numbers don't match"; if (x.bank_iban) er.iban = x.bank_iban; }
+  const [ed, setEd] = y.useState(null);
   const tail = (a) => "••" + String(a.account).slice(-4);
   const verify = (a) => {
     const ok = nameMatch(a.holder || v.legalName, v);
@@ -652,6 +671,8 @@ function VendorBanks({ v }) {
           { key: "holder", label: "Account holder", render: (a) => a.holder || <span className="text-ink-mute">—</span> },
           { key: "bank", label: "Bank", className: "font-medium" }, { key: "account", label: "Account no.", className: "mono text-[12px]", render: (a) => "•••• " + String(a.account).slice(-4) },
           { key: "ifsc", label: foreign ? "SWIFT" : "IFSC", className: "mono text-[12px]", render: (a) => a.ifsc || a.swift || "—" },
+          { key: "ty", label: "Type · currency", render: (a) => <span className="flex flex-col text-[12px]"><span>{a.accountType || "Current"} · {a.currency || v.currency || "INR"}</span>{a.iban && <span className="mono text-ink-mute">IBAN {a.iban}</span>}{a.branch && <span className="text-ink-mute">{a.branch}</span>}</span> },
+          { key: "fl", label: "Settings", render: (a) => <span className="flex flex-wrap gap-1">{a.disabled ? <Status tone="gray">Disabled</Status> : a.paymentsEnabled === false ? <Status tone="amber">Payments off</Status> : <Status tone="green">Payments on</Status>}{a.allowIntl && <Status tone="blue">International</Status>}</span> },
           { key: "st", label: "Verification", render: (a) => <span className="flex flex-col"><Status tone={{ Verified: "green", Rejected: "red" }[bankStatus(a)] || "amber"}>{bankStatus(a)}</Status>
             {a.verifiedAt && <span className="text-[11px] text-ink-mute">{a.verifiedBy} · {fmtDate(a.verifiedAt)}{a.method ? ` · ${a.method}` : ""}</span>}
             {a.remark && <span className="max-w-[220px] whitespace-normal text-[11px] text-red-600">{a.remark}</span>}</span> },
@@ -660,6 +681,7 @@ function VendorBanks({ v }) {
               {bankStatus(a) !== "Verified" && <Btn size="sm" variant="success" onClick={() => verify(a)}>Verify</Btn>}
               {bankStatus(a) === "Unverified" && <Btn size="sm" variant="danger" onClick={() => setRej({ a, reason: "" })}>Reject</Btn>}
               {a.isDefault ? <Status tone="green">Default</Status> : <Btn size="sm" disabled={bankStatus(a) === "Rejected"} title={bankStatus(a) === "Rejected" ? "A rejected account can't be the default" : ""} onClick={() => mut((x) => x.bankAccounts.forEach((o) => (o.isDefault = o.id === a.id)), `Default bank set to ${a.bank} ${tail(a)}`)}>Make default</Btn>}
+              <Btn size="sm" icon={Icon.sliders} onClick={() => setEd({ ...a })}>Settings</Btn>
               <Btn size="sm" onClick={() => setDel(a)}>Remove</Btn>
             </span>) },
         ]} />
@@ -676,6 +698,34 @@ function VendorBanks({ v }) {
           toast("Bank account added — verify it before payments"); setF(blank); setTried(false);
         }}>Add</Btn></div>
       </div>
+      <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr] items-start gap-3 px-4 pb-4">
+        <Field label="Re-enter account no."><TextInput value={f.accountConfirm} onChange={(x) => setF({ ...f, accountConfirm: x.replace(/\s/g, "") })} onPaste={(e) => e.preventDefault()} className={cls(inputCls, "mono")} />{(tried || f.accountConfirm) && <FieldErr m={er.confirm} />}</Field>
+        <Field label="Account type"><Select value={f.accountType} onChange={(x) => setF({ ...f, accountType: x })} options={ACCOUNT_TYPES} /></Field>
+        <Field label="Account currency"><Select value={f.currency} onChange={(x) => setF({ ...f, currency: x })} options={withCurrent(CURRENCIES, f.currency)} /></Field>
+        <Field label="Branch"><TextInput value={f.branch} onChange={(x) => setF({ ...f, branch: x })} /></Field>
+        {foreign && <Field label="IBAN"><TextInput value={f.iban} onChange={(x) => setF({ ...f, iban: x.toUpperCase() })} className={cls(inputCls, "mono")} />{(tried || f.iban) && <FieldErr m={er.iban} />}</Field>}
+        <Field label="Bank notes" span={foreign ? 2 : 3}><TextInput value={f.notes} onChange={(x) => setF({ ...f, notes: x })} placeholder="e.g. Use for project payments only" /></Field>
+        <div className="col-span-full flex flex-wrap gap-6"><Check checked={!!f.allowIntl} onChange={(b) => setF({ ...f, allowIntl: b })} label="Allow international payments" /><Check checked={f.paymentsEnabled !== false} onChange={(b) => setF({ ...f, paymentsEnabled: b })} label="Send money (payments enabled)" /></div>
+      </div>
+      {ed && (
+        <Modal open onClose={() => setEd(null)} width={560} title={`Bank account ${tail(ed)} — settings`}
+          footer={<><Btn onClick={() => setEd(null)}>Cancel</Btn><Btn variant="primary" onClick={() => {
+            if (ed.disabled && ed.isDefault && v.bankAccounts.length > 1) return toast("Make another account the default before disabling this one", "red");
+            mut((x) => Object.assign(x.bankAccounts.find((o) => o.id === ed.id), { accountType: ed.accountType, currency: ed.currency, branch: ed.branch, notes: ed.notes, allowIntl: !!ed.allowIntl, paymentsEnabled: ed.paymentsEnabled !== false, disabled: !!ed.disabled }),
+              `Bank account ${tail(ed)} settings updated${ed.disabled ? " — disabled" : ""}`); toast("Bank account updated"); setEd(null); }}>Save</Btn></>}>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Account type"><Select value={ed.accountType || "Current"} onChange={(x) => setEd({ ...ed, accountType: x })} options={ACCOUNT_TYPES} /></Field>
+            <Field label="Account currency"><Select value={ed.currency || v.currency || "INR"} onChange={(x) => setEd({ ...ed, currency: x })} options={withCurrent(CURRENCIES, ed.currency)} /></Field>
+            <Field label="Branch"><TextInput value={ed.branch || ""} onChange={(x) => setEd({ ...ed, branch: x })} /></Field>
+            <Field label="Bank notes"><TextInput value={ed.notes || ""} onChange={(x) => setEd({ ...ed, notes: x })} /></Field>
+            <div className="col-span-2 flex flex-col gap-2">
+              <Check checked={!!ed.allowIntl} onChange={(b) => setEd({ ...ed, allowIntl: b })} label="Allow international payments" />
+              <Check checked={ed.paymentsEnabled !== false} onChange={(b) => setEd({ ...ed, paymentsEnabled: b })} label="Send money (payments enabled)" />
+              <Check checked={!!ed.disabled} onChange={(b) => setEd({ ...ed, disabled: b })} label="Disable this bank account" />
+            </div>
+          </div>
+        </Modal>
+      )}
       {rej && (
         <Modal open onClose={() => setRej(null)} width={460} title={`Reject bank account ${tail(rej.a)}`}
           footer={<><Btn onClick={() => setRej(null)}>Cancel</Btn><Btn variant="danger" disabled={!!VX.reason(rej.reason)} onClick={() => { mut((x) => Object.assign(x.bankAccounts.find((o) => o.id === rej.a.id), { status: "Rejected", remark: rej.reason.trim(), verifiedBy: currentUser(), verifiedAt: new Date().toISOString(), isDefault: false }), `Bank account ${tail(rej.a)} rejected — ${rej.reason.trim()}`); toast("Bank account rejected", "red"); setRej(null); }}>Reject</Btn></>}>

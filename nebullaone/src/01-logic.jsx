@@ -15,7 +15,10 @@ const TDS_SECTIONS = [
   { value: "194Q", label: "194Q — Purchase of goods · 0.1%", rate: 0.1 },
   { value: "NONE", label: "No withholding", rate: 0 },
 ];
-const tdsRate = (code) => (TDS_SECTIONS.find((t) => t.value === code) || { rate: 0 }).rate;
+// TDS categories are editable in Procurement Settings; the built-in list is the fallback
+const tdsOptions = () => { try { const c = settingsOf(getState()).tdsCategories || []; if (c.length) return [...c.map((t) => ({ value: t.code, label: `${t.name} · ${t.rate}%`, rate: Number(t.rate) || 0 })), ...TDS_SECTIONS.filter((t) => !c.some((x) => x.code === t.value))]; } catch {} return TDS_SECTIONS; };
+const tdsRate = (code) => (tdsOptions().find((t) => t.value === code) || { rate: 0 }).rate;
+const tdsLabel = (code) => (tdsOptions().find((t) => t.value === code) || {}).label;
 const APPROVAL_FLOW = ["Procurement", "Legal", "Finance"];
 const RA_FLOW = [
   { status: "Submitted", label: "Submitted", role: "Contractor / Site team" },

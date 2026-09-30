@@ -49,12 +49,14 @@ function Questionnaire({ v }) {
   const sets = ruleSetsFor(v);
   const qs = sets.flatMap((s) => s.questions.map((q) => ({ ...q, set: s.name })));
   const [ans, setAns] = y.useState(() => ({ ...(v.qualification?.answers || {}) }));
-  const done = qs.every((q) => ans[q.key] !== undefined && ans[q.key] !== "");
+  const lib = (settingsOf(getState()).questionLibrary || []).filter((q) => q.status === "Active" && (q.level !== "Contractor" || v.isContractor || v.type === "Labor"));
+  const [la, setLa] = y.useState(() => ({ ...(v.qualification?.libAnswers || {}) }));
+  const done = qs.every((q) => ans[q.key] !== undefined && ans[q.key] !== "") && lib.filter((q) => q.required && q.responder === "Supplier").every((q) => la[q.id] !== undefined && la[q.id] !== "");
   const submit = () => {
     const score = Math.round((sum(qs, (q) => q.score(ans[q.key])) / (qs.length * 10)) * 100);
     setState((s) => {
       const x = byId(s.vendors, v.id);
-      x.qualification = { ruleSet: sets.map((r) => r.name).join(", "), score, answers: { ...ans }, at: todayISO() };
+      x.qualification = { ...(x.qualification || {}), ruleSet: sets.map((r) => r.name).join(", "), score, answers: { ...ans }, libAnswers: { ...la }, at: todayISO() };
       for (const q of qs) if (q.writeBack && x[q.writeBack[0]]) x[q.writeBack[0]][q.writeBack[1]] = ans[q.key]; // response updates profile
     }, { entity: "Vendor", id: v.id, action: `Qualification questionnaire scored ${score}/100` });
     toast(`Qualification saved — ${score}/100`);
@@ -69,7 +71,7 @@ function Questionnaire({ v }) {
           <ScoreRing value={v.qualification.score} />
           <div className="text-[13px]">
             <p className="font-medium">Qualification score {v.qualification.score}/100 <Status tone={qs0.tone}>{qs0.status}</Status></p>
-            <p className="text-ink-mute">Last assessed {fmtDate(v.qualification.at)} {due && <Status tone="amber">Requalification due</Status>}{qs0.limit > 0 && <> · project value limit <b className="num text-ink">{inrShort(qs0.limit)}</b></>}</p>
+            <p className="text-ink-mute">Last assessed {fmtDate(v.qualification.at)} {due && <Status tone="amber">Requalification due</Status>}{qs0.limit > 0 && <> · aggregate limit <b className="num text-ink">{inrShort(qs0.limit)}</b></>}{qs0.single > 0 && <> · single project <b className="num text-ink">{inrShort(qs0.single)}</b></>}{qs0.expiry && <> · expires {fmtDate(qs0.expiry)}</>}{qs0.risk && <> · risk <b className="text-ink">{qs0.risk}</b></>}</p>
             {qs0.exceptions && <p className="text-amber-700">Exceptions: {qs0.exceptions}</p>}
           </div>
         </div>
@@ -85,6 +87,22 @@ function Questionnaire({ v }) {
             </div>
           ))}
         </div>
+        {lib.length > 0 && (
+          <div className="border-t border-line">
+            <p className="px-4 pt-3 text-[11px] font-semibold uppercase tracking-wide text-ink-mute">Question library</p>
+            <div className="divide-y divide-line">
+              {lib.map((q) => (
+                <div key={q.id} className="grid grid-cols-[1fr_220px] items-center gap-4 px-4 py-2.5">
+                  <div><p className="text-[13px] text-ink">{q.question}{q.required && <span className="text-red-500"> *</span>} {q.critical && <Status tone="red">Critical</Status>}</p>
+                    <p className="text-[11px] text-ink-mute">{q.id} · owner {q.owner || "—"} · answered by {q.responder}{q.critical && la[q.id] === "No" ? " · failed — blocks final approval" : ""}</p></div>
+                  {q.responseType === "Number" ? <NumInput value={la[q.id] ?? ""} onChange={(x) => setLa({ ...la, [q.id]: x })} />
+                    : q.responseType === "Text" ? <TextInput value={la[q.id] || ""} onChange={(x) => setLa({ ...la, [q.id]: x })} />
+                    : <Select value={la[q.id] || ""} placeholder="Select…" onChange={(x) => setLa({ ...la, [q.id]: x })} options={q.responseType === "Choice" ? String(q.options || "").split(",").map((o) => o.trim()).filter(Boolean) : ["Yes", "No"]} />}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="flex justify-end border-t border-line p-3"><Btn variant="primary" disabled={!done} onClick={submit}>Save & score</Btn></div>
       </Section>
     </>
@@ -119,25 +137,38 @@ function BackgroundModal({ v, onClose }) {
 // Qualification outcome: project value limit and any exceptions (qualified with exceptions)
 function QualLimitForm({ v }) {
   const q = v.qualification;
-  const [lim, setLim] = y.useState(q.valueLimit != null && q.valueLimit !== "" ? q.valueLimit : qualStatus(v).limit);
-  const [exc, setExc] = y.useState(q.exceptions || "");
-  const err = !(Number(lim) > 0) ? "Enter a project value limit above zero" : exc.trim() && exc.trim().length < 5 ? "Describe the exception (at least 5 characters)" : "";
-  const dirty = Number(lim) !== qualStatus(v).limit || exc.trim() !== (q.exceptions || "").trim();
+  const init = () => ({ lim: q.valueLimit != null && q.valueLimit !== "" ? q.valueLimit : qualStatus(v).limit, single: q.singleLimit ?? "", exc: q.exceptions || "", expiry: q.expiryDate || shiftDays(365, q.at || todayISO()),
+    notes: q.notes || "", risk: q.riskRating || "Low", comments: { ...(q.reviewComments || {}) } });
+  const [f, setF] = y.useState(init);
+  const lim = f.lim, exc = f.exc;
+  const err = !(Number(lim) > 0) ? "Enter an aggregate project limit above zero"
+    : f.single !== "" && !(Number(f.single) > 0) ? "Single-project limit must be above zero"
+    : f.single !== "" && Number(f.single) > Number(lim) ? "Single-project limit can't be above the aggregate limit"
+    : !f.expiry ? "Enter the qualification expiry date" : f.expiry <= todayISO() ? "Expiry date must be in the future"
+    : exc.trim() && exc.trim().length < 5 ? "Describe the exception (at least 5 characters)"
+    : exc.trim() && f.notes.trim().length < 5 ? "Add qualification notes when there are exceptions" : "";
+  const dirty = JSON.stringify(f) !== JSON.stringify(init());
   const save = () => {
     if (err) return toast(err, "red");
-    setState((s) => { const x = byId(s.vendors, v.id).qualification; x.valueLimit = Number(lim); x.exceptions = exc.trim(); },
-      { entity: "Vendor", id: v.id, action: `Qualification outcome set — ${exc.trim() ? "qualified with exceptions" : "qualified"}, limit ${inrShort(Number(lim))}` });
+    setState((s) => { const x = byId(s.vendors, v.id).qualification; Object.assign(x, { valueLimit: Number(lim), singleLimit: f.single === "" ? null : Number(f.single), exceptions: exc.trim(), expiryDate: f.expiry, notes: f.notes.trim(), riskRating: f.risk, reviewComments: f.comments }); },
+      { entity: "Vendor", id: v.id, action: `Qualification outcome set — ${exc.trim() ? "qualified with exceptions" : "qualified"}, aggregate ${inrShort(Number(lim))}${f.single !== "" ? `, single ${inrShort(Number(f.single))}` : ""}, expires ${fmtDate(f.expiry)}, risk ${f.risk}` });
     toast("Qualification outcome saved");
   };
+  const cats = ruleSetsFor(v).map((r) => r.name);
   return (
     <Section title="Qualification outcome" icon={Icon.shieldCheck}>
-      <div className="grid grid-cols-[200px_1fr_auto] items-start gap-3 p-4">
-        <Field label="Project value limit (₹)"><NumInput value={lim} onChange={setLim} /></Field>
-        <Field label="Exceptions (leave blank if none)" hint="Anything that makes this 'Qualified with exceptions'"><TextInput value={exc} onChange={setExc} placeholder="e.g. ISO 45001 certificate pending" /></Field>
-        <div className="pt-6"><Btn variant="primary" disabled={!dirty || !!err} onClick={save}>Save outcome</Btn></div>
+      <div className="grid grid-cols-4 items-start gap-3 p-4">
+        <Field label="Aggregate project limit (₹)" hint="All open work together"><NumInput value={lim} onChange={(x) => setF({ ...f, lim: x })} /></Field>
+        <Field label="Single project limit (₹)" hint="One work order; blank = no separate cap"><NumInput value={f.single} onChange={(x) => setF({ ...f, single: x })} /></Field>
+        <Field label="Qualification expiry date"><DateInput value={f.expiry} onChange={(x) => setF({ ...f, expiry: x })} /></Field>
+        <Field label="Risk rating"><Select value={f.risk} onChange={(x) => setF({ ...f, risk: x })} options={["Low", "Medium", "High", "Critical"]} /></Field>
+        <Field label="Exceptions (leave blank if none)" span={2} hint="Anything that makes this 'Qualified with exceptions'"><TextArea rows={2} value={exc} onChange={(x) => setF({ ...f, exc: x })} placeholder="e.g. ISO 45001 certificate pending" /></Field>
+        <Field label="Qualification notes" span={2}><TextArea rows={2} value={f.notes} onChange={(x) => setF({ ...f, notes: x })} placeholder="Basis of the decision, conditions" /></Field>
+        {cats.map((c) => <Field key={c} label={`Review comments — ${c}`} span={2}><TextInput value={f.comments[c] || ""} onChange={(x) => setF({ ...f, comments: { ...f.comments, [c]: x } })} /></Field>)}
+        <div className="col-span-4 flex justify-end"><Btn variant="primary" disabled={!dirty || !!err} onClick={save}>Save outcome</Btn></div>
       </div>
       {err && <div className="px-4 pb-3"><FieldErr m={err} /></div>}
-      <p className="border-t border-line px-4 py-2 text-[11.5px] text-ink-mute">Work orders that take the contractor's open work above this limit show a warning. Expired or not-qualified contractors can't receive new work orders.</p>
+      <p className="border-t border-line px-4 py-2 text-[11.5px] text-ink-mute">A work order above the single-project limit, or one that takes open work above the aggregate limit, shows a warning. After the expiry date the status becomes Expired. Not-qualified contractors can't receive new work orders.</p>
     </Section>
   );
 }
@@ -194,6 +225,7 @@ function VendorApproval({ v, mode = "approval" }) {
   return (
     <>
       <Section title="Approval routing" icon={Icon.clipboardCheck}>
+        {v.noteToApprover && <div className="border-b border-line px-4 py-2"><Note icon={Icon.info}><b>Note to approver:</b> {v.noteToApprover}</Note></div>}
         <div className="p-5">
           <Stepper steps={stages.map((s) => ({
             label: s.dept,
@@ -302,7 +334,9 @@ function VendorApprovalsPage() {
           { key: "sets", label: "Rule sets", filterOptions: FO.ruleSets, filter: (v) => v.qualification.ruleSet, render: (v) => <span className="text-[12px] text-ink-soft">{v.qualification.ruleSet}</span> },
           { key: "score", label: "Score", render: (v) => <ScoreBadge value={v.qualification.score} /> },
           { key: "res", label: "Result", filterOptions: FO.qualResult, filter: (v) => qualStatus(v).status, render: (v) => { const q = qualStatus(v); return <Status tone={q.tone}>{q.status}</Status>; } },
-          { key: "lim", label: "Value limit", align: "right", sort: (v) => qualStatus(v).limit, render: (v) => <span className="num">{qualStatus(v).limit ? inrShort(qualStatus(v).limit) : "—"}</span> },
+          { key: "risk", label: "Risk", filterOptions: ["Low", "Medium", "High", "Critical"], filter: (v) => v.qualification.riskRating || "", render: (v) => v.qualification.riskRating ? <Status tone={{ Low: "green", Medium: "amber", High: "red", Critical: "red" }[v.qualification.riskRating]}>{v.qualification.riskRating}</Status> : "—" },
+          { key: "exp", label: "Expires", render: (v) => (qualStatus(v).expiry ? <ExpiryCell iso={qualStatus(v).expiry} /> : "—") },
+          { key: "lim", label: "Aggregate / single limit", align: "right", sort: (v) => qualStatus(v).limit, render: (v) => <span className="num">{qualStatus(v).limit ? inrShort(qualStatus(v).limit) : "—"}{qualStatus(v).single ? ` / ${inrShort(qualStatus(v).single)}` : ""}</span> },
           { key: "at", label: "Assessed", render: (v) => fmtDate(v.qualification.at || v.createdAt) },
         ]} />
       )}
