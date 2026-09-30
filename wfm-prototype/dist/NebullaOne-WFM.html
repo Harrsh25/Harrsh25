@@ -24372,7 +24372,15 @@ const NxVendor = (() => {
           [I]: w
         } : f)
       }),
-      b = p.vendorId && p.title && p.lines.every(v => v.desc && v.qty > 0 && v.rate > 0),
+      boErr = {
+        vendor: p.vendorId ? "" : "Required",
+        title: VX.req(p.title),
+        start: VX.req(p.start),
+        deadline: !p.deadline ? "Required" : p.start && p.deadline <= p.start ? "Must be after the start date" : VX.notPast(p.deadline, "Agreement has already ended"),
+        lines: p.lines.map((v, I) => !String(v.desc || "").trim() ? `Line ${I+1}: item required` : !String(v.unit || "").trim() ? `Line ${I+1}: unit required` : !(Number(v.qty) > 0) ? `Line ${I+1}: agreed qty must be greater than 0` : !(Number(v.rate) > 0) ? `Line ${I+1}: rate must be greater than 0` : "").filter(Boolean).join(" \xB7 "),
+        dupe: new Set(p.lines.map(v => String(v.desc || "").trim().toLowerCase()).filter(Boolean)).size !== p.lines.filter(v => String(v.desc || "").trim()).length ? "The same item appears twice" : ""
+      },
+      b = !VX.any(boErr),
       A = v => F(v.lines, I => I.qty * I.rate),
       u = v => F(Pn(t, v), I => I.ordered * I.rate);
     return e(Fe, {
@@ -24540,7 +24548,10 @@ const NxVendor = (() => {
       width: 820,
       title: "New blanket order",
       subtitle: "Rates are fixed for the agreement period; POs are drawn against it",
-      footer: e(z, null, e(M, {
+      footer: e(z, null, nxFix({
+        ...boErr,
+        lines: boErr.lines && p.lines.some(v => v.desc || v.qty || v.rate) ? "x" : boErr.lines ? "Required" : ""
+      }), e(M, {
         onClick: () => a(!1)
       }, "Cancel"), e(M, {
         variant: "primary",
@@ -24602,8 +24613,11 @@ const NxVendor = (() => {
         start: v
       })
     })), e(L, {
-      label: "Agreement deadline"
+      label: "Agreement deadline",
+      required: !0,
+      error: nxE(boErr, "deadline")
     }, e(Re, {
+      min: p.start,
       value: p.deadline,
       onChange: v => m({
         ...p,
@@ -24646,7 +24660,9 @@ const NxVendor = (() => {
           rate: ""
         }]
       })
-    }, "Add line"), e(L, {
+    }, "Add line"), (boErr.lines && p.lines.some(v => v.desc || v.qty || v.rate) || boErr.dupe) && e(re, {
+      tone: "red"
+    }, [boErr.lines, boErr.dupe].filter(Boolean).join(" \xB7 ")), e(L, {
       label: "Terms"
     }, e(Ke, {
       rows: 2,
@@ -25184,6 +25200,31 @@ const NxVendor = (() => {
   }
   const Vs = t => t.schedule && t.schedule.length > 1 ? ta(t).find(s => s.status !== "Paid") : null;
 
+  const nxNoteErr = (p, I) => ({
+      amount: VX.num(p.amount, {
+        gt: 0,
+        label: "Amount"
+      }) || (p.type === "Debit Note" && Number(p.amount) > I.balance + .5 ? `Debit note can't exceed the outstanding ${Q(I.balance)}` : ""),
+      reason: VX.blank(p.reason) ? "Required" : String(p.reason).trim().length < 5 ? "Give a clear reason (min 5 characters)" : ""
+    }),
+    nxSchedErr = (c, n) => {
+      const tot = F(c, q => Number(q.pct) || 0);
+      return {
+        total: Math.abs(tot - 100) > .001 ? `Shares total ${tot}% \u2014 must be 100%` : "",
+        rows: c.map((q, V) => !q.due ? `#${V+1}: due date required` : q.due < n.date ? `#${V+1}: due before the bill date (${_(n.date)})` : V > 0 && c[V - 1].due && q.due <= c[V - 1].due ? `#${V+1}: must fall after instalment #${V}` : !(Number(q.pct) > 0) ? `#${V+1}: share must be greater than 0` : "").filter(Boolean).join(" \xB7 ")
+      }
+    },
+    nxAdjErr = (b, $, I) => {
+      const adv = $.find(q => q.id === b.advId);
+      return {
+        adv: adv ? "" : "Required",
+        amount: VX.num(b.amount, {
+          gt: 0,
+          label: "Amount"
+        }) || (adv && Number(b.amount) > adv.left + .5 ? `Only ${Q(adv.left)} left on ${adv.id}` : Number(b.amount) > I.balance + .5 ? `Exceeds the bill balance ${Q(I.balance)}` : "")
+      }
+    };
+
   function Ai({
     id: t,
     onClose: s
@@ -25498,11 +25539,11 @@ const NxVendor = (() => {
       onClose: () => m(null),
       width: 520,
       title: "Credit / debit note",
-      footer: e(z, null, e(M, {
+      footer: e(z, null, nxFix(nxNoteErr(p, I)), e(M, {
         onClick: () => m(null)
       }, "Cancel"), e(M, {
         variant: "primary",
-        disabled: !(p.amount > 0) || !p.reason,
+        disabled: VX.any(nxNoteErr(p, I)),
         onClick: () => {
           h(q => q.notes.push({
             id: `${p.type==="Debit Note"?"DN":"CN"}-${String(r.invoices.flatMap(V=>V.notes).length+1).padStart(3,"0")}`,
@@ -25524,8 +25565,12 @@ const NxVendor = (() => {
       }),
       options: ["Debit Note", "Credit Note"]
     })), e(L, {
-      label: "Amount (\u20B9, incl. GST)"
+      label: "Amount (\u20B9, incl. GST)",
+      required: !0,
+      hint: p.type === "Debit Note" ? `Up to ${Q(I.balance)} outstanding` : "",
+      error: nxE(nxNoteErr(p, I), "amount")
     }, e(ge, {
+      min: 0,
       value: p.amount,
       onChange: q => m({
         ...p,
@@ -25533,7 +25578,9 @@ const NxVendor = (() => {
       })
     })), e(L, {
       label: "Reason",
-      span: 2
+      required: !0,
+      span: 2,
+      error: nxE(nxNoteErr(p, I), "reason")
     }, e(ee, {
       value: p.reason,
       onChange: q => m({
@@ -25546,11 +25593,11 @@ const NxVendor = (() => {
       width: 560,
       title: "Payment schedule (instalments)",
       subtitle: "Shares must total 100%",
-      footer: e(z, null, e(M, {
+      footer: e(z, null, nxFix(nxSchedErr(c, n)), e(M, {
         onClick: () => d(null)
       }, "Cancel"), e(M, {
         variant: "primary",
-        disabled: F(c, q => q.pct) !== 100,
+        disabled: VX.any(nxSchedErr(c, n)),
         onClick: () => {
           h(q => q.schedule = c.map(V => ({
             due: V.due,
@@ -25588,16 +25635,19 @@ const NxVendor = (() => {
       }])
     }, "Add instalment"), e("p", {
       className: K("text-[12px]", F(c, q => q.pct) === 100 ? "text-green-700" : "text-red-600")
-    }, "Total ", F(c, q => q.pct), "%"))), b && e(we, {
+    }, "Total ", F(c, q => q.pct), "%"), nxSchedErr(c, n).rows && e("p", {
+      role: "alert",
+      className: "text-[12px] text-red-600"
+    }, nxSchedErr(c, n).rows))), b && e(we, {
       open: !0,
       onClose: () => A(null),
       width: 520,
       title: "Adjust vendor advance against this bill",
-      footer: e(z, null, e(M, {
+      footer: e(z, null, nxFix(nxAdjErr(b, $, I)), e(M, {
         onClick: () => A(null)
       }, "Cancel"), e(M, {
         variant: "primary",
-        disabled: !(b.amount > 0),
+        disabled: VX.any(nxAdjErr(b, $, I)),
         onClick: () => {
           oe(q => {
             const V = j(q.vendorAdvances, b.advId);
@@ -25635,8 +25685,10 @@ const NxVendor = (() => {
         label: `${q.id} \xB7 ${Q(q.left)} left`
       }))
     })), e(L, {
-      label: "Amount to adjust"
+      label: "Amount to adjust",
+      error: nxE(nxAdjErr(b, $, I), "amount")
     }, e(ge, {
+      min: 0,
       value: b.amount,
       onChange: q => A({
         ...b,
@@ -25931,18 +25983,19 @@ const NxVendor = (() => {
       width: 520,
       title: "Record advance paid to vendor",
       subtitle: "Adjust it later against the vendor's bills",
-      footer: e(z, null, e(M, {
+      footer: e(z, null, nxFix(nxVAdvErr(d)), e(M, {
         onClick: () => b(null)
       }, "Cancel"), e(M, {
         variant: "primary",
-        disabled: !d.vendorId || !(d.amount > 0),
+        disabled: VX.any(nxVAdvErr(d)),
         onClick: () => {
           const w = je("ADV", t.vendorAdvances);
           oe(f => f.vendorAdvances.push({
             id: w,
             ...d,
             amount: Number(d.amount),
-            date: ke(),
+            ref: String(d.ref).trim(),
+            date: d.date || ke(),
             allocated: []
           }), {
             entity: "Advance",
@@ -25968,15 +26021,31 @@ const NxVendor = (() => {
         label: w.name
       }))
     })), e(L, {
-      label: "Amount"
+      label: "Amount (\u20B9)",
+      required: !0,
+      error: nxE(nxVAdvErr(d), "amount")
     }, e(ge, {
+      min: 0,
       value: d.amount,
       onChange: w => b({
         ...d,
         amount: w
       })
     })), e(L, {
-      label: "Payment reference"
+      label: "Date paid",
+      required: !0,
+      error: nxE(nxVAdvErr(d), "date")
+    }, e(Re, {
+      max: ke(),
+      value: d.date || ke(),
+      onChange: w => b({
+        ...d,
+        date: w
+      })
+    })), e(L, {
+      label: "Payment reference",
+      required: !0,
+      span: 2
     }, e(ee, {
       value: d.ref,
       onChange: w => b({
@@ -25993,6 +26062,19 @@ const NxVendor = (() => {
         note: w
       })
     })))))
+  }
+
+  function nxVAdvErr(d) {
+    const v = d.vendorId && j(Pe().vendors, d.vendorId);
+    return {
+      vendor: d.vendorId ? "" : "Required",
+      amount: VX.num(d.amount, {
+        gt: 0,
+        label: "Amount"
+      }) || (v && v.bankAccounts && !v.bankAccounts.length ? "Vendor has no bank account on file" : ""),
+      date: VX.notFuture(d.date || ke(), "Payment date can't be in the future"),
+      ref: VX.req(d.ref)
+    }
   }
 
   function Oi() {
