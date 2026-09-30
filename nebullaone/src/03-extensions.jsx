@@ -17,6 +17,11 @@ const DEFAULT_SETTINGS = {
   overrideRole: "Finance Controller",
   myRole: "Finance Controller",   // demo: role of the signed-in buyer
   quoteLogin: true,               // vendors must sign in (one-time code) to quote
+  requireDocsOnSubmit: true,      // registration can't be submitted with required documents missing
+  rfqComplianceGate: "Warn",      // blocking compliance failures / overdue requalification at RFQ invite
+  poComplianceGate: "Stop",       // …and at PO / contract creation
+  mobilisationBeforeWo: true,     // contractor's mobilisation checklist complete before the first work order is issued
+  qcBeforeBilling: true,          // measurements need a passed quality inspection before an RA bill
   // Vendor groups ("Parent › Child") for filtering and spend roll-up
   vendorGroups: [
     "Material Suppliers › Steel", "Material Suppliers › Cement", "Material Suppliers › Electrical", "Material Suppliers › General",
@@ -55,7 +60,7 @@ const appliesTo = (rule, v) => {
   const con = v.type === "Labor" || !!v.isContractor;
   return { all: true, goods: v.type === "Goods", services: v.type === "Services" && !con, contractor: con, "strategic-contractor": con && v.tier === "Strategic" }[rule.applies] ?? false;
 };
-const ROLES = ["Procurement Executive", "Procurement Head", "Project Manager", "Finance Controller"];
+const ROLES = ["Procurement Executive", "Procurement Head", "Legal Counsel", "Project Manager", "Finance Controller", "Accounts"];
 const settingsOf = (st) => ({ ...DEFAULT_SETTINGS, ...(st.settings || {}) });
 // Readable descriptions used in list views instead of document codes
 const itemsSummary = (lines) => (lines && lines.length ? `${lines[0].desc}${lines.length > 1 ? ` +${lines.length - 1} more` : ""}` : "—");
@@ -306,14 +311,18 @@ const FO = {
   approvalStatus: ["Pending", "Approved", "Rejected"],
   claimStatus: ["Submitted", "Verified", "Returned"],
   workerStatus: ["Active", "Inactive"],
-  woStatus: ["Draft", "Issued", "In Progress", "Completed", "Closed"],
+  woStatus: ["Draft", "Issued", "In Progress", "Suspended", "Completed", "Short-closed", "Cancelled", "Closed"],
   woType: ["Item-Rate", "Lump Sum"],
   contractType: ["Item-Rate", "Lump Sum", "Rate Contract"],
-  contractStatus: ["Draft", "Approved", "Active", "Expiring", "In DLP", "Completed", "Closed", "Terminated"],
+  contractStatus: ["Draft", "Pending Approval", "Approved", "Rejected", "Active", "Expiring", "Completed", "Handed Over", "In DLP", "Closed", "Terminated"],
+  punchStatus: ["Open", "Rectified", "Closed"],
+  ncrStatus: ["Open", "Rework Done", "Closed"],
+  bgStatus: ["Active", "Expiring", "Expired", "Returned", "Encashed"],
+  invReview: ["Pending", "Accepted", "Rejected"],
   acceptance: ["Pending", "Accepted", "Declined", "—"],
   jms: ["Pending", "Signed", "Disputed"],
   billed: ["Billed", "Not billed"],
-  release: ["Requested", "Released"],
+  release: ["Pending Approval", "Approved", "Released", "Rejected"],
   progress: ["On Track", "At Risk", "Delayed"],
   insurance: ["Met", "Expiring", "Failing", "Not required"],
   gate: ["Open", "Flagged", "Blocked", "Open (gate off)"],

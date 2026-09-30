@@ -88,7 +88,9 @@ const woValue = (wo) =>
 const msAmount = (wo, m) => ((Number(wo.lumpSum) || 0) * (Number(m.weight) || 0)) / 100;
 
 function contractStatus(c) {
-  if (c.status === "Draft" || c.status === "Closed" || c.status === "Terminated") return c.status;
+  if (["Draft", "Pending Approval", "Approved", "Rejected", "Closed", "Terminated"].includes(c.status)) return c.status;
+  // Defect liability runs from the handover certificate (or the completion date when there is none)
+  if (c.handover) return daysUntil(shiftDays((c.dlpMonths || 0) * 30, c.handover.date)) >= 0 ? "In DLP" : "Completed";
   const left = daysUntil(c.end);
   if (left < 0) {
     const dlpEnd = shiftDays((c.dlpMonths || 0) * 30, c.end);

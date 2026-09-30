@@ -66,10 +66,7 @@ const nextId = (prefix, list, pad = 3) => {
   const n = list.reduce((m, x) => Math.max(m, parseInt(String(x.id).split("-").pop(), 10) || 0), 0) + 1;
   return `${prefix}-${String(n).padStart(pad, "0")}`;
 };
-const currentUser = () => {
-  const u = at.user();
-  return (u && u.name) || "Demo User";
-};
+const currentUser = () => actor().name;
 const PROJECTS = [
   "Skyline Towers — Phase 1",
   "Metro Line Extension",
@@ -114,7 +111,10 @@ function loadState() {
   return buildSeed();
 }
 function getState() {
-  if (!state) state = loadState();
+  if (!state) {
+    state = loadState();
+    if (sweepState(state)) try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch {}
+  }
   return state;
 }
 // Settings without forcing a load — safe to call while the seed is being built
@@ -156,7 +156,7 @@ function Toaster() {
   y.useEffect(() => {
     const on = (t) => {
       setItems((xs) => [...xs, t]);
-      setTimeout(() => setItems((xs) => xs.filter((x) => x.id !== t.id)), 2600);
+      setTimeout(() => setItems((xs) => xs.filter((x) => x.id !== t.id)), t.tone === "red" || t.tone === "amber" ? 5500 : 2600);
     };
     toastListeners.add(on);
     return () => toastListeners.delete(on);
@@ -168,10 +168,10 @@ function Toaster() {
           key={t.id}
           className={cls(
             "flex items-center gap-2 rounded-lg border bg-white px-3 py-2 text-[13px] shadow-lg",
-            t.tone === "red" ? "border-red-200 text-red-700" : "border-green-200 text-green-700"
+            "max-w-[440px]", t.tone === "red" ? "border-red-200 text-red-700" : t.tone === "amber" ? "border-amber-200 text-amber-700" : t.tone === "blue" ? "border-blue-200 text-blue-700" : "border-green-200 text-green-700"
           )}
         >
-          {h(t.tone === "red" ? Icon.alert : Icon.check, { size: 14 })}
+          {h(t.tone === "red" || t.tone === "amber" ? Icon.alert : t.tone === "blue" ? Icon.info : Icon.check, { size: 14, className: "shrink-0" })}
           <span className="text-ink">{t.text}</span>
         </div>
       ))}
@@ -919,7 +919,7 @@ function Page({ title, subtitle, icon, actions, children }) {
   return (
     <Card>
       <PageHeader title={title} icon={icon}
-        actions={<>{actions}<DemoMenu /></>} />
+        actions={<>{actions}<ActorSwitcher /><DemoMenu /></>} />
       {children}
       <Toaster />
     </Card>

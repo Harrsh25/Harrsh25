@@ -30,7 +30,9 @@ function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket }) {
   }
   const vendors = st.vendors.filter(eligibleForPo);
   const v = byId(st.vendors, f.vendorId);
-  const gate = f.vendorId ? scorecardGate(st, f.vendorId, "po") : {};
+  const gate0 = f.vendorId ? scorecardGate(st, f.vendorId, "po") : {};
+  const sg = v ? sourcingGate(st, v, "po") : { issues: [] };
+  const gate = { ...gate0, block: gate0.block || sg.block };
   const bo = f.blanketId && byId(st.blanketOrders, f.blanketId);
   const setLine = (i, k, val) => setF({ ...f, lines: f.lines.map((x, j) => (j === i ? { ...x, [k]: val } : x)) });
   const lines = bo ? f.lines.filter((l) => Number(l.qty) > 0) : f.lines;
@@ -56,7 +58,8 @@ function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket }) {
           <Field label="Bill control"><Select value={f.billingPolicy} onChange={(x) => setF({ ...f, billingPolicy: x })} options={["On received quantity", "On ordered quantity"]} /></Field>
           <Field label="Receipt tolerance (%)"><NumInput value={f.tolerance} onChange={(x) => setF({ ...f, tolerance: x })} /></Field>
         </div>
-        {gate.block && <Note tone="red">{v.name} is in the <b>{gate.standing.name}</b> scorecard standing — new POs are prevented.</Note>}
+        {sg.issues.length > 0 && <Note tone={sg.block ? "red" : "amber"}>{v.name}: {sg.issues.join(" · ")}.{sg.block ? " New POs are stopped until this is fixed (Procurement Settings → PO compliance gate)." : ""}</Note>}
+        {gate0.block && <Note tone="red">{v.name} is in the <b>{gate0.standing.name}</b> scorecard standing — new POs are prevented.</Note>}
         {!gate.block && gate.warn && <Note tone="amber">{v.name} is in the <b>{gate.standing.name}</b> scorecard standing — check performance before ordering.</Note>}
         {v && complianceOf(v).blocking.length > 0 && <Note tone={settingsOf(st).complianceGate === "Stop" ? "red" : "amber"} icon={Icon.shieldCheck}><b>Compliance:</b> {complianceOf(v).blocking.join(" · ")} — the PO can be issued, but payments {settingsOf(st).complianceGate === "Stop" ? "will be blocked" : "will be flagged"} until this is fixed.</Note>}
         {isGroupCompany(v) && <Note tone="blue" icon={Icon.building}><b>Group company</b> ({v.parentCompany}) — inter-company purchase: no RFQ or competitive quotes needed. Spend is reported separately under Vendor Scorecard → Spend by group.</Note>}
@@ -179,7 +182,7 @@ function PoDrawer({ id, onClose }) {
   return (
     <Drawer open onClose={onClose} width={940} title={`${po.id} · ${v.name}`} subtitle={<><Status>{status}</Status><Status tone="blue">{bstatus}</Status><span>{po.project}</span><span>· delivery by {fmtDate(po.deliveryDate)}</span>{po.rfqId && <span>· from {po.rfqId}</span>}{po.blanketId && <span>· call-off {po.blanketId}</span>}{po.quoteNo && <span>· vendor quote {po.quoteNo}</span>}</>}
       actions={<>
-        {po.status === "Draft" && <Btn variant="primary" onClick={() => setState((s) => (byId(s.purchaseOrders, id).status = "Issued"), { entity: "PO", id, action: "Approved & issued" })}>Approve & issue</Btn>}
+        {po.status === "Draft" && <Btn variant="primary" onClick={() => decidePo(po, true)}>Approve & issue</Btn>}
         {!["Draft", "Closed", "Cancelled"].includes(po.status) && status !== "Received" && <Btn variant="primary" icon={Icon.truck} disabled={isBlockedFor(v, "All")} onClick={() => setGrn(true)}>Receive goods</Btn>}
         {["Waiting Bills", "Partially Billed"].includes(bstatus) && <Btn icon={Icon.receipt} onClick={() => setBill(true)}>Create bill</Btn>}
         {!["Closed", "Cancelled"].includes(po.status) && <Btn icon={Icon.pencil} onClick={() => setAmend({ deliveryDate: po.deliveryDate, lines: po.lines.map((l) => ({ ...l })), note: "" })}>Edit</Btn>}
@@ -388,8 +391,10 @@ const hardStop = (x) => /hold|bank|^Vendor (on hold|blacklisted|disabled)/i.test
 function PayModal({ invIds, onClose }) {
   const st = useStore();
   const set0 = settingsOf(st);
-  const canOverride = set0.myRole === set0.overrideRole;
+  const canOverride = hasRole(set0.overrideRole);
   const invs = invIds.map((i) => byId(st.invoices, i));
+  // Payment is released by Accounts / Finance, never by whoever entered or approved the bill
+  const payBlock = (inv) => actBlock(PAY_ROLES, [inv.enteredBy, inv.review === "Accepted" ? inv.reviewedBy : null, inv.raBillId ? (byId(st.raBills, inv.raBillId)?.history || []).find((x) => x.status === "Approved")?.by : null], "releasing payment");
   const [mode, setMode] = y.useState("NEFT"), [date, setDate] = y.useState(todayISO());
   const [override, setOverride] = y.useState({});
   const rows = invs.map((inv) => {
@@ -398,8 +403,9 @@ function PayModal({ invIds, onClose }) {
     const payNow = next ? Math.min(t.balance, next.amount - next.paid) : t.balance;
     const tds = inv.source === "RA Bill" ? 0 : round2(((t.taxable * tdsRate(v.tds)) / 100) * (payNow / (t.payable || 1)));
     const hard = gate.stops.some(hardStop);
-    const blocked = gate.stops.length > 0 && !(override[inv.id] && !hard);
-    return { inv, v, t, gate, tds, payNow, net: round2(payNow - tds), blocked, hard, next };
+    const who = payBlock(inv);
+    const blocked = !!who || (gate.stops.length > 0 && !(override[inv.id] && !hard));
+    return { inv, v, t, gate, tds, payNow, net: round2(payNow - tds), blocked, hard, next, who };
   });
   const ok = rows.filter((r) => !r.blocked && r.payNow > 0);
   return (
@@ -411,17 +417,17 @@ function PayModal({ invIds, onClose }) {
             let n = s.invoices.flatMap((i) => i.payments).length;
             for (const r of ok) {
               const x = byId(s.invoices, r.inv.id);
-              x.payments.push({ id: `PAY-${String(++n).padStart(3, "0")}`, date, amount: r.net, tds: r.tds, mode, ref: `${mode}${Date.now().toString().slice(-8)}`, ...(override[r.inv.id] ? { override: { by: currentUser(), role: set0.myRole, reason: override[r.inv.id], stops: r.gate.stops } } : {}) });
+              x.payments.push({ id: `PAY-${String(++n).padStart(3, "0")}`, date, amount: r.net, tds: r.tds, mode, ref: `${mode}${Date.now().toString().slice(-8)}`, paidBy: currentUser(), ...(override[r.inv.id] ? { override: { by: currentUser(), role: actor().role, reason: override[r.inv.id], stops: r.gate.stops } } : {}) });
               if (x.raBillId && invoiceTotals(x).balance <= 0.5) { const b = byId(s.raBills, x.raBillId); b.status = "Paid"; b.history.push({ status: "Paid", by: currentUser(), at: new Date().toISOString(), remark: `${mode} payment` }); }
             }
-          }, { entity: "Payment", id: ok.map((r) => r.inv.id).join(", "), action: `Paid via ${mode}${Object.keys(override).length ? ` (override by ${set0.myRole})` : ""}` });
+          }, { entity: "Payment", id: ok.map((r) => r.inv.id).join(", "), action: `Paid via ${mode}${Object.keys(override).length ? ` (override by ${actor().role})` : ""}` });
           toast(`${ok.length} payment(s) recorded`); onClose();
         }}>Release payment</Btn></>}>
       <div className="space-y-3">
         <div className="grid grid-cols-3 gap-3">
           <Field label="Payment mode"><Select value={mode} onChange={setMode} options={PAY_MODES} /></Field>
           <Field label="Value date"><DateInput value={date} onChange={setDate} /></Field>
-          <Field label="Your role"><span className="flex h-[32px] items-center text-[13px]">{set0.myRole}{canOverride && <span className="ml-2"><Status tone="purple">Can override</Status></span>}</span></Field>
+          <Field label="Released by"><span className="flex h-[32px] items-center text-[13px]">{actor().name} · {actor().role}{canOverride && <span className="ml-2"><Status tone="purple">Can override</Status></span>}</span></Field>
         </div>
         <table className="w-full">
           <thead><tr><Th>Bill</Th><Th>Vendor</Th><Th align="right">Paying now</Th><Th align="right">TDS</Th><Th align="right">Net</Th><Th>Checks</Th></tr></thead>
@@ -430,7 +436,8 @@ function PayModal({ invIds, onClose }) {
               <Td className="mono text-[12px]">{r.inv.id}{r.next && <span className="block text-[10.5px] text-ink-mute">instalment {r.next.n}</span>}</Td><Td>{r.v.name}</Td><Td align="right" className="num">{inr(r.payNow)}</Td>
               <Td align="right" className="num">{r.tds ? inr(r.tds) : "—"}</Td><Td align="right" className="num font-semibold">{inr(r.net)}</Td>
               <Td className="max-w-[340px] whitespace-normal">
-                {r.gate.all.length === 0 ? <Status tone="green">Clear</Status> : <>
+                {r.who && <span className="block text-[12px] text-red-600">Stop: {r.who}</span>}
+                {r.gate.all.length === 0 ? (!r.who && <Status tone="green">Clear</Status>) : <>
                   {r.gate.stops.map((x) => <span key={x} className="block text-[12px] text-red-600">Stop: {x}</span>)}
                   {r.gate.warns.map((x) => <span key={x} className="block text-[12px] text-amber-700">Warn: {x}</span>)}
                   {r.gate.stops.length > 0 && !r.hard && canOverride && (override[r.inv.id] !== undefined
@@ -470,11 +477,12 @@ function NewBillModal({ open, onClose, presetPoId }) {
   const directAllowed = !set0.poRequiredForBill || (v && v.allowBillWithoutPO);
   const noReceipt = po && po.billingPolicy !== "On ordered quantity" && po.receipts.length === 0;
   const receiptBlock = noReceipt && set0.receiptRequiredForBill && !(v && v.allowBillWithoutReceipt);
-  const ok = f.number && v && !isBlockedFor(v, "Invoices") && (mode === "po" ? po && f.lines.some((l) => l.qty > 0) && !receiptBlock : directAllowed && f.lines.some((l) => l.desc && l.qty > 0 && l.rate > 0));
+  const dup = v && f.number.trim() && st.invoices.find((i) => i.vendorId === v.id && i.review !== "Rejected" && String(i.number).trim().toLowerCase() === f.number.trim().toLowerCase());
+  const ok = f.number.trim() && !dup && v && !isBlockedFor(v, "Invoices") && (mode === "po" ? po && f.lines.some((l) => l.qty > 0) && !receiptBlock : directAllowed && f.lines.some((l) => l.desc && l.qty > 0 && l.rate > 0));
   const save = () => {
     const id = nextId("INV", st.invoices);
     const days = parseInt(v.paymentTerms.replace(/\D/g, ""), 10) || 0;
-    setState((s) => s.invoices.unshift({ id, vendorId: v.id, source: mode === "po" ? "Purchase Order" : "Direct", poId: mode === "po" ? poId : null, number: f.number, date: f.date, due: shiftDays(days, f.date), gstPct: Number(f.gstPct), hold: null, notes: [], payments: [], schedule: null,
+    setState((s) => s.invoices.unshift({ id, vendorId: v.id, source: mode === "po" ? "Purchase Order" : "Direct", poId: mode === "po" ? poId : null, number: f.number.trim(), date: f.date, due: shiftDays(days, f.date), gstPct: Number(f.gstPct), hold: null, notes: [], payments: [], schedule: null, enteredBy: currentUser(),
       lines: f.lines.filter((l) => l.qty > 0).map((l) => ({ line: l.line ?? null, desc: l.desc, qty: Number(l.qty), rate: Number(l.rate) })) }), { entity: "Invoice", id, action: `Bill ${f.number} entered${mode === "po" ? ` against ${poId}` : " without PO"}` });
     toast(`${id} created`); onClose();
   };
@@ -495,6 +503,7 @@ function NewBillModal({ open, onClose, presetPoId }) {
           <Field label="Invoice date"><DateInput value={f.date} onChange={(x) => setF({ ...f, date: x })} /></Field>
         </div>
         {v && isBlockedFor(v, "Invoices") && <Note tone="red">{v.name} is blocked for invoices.</Note>}
+        {dup && <Note tone="red">Invoice no. {f.number} from {v.name} is already recorded as {dup.id} ({fmtDate(dup.date)}). Duplicate bills can't be entered.</Note>}
         {mode === "direct" && v && !directAllowed && <Note tone="red">A PO is required for bills. Tick “Allow bills without PO” on this vendor, or change Procurement Settings.</Note>}
         {receiptBlock && <Note tone="red">Nothing received yet — Procurement Settings require a goods receipt before billing (vendor isn't exempt).</Note>}
         {noReceipt && !receiptBlock && <Note tone="amber">Billing before receipt is allowed for this vendor.</Note>}
@@ -749,8 +758,15 @@ function ProcurementSettingsPage() {
         <Section title="Overrides" icon={Icon.lock}>
           <div className="grid grid-cols-2 gap-3 p-4">
             <Field label="Role allowed to override a Stop" hint="Holds, missing bank and blocked vendors can never be overridden"><Select value={f.overrideRole} onChange={set("overrideRole")} options={ROLES} /></Field>
-            <Field label="Your role (demo)"><Select value={f.myRole} onChange={set("myRole")} options={ROLES} /></Field>
+            <Field label="Acting as" hint="Change person with the Acting as menu at the top"><span className="flex h-[32px] items-center text-[13px]">{actor().name} · {actor().role}</span></Field>
           </div>
+        </Section>
+        <Section title="Workflow gates" icon={Icon.clipboardCheck}>
+          {mode("rfqComplianceGate", "Compliance at RFQ invite", "Blocking compliance failures or overdue requalification")}
+          {mode("poComplianceGate", "Compliance at PO / contract", "Same checks when ordering or contracting")}
+          {yesNo("requireDocsOnSubmit", "Required documents before submitting a registration", "Approvers never receive an empty record")}
+          {yesNo("mobilisationBeforeWo", "Mobilisation checklist before the first work order", "Contractor Onboarding → mobilisation checklist must be complete")}
+          {yesNo("qcBeforeBilling", "Quality inspection before RA billing", "Only measurements with a passed inspection can be billed")}
         </Section>
         <Section title="Ordering & vendor access" icon={Icon.package}>
           <div className="grid grid-cols-2 gap-3 p-4">

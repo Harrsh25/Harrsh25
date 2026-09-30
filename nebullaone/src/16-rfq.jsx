@@ -58,6 +58,9 @@ function NewRfqModal({ open, onClose, onCreated }) {
   const toggleVendor = (v) => {
     const g = scorecardGate(st, v.id, "rfq");
     if (g.block) return toast(`${v.name} is in "${g.standing.name}" standing — RFQs are prevented`, "red");
+    const sg = sourcingGate(st, v, "rfq");
+    if (sg.block && !f.vendorIds.includes(v.id)) return toast(`${v.name} can't be invited — ${sg.issues.join("; ")}`, "red");
+    if (sg.warn && !f.vendorIds.includes(v.id)) toast(`Check before inviting ${v.name}: ${sg.issues.join("; ")}`, "amber");
     let ids = f.vendorIds.includes(v.id) ? f.vendorIds.filter((x) => x !== v.id) : [...f.vendorIds, v.id];
     if (f.mode === "Single Vendor") ids = ids.slice(-1);
     setF({ ...f, vendorIds: ids });
@@ -92,9 +95,11 @@ function NewRfqModal({ open, onClose, onCreated }) {
         <Field label={f.mode === "Single Vendor" ? "Vendor (exactly one)" : "Invite vendors (at least two)"} hint="Scorecard standing is shown; vendors in a 'prevent RFQ' standing can't be invited">
           <div className="flex flex-wrap gap-1.5">
             {vendors.map((v) => {
-              const on = f.vendorIds.includes(v.id), g = scorecardGate(st, v.id, "rfq");
+              const on = f.vendorIds.includes(v.id), g0 = scorecardGate(st, v.id, "rfq"), sg = sourcingGate(st, v, "rfq");
+              const g = { ...g0, block: g0.block || sg.block, warn: g0.warn || sg.warn };
+              const tip = [g0.standing ? `Standing: ${g0.standing.name}` : "", ...sg.issues].filter(Boolean).join("\n");
               return (
-                <button key={v.id} type="button" onClick={() => toggleVendor(v)} title={g.standing ? `Standing: ${g.standing.name}` : ""}
+                <button key={v.id} type="button" onClick={() => toggleVendor(v)} data-tip={tip || undefined}
                   className={cls("flex items-center gap-1 rounded-full border px-2.5 py-[3px] text-[12px]", g.block ? "cursor-not-allowed border-red-200 bg-red-50 text-red-400 line-through" : on ? "border-brand bg-brand-soft font-medium text-brand" : g.warn ? "border-amber-300 bg-amber-50 text-amber-800" : "border-line bg-white text-ink-soft hover:bg-gray-50")}>
                   {v.name}{g.warn && !g.block && <Icon.warning size={11} />}
                 </button>
@@ -354,6 +359,9 @@ function VendorRfqView({ rfq, vendorId, onDone }) {
   const mine = rfq.quotes.find((q) => q.vendorId === vendorId);
   if (["Awarded", "Closed", "Cancelled"].includes(rfq.status) || (rfq.status === "Partially Awarded" && !mine))
     return <Note>This RFQ is {rfq.status.toLowerCase()}. {mine ? `Your quotation status: ${quoteStatus(rfq, mine)}.` : ""}</Note>;
+  const vend = byId(getState().vendors, vendorId);
+  if (vend && (isBlockedFor(vend, "All") || !["Active", "On Hold"].includes(vend.status)))
+    return <Note tone="red" icon={Icon.lock}>Your account is {vend.status === "On Hold" ? "on hold" : vend.status.toLowerCase()}, so new quotations can't be submitted.{mine ? ` Your earlier quotation (${quoteStatus(rfq, mine)}) stays with the buyer.` : ""}</Note>;
   if (overdue) return <Note tone="amber">The submission window closed on {fmtDate(rfq.dueDate)}. {mine ? `Your quotation (${quoteStatus(rfq, mine)}) is with the buyer.` : "Contact the buyer if you need an extension."}</Note>;
   if (resp.status === "Declined") return <Note tone="amber">You declined this RFQ ({resp.reason}). <button className="font-medium text-brand" onClick={() => setState((s) => (byId(s.rfqs, rfq.id).responses[vendorId] = { status: "Accepted", at: new Date().toISOString() }))}>Changed your mind? Quote now</button></Note>;
   if (!mine && resp.status !== "Accepted") return <RespondToInvite rfq={rfq} vendorId={vendorId} />;
@@ -366,16 +374,26 @@ function SplitAwardModal({ rfq, onClose, preset }) {
   const eligible = rfq.quotes.filter((q) => q.review !== "Returned" && q.review !== "Under review" && daysUntil(q.validUntil) >= 0);
   const already = new Set((rfq.awards || []).map((a) => a.line));
   const best = (i) => { const c = eligible.filter((q) => lineRate(q, i) != null && canPo(q.vendorId)); c.sort((a, b) => lineRate(a, i) - lineRate(b, i)); return c[0]?.vendorId || ""; };
-  function canPo(vid) { const v = byId(st.vendors, vid); return v && eligibleForPo(v) && !scorecardGate(st, vid, "po").block; }
+  function canPo(vid) { const v = byId(st.vendors, vid); return v && eligibleForPo(v) && !scorecardGate(st, vid, "po").block && !sourcingGate(st, v, "po").block; }
   const [pick, setPick] = y.useState(() => rfq.items.map((_, i) => (already.has(i) ? "" : preset ? (eligible.find((q) => q.vendorId === preset && lineRate(q, i) != null) ? preset : "") : best(i))));
   const [keepOpen, setKeepOpen] = y.useState(false);
+  const [note, setNote] = y.useState("");
   const groups = {};
   pick.forEach((vid, i) => { if (vid) (groups[vid] = groups[vid] || []).push(i); });
+  const isCon = (vid) => { const v = byId(st.vendors, vid); return v && (v.isContractor || v.type === "Labor"); };
+  const allCon = Object.keys(groups).length > 0 && Object.keys(groups).every(isCon);
+  const [as, setAs] = y.useState("po");
+  const target = allCon ? as : "po";
+  // Not the lowest rate on some line → the recommendation must say why
+  const notL1 = pick.some((vid, i) => vid && eligible.some((q) => lineRate(q, i) != null && lineRate(q, i) < lineRate(eligible.find((x) => x.vendorId === vid), i)));
   const confirm = () => {
+    if (!note.trim()) return toast("Write the award recommendation first", "red");
+    if (target === "contract") return confirmContract();
     const created = [];
     setState((s) => {
       const r = byId(s.rfqs, rfq.id);
       r.awards = r.awards || [];
+      r.awardNotes = [...(r.awardNotes || []), { at: new Date().toISOString(), by: currentUser(), note: note.trim(), target: "PO" }];
       for (const [vid, lines] of Object.entries(groups)) {
         const q = r.quotes.find((x) => x.vendorId === vid);
         const poId = nextId("PO", s.purchaseOrders);
@@ -384,6 +402,7 @@ function SplitAwardModal({ rfq, onClose, preset }) {
           billingPolicy: "On received quantity", tolerance: 2, rfqId: rfq.id, blanketId: null, returns: [], quoteNo: q.quoteNo, gstPct: q.gstPct,
           lines: lines.map((i) => ({ desc: rfq.items[i].desc, unit: rfq.items[i].unit, qty: rfq.items[i].qty, rate: round2(lineRate(q, i)) })),
           receipts: [], revisions: [{ rev: 0, at: new Date().toISOString(), by: currentUser(), note: `Created from ${rfq.id} award (lines ${lines.map((i) => i + 1).join(", ")})` }],
+          awardNote: note.trim(), awardBy: currentUser(),
         });
         lines.forEach((i) => r.awards.push({ line: i, vendorId: vid, poId }));
         created.push(poId);
@@ -396,15 +415,49 @@ function SplitAwardModal({ rfq, onClose, preset }) {
     toast(`${Object.keys(groups).length} draft PO(s) created — approve them in Approval Management`);
     onClose();
   };
+  // Contractor awards become draft contracts carrying the awarded lines as the contract BOQ;
+  // the contract then goes through Legal → Finance approval before it can be signed.
+  const confirmContract = () => {
+    const created = [];
+    setState((s) => {
+      const r = byId(s.rfqs, rfq.id);
+      r.awards = r.awards || [];
+      r.awardNotes = [...(r.awardNotes || []), { at: new Date().toISOString(), by: currentUser(), note: note.trim(), target: "Contract" }];
+      for (const [vid, lines] of Object.entries(groups)) {
+        const q = r.quotes.find((x) => x.vendorId === vid);
+        const id = nextId("CTR", s.contracts);
+        const scope = lines.map((i, k) => ({ id: `S${k + 1}`, code: String(i + 1), desc: rfq.items[i].desc, unit: rfq.items[i].unit, qty: rfq.items[i].qty, rate: round2(lineRate(q, i)) }));
+        const value = round2(sum(scope, (l) => l.qty * l.rate));
+        s.contracts.unshift({ ...CONTRACT_DEFAULTS(), id, vendorId: vid, project: rfq.project, title: rfq.title, type: "Item-Rate", value, advanceAmount: round2(value * 0.1),
+          status: "Draft", rfqId: rfq.id, quoteNo: q.quoteNo, scope, awardNote: note.trim(), awardBy: currentUser(), owner: currentUser(), changeOrders: [], guarantees: [] });
+        lines.forEach((i) => r.awards.push({ line: i, vendorId: vid, contractId: id }));
+        created.push(id);
+      }
+      const allDone = rfq.items.every((_, i) => r.awards.some((a) => a.line === i));
+      r.status = allDone || !keepOpen ? "Awarded" : "Partially Awarded";
+      r.awardedTo = Object.keys(groups).length === 1 ? Object.keys(groups)[0] : "Split";
+      r.contractId = created[0];
+    }, { entity: "RFQ", id: rfq.id, action: `Awarded as contract — ${Object.entries(groups).map(([v, l]) => `${vendorName(st, v)}: lines ${l.map((i) => i + 1).join(",")}`).join("; ")}` });
+    toast(`${created.length} draft contract(s) created — submit for approval from Contracts`);
+    onClose();
+  };
   return (
     <Modal open onClose={onClose} width={960} title={`Award ${rfq.id} — choose a vendor per line`} subtitle="Like Odoo's 'Compare product lines': pick the winning quote for each line. One draft PO is created per vendor."
-      footer={<><Check checked={keepOpen} onChange={setKeepOpen} label="Keep RFQ open for unawarded lines" /><span className="flex-1" /><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!Object.keys(groups).length} onClick={confirm}>Award & create {Object.keys(groups).length} PO(s)</Btn></>}>
+      footer={<><Check checked={keepOpen} onChange={setKeepOpen} label="Keep RFQ open for unawarded lines" /><span className="flex-1" /><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!Object.keys(groups).length || !note.trim()} onClick={confirm}>Award & create {Object.keys(groups).length} {target === "contract" ? "contract" : "PO"}(s)</Btn></>}>
       <div className="mb-3 flex flex-wrap items-center gap-2 text-[12.5px]">
         <span className="text-ink-soft">Quick pick:</span>
         <Btn size="sm" onClick={() => setPick(rfq.items.map((_, i) => (already.has(i) ? "" : best(i))))}>Lowest rate per line</Btn>
         {eligible.map((q) => <Btn key={q.vendorId} size="sm" onClick={() => setPick(rfq.items.map((_, i) => (already.has(i) || lineRate(q, i) == null ? "" : q.vendorId)))}>All to {vendorName(st, q.vendorId)}</Btn>)}
       </div>
       {rfq.quotes.some((q) => q.review === "Under review") && <div className="mb-3"><Note tone="amber">Quotes still under review are not selectable — accept them first.</Note></div>}
+      <div className="mb-3 grid grid-cols-[1fr_260px] gap-3">
+        <Field label="Award recommendation (sent with the approval)" required hint={notL1 ? "Not the lowest rate on every line — say why" : "e.g. L1 on all lines, technically compliant"}>
+          <TextInput value={note} onChange={setNote} placeholder={notL1 ? "e.g. L1 vendor's lead time 45 days vs 12 required" : "e.g. L1, technically compliant, quote valid 30 days"} />
+        </Field>
+        {allCon && <Field label="Award as" hint={as === "contract" ? "Draft contract with these lines as its BOQ" : "Draft purchase order"}>
+          <div className="flex gap-1 rounded-lg bg-gray-100 p-0.5">{[["po", "Purchase order"], ["contract", "Contract"]].map(([k, l]) => <button key={k} type="button" onClick={() => setAs(k)} className={cls("h-[28px] flex-1 rounded-md text-[13px]", as === k ? "bg-white font-medium text-brand shadow-sm" : "text-ink-soft")}>{l}</button>)}</div>
+        </Field>}
+      </div>
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead><tr><Th>Line</Th><Th align="right">Qty</Th>{eligible.map((q) => <Th key={q.vendorId} align="center">{vendorName(st, q.vendorId)}{!canPo(q.vendorId) && <span className="block text-[10px] font-normal text-red-600">cannot receive PO</span>}</Th>)}<Th align="center">None</Th></tr></thead>

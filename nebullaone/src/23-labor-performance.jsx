@@ -28,7 +28,7 @@ function RateModal({ base, onClose }) {
       footer={<><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!ok} onClick={() => {
         const id = nextId("LR", st.laborRates);
         const prev = st.laborRates.filter((r) => rateKey(r) === rateKey({ ...f, vendorId: f.vendorId || null }));
-        setState((s) => s.laborRates.unshift({ id, trade: f.trade, skill: f.skill, region: f.region, vendorId: f.vendorId || null, minWage: Number(f.minWage), rate: Number(f.rate), otMultiplier: Number(f.otMultiplier) || 2, basis: f.basis, effectiveFrom: f.effectiveFrom, effectiveTo: null, status: "Pending Approval", version: Math.max(0, ...prev.map((p) => p.version)) + 1, reason: f.reason }),
+        setState((s) => s.laborRates.unshift({ id, trade: f.trade, skill: f.skill, region: f.region, vendorId: f.vendorId || null, minWage: Number(f.minWage), rate: Number(f.rate), otMultiplier: Number(f.otMultiplier) || 2, basis: f.basis, effectiveFrom: f.effectiveFrom, effectiveTo: null, status: "Pending Approval", version: Math.max(0, ...prev.map((p) => p.version)) + 1, reason: f.reason, createdBy: currentUser() }),
           { entity: "Labour Rate", id, action: `${base ? "Revision" : "New rate"} submitted — ${f.trade} @ ${inr(f.rate)}/day` });
         toast(`${id} sent for approval`); onClose();
       }}>Submit for approval</Btn></>}>
@@ -49,6 +49,7 @@ function RateModal({ base, onClose }) {
 }
 
 function approveRate(r, approve) {
+  if (!tryAct("Procurement Head", [r.createdBy], "labour-rate approval")) return false;
   setState((s) => {
     const x = byId(s.laborRates, r.id);
     if (!approve) { x.status = "Rejected"; return; }

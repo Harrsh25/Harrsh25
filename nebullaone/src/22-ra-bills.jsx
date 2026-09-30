@@ -117,10 +117,26 @@ function PrepareBillModal({ woId: presetWo, onClose, onCreated }) {
   );
 }
 
+// People who already acted on a bill (submitter + each stage) — none of them may take the next step
+const billActors = (b) => (b.history || []).map((x) => x.by);
+function raStepBlock(bill, st) {
+  const i = RA_FLOW.findIndex((f) => f.status === bill.status), next = RA_FLOW[i + 1];
+  if (!next || next.status === "Paid") return null;
+  const who = actBlock(RA_ROLE[next.status], billActors(bill), `${next.label.toLowerCase()}`);
+  if (who) return who;
+  // Quality / HSE: an open NCR on the work order stops certification
+  if (next.status === "Certified") {
+    const open = (st.ncrs || []).filter((n) => n.woId === bill.woId && n.status !== "Closed");
+    if (open.length) return `Open NCR on ${bill.woId} (${open.map((n) => n.id).join(", ")}) — close it before certifying.`;
+  }
+  return null;
+}
 function advanceBill(bill, remark, st) {
   const i = RA_FLOW.findIndex((f) => f.status === bill.status);
   const next = RA_FLOW[i + 1];
-  if (!next || next.status === "Paid") return;
+  if (!next || next.status === "Paid") return false;
+  const why = raStepBlock(bill, st || getState());
+  if (why) { toast(why, "red"); return false; }
   setState((s) => {
     const b = byId(s.raBills, bill.id);
     b.status = next.status;
@@ -134,9 +150,15 @@ function advanceBill(bill, remark, st) {
     }
   }, { entity: "RA Bill", id: bill.id, action: `${next.label} done${remark ? ` — ${remark}` : ""}` });
   toast(next.status === "Approved" ? `${bill.id} approved — payable raised` : `${bill.id} ${next.status.toLowerCase()}`);
+  return true;
 }
 
 function rejectBill(id, remark) {
+  const b0 = byId(getState().raBills, id);
+  if (!b0 || !["Submitted", "Verified", "Certified"].includes(b0.status)) return false;
+  const next = RA_FLOW[RA_FLOW.findIndex((f) => f.status === b0.status) + 1];
+  if (!tryAct(RA_ROLE[next.status], billActors(b0), "rejecting this bill")) return false;
+  if (!(remark || "").trim()) { toast("A reason is required to reject", "red"); return false; }
   setState((s) => {
     const b = byId(s.raBills, id);
     b.status = "Rejected";
@@ -144,6 +166,7 @@ function rejectBill(id, remark) {
     b.mbIds.forEach((m) => (byId(s.measurements, m).billedIn = null)); // measurements return to the unbilled pool
   }, { entity: "RA Bill", id, action: `Rejected — ${remark}` });
   toast(`${id} rejected`, "red");
+  return true;
 }
 
 function RaBillDrawer({ id, onClose }) {
@@ -172,6 +195,7 @@ function RaBillDrawer({ id, onClose }) {
               return { label: f.label, status, meta: h1 ? `${h1.by} · ${fmtDateTime(h1.at)}` : f.role };
             })} />
           </div>
+          {next && next.status !== "Paid" && raStepBlock(bill, st) && <div className="border-t border-line px-4 pt-3"><Note tone="amber" icon={Icon.lock}>{raStepBlock(bill, st)}</Note></div>}
           {next && next.status !== "Paid" && (
             <div className="grid grid-cols-[1fr_auto_auto] items-end gap-2 border-t border-line p-4">
               <Field label={`${next.role} remark`}><TextInput value={remark} onChange={setRemark} placeholder="Optional for approval, required to reject" /></Field>
@@ -239,7 +263,7 @@ function RaBillsPage() {
 function RetentionPage() {
   const st = useStore();
   const [tab, setTab] = y.useState("ledger");
-  const [rel, setRel] = y.useState(null), [adv, setAdv] = y.useState(null);
+  const [rel, setRel] = y.useState(null), [adv, setAdv] = y.useState(null), [rejRel, setRejRel] = y.useState(null);
   const contracts = st.contracts.filter((c) => c.status !== "Draft");
   const ledgers = contracts.map((c) => ({ c, ...contractLedger(st, c) }));
   const T = (k) => sum(ledgers, (l) => l[k]);
@@ -270,8 +294,13 @@ function RetentionPage() {
           { key: "type", label: "Basis", filter: true }, { key: "note", label: "Note", className: "whitespace-normal text-[12px] text-ink-soft" },
           { key: "amount", label: "Amount", align: "right", num: true, render: (r) => inr(r.amount) },
           { key: "d", label: "Requested", render: (r) => fmtDate(r.requestedOn) },
-          { key: "s", label: "Status", filterOptions: FO.release, filter: (r) => r.status, render: (r) => <Status tone={r.status === "Released" ? "green" : "amber"}>{r.status}</Status> },
-          { key: "a", label: "", align: "right", render: (r) => r.status !== "Released" && <Btn size="sm" variant="success" onClick={() => setState((s) => Object.assign(byId(s.retentionReleases, r.id), { status: "Released", releasedOn: todayISO() }), { entity: "Retention", id: r.id, action: `Released ${inr(r.amount)} for ${r.contractId}` })}>Release</Btn> },
+          { key: "by", label: "Requested / approved by", className: "text-[12px] text-ink-soft", render: (r) => [r.requestedBy, r.approvedBy].filter(Boolean).join(" → ") || "—" },
+          { key: "s", label: "Status", filterOptions: FO.release, filter: (r) => (r.status === "Due" ? "Pending Approval" : r.status), render: (r) => <span title={r.remark || ""}><Status tone={{ Released: "green", Approved: "blue", Rejected: "red" }[r.status] || "amber"}>{r.status === "Due" ? "Pending Approval" : r.status}</Status></span> },
+          { key: "a", label: "", align: "right", render: (r) => (
+            <span className="flex justify-end gap-1">
+              {["Due", "Pending Approval"].includes(r.status) && <><Btn size="sm" variant="success" onClick={() => decideRelease(r, true, "")}>Approve</Btn><Btn size="sm" variant="danger" onClick={() => setRejRel({ r, reason: "" })}>Reject</Btn></>}
+              {r.status === "Approved" && <Btn size="sm" variant="primary" onClick={() => releaseRetention(r)}>Release payment</Btn>}
+            </span>) },
         ]} />
       )}
       {tab === "ded" && (
@@ -288,6 +317,12 @@ function RetentionPage() {
           { key: "tot", label: "Total", align: "right", num: true, render: (b) => <b>{inr(b.totalDed)}</b> },
         ]} />
       )}
+      {rejRel && (
+        <Modal open onClose={() => setRejRel(null)} width={460} title={`Reject ${rejRel.r.id}`}
+          footer={<><Btn onClick={() => setRejRel(null)}>Cancel</Btn><Btn variant="danger" disabled={!rejRel.reason.trim()} onClick={() => { if (decideRelease(rejRel.r, false, rejRel.reason.trim())) setRejRel(null); }}>Reject</Btn></>}>
+          <Field label="Reason" required><TextArea value={rejRel.reason} onChange={(x) => setRejRel({ ...rejRel, reason: x })} placeholder="e.g. Snag list for Tower A not closed" /></Field>
+        </Modal>
+      )}
       {rel && (() => {
         const c = byId(st.contracts, rel.contractId), led = c && contractLedger(st, c);
         const dlpEnd = c && shiftDays((c.dlpMonths || 0) * 30, c.end);
@@ -297,7 +332,7 @@ function RetentionPage() {
           <Modal open onClose={() => setRel(null)} width={560} title="Request retention release"
             footer={<><Btn onClick={() => setRel(null)}>Cancel</Btn><Btn variant="primary" disabled={!c || !(rel.amount > 0) || rel.amount > max + 0.5 || early} onClick={() => {
               const id = nextId("RR", st.retentionReleases);
-              setState((s) => s.retentionReleases.unshift({ id, contractId: c.id, amount: Number(rel.amount), type: rel.type, status: "Due", requestedOn: todayISO(), note: rel.note }), { entity: "Retention", id, action: `Release requested for ${c.id}` });
+              setState((s) => s.retentionReleases.unshift({ id, contractId: c.id, amount: Number(rel.amount), type: rel.type, status: "Pending Approval", requestedOn: todayISO(), requestedBy: currentUser(), note: rel.note }), { entity: "Retention", id, action: `Release requested for ${c.id} — waiting for Finance approval` });
               toast(`${id} raised`); setRel(null); setTab("rel");
             }}>Raise request</Btn></>}>
             <div className="grid grid-cols-2 gap-3">

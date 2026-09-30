@@ -67,6 +67,16 @@ function SupplierPortalPage() {
   const v = s && byId(getState().vendors, s.vendorId);
   y.useEffect(() => { if (!v) nav("/supplier/login", { replace: true }); }, [v]);
   if (!v) return null;
+  // Access ends when the vendor is blacklisted, made inactive or rejected, or the user is disabled — even mid-session
+  const user = (v.portalUsers || []).find((p) => p.email.toLowerCase() === s.email);
+  if (!PORTAL_STATUSES.includes(v.status) || (user && !user.active)) return (
+    <PublicShell width={560} title="Portal access suspended" subtitle={v.name}>
+      <div className="space-y-3 p-6">
+        <Note tone="red">{user && !user.active ? "Your portal user has been disabled by the vendor administrator." : `Your company's account is ${v.status.toLowerCase()}, so the supplier portal is no longer available.`} Contact the buyer's procurement team for help.</Note>
+        <Btn onClick={() => { setVendorSession(null); nav("/supplier/login"); }}>Sign out</Btn>
+      </div>
+    </PublicShell>
+  );
   return (
     <PublicShell width={1180} title={v.name} subtitle={<span className="flex items-center gap-2">{v.id} · signed in as {s.email} <button className="font-medium text-brand" onClick={() => { setVendorSession(null); nav("/supplier/login"); }}>Sign out</button></span>}>
       <PortalBody vid={v.id} vendorMode />
@@ -125,6 +135,10 @@ function PortalBody({ vid, vendorMode }) {
   const st = useStore();
   const v = byId(st.vendors, vid);
   const isContractor = v.isContractor || v.type === "Labor";
+  // Holds and suspension are enforced here too: an "All" hold stops new quotes, WO acceptance, claims and attendance;
+  // an "Invoices" hold stops claims and invoice submission
+  const txBlocked = isBlockedFor(v, "All") || !["Active", "On Hold"].includes(v.status) && v.status !== "Pending Approval" && v.status !== "Changes Requested" && v.status !== "Draft";
+  const billBlocked = txBlocked || isBlockedFor(v, "Invoices");
   const [tab, setTab] = y.useState(v.status === "Changes Requested" || v.status === "Draft" ? "reg" : "rfq");
   const [quoteFor, setQuoteFor] = y.useState(null);
   const [claimFor, setClaimFor] = y.useState(null);
@@ -176,6 +190,7 @@ function PortalBody({ vid, vendorMode }) {
         <StatTile tone="amber" label="Amount due to you" value={inrShort(sum(invs, (i) => invoiceTotals(i).balance))} icon={Icon.rupee} />
         <StatTile tone="red" label="Documents to renew" value={docs.filter((d) => ["Missing", "Expired", "Expiring", "Rejected"].includes(docState(d))).length} icon={Icon.fileClock} />
       </StatGrid>
+      {(txBlocked || billBlocked) && <div className="px-5 pt-3"><Note tone="red" icon={Icon.lock}>{txBlocked ? `Your account is ${v.status === "On Hold" ? "on hold" : v.status.toLowerCase()}${v.hold?.reason ? ` — ${v.hold.reason}` : ""}. You can view your records, but new quotations, work-order acceptance, claims and attendance are paused.` : `Invoices are on hold${v.hold?.reason ? ` — ${v.hold.reason}` : ""}${v.hold?.until ? ` until ${fmtDate(v.hold.until)}` : ""}. New claims and invoices are paused.`}</Note></div>}
       <TabBar active={tab} onChange={setTab} tabs={tabs} />
       <div className={cls(tab === "reg" && "p-5")}>
         {tab === "reg" && <RegistrationFix v={v} />}
@@ -202,9 +217,9 @@ function PortalBody({ vid, vendorMode }) {
           { key: "d", label: "Period", render: (w) => `${fmtDate(w.start)} → ${fmtDate(w.end)}` },
           { key: "p", label: "Progress", render: (w) => <Progress value={Math.round(woProgress(st, w).physical)} /> },
           { key: "acc", label: "Acceptance", filterOptions: FO.acceptance, filter: (w) => w.acceptance?.status || "—", render: (w) => <Status tone={{ Accepted: "green", Pending: "amber", Declined: "red" }[w.acceptance?.status] || "gray"}>{w.acceptance?.status || "—"}</Status> },
-          { key: "a", label: "", align: "right", render: (w) => w.acceptance?.status === "Pending" ? (
+          { key: "a", label: "", align: "right", render: (w) => txBlocked ? null : w.acceptance?.status === "Pending" ? (
             <span className="flex justify-end gap-1" onClick={stop}><Btn size="sm" variant="success" onClick={() => actWo(w, "Accepted")}>Accept</Btn><Btn size="sm" variant="danger" onClick={() => setWoDecline({ wo: w, reason: "" })}>Decline</Btn></span>
-          ) : woAccepted(w) && ["Issued", "In Progress"].includes(w.status) ? <span onClick={stop}><Btn size="sm" icon={Icon.receipt} onClick={() => setClaimFor(w.id)}>Submit RA claim</Btn></span> : null },
+          ) : woAccepted(w) && ["Issued", "In Progress"].includes(w.status) && !billBlocked ? <span onClick={stop}><Btn size="sm" icon={Icon.receipt} onClick={() => setClaimFor(w.id)}>Submit RA claim</Btn></span> : null },
         ]} />}
         {tab === "claims" && <DataTable rows={claims.slice().reverse()} onRow={(c) => open("claim", c.id)} empty={<EmptyState icon={Icon.receipt} title="No claims yet" text="Submit a running-account claim from the Work orders tab." />} columns={[
           { key: "id", label: "Claim", className: "mono text-[12px]" }, { key: "wo", label: "Work order", render: (c) => `${c.woId} · ${byId(st.workOrders, c.woId).title}` },
@@ -212,9 +227,9 @@ function PortalBody({ vid, vendorMode }) {
           { key: "v", label: "Claimed value", align: "right", num: true, render: (c) => inr(claimValue(st, c)) },
           { key: "s", label: "Status", filterOptions: FO.claimStatus, filter: (c) => c.status, render: (c) => <span className="flex flex-col"><Status tone={{ Submitted: "blue", Verified: "green", Returned: "red" }[c.status]}>{c.status}</Status>{c.status === "Returned" && <span className="max-w-[260px] whitespace-normal text-[11px] text-red-600">{c.history[c.history.length - 1].remark}</span>}</span> },
           { key: "b", label: "RA bill", render: (c) => (c.raBillId ? `${c.raBillId} · ${byId(st.raBills, c.raBillId)?.status}` : "—") },
-          { key: "a", label: "", align: "right", render: (c) => c.status === "Returned" && <span onClick={stop}><Btn size="sm" onClick={() => setClaimFor({ woId: c.woId, from: c.id })}>Revise & resubmit</Btn></span> },
+          { key: "a", label: "", align: "right", render: (c) => c.status === "Returned" && !c.resubmittedAs && !billBlocked && <span onClick={stop}><Btn size="sm" onClick={() => setClaimFor({ woId: c.woId, from: c.id })}>Revise & resubmit</Btn></span> },
         ]} />}
-        {tab === "att" && <AttendanceSheet vendorId={vid} portal />}
+        {tab === "att" && (txBlocked ? <div className="p-4"><Note tone="red">Attendance entry is paused while the account is on hold.</Note></div> : <AttendanceSheet vendorId={vid} portal />)}
         {tab === "bills" && <DataTable rows={[...invs.map((i) => ({ key: i.id, kind: "inv", ref: i.number, what: i.source === "RA Bill" ? i.raBillId : i.poId, amt: invoiceTotals(i).payable, bal: invoiceTotals(i).balance, status: invoiceStatus(i), due: i.due })),
           ...bills.filter((b) => !b.invoiceId).map((b) => ({ key: b.id, kind: "bill", ref: b.id, what: `${b.woId} · RA ${b.seq}`, amt: b.net, bal: b.net, status: b.status, due: null }))]} rowKey={(r) => r.key} onRow={(r) => open(r.kind, r.key)} columns={[
           { key: "ref", label: "Reference", className: "mono text-[12px]" }, { key: "what", label: "Against" },
@@ -279,7 +294,8 @@ function PortalBody({ vid, vendorMode }) {
         )}
       </div>
       {detail?.kind === "po" && <PortalPoDrawer key={detail.id} id={detail.id} open={open} onClose={() => setDetail(null)} />}
-      {detail?.kind === "wo" && <PortalWoDrawer key={detail.id} id={detail.id} open={open} onClose={() => setDetail(null)} onAccept={(w) => actWo(w, "Accepted")} onDecline={(w) => setWoDecline({ wo: w, reason: "" })} onClaim={(wid) => setClaimFor(wid)} />}
+      {detail?.kind === "wo" && <PortalWoDrawer key={detail.id} id={detail.id} open={open} onClose={() => setDetail(null)} onAccept={(w) => (txBlocked ? toast("Your account is on hold — work orders can't be accepted", "red") : actWo(w, "Accepted"))} onDecline={(w) => setWoDecline({ wo: w, reason: "" })}
+        onClaim={(wid) => (billBlocked ? toast("Claims are paused while your account is on hold", "red") : setClaimFor(wid))} />}
       {detail?.kind === "claim" && <PortalClaimDrawer key={detail.id} id={detail.id} open={open} onClose={() => setDetail(null)} onRevise={(c) => setClaimFor({ woId: c.woId, from: c.id })} />}
       {detail?.kind === "bill" && <PortalRaBillDrawer key={detail.id} id={detail.id} open={open} onClose={() => setDetail(null)} />}
       {detail?.kind === "inv" && <PortalInvoiceDrawer key={detail.id} id={detail.id} open={open} onClose={() => setDetail(null)} />}

@@ -88,19 +88,34 @@ function Questionnaire({ v }) {
   );
 }
 
-function approvalAction(v, decision, remark) {
+// Returns true when the decision was recorded. Each stage needs its department's role, one
+// person can't decide two stages (or their own submission), and the last stage checks the
+// approval preconditions unless a Finance Controller records an override with a reason.
+function approvalAction(v, decision, remark, opts = {}) {
+  const i = v.approval.stages.findIndex((st) => st.status === "Pending");
+  if (i < 0 || v.status !== "Pending Approval") return false;
+  const stg = v.approval.stages[i], last = i === v.approval.stages.length - 1;
+  if (!tryAct(DEPT_ROLE[stg.dept], vendorApprovers(v), `the ${stg.dept} decision`)) return false;
+  if (decision === "Rejected" && !(remark || "").trim()) { toast("A reason is required to reject", "red"); return false; }
+  if (decision === "Approved" && last) {
+    const b = approvalBlockers(v);
+    if (b.length && !opts.override) { toast(`Can't approve yet — ${b.join("; ")}`, "red"); return false; }
+    if (b.length && !(remark || "").trim()) { toast("An override needs a reason", "red"); return false; }
+  }
+  const ov = decision === "Approved" && last && opts.override ? approvalBlockers(v) : null;
   setState((s) => {
     const x = byId(s.vendors, v.id);
-    const i = x.approval.stages.findIndex((st) => st.status === "Pending");
-    if (i < 0) return;
-    const stg = x.approval.stages[i];
-    Object.assign(stg, { status: decision, by: currentUser(), at: new Date().toISOString(), remark });
+    const st0 = x.approval.stages[i];
+    Object.assign(st0, { status: decision, by: currentUser(), at: new Date().toISOString(), remark, ...(ov && ov.length ? { override: ov } : {}) });
     if (decision === "Rejected") x.status = "Rejected";
     else if (i + 1 < x.approval.stages.length) x.approval.stages[i + 1].status = "Pending";
-    else x.status = "Active";
-  }, { entity: "Vendor", id: v.id, action: `${decision} at ${v.approval.stages.find((s) => s.status === "Pending")?.dept}${remark ? ` — ${remark}` : ""}` });
+    else { x.status = "Active"; x.approvedOn = todayISO(); }
+  }, { entity: "Vendor", id: v.id, action: `${decision} at ${stg.dept}${ov && ov.length ? ` with override (${ov.join("; ")})` : ""}${remark ? ` — ${remark}` : ""}` });
+  return true;
 }
 function resubmit(v) {
+  const b = submitBlockers(v);
+  if (b.length) { toast(`Upload the required documents first — ${b.join("; ")}`, "red"); return false; }
   setState((s) => {
     const x = byId(s.vendors, v.id);
     // approvals already given are kept; routing resumes at the first stage not yet approved
@@ -108,7 +123,9 @@ function resubmit(v) {
     x.approval.stages.forEach((st, j) => { if (j >= i) Object.assign(st, { status: j === i ? "Pending" : "Waiting", by: null, at: null, remark: "" }); });
     if (x.changeRequest && !x.changeRequest.resolvedAt) x.changeRequest = { ...x.changeRequest, resolvedAt: new Date().toISOString() };
     x.status = "Pending Approval";
+    x.submittedBy = currentUser();
   }, { entity: "Vendor", id: v.id, action: v.status === "Draft" ? "Submitted for approval" : "Corrected and resubmitted" });
+  return true;
 }
 
 function VendorApproval({ v, mode = "approval" }) {
@@ -134,18 +151,34 @@ function VendorApproval({ v, mode = "approval" }) {
             <span className="shrink-0 whitespace-nowrap text-[13px]"><RefLink to={`${VM_BASE}/approvals?open=${v.id}`}>Open in Vendor Approvals →</RefLink></span>
           </div>
         )}
-        {pending && decide && v.status === "Pending Approval" && (
+        {pending && v.status === "Pending Approval" && (() => {
+          const blockers = approvalBlockers(v), last = pending === stages[stages.length - 1];
+          return (
+            <div className="border-t border-line p-4">
+              <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-mute">Approval checklist {last ? "(checked at the final approval)" : ""}</p>
+              {blockers.length === 0 ? <Note tone="green" icon={Icon.check}>Documents verified, qualification passed{v.regTier === "Spend Authorized" ? ", bank account on file" : ""} — ready for final approval.</Note>
+                : <Note tone={last ? "red" : "amber"}>Open before final approval: {blockers.join(" · ")}.</Note>}
+            </div>
+          );
+        })()}
+        {pending && decide && v.status === "Pending Approval" && (() => {
+          const blockers = approvalBlockers(v), last = pending === stages[stages.length - 1];
+          const canOverride = last && blockers.length > 0 && hasRole("Finance Controller");
+          return (
           <div className="space-y-3 border-t border-line p-4">
-            {comp.status === "Non-Compliant" && <Note tone="amber">Compliance gaps: {comp.issues.join(" · ")}. Approvers can still decide, but the vendor can't be paid until these close.</Note>}
-            <Field label={`${pending.dept} decision remark`}><TextArea rows={2} value={remark} onChange={setRemark} placeholder="Required when rejecting" /></Field>
+            <ActNote roles={DEPT_ROLE[pending.dept]} involved={vendorApprovers(v)} what={`the ${pending.dept} decision`} />
+            {comp.status === "Non-Compliant" && !last && <Note tone="amber">Compliance gaps: {comp.issues.join(" · ")}. These must close (or be overridden) before the Finance approval.</Note>}
+            <Field label={`${pending.dept} decision remark`}><TextArea rows={2} value={remark} onChange={setRemark} placeholder={canOverride ? "Required when rejecting or approving with override" : "Required when rejecting"} /></Field>
             <div className="flex justify-end gap-2">
               <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>
               <Btn onClick={() => setRc(true)}>Request changes</Btn>
-              <Btn variant="danger" disabled={!remark.trim()} onClick={() => { approvalAction(v, "Rejected", remark.trim()); setRemark(""); toast("Registration rejected", "red"); }}>Reject</Btn>
-              <Btn variant="success" icon={Icon.check} onClick={() => { approvalAction(v, "Approved", remark.trim()); setRemark(""); toast(`${pending.dept} approved`); }}>Approve as {pending.dept}</Btn>
+              <Btn variant="danger" disabled={!remark.trim()} onClick={() => { if (approvalAction(v, "Rejected", remark.trim())) { setRemark(""); toast("Registration rejected", "red"); } }}>Reject</Btn>
+              {canOverride && <Btn disabled={!remark.trim()} onClick={() => { if (approvalAction(v, "Approved", remark.trim(), { override: true })) { setRemark(""); toast("Approved with override — logged"); } }}>Approve with override</Btn>}
+              <Btn variant="success" icon={Icon.check} disabled={last && blockers.length > 0} title={last && blockers.length ? "Close the checklist items first" : ""} onClick={() => { if (approvalAction(v, "Approved", remark.trim())) { setRemark(""); toast(`${pending.dept} approved`); } }}>Approve as {pending.dept}</Btn>
             </div>
           </div>
-        )}
+          );
+        })()}
         {v.status === "Changes Requested" && v.changeRequest && (
           <div className="border-t border-line p-4"><Note tone="amber"><b>Waiting for the vendor</b> — {v.changeRequest.by} ({v.changeRequest.dept}) asked on {fmtDate(v.changeRequest.at)} for: {v.changeRequest.items.map((i) => `${i.label}${i.note ? ` (${i.note})` : ""}`).join("; ")}. The vendor fixes these in the supplier portal and resubmits; approval resumes at {v.changeRequest.dept}.</Note></div>
         )}
@@ -154,16 +187,10 @@ function VendorApproval({ v, mode = "approval" }) {
         {!decide && EDITABLE_STATUSES.includes(v.status) && (
           <div className="flex items-center justify-between gap-3 border-t border-line p-4">
             <span className="text-[13px] text-ink-soft">{v.status === "Draft" ? "Draft registration — use Edit details and upload documents, then submit. Details lock once submitted." : "Sent back by the approver — you can edit the details again (Edit details), then resubmit. Earlier approvals are kept."}</span>
-            <Btn variant="primary" icon={Icon.send} onClick={() => { resubmit(v); toast("Submitted for approval"); }}>{v.status === "Draft" ? "Submit for approval" : "Resubmit"}</Btn>
+            <Btn variant="primary" icon={Icon.send} onClick={() => { if (resubmit(v)) toast("Submitted for approval"); }}>{v.status === "Draft" ? "Submit for approval" : "Resubmit"}</Btn>
           </div>
         )}
-        {decide && v.status === "Active" && v.regTier === "Prospective" && (
-          <div className="flex items-center justify-between gap-3 border-t border-line p-4">
-            <span className="text-[13px] text-ink-soft">Prospective vendors can take part in RFQs only. Authorize to allow POs, contracts and payments.</span>
-            <Btn variant="primary" disabled={!v.bankAccounts.length || comp.status === "Non-Compliant"}
-              onClick={() => setState((s) => (byId(s.vendors, v.id).regTier = "Spend Authorized"), { entity: "Vendor", id: v.id, action: "Promoted to spend authorized" })}>Authorize for spend</Btn>
-          </div>
-        )}
+        {v.status === "Active" && v.regTier === "Prospective" && <SpendAuthPanel v={v} />}
       </Section>
       <Section title="Background & financial checks" icon={Icon.shieldCheck}
         actions={decide && <Btn size="sm" icon={Icon.refresh} onClick={() => setState((s) => (byId(s.vendors, v.id).background = { credit: ["A", "A-", "B+"][Math.floor(Math.random() * 3)], litigation: "Clear", watchlist: "Clear", checkedAt: todayISO() }), { entity: "Vendor", id: v.id, action: "Background check refreshed" })}>Run check</Btn>}>

@@ -125,15 +125,28 @@ function SelfRegisterPage() {
 }
 
 // ---------------------------------------------------------------- approval management
-const NXV_APPROVAL_MODULES = ["Vendor Registration", "RA Bills", "Change Orders", "Labour Rates", "Purchase Orders"];
+const NXV_APPROVAL_MODULES = ["Vendor Registration", "Spend Authorization", "Purchase Orders", "Vendor Invoices", "Contracts", "Change Orders", "RA Bills", "Retention Releases", "Labour Rates"];
 
 function decideChangeOrder(contractId, coId, approve) {
+  const c0 = byId(getState().contracts, contractId), o0 = c0 && c0.changeOrders.find((x) => x.id === coId);
+  if (!o0 || o0.status !== "Pending") return false;
+  if (!tryAct("Project Manager", [o0.raisedBy], "change-order approval")) return false;
   setState((s) => {
     const c = byId(s.contracts, contractId), o = c.changeOrders.find((x) => x.id === coId);
     o.status = approve ? "Approved" : "Rejected";
+    o.decidedBy = currentUser(); o.decidedAt = new Date().toISOString();
     if (approve && o.days) c.end = shiftDays(o.days, c.end);
+    // CO lines raise the work-order quantity (existing line) or add a new item, so the extra work can be measured and billed
+    if (approve) (o.lines || []).forEach((l) => {
+      const w = byId(s.workOrders, l.woId);
+      if (!w || w.type === "Lump Sum") return;
+      const it = l.lineId && w.items.find((i) => i.id === l.lineId);
+      if (it) { it.qty = round2(it.qty + Number(l.qty)); it.coQty = round2((it.coQty || 0) + Number(l.qty)); }
+      else w.items.push({ id: `${w.id.slice(-3)}-${w.items.length + 1}`, code: l.code || coId, desc: l.desc, unit: l.unit, qty: Number(l.qty), rate: Number(l.rate), fromCo: coId });
+    });
   }, { entity: "Contract", id: contractId, action: `${coId} ${approve ? "approved" : "rejected"}` });
   toast(`${coId} ${approve ? "approved" : "rejected"}`, approve ? "green" : "red");
+  return true;
 }
 
 function approvalRows(st, module) {
@@ -146,8 +159,8 @@ function approvalRows(st, module) {
         by: v.source === "Self-registration" ? v.contact.name : "Procurement", date: fmtDate(v.createdAt),
         level: `L${i + 1} / ${v.approval.stages.length} · ${stage?.dept || ""}`, status: v.status === "Rejected" ? "Rejected" : v.status === "Changes Requested" ? "Changes Requested" : "Pending", vendor: v,
         extra: `${v.docs.filter((d) => d.status !== "Missing").length}/${requiredDocs(v).length} docs`,
-        approve: (r) => { approvalAction(v, "Approved", r); toast(`${v.name} — ${stage.dept} approved`); },
-        reject: (r) => { approvalAction(v, "Rejected", r); toast("Sent back to vendor", "red"); },
+        approve: (r) => { if (approvalAction(v, "Approved", r)) toast(`${v.name} — ${stage.dept} approved`); },
+        reject: (r) => { if (approvalAction(v, "Rejected", r)) toast("Sent back to vendor", "red"); },
         open: { kind: "vendor", id: v.id },
       };
     });
@@ -162,7 +175,7 @@ function approvalRows(st, module) {
     });
   if (module === "Change Orders")
     return st.contracts.flatMap((c) => c.changeOrders.filter((o) => o.status === "Pending").map((o) => ({
-      ref: o.id, title: o.desc, sub: `${c.id} · ${vendorName(st, c.vendorId)}${o.days ? ` · +${o.days} days` : ""}`, by: c.owner, date: fmtDate(o.raisedOn),
+      ref: o.id, title: o.desc, sub: `${c.id} · ${vendorName(st, c.vendorId)}${o.days ? ` · +${o.days} days` : ""}${(o.lines || []).length ? ` · ${o.lines.length} quantity line(s)` : ""}`, by: o.raisedBy || c.owner, date: fmtDate(o.raisedOn),
       level: "L1 / 1 · Project Manager", status: "Pending", extra: inrShort(o.amount),
       approve: () => decideChangeOrder(c.id, o.id, true), reject: () => decideChangeOrder(c.id, o.id, false), open: { kind: "contract", id: c.id },
     })));
@@ -176,8 +189,34 @@ function approvalRows(st, module) {
     return st.purchaseOrders.filter((p) => p.status === "Draft").map((p) => ({
       ref: p.id, title: `${vendorName(st, p.vendorId)} — ${p.lines.length} line(s)`, sub: `${p.project}${p.rfqId ? ` · from ${p.rfqId}` : ""}`, by: "Procurement", date: fmtDate(p.date),
       level: "L1 / 1 · Procurement head", status: "Pending", extra: inrShort(poValue(p)),
-      approve: () => { setState((s) => (byId(s.purchaseOrders, p.id).status = "Issued"), { entity: "PO", id: p.id, action: "Approved & issued" }); toast(`${p.id} approved & issued`); },
-      reject: (r) => { setState((s) => (byId(s.purchaseOrders, p.id).status = "Cancelled"), { entity: "PO", id: p.id, action: `Rejected — ${r}` }); toast(`${p.id} rejected`, "red"); },
+      approve: (r) => decidePo(p, true, r), reject: (r) => decidePo(p, false, r), note: p.awardNote,
+    }));
+  if (module === "Spend Authorization")
+    return st.vendors.filter((v) => v.tierRequest?.status === "Pending").map((v) => ({
+      ref: v.id, title: v.name, sub: `Prospective → Spend Authorized${v.tierRequest.note ? ` · ${v.tierRequest.note}` : ""}`, by: v.tierRequest.by, date: fmtDate(v.tierRequest.at),
+      level: "L1 / 1 · Finance Controller", status: "Pending", extra: spendAuthBlockers(v).length ? `${spendAuthBlockers(v).length} check(s) open` : "checks passed",
+      approve: (r) => decideSpendAuth(v, true, r), reject: (r) => decideSpendAuth(v, false, r), open: { kind: "vendor", id: v.id },
+    }));
+  if (module === "Vendor Invoices")
+    return st.invoices.filter((i) => i.review === "Pending").map((i) => ({
+      ref: i.id, title: `${vendorName(st, i.vendorId)} — ${i.number}`, sub: `Submitted in the portal${i.poId ? ` against ${i.poId}` : ""}`, by: i.submittedBy || "Vendor", date: fmtDate(i.date),
+      level: "L1 / 1 · Accounts", status: "Pending", extra: inrShort(invoiceTotals(i).payable),
+      approve: (r) => reviewVendorInvoice(i, true, r), reject: (r) => reviewVendorInvoice(i, false, r), open: { kind: "invoice", id: i.id },
+    }));
+  if (module === "Contracts")
+    return st.contracts.filter((c) => c.status === "Pending Approval").map((c) => {
+      const i = c.approval.stages.findIndex((x) => x.status === "Pending"), stg = c.approval.stages[i];
+      return {
+        ref: c.id, title: c.title, sub: `${vendorName(st, c.vendorId)} · ${c.project}${c.rfqId ? ` · from ${c.rfqId}` : ""}`, by: c.submittedBy || c.owner, date: fmtDate(c.submittedAt || c.start),
+        level: `L${i + 1} / ${c.approval.stages.length} · ${stg.role}`, status: "Pending", extra: inrShort(c.value),
+        approve: (r) => decideContract(c, true, r), reject: (r) => decideContract(c, false, r), open: { kind: "contract", id: c.id },
+      };
+    });
+  if (module === "Retention Releases")
+    return st.retentionReleases.filter((r) => r.status === "Due" || r.status === "Pending Approval").map((r) => ({
+      ref: r.id, title: `${r.contractId} · ${vendorName(st, byId(st.contracts, r.contractId).vendorId)}`, sub: `${r.type}${r.note ? ` · ${r.note}` : ""}`, by: r.requestedBy || "Commercial", date: fmtDate(r.requestedOn),
+      level: "L1 / 1 · Finance Controller", status: "Pending", extra: inrShort(r.amount),
+      approve: (x) => decideRelease(r, true, x), reject: (x) => decideRelease(r, false, x), open: { kind: "contract", id: r.contractId },
     }));
   return [];
 }
@@ -198,7 +237,7 @@ function ApprovalManagementPage() {
   const total = [...d0, ...NXV_APPROVAL_MODULES].reduce((n, m) => n + count(m), 0);
   return (
     <Card>
-      <PageHeader title="Approval Management" actions={<>{h(tr)}{h(ve, { value: project, onChange: setProject })}</>} />
+      <PageHeader title="Approval Management" actions={<>{h(tr)}{h(ve, { value: project, onChange: setProject })}{isNew && <ActorSwitcher />}</>} />
       <Toolbar left={<>
         <div className="w-[260px]"><Select label="Module" value={module} onChange={setModule} placeholder="Select module" options={[
           { header: true, value: "__h1", label: "Vendor & contracts" }, ...NXV_APPROVAL_MODULES.map((m) => ({ value: m, label: `${m} (${count(m)})` })),
@@ -242,6 +281,7 @@ function ApprovalManagementPage() {
       {open?.kind === "vendor" && <VendorDrawer vendorId={open.id} initialTab="approval" mode="approval" onClose={() => setOpen(null)} />}
       {open?.kind === "ra" && <RaBillDrawer id={open.id} onClose={() => setOpen(null)} />}
       {open?.kind === "contract" && <ContractDrawer id={open.id} onClose={() => setOpen(null)} />}
+      {open?.kind === "invoice" && <InvoiceDrawer id={open.id} onClose={() => setOpen(null)} />}
       <Toaster />
     </Card>
   );

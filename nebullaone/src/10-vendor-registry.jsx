@@ -93,6 +93,7 @@ function createVendor(f, submit, source = "Internal") {
   delete v.bank;
   delete v.uploads;
   v.source = source;
+  if (submit) v.submittedBy = source === "Internal" ? currentUser() : f.contact.name;
   v.portalUsers = v.contact.email ? [{ name: v.contact.name, email: v.contact.email.toLowerCase(), active: true, role: "Admin", lastLogin: null }] : [];
   v.changeRequest = null;
   v.docs = requiredDocs(v).map((name) => {
@@ -323,6 +324,11 @@ function RegisterVendorModal({ open, onClose, onCreated, contractorMode }) {
     const e = validateVendor(f);
     setErrors(e);
     if (Object.keys(e).length) return;
+    if (submit && currentSettings().requireDocsOnSubmit) {
+      const tmp = { ...f, isContractor: f.isContractor || f.type === "Labor" };
+      const missing = requiredDocs(tmp).filter((n) => !(f.uploads || {})[n]?.file);
+      if (missing.length) { setErrors({ docs: `Upload before submitting: ${missing.join(", ")}` }); toast(`Upload the required documents first — ${missing.join(", ")}. Or save as draft.`, "red"); return; }
+    }
     const id = createVendor(f, submit);
     toast(submit ? `${id} submitted for approval` : `${id} saved as draft`);
     onClose();
@@ -333,6 +339,7 @@ function RegisterVendorModal({ open, onClose, onCreated, contractorMode }) {
       title={contractorMode ? "Onboard contractor" : "Register vendor"}
       subtitle="Saving creates a vendor ID and a draft record; submitting routes it through Procurement → Legal → Finance."
       footer={<><Btn onClick={onClose}>Cancel</Btn><Btn onClick={() => save(false)}>Save draft</Btn><Btn variant="primary" icon={Icon.send} onClick={() => save(true)}>Submit for approval</Btn></>}>
+      {errors.docs && <div className="mb-3"><Note tone="red">{errors.docs}</Note></div>}
       <VendorForm f={f} set={setF} errors={errors} contractorMode={contractorMode} />
     </Modal>
   );
@@ -449,8 +456,11 @@ function VendorFlags({ v }) {
           <Field label="Vendor type"><Select value={v.type} onChange={(t) => edit("type", t, `Type changed to ${t}`)} options={VENDOR_TYPES} /></Field>
           <Field label="Supplier type" hint={`TDS ${(TDS_SECTIONS.find((t) => t.value === v.tds) || {}).label || ""}`}><Select value={v.supplierType || "Company"} onChange={(t) => mut((x) => { x.supplierType = t; x.tds = autoTds(x.type, t); }, `Supplier type → ${t}`)} options={SUPPLIER_TYPES} /></Field>
           <Field label="Supplier tier"><Select value={v.tier} onChange={(t) => edit("tier", t, `Tier changed to ${t}`)} options={TIERS} /></Field>
-          <Field label="Registration tier">
-            <Select value={v.regTier} onChange={(t) => edit("regTier", t, `Registration tier → ${t}`)} options={["Prospective", "Spend Authorized"]} />
+          <Field label="Registration tier" hint={v.regTier === "Prospective" ? "Upgrade needs Finance approval (Approval tab)" : "Downgrade is immediate"}>
+            <span className="flex h-[32px] items-center gap-2 text-[13px]"><Status>{v.regTier}</Status>
+              {v.tierRequest?.status === "Pending" && <Status tone="amber">Upgrade requested</Status>}
+              {v.regTier === "Spend Authorized" && <button className="text-[12px] font-medium text-brand" onClick={() => tryAct("Procurement Head", [], "downgrading a vendor") && edit("regTier", "Prospective", "Registration tier → Prospective (downgraded)")}>Downgrade</button>}
+            </span>
           </Field>
           <Field label="Vendor group" hint="Filters & spend-by-group report"><Select value={v.group || ""} placeholder="— not grouped —" onChange={(g) => edit("group", g, g ? `Vendor group → ${g}` : "Removed from vendor group")} options={withCurrent(settingsOf(getState()).vendorGroups, v.group)} /></Field>
           <Field label="Internal parent company" hint="Only if this vendor is one of our group companies" span={2}><Select value={v.parentCompany || ""} placeholder="— external vendor —" onChange={(g) => edit("parentCompany", g, g ? `Marked as group company of ${g}` : "Marked as external vendor")} options={withCurrent(settingsOf(getState()).groupCompanies, v.parentCompany)} /></Field>
@@ -462,7 +472,7 @@ function VendorFlags({ v }) {
       <Section title="Flags" icon={Icon.flag}>
         <div className="flex flex-wrap items-center gap-6 p-4">
           <Check checked={v.preferred} onChange={(b) => edit("preferred", b, b ? "Marked preferred supplier" : "Preferred flag removed")} label="Preferred supplier" />
-          <Check checked={v.status !== "Inactive"} onChange={(b) => edit("status", b ? "Active" : "Inactive", b ? "Vendor enabled" : "Vendor disabled")} label="Enabled for new transactions" />
+          {!APPROVAL_STATES.includes(v.status) && v.status !== "Blacklisted" && <Check checked={v.status !== "Inactive"} onChange={(b) => edit("status", b ? "Active" : "Inactive", b ? "Vendor enabled" : "Vendor disabled")} label="Enabled for new transactions" />}
           <Check checked={!!v.allowBillWithoutPO} onChange={(b) => edit("allowBillWithoutPO", b, b ? "Allowed bills without PO" : "PO required for bills")} label="Allow bills without PO" />
           <Check checked={!!v.allowBillWithoutReceipt} onChange={(b) => edit("allowBillWithoutReceipt", b, b ? "Allowed bills before receipt" : "Receipt required before billing")} label="Allow bills before goods receipt" />
         </div>
@@ -489,7 +499,7 @@ function VendorFlags({ v }) {
           {v.status === "Blacklisted" ? (
             <>
               <Note tone="red">Blacklisted — history is kept but the vendor can't be used on new RFQs, POs or contracts.</Note>
-              <Btn onClick={() => mut((x) => (x.status = "Active"), "Removed from blacklist")}>Remove from blacklist</Btn>
+              <Btn onClick={() => tryAct("Procurement Head", [], "removing a vendor from the blacklist") && mut((x) => (x.status = "Active"), "Removed from blacklist")}>Remove from blacklist</Btn>
             </>
           ) : (
             <>
@@ -666,7 +676,9 @@ function vendorStatusOptions(v) {
   return VSTATUS;
 }
 function setVendorStatus(v, to, extra = {}) {
-  if (to === "Pending Approval") { resubmit(v); toast(`${v.name} submitted for approval`); return; }
+  if (to === "Pending Approval") { if (resubmit(v)) toast(`${v.name} submitted for approval`); return; }
+  // Taking a vendor off the blacklist needs the Procurement Head
+  if (v.status === "Blacklisted" && !tryAct("Procurement Head", [], "removing a vendor from the blacklist")) return;
   setState((s) => {
     const x = byId(s.vendors, v.id); const from = x.status; x.status = to;
     if (to === "On Hold") x.hold = { ...extra.hold, placedAt: todayISO() }; else if (from === "On Hold") x.hold = null;
@@ -731,7 +743,7 @@ function BlacklistModal({ v, onClose }) {
 function VendorRegistryPage() {
   const st = useStore();
   const [type, setType] = y.useState("All"), [status, setStatus] = y.useState("All"), [tier, setTier] = y.useState("All"), [grp, setGrp] = y.useState("All");
-  const [open, setOpen] = y.useState(null), [reg, setReg] = y.useState(false), [share, setShare] = y.useState(false), [invite, setInvite] = y.useState(false), [view, setView] = y.useState("vendors");
+  const [open, setOpen] = useQueryOpen(), [reg, setReg] = y.useState(false), [share, setShare] = y.useState(false), [invite, setInvite] = y.useState(false), [view, setView] = y.useState("vendors");
   const [sel, setSel] = y.useState([]), [holdFor, setHoldFor] = y.useState(null);
   const rows = st.vendors.filter((v) =>
     (type === "All" || v.type === type) && (status === "All" || v.status === status) && (tier === "All" || v.tier === tier) &&
