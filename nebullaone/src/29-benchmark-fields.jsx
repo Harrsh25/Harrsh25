@@ -458,13 +458,13 @@ function benchSettingsErr(f) {
   if (f.rfqSenderEmail && !EMAIL_RE.test(f.rfqSenderEmail)) return "RFQ sender e-mail is not valid";
   return "";
 }
-function BenchmarkSettings({ f, setF, mode, yesNo }) {
+function BenchmarkSettings({ f, setF, mode, yesNo, part }) {
   const set = (k) => (v) => setF({ ...f, [k]: v });
   const num = (k, label, hint) => <Field label={label} hint={hint}><NumInput value={f[k]} onChange={set(k)} /></Field>;
   const cf = f.customFields || {};
   const cfCols = [{ key: "label", label: "Label", width: 160 }, { key: "type", label: "Type", type: "select", options: ["Text", "Number", "Date", "Dropdown"] }, { key: "options", label: "Dropdown options (comma-separated)", width: 200 }];
   return (
-    <>
+    <>{part === "rules" && <>
       <Section title="Purchase controls" icon={Icon.sliders}>
         {yesNo("lockConfirmedOrders", "Lock confirmed orders", "Issued POs can't be edited — cancel or amend instead")}
         {yesNo("purchaseWarnings", "Purchase warnings", "Show each vendor's purchase warning on RFQs and POs")}
@@ -494,11 +494,13 @@ function BenchmarkSettings({ f, setF, mode, yesNo }) {
           {num("lateReceiptDays", "Late receipt tolerance (days)")}
         </div>
       </Section>
+      </>}{part === "masters" && <>
       <ListEditor title="Cost centres" icon={Icon.layers} items={f.costCentres || []} onChange={set("costCentres")} placeholder="CC-260 New project" usage={() => 0} />
       <ListEditor title="Stores / warehouses" icon={Icon.boxes} items={f.stores || []} onChange={set("stores")} placeholder="Site store — Tower C" usage={() => 0} />
       <ListEditor title="Price lists" icon={Icon.receipt} items={f.priceLists || []} onChange={set("priceLists")} placeholder="Rate contract 2027–28" usage={() => 0} />
       <ListEditor title="Tax categories" icon={Icon.percent} items={f.taxCategories || []} onChange={set("taxCategories")} placeholder="In-state (CGST + SGST)" usage={() => 0} />
       <ListEditor title="Company bank accounts" icon={Icon.wallet} items={f.companyBanks || []} onChange={set("companyBanks")} placeholder="Axis Bank — Current ••1234" usage={() => 0} />
+      </>}{part === "templates" && (
       <div className="col-span-2 grid gap-4">
         <TableEditor title="Payment terms templates" icon={Icon.calendar} rows={f.paymentTermTemplates || []} onChange={set("paymentTermTemplates")} blank={() => ({ name: "", days: 30, discountDays: 0, discountPct: 0 })}
           hint="Early-payment discount: pay within the discount days and take the discount %." cols={[{ key: "name", label: "Name", width: 200 }, { key: "days", label: "Due in (days)", type: "number" }, { key: "discountDays", label: "Discount if paid within (days)", type: "number" }, { key: "discountPct", label: "Discount %", type: "number" }]} />
@@ -525,7 +527,7 @@ function BenchmarkSettings({ f, setF, mode, yesNo }) {
             { key: "level", label: "Level", type: "select", options: ["Supplier", "Contractor"] }, { key: "responder", label: "Responder", type: "select", options: ["Supplier", "Internal"] },
             { key: "required", label: "Required", type: "check", width: 60 }, { key: "critical", label: "Critical", type: "check", width: 60 }, { key: "attribute", label: "Profile attribute", width: 120 },
             { key: "responseType", label: "Response type", type: "select", options: ["Yes / No", "Number", "Text", "Choice"], width: 110 }, { key: "options", label: "Choices", width: 140 }]} />
-      </div>
+      </div>)}
     </>
   );
 }

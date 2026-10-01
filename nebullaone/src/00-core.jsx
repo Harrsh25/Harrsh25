@@ -600,8 +600,12 @@ function ColumnPicker({ extra, shown, onApply, onClose }) {
 }
 const readCols = (id) => { try { const v = JSON.parse(localStorage.getItem("nxv-cols:" + id)); return Array.isArray(v) ? v : null; } catch { return null; } };
 
-function DataTable({ columns: baseColumns, extraColumns, columnsId, onClearFilters, exportName, rows, onRow, rowKey = (r) => r.id, empty, footer, dense, plain, filters, actions, noun = "records", summary, searchText = rowSearchText, placeholder = "Search…" }) {
+function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0, onClearFilters, exportName, rows, onRow, rowKey = (r) => r.id, empty, footer, dense, plain, filters, actions, noun = "records", summary, searchText = rowSearchText, placeholder = "Search…" }) {
   const list = !dense && !plain;
+  // Columns marked opt start hidden; they can be switched on in Customize Columns
+  const baseColumns = allColumns.filter((c) => !c.opt), optCols = allColumns.filter((c) => c.opt);
+  const extraColumns = optCols.length ? [...optCols, ...(extra0 || [])] : extra0;
+  const columnsId = cid0 || `auto:${noun}`;
   // Optional columns: shown when switched on in the Customize Columns panel ("+" at the end of the header)
   const [extraOn, setExtraOn] = y.useState(() => (extraColumns ? readCols(columnsId) || extraColumns.filter((c) => c.default).map((c) => c.key) : []));
   const [picker, setPicker] = y.useState(false);

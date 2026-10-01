@@ -400,7 +400,10 @@ const EDITABLE_STATUSES = ["Draft", "Rejected", "Changes Requested"];
 function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "registry" }) {
   const st = useStore();
   const v = byId(st.vendors, vendorId);
-  const [tab, setTab] = y.useState(initialTab);
+  // Contacts & addresses live on Overview, the activity trail on Approvals
+  const tabOf = (t) => (t === "contacts" ? "overview" : t === "activity" ? "approval" : t);
+  const [tab, setTab0] = y.useState(tabOf(initialTab));
+  const setTab = (t) => setTab0(tabOf(t));
   const [edit, setEdit] = y.useState(false);
   y.useEffect(() => setTab(initialTab), [vendorId]);
   if (!v) return null;
@@ -409,14 +412,12 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
   const canEdit = mode === "registry" && EDITABLE_STATUSES.includes(v.status);
   const tabs = [
     { id: "overview", label: "Overview" },
-    { id: "contacts", label: "Contacts & addresses", count: ((v.contacts || []).length + (v.addresses || []).length) || null },
     { id: "flags", label: "Status & flags" },
     { id: "docs", label: "Documents", count: `${v.docs.filter((d) => d.status === "Verified").length}/${requiredDocs(v).length}` },
     { id: "bank", label: "Bank", count: v.bankAccounts.length || null },
     { id: "qual", label: "Qualification" },
     ...(v.isContractor || v.type === "Labor" ? [{ id: "equip", label: "Equipment", count: (v.equipment || []).length || null }] : []),
     { id: "approval", label: "Approvals" },
-    { id: "activity", label: "Activity" },
   ];
   return (
     <Drawer open onClose={onClose} width={880} title={<span className="flex items-center gap-2">{v.name}<PreferredStar v={v} size={16} always /></span>}
@@ -424,18 +425,17 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
       actions={<>{canEdit && <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>}</>}
       tabs={{ tabs, active: tab, onChange: setTab }}>
       <div className="space-y-4 px-6 py-5">
-        {locked && tab !== "activity" && <Note tone="amber" icon={Icon.lock}>Submitted for approval — details are locked until the approvers decide. {v.status === "Pending Approval" ? "If it is rejected or sent back, you can edit and resubmit." : ""}</Note>}
+        {locked && tab !== "approval" && <Note tone="amber" icon={Icon.lock}>Submitted for approval — details are locked until the approvers decide. {v.status === "Pending Approval" ? "If it is rejected or sent back, you can edit and resubmit." : ""}</Note>}
         {tab === "overview" && <VendorOverview v={v} comp={comp} />}
         <fieldset disabled={locked} className="contents">
-          {tab === "contacts" && <VendorContactsAddresses v={v} locked={locked} />}
+          {tab === "overview" && <VendorContactsAddresses v={v} locked={locked} />}
           {tab === "flags" && <VendorFlags v={v} />}
           {tab === "docs" && <><VendorDocs v={v} mode={mode} locked={locked} /><InsurancePolicies v={v} mode={mode} locked={locked} /></>}
           {tab === "bank" && <VendorBanks v={v} />}
           {tab === "qual" && <Questionnaire v={v} />}
           {tab === "equip" && <EquipmentRegister v={v} />}
         </fieldset>
-        {tab === "approval" && <VendorApproval v={v} mode={mode} />}
-        {tab === "activity" && <VendorActivity v={v} />}
+        {tab === "approval" && <><VendorApproval v={v} mode={mode} /><VendorActivity v={v} /></>}
       </div>
       {edit && <EditRegistrationModal v={v} owner onClose={() => setEdit(false)} />}
     </Drawer>

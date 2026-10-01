@@ -195,12 +195,12 @@ function WorkOrdersPage() {
         { key: "id", label: "WO", className: "mono text-[12px] text-ink-soft" },
         { key: "title", label: "Title", className: "font-medium" },
         { key: "v", label: "Contractor", filterOptions: FO.contractors, filter: (x) => vendorName(st, x.vendorId), render: (w) => vendorName(st, w.vendorId) },
-        { key: "type", label: "Type", render: (w) => <span className={cls("rounded px-1.5 py-[1px] text-[11px] font-medium", w.type === "Lump Sum" ? "bg-cyan-50 text-cyan-700" : "bg-violet-50 text-violet-700")}>{w.type}</span> },
+        { key: "type", label: "Type", opt: true, render: (w) => <span className={cls("rounded px-1.5 py-[1px] text-[11px] font-medium", w.type === "Lump Sum" ? "bg-cyan-50 text-cyan-700" : "bg-violet-50 text-violet-700")}>{w.type}</span> },
         { key: "val", label: "Value", align: "right", num: true, render: (w) => inrShort(woValue(w)) },
-        { key: "pl", label: "Planned", align: "right", num: true, render: (w) => `${woProgress(st, w).planned.toFixed(0)}%` },
+        { key: "pl", label: "Planned", opt: true, align: "right", num: true, render: (w) => `${woProgress(st, w).planned.toFixed(0)}%` },
         { key: "ph", label: "Physical", render: (w) => { const p = woProgress(st, w); return <Progress value={Math.round(p.physical)} color={p.spi >= 0.95 ? "bg-green-500" : p.spi >= 0.8 ? "bg-amber-500" : "bg-red-500"} />; } },
         { key: "end", label: "Finish", render: (w) => fmtDate(w.end) },
-        { key: "acc", label: "Contractor", filterOptions: FO.acceptance, filter: (w) => w.acceptance?.status || "—", filterLabel: "Acceptance", render: (w) => <Status tone={{ Accepted: "green", Pending: "amber", Declined: "red" }[w.acceptance?.status] || "gray"}>{w.acceptance?.status === "Pending" ? "Awaiting acceptance" : w.acceptance?.status || "—"}</Status> },
+        { key: "acc", label: "Contractor", opt: true, filterOptions: FO.acceptance, filter: (w) => w.acceptance?.status || "—", filterLabel: "Acceptance", render: (w) => <Status tone={{ Accepted: "green", Pending: "amber", Declined: "red" }[w.acceptance?.status] || "gray"}>{w.acceptance?.status === "Pending" ? "Awaiting acceptance" : w.acceptance?.status || "—"}</Status> },
         { key: "s", label: "Status", filterOptions: FO.woStatus, filter: (w) => w.status, render: (w) => <Status>{w.status}</Status> },
       ]} />
       <WorkOrderModal open={create} contractId={presetContract} onClose={() => setCreate(false)} onCreated={setOpen} />
@@ -301,8 +301,8 @@ function MeasurementBookPage() {
           { key: "date", label: "Date", render: (m) => fmtDate(m.date) },
           { key: "wo", label: "WO", className: "mono text-[12px]", render: (m) => m.woId },
           { key: "item", label: "Item / milestone", className: "max-w-[260px] truncate", render: (m) => <span title={lineName(m)}>{lineName(m)}</span> },
-          { key: "loc", label: "Location", className: "max-w-[200px] truncate", render: (m) => <span title={m.location}>{m.location}</span> },
-          { key: "dims", label: "N × L × B × D", className: "num text-[12px] text-ink-soft", render: (m) => (m.l || m.b || m.d ? [m.nos || 1, m.l ?? "–", m.b ?? "–", m.d ?? "–"].join(" × ") : "—") },
+          { key: "loc", label: "Location", opt: true, className: "max-w-[200px] truncate", render: (m) => <span title={m.location}>{m.location}</span> },
+          { key: "dims", label: "N × L × B × D", opt: true, className: "num text-[12px] text-ink-soft", render: (m) => (m.l || m.b || m.d ? [m.nos || 1, m.l ?? "–", m.b ?? "–", m.d ?? "–"].join(" × ") : "—") },
           { key: "qty", label: "Quantity", align: "right", num: true, render: (m) => <b>{qtyText(m)}</b> },
           { key: "jms", label: "JMS", render: (m) => <span title={m.jms.remark || ""}><Status>{m.jms.status}</Status></span> },
           { key: "qc", label: "Inspection", filterOptions: ["Pending", "Passed", "Failed"], filter: (m) => m.qc?.status || "Pending", render: (m) => (

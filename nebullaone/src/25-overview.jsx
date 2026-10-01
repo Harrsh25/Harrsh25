@@ -476,31 +476,6 @@ function ContractOverviewPage() {
           <StatTile tone="cyan" label="Retention held" value={inrShort(d.retention)} sub={`${inrShort(d.advance)} advance to recover`} icon={Icon.lock} />
           <StatTile tone="red" label="Open alerts" value={d.actions.length} sub={`${d.actions.filter((a) => a.sev === "critical").length} critical`} icon={Icon.warning} />
         </div>
-        <div className="grid grid-cols-3 gap-3">
-          <DashCard title="Contract delivery" icon={Icon.trending} link={{ label: "Progress", to: `${CL_BASE}/performance` }}>
-            <Donut center={d.health.length} sub="contracts" onPick={() => nav(`${CL_BASE}/contracts`)} data={[
-              { label: "On track", value: hcount("On track"), tone: "green" }, { label: "At risk", value: hcount("At risk"), tone: "amber" },
-              { label: "Delayed", value: hcount("Delayed"), tone: "red" }, { label: "Completed", value: hcount("Completed"), tone: "blue" },
-            ]} />
-            <div className="grid grid-cols-3 divide-x divide-line border-t border-line">
-              <Metric label="Average SPI" value={avgSpi.toFixed(2)} sub="target 1.00" tone={avgSpi < 0.8 ? "text-red-600" : avgSpi < 0.95 ? "text-amber-600" : "text-green-700"} />
-              <Metric label="Physical" value={`${physical.toFixed(0)}%`} sub="of contract value" />
-              <Metric label="Billed" value={`${billing.toFixed(0)}%`} sub="RA bills raised" />
-            </div>
-          </DashCard>
-          <DashCard title="Commercial / cash pipeline" icon={Icon.rupee} link={{ label: "Retention & deductions", to: `${CL_BASE}/retention` }} className="col-span-2">
-            <div className="flex h-[190px] items-end gap-3 px-5 pb-2 pt-4">
-              {d.cash.map((c) => (
-                <div key={c.label} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1">
-                  <span className="num text-[11.5px] font-semibold text-ink">{inrShort(c.v)}</span>
-                  <span className={cls("w-full rounded-t", c.color)} style={{ height: `${Math.max(3, (c.v / maxCash) * 130)}px` }} />
-                  <span className="w-full truncate text-center text-[11px] text-ink-mute">{c.label}</span>
-                </div>
-              ))}
-            </div>
-            <p className="border-t border-line px-4 py-2 text-[11.5px] text-ink-mute">Executed = JMS-measured value · {inrShort(Math.max(0, d.cash[2].v - d.cash[3].v))} executed but not yet certified · outstanding = approved RA bills not yet paid.</p>
-          </DashCard>
-        </div>
         <div className="grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-3">
           <ActionCenter actions={d.actions} nav={nav} />
           <ExpiringCard rows={d.expiring} nav={nav} link={{ label: "Contracts", to: `${CL_BASE}/contracts` }} />

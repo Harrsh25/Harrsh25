@@ -839,13 +839,13 @@ function InvoicesPage() {
       {tab === "bills" && <DataTable noun="bills" summary={(r) => [{ value: inrShort(sum(r, (i) => invoiceTotals(i).balance)), label: "outstanding" }, { value: inrShort(sum(st.vendorAdvances, (a) => a.amount - sum(a.allocated, (x) => x.amount))), label: "unadjusted advances" }]} filters={<><FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Awaiting Review", "Unpaid", "Partially Paid", "Overdue", "On Hold", "Paid", "Rejected"]} /></>} rows={rows} onRow={(i) => setOpen(i.id)} columns={[
         { key: "sel", label: "", render: (i) => invoiceStatus(i) !== "Paid" && <input type="checkbox" className="h-4 w-4 accent-[#0b5ed7]" checked={sel.includes(i.id)} onClick={(e) => e.stopPropagation()} onChange={(e) => setSel(e.target.checked ? [...sel, i.id] : sel.filter((x) => x !== i.id))} /> },
         { key: "v", label: "Vendor", filterOptions: FO.vendors, filter: (x) => vendorName(st, x.vendorId), render: (i) => <span className="font-medium">{vendorName(st, i.vendorId)}</span> },
-        { key: "src", label: "Against", filterOptions: FO.billType, filterLabel: "Bill type", filter: (i) => (i.source === "RA Bill" ? "RA bill" : i.source === "Direct" ? "Direct bill" : "Purchase order"), render: (i) => { const [a, b] = billAgainst(st, i); return <TwoLine a={a} b={b} />; } },
+        { key: "src", label: "Against", opt: true, filterOptions: FO.billType, filterLabel: "Bill type", filter: (i) => (i.source === "RA Bill" ? "RA bill" : i.source === "Direct" ? "Direct bill" : "Purchase order"), render: (i) => { const [a, b] = billAgainst(st, i); return <TwoLine a={a} b={b} />; } },
         { key: "number", label: "Vendor bill no.", className: "text-[12px]", render: (i) => (i.source === "RA Bill" ? <span className="text-ink-mute">Auto (from RA bill)</span> : i.number || <span className="text-ink-faint">—</span>) },
         { key: "amt", label: "Amount", align: "right", num: true, render: (i) => inr(invoiceTotals(i).payable) },
         { key: "bal", label: "Balance", align: "right", num: true, render: (i) => inr(invoiceTotals(i).balance) },
         { key: "due", label: "Next due", render: (i) => fmtDate((nextInstalment(i) || {}).due || i.due) },
         { key: "m", label: "Match", filterOptions: FO.match, filter: (i) => threeWay(st, i).status, render: (i) => { const s = threeWay(st, i).status; return <Status tone={s.startsWith("Matched") ? "green" : s === "Mismatch" ? "red" : "amber"}>{s}</Status>; } },
-        { key: "sbp", label: "Should pay", filterOptions: FO.shouldPay, filterAll: "Should pay: any", filter: (i) => shouldBePaid(st, i), render: (i) => <Status tone={{ Yes: "green", No: "gray", Exception: "amber" }[shouldBePaid(st, i)]}>{shouldBePaid(st, i)}</Status> },
+        { key: "sbp", label: "Should pay", opt: true, filterOptions: FO.shouldPay, filterAll: "Should pay: any", filter: (i) => shouldBePaid(st, i), render: (i) => <Status tone={{ Yes: "green", No: "gray", Exception: "amber" }[shouldBePaid(st, i)]}>{shouldBePaid(st, i)}</Status> },
         { key: "s", label: "Status", render: (i) => <Status>{invoiceStatus(i)}</Status> },
       ]} />}
       {run && <PayModal invIds={sel} onClose={() => { setRun(false); setSel([]); }} />}
@@ -875,6 +875,7 @@ function InvoicesPage() {
 function ProcurementSettingsPage() {
   const st = useStore();
   const [f, setF] = y.useState(settingsOf(st));
+  const [tab, setTab] = y.useState("rules");
   y.useEffect(() => setF(settingsOf(st)), [st.settings]);
   const set = (k) => (v) => setF({ ...f, [k]: v });
   const mode = (k, label, hint) => (
@@ -892,7 +893,9 @@ function ProcurementSettingsPage() {
   return (
     <Page title="Procurement Settings" subtitle="Which checks stop a transaction, which only warn, and who may override — like ERPNext Buying Settings" icon={Icon.settings}
       actions={<Btn variant="primary" icon={Icon.save} onClick={() => { const e = flowErr(f.vendorFlow, "Vendor") || flowErr(f.contractFlow, "Contract") || benchSettingsErr(f); if (e) return toast(e, "red"); setState((s) => (s.settings = { ...f }), { entity: "Settings", id: "PROCUREMENT", action: `Procurement settings updated — vendor stages ${f.vendorFlow.map((x) => x.name).join(" → ")}; contract stages ${f.contractFlow.map((x) => x.name).join(" → ")}` }); toast("Settings saved"); }}>Save settings</Btn>}>
+      <TabBar active={tab} onChange={setTab} tabs={[{ id: "rules", label: "Rules", icon: Icon.sliders }, { id: "gates", label: "Gates & approvals", icon: Icon.clipboardCheck }, { id: "masters", label: "Masters", icon: Icon.layers }, { id: "templates", label: "Templates", icon: Icon.file }]} />
       <div className="grid grid-cols-2 gap-4 p-4">
+        {tab === "rules" && <>
         <Section title="Billing rules" icon={Icon.receipt}>
           {yesNo("poRequiredForBill", "Purchase order required for vendor bills", "Vendors can be exempted individually (Status & flags tab)")}
           {yesNo("receiptRequiredForBill", "Goods receipt required before billing", "Applies to POs billed on received quantity")}
@@ -904,6 +907,16 @@ function ProcurementSettingsPage() {
           {mode("complianceGate", "Vendor compliance gate", "Expired insurance / missing statutory documents")}
           <div className="grid grid-cols-[1fr_260px] items-center gap-4 px-4 py-3"><div><p className="text-[13px] font-medium">Rate tolerance (%)</p><p className="text-[12px] text-ink-mute">Differences within this % count as a match</p></div><NumInput value={f.rateTolerancePct} onChange={set("rateTolerancePct")} /></div>
         </Section>
+        <Section title="Ordering & vendor access" icon={Icon.package}>
+          <div className="grid grid-cols-2 gap-3 p-4">
+            <Field label="Over-order allowance (%)" hint="Above RFQ / requisition quantity"><NumInput value={f.overOrderPct} onChange={set("overOrderPct")} /></Field>
+            <Field label="Blanket order allowance (%)" hint="Call-offs above the agreed quantity"><NumInput value={f.blanketAllowancePct} onChange={set("blanketAllowancePct")} /></Field>
+            <div className="col-span-2"><Check checked={f.quoteLogin} onChange={set("quoteLogin")} label="Vendors must sign in (one-time code) to open quote links" /></div>
+          </div>
+        </Section>
+        <BenchmarkSettings f={f} setF={setF} mode={mode} yesNo={yesNo} part="rules" />
+        </>}
+        {tab === "gates" && <>
         <Section title="Workflow gates" icon={Icon.clipboardCheck}>
           {mode("rfqComplianceGate", "Compliance at RFQ invite", "Blocking compliance failures or overdue requalification")}
           {mode("poComplianceGate", "Compliance at PO / contract", "Same checks when ordering or contracting")}
@@ -916,18 +929,15 @@ function ProcurementSettingsPage() {
           rows={f.vendorFlow} onChange={set("vendorFlow")} extra={{ key: "scope", label: "Applies to", options: ["All", "Contractors", "Non-contractors"], blank: "All" }} />
         <FlowEditor title="Contract approval stages" hint="A stage with a minimum value only applies to contracts at or above it. The last stage also checks the contractor gates."
           rows={f.contractFlow} onChange={set("contractFlow")} extra={{ key: "minValue", label: "Min value (₹)", num: true, blank: 0 }} />
-        <Section title="Ordering & vendor access" icon={Icon.package}>
-          <div className="grid grid-cols-2 gap-3 p-4">
-            <Field label="Over-order allowance (%)" hint="Above RFQ / requisition quantity"><NumInput value={f.overOrderPct} onChange={set("overOrderPct")} /></Field>
-            <Field label="Blanket order allowance (%)" hint="Call-offs above the agreed quantity"><NumInput value={f.blanketAllowancePct} onChange={set("blanketAllowancePct")} /></Field>
-            <div className="col-span-2"><Check checked={f.quoteLogin} onChange={set("quoteLogin")} label="Vendors must sign in (one-time code) to open quote links" /></div>
-          </div>
-        </Section>
-        <BenchmarkSettings f={f} setF={setF} mode={mode} yesNo={yesNo} />
+        </>}
+        {tab === "masters" && <>
+        <BenchmarkSettings f={f} setF={setF} mode={mode} yesNo={yesNo} part="masters" />
         <ListEditor title="Vendor groups" icon={Icon.layers} hint={'Use "Parent › Child" (e.g. Material Suppliers › Steel). Picking a parent in filters includes all its children.'}
           items={f.vendorGroups} onChange={set("vendorGroups")} placeholder="Material Suppliers › Aluminium" usage={(g) => getState().vendors.filter((v) => inGroup(v, g)).length} />
         <ListEditor title="Our group companies" icon={Icon.building} hint="Vendors linked to one of these are inter-company suppliers: no RFQ needed, spend reported separately."
           items={f.groupCompanies} onChange={set("groupCompanies")} placeholder="NebullaOne Infra Ltd" usage={(g) => getState().vendors.filter((v) => v.parentCompany === g).length} />
+        </>}
+        {tab === "templates" && <BenchmarkSettings f={f} setF={setF} mode={mode} yesNo={yesNo} part="templates" />}
       </div>
     </Page>
   );

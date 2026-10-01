@@ -89,13 +89,13 @@ function LaborRatesPage() {
     { key: "trade", label: "Trade", filterOptions: FO.labourTrades, filter: true, className: "font-medium" },
     { key: "skill", label: "Skill" },
     { key: "region", label: "Region" },
-    { key: "v", label: "Applies to", render: (r) => (r.vendorId ? vendorName(st, r.vendorId) : <span className="text-ink-mute">Standard</span>) },
+    { key: "v", label: "Applies to", opt: true, render: (r) => (r.vendorId ? vendorName(st, r.vendorId) : <span className="text-ink-mute">Standard</span>) },
     { key: "mw", label: "Min. wage", align: "right", num: true, render: (r) => inr(r.minWage) },
     { key: "rate", label: "Rate / day", align: "right", num: true, render: (r) => <b>{inr(r.rate)}</b> },
     { key: "m", label: "Margin", align: "right", render: (r) => (r.rate < r.minWage ? <Status tone="red">Below min. wage</Status> : <span className="num">{margin(r).toFixed(1)}%</span>) },
-    { key: "ot", label: "OT", align: "right", render: (r) => `${r.otMultiplier}×` },
+    { key: "ot", label: "OT", opt: true, align: "right", render: (r) => `${r.otMultiplier}×` },
     { key: "ef", label: "Effective", render: (r) => `${fmtDate(r.effectiveFrom)}${r.effectiveTo ? ` → ${fmtDate(r.effectiveTo)}` : ""}` },
-    { key: "ver", label: "Ver.", align: "center", render: (r) => `v${r.version}` },
+    { key: "ver", label: "Ver.", opt: true, align: "center", render: (r) => `v${r.version}` },
   ];
   return (
     <Page title="Labour Rate Management" subtitle="Rate cards by trade, skill and wage zone — versioned, approved and checked against minimum wages" icon={Icon.hardHat}

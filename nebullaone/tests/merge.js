@@ -141,7 +141,7 @@ require('./lib')('merge', async ({ p, go, dlg, S, mut, T, pick, toastText }) => 
 
   // ---------------------------------------------------------------- configurable approval stages
   await T('S-01', 'Approval stages are configurable: a new Compliance stage is used by the next registration', async () => {
-    await go('vendor-management/settings'); await p.waitForTimeout(300);
+    await go('vendor-management/settings'); await p.waitForTimeout(300); await p.getByText('Gates & approvals', { exact: true }).first().click(); await p.waitForTimeout(150);
     const sec = p.locator('section, div').filter({ hasText: /^Vendor approval stages/ }).first();
     await p.locator('text=Vendor approval stages').scrollIntoViewIfNeeded(); await p.locator(':text("Vendor approval stages") >> xpath=ancestor::*[.//button[contains(., "Add stage")]][1]').locator('button:has-text("Add stage")').click(); await p.waitForTimeout(100);
     await p.locator('input[placeholder="Stage name (e.g. Legal)"]').nth(3).fill('Compliance'); await btn('Save settings').click(); await p.waitForTimeout(200);
@@ -157,7 +157,7 @@ require('./lib')('merge', async ({ p, go, dlg, S, mut, T, pick, toastText }) => 
   });
   await T('S-02', 'Existing records keep their stages; an empty stage name is refused', async () => {
     const v = (await S()).vendors.find((x) => x.id === 'VEN-007');
-    await go('vendor-management/settings'); await p.waitForTimeout(300); await p.locator('input[placeholder="Stage name (e.g. Legal)"]').first().fill(''); await btn('Save settings').click(); await p.waitForTimeout(200); const t = await toastText();
+    await go('vendor-management/settings'); await p.waitForTimeout(300); await p.getByText('Gates & approvals', { exact: true }).first().click(); await p.waitForTimeout(150); await p.locator('input[placeholder="Stage name (e.g. Legal)"]').first().fill(''); await btn('Save settings').click(); await p.waitForTimeout(200); const t = await toastText();
     const flow = ((await S()).settings.vendorFlow || []).map((x) => x.name);
     return [`VEN-007 stages ${v.approval.stages.length}; empty name → "${t.slice(0, 60)}"; saved flow ${flow.join(' → ')}`, v.approval.stages.length === 3 && /needs a name/.test(t) && flow[0] === 'Procurement'];
   });

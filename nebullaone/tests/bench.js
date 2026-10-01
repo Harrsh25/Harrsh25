@@ -20,8 +20,8 @@ require('./lib')('bench', async ({ p, go, dlg, S, mut, T, pick, toastText }) => 
     const v = (await S()).vendors.find((x) => x.name === 'Benchmark Cement Co');
     return [`bad Udyam message: ${/Format UDYAM/.test(t)}; saved ${v?.id} ${v?.entityType} / ${v?.msmeType} ${v?.udyamNo} / credit ${v?.creditLimit}`, /Format UDYAM/.test(t) && v?.entityType === 'LLP' && v?.msmeType === 'Micro' && Number(v?.creditLimit) === 2500000];
   });
-  await T('BF-02', 'Contacts & addresses tab: add a primary contact and a supplier site', async () => {
-    await go('vendor-management/registry?open=VEN-009'); await p.waitForTimeout(300); await dlg().locator('[role=tab]:has-text("Contacts")').click(); await p.waitForTimeout(150);
+  await T('BF-02', 'Contacts & addresses (Overview tab): add a primary contact and a supplier site', async () => {
+    await go('vendor-management/registry?open=VEN-009'); await p.waitForTimeout(300); await dlg().locator('[role=tab]:has-text("Overview")').click(); await p.waitForTimeout(150); await btn('Add contact').scrollIntoViewIfNeeded();
     await btn('Add contact').click(); await p.waitForTimeout(150); let m = dlg();
     await m.locator('label:has-text("First name") input').fill('Vikas'); await m.locator('label:has-text("Last name") input').fill('Shetty'); await m.locator('label:has-text("Designation") input').fill('Sales head');
     await m.locator('label:has-text("E-mail") input').fill('vikas@nhm.in'); await m.locator('button:has-text("Save contact")').click(); await p.waitForTimeout(200);
@@ -127,7 +127,7 @@ require('./lib')('bench', async ({ p, go, dlg, S, mut, T, pick, toastText }) => 
     return [`save disabled=${dis}; ${/is not valid/.test(t)}`, dis && /is not valid/.test(t)];
   });
   await T('BF-16', 'TDS category with a rate above 100% is refused in settings', async () => {
-    await go('vendor-management/settings'); await p.waitForTimeout(300);
+    await go('vendor-management/settings'); await p.waitForTimeout(300); await p.getByText('Templates', { exact: true }).first().click(); await p.waitForTimeout(150);
     const sec = p.locator('section:has(h3:has-text("Tax withholding (TDS) categories"))'); await sec.locator('tbody tr').first().locator('input[type=number]').first().fill('150');
     await btn('Save settings').click(); await p.waitForTimeout(200); const t = await toastText();
     return [`"${t.slice(0, 60)}"`, /rate must be 0–100/.test(t)];
