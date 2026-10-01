@@ -119,7 +119,7 @@ M = {
  291: ("A", SET + " → Receiving tolerances (Receipt date exception: Stop / Warn / Off)", "", ""), 292: ("A", SET + " → Blind receiving (ordered qty hidden on the GRN)", "", "BF-12"),
  293: ("A", QI + " (Report date)", "", ""), 294: ("A", QI + " (Inspection type)", "", ""), 295: ("A", QI + " (Reference document)", "", ""), 296: ("A", QI + " (Item)", "", ""),
  297: ("A", QI + " (Batch / serial no.)", "", "BF-12"), 298: ("A", QI + " (Sample size)", "", ""), 299: ("A", QI + " (Template with parameters; " + SET + " → Quality inspection templates)", "", ""),
- 300: ("A", QI + " (Manual inspection)", "", ""), 301: ("A", QI + " (Inspected by, verified by — must differ)", "", ""), 302: ("A", GRN + " (Quality inspection result, consistent with quantities)", "", ""), 303: ("A", QI + " (Remarks)", "", ""),
+ 300: ("A", QI + " (Manual inspection)", "", ""), 301: ("A", QI + " (Inspected by, verified by)", "", ""), 302: ("A", GRN + " (Quality inspection result, consistent with quantities)", "", ""), 303: ("A", QI + " (Remarks)", "", ""),
  304: ("Y", "Work Orders (the contractor's order)", "Construction subcontracting runs on contracts and work orders", ""), 305: ("Y", "Work order contractor", "", ""),
  306: ("A", "Work order → Issue material (Contractor's site store)", "", ""), 307: ("Y", "Work order issued on; material issue date", "", ""), 308: ("A", "Work order → Issue material (Issue from store)", "", ""),
  309: ("N", "", "No stock reservation — no inventory module", ""), 310: ("Y", "Contractor contacts & addresses (vendor drawer)", "", ""), 311: ("N", "", "Additional-cost distribution is an inventory valuation feature", ""),

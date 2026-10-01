@@ -294,7 +294,7 @@ function RaBillsPage() {
 
 // ---------------------------------------------------------------- retention & deductions
 function RetentionPage() {
-  const st = useStore();
+  const st = useStore(), nav = useNavigate();
   const [tab, setTab] = y.useState("ledger");
   const [rel, setRel] = y.useState(null), [adv, setAdv] = y.useState(null), [rejRel, setRejRel] = y.useState(null);
   // Advances: never above the contract value, and a mobilisation advance stays within the contract's advance %
@@ -319,7 +319,7 @@ function RetentionPage() {
         <Btn variant="primary" icon={Icon.lock} onClick={() => setRel({ contractId: contracts.find((c) => contractLedger(st, c).retentionBalance > 0)?.id || "", type: "After DLP", amount: "", note: "" })}>Request retention release</Btn></>}>
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "ledger", label: "Contract ledger", icon: Icon.book }, { id: "rel", label: "Retention releases", icon: Icon.lock }, { id: "ded", label: "Deduction register", icon: Icon.listChecks }]} />
       {tab === "ledger" && (
-        <DataTable noun="contracts" rows={ledgers} rowKey={(l) => l.c.id} columns={[
+        <DataTable noun="contracts" rows={ledgers} rowKey={(l) => l.c.id} onRow={(l) => nav(`${CL_BASE}/contracts?open=${l.c.id}`)} columns={[
           { key: "c", label: "Contract", render: (l) => <span><span className="mono text-[12px]">{l.c.id}</span> · {vendorName(st, l.c.vendorId)}</span> },
           { key: "s", label: "Status", filterOptions: FO.contractStatus, filter: (l) => contractStatus(l.c), render: (l) => <Status>{contractStatus(l.c)}</Status> },
           { key: "g", label: "Gross billed", align: "right", num: true, render: (l) => inrShort(l.gross) },
@@ -333,7 +333,7 @@ function RetentionPage() {
         ]} footer={<tfoot><tr className="bg-gray-50 font-semibold"><Td>Total</Td><Td /><Td align="right" className="num">{inrShort(T("gross"))}</Td><Td align="right" className="num">{inrShort(T("retentionHeld"))}</Td><Td align="right" className="num">{inrShort(T("released"))}</Td><Td align="right" className="num">{inrShort(T("retentionBalance"))}</Td><Td align="right" className="num">{inrShort(T("advanceGiven"))}</Td><Td align="right" className="num">{inrShort(T("recovered"))}</Td><Td align="right" className="num">{inrShort(T("advanceBalance"))}</Td><Td /></tr></tfoot>} />
       )}
       {tab === "rel" && (
-        <DataTable noun="releases" rows={st.retentionReleases} empty={<EmptyState icon={Icon.lock} title="No release requests" text="Retention can be released after the defect liability period, or earlier against a bank guarantee." />} columns={[
+        <DataTable noun="releases" rows={st.retentionReleases} onRow={(r) => nav(`${CL_BASE}/contracts?open=${r.contractId}`)} empty={<EmptyState icon={Icon.lock} title="No release requests" text="Retention can be released after the defect liability period, or earlier against a bank guarantee." />} columns={[
           { key: "id", label: "Request", className: "mono text-[12px]" },
           { key: "c", label: "Contract", render: (r) => `${r.contractId} · ${vendorName(st, byId(st.contracts, r.contractId).vendorId)}` },
           { key: "type", label: "Basis", filter: true }, { key: "note", label: "Note", className: "whitespace-normal text-[12px] text-ink-soft" },
@@ -342,14 +342,14 @@ function RetentionPage() {
           { key: "by", label: "Requested / approved by", className: "text-[12px] text-ink-soft", render: (r) => [r.requestedBy, r.approvedBy].filter(Boolean).join(" → ") || "—" },
           { key: "s", label: "Status", filterOptions: FO.release, filter: (r) => (r.status === "Due" ? "Pending Approval" : r.status), render: (r) => <span title={r.remark || ""}><Status tone={{ Released: "green", Approved: "blue", Rejected: "red" }[r.status] || "amber"}>{r.status === "Due" ? "Pending Approval" : r.status}</Status></span> },
           { key: "a", label: "", align: "right", render: (r) => (
-            <span className="flex justify-end gap-1">
+            <span className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
               {["Due", "Pending Approval"].includes(r.status) && <><Btn size="sm" variant="success" onClick={() => decideRelease(r, true, "")}>Approve</Btn><Btn size="sm" variant="danger" onClick={() => setRejRel({ r, reason: "" })}>Reject</Btn></>}
               {r.status === "Approved" && <Btn size="sm" variant="primary" onClick={() => releaseRetention(r)}>Release payment</Btn>}
             </span>) },
         ]} />
       )}
       {tab === "ded" && (
-        <DataTable noun="deductions" rows={dedRows} columns={[
+        <DataTable noun="deductions" rows={dedRows} onRow={(b) => nav(`${CL_BASE}/ra-bills?open=${b.id}`)} columns={[
           { key: "id", label: "Bill", className: "mono text-[12px]" }, { key: "c", label: "Contract", className: "mono text-[12px]", render: (b) => b.contractId },
           { key: "v", label: "Contractor", filterOptions: FO.contractors, filter: (x) => vendorName(st, x.vendorId), render: (b) => vendorName(st, b.vendorId) },
           { key: "g", label: "Gross", align: "right", num: true, render: (b) => inrShort(b.gross) },

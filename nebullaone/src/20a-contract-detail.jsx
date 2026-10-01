@@ -105,12 +105,12 @@ function ChangeOrderModal({ c, preset, onClose }) {
   const daysErr = VX.num(co.days === "" ? 0 : co.days, { min: 0, max: 730, int: true, label: "Extension" }) ? "Extension must be 0–730 whole days" : "";
   const ok = co.desc.trim() && co.reason.trim().length >= 5 && linesOk && !negErr && !daysErr && (co.lines.length ? amount > 0 : (co.amount !== "" && Number(co.amount) !== 0) || Number(co.days) > 0);
   return (
-    <Modal open onClose={onClose} width={860} title={preset?.days ? "Extension of time (change order)" : "Raise change order"} subtitle="Approved by the Project Manager (not the person raising it). Quantity lines raise the work-order quantity on approval."
+    <Modal open onClose={onClose} width={860} title={preset?.days ? "Extension of time (change order)" : "Raise change order"} subtitle="Goes for approval (contract drawer or Approval Management). Quantity lines raise the work-order quantity on approval."
       footer={<><span className="mr-auto text-[13px]">Value <b className="num">{inr(amount)}</b>{Number(co.days) ? ` · +${co.days} days` : ""}</span><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!ok} onClick={() => {
         const coId = `CO-${String(c.changeOrders.length + 1).padStart(3, "0")}`;
         setState((s) => byId(s.contracts, c.id).changeOrders.push({ id: coId, desc: co.desc.trim(), reason: co.reason.trim(), amount, days: Number(co.days) || 0, status: "Pending", raisedOn: todayISO(), raisedBy: currentUser(),
           lines: co.lines.map((l) => ({ woId: l.woId, lineId: l.lineId || null, code: l.code || "", desc: l.desc, unit: l.unit || "nos", qty: Number(l.qty), rate: Number(l.rate) })) }), { entity: "Contract", id: c.id, action: `${coId} raised — ${inr(amount)}${co.days ? `, +${co.days} days` : ""}` });
-        toast(`${coId} sent for Project Manager approval`); onClose();
+        toast(`${coId} sent for approval`); onClose();
       }}>Submit for approval</Btn></>}>
       <div className="space-y-3">
         <div className="grid grid-cols-4 gap-3">

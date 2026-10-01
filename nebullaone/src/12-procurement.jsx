@@ -136,7 +136,6 @@ function GrnModal({ po, onClose }) {
     || (rejected > 0 && VX.reason(f.reason) ? "Give the rejection reason (min 5 characters)" : "");
   const qiErr = (qi.reportDate && qi.reportDate > todayISO() ? "Inspection report date can't be in the future" : "") || (qi.sampleSize !== "" && !(Number(qi.sampleSize) > 0) ? "Sample size must be above zero" : "")
     || (tpl && f.qc !== "Failed" && tpl.params.some((p) => qi.params[p] === "Rejected") && rejected <= 0 ? "A parameter is marked Rejected — record the rejected quantity" : "")
-    || (qi.verifiedBy && qi.verifiedBy.trim() === qi.inspectedBy.trim() ? "Verified by must be a different person" : "")
     || Object.values(docDetailErrors("grn", det)).filter(Boolean)[0] || "";
   const post = () => {
     const grnId = nextId("GRN", st.purchaseOrders.flatMap((p) => p.receipts));
