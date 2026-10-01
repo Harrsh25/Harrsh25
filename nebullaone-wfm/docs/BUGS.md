@@ -1,0 +1,20 @@
+# Bugs found in the prototype
+
+Source: `prototype/NebullaOne-WFM.html` (compiled build, data from its built-in demo store).
+Each bug lists where it shows up, why it's wrong, and how the rebuild fixes it.
+
+| # | Severity | Area | Bug | Fix in rebuild |
+|---|---|---|---|---|
+| B1 | High | Labour Rate Management | Rate card **LR-016 Painter (Kaveri Manpower)** is **Active at ₹620/day while the minimum wage is ₹640**. The screen shows a "Below min. wage" label but still lets the rate be saved, approved and used for billing. Paying below minimum wage breaks the Minimum Wages Act. | The API rejects any labour rate below the minimum wage (`validateLabourRate`). The seed moves LR-016 to *Rejected* and records why. |
+| B2 | High | Retention vs Close-out | The **DLP end date differs between screens** for the same contract. Retention uses `contract.end + dlpMonths × 30 days`; Close-out uses `handover.date + dlpMonths × 30 days`. CTR-005 shows 10 Sep 2026 on one screen and 15 Sep 2026 on the other. | A single `dlpEndDate()` calculation used everywhere: base = handover date if present, otherwise contract end; adds **calendar months**, not 30-day blocks. |
+| B3 | Medium | DLP calculation | Months are approximated as 30 days, so a 12-month DLP ends 5–6 days early. Retention release can be requested before the DLP really ends. | Calendar-month arithmetic (`addMonths`). |
+| B4 | High | Contracts / Guarantees | **Performance bank guarantees expire before the DLP ends.** CTR-001's PBG expires 28 Apr 2027 but its DLP runs to Mar 2028; CTR-002's PBG expires 09 Dec 2026, *before contract completion* (07 Feb 2027). Nothing flags this; there's only a 90/30-day renewal reminder. | `bgCoverageIssues()` flags every guarantee that doesn't cover contract end + DLP. The flag shows on Contracts and in the Financial Security ledger, and approving a contract with an uncovered PBG is blocked. |
+| B5 | Medium | RA Bills list | **Net payable is higher than Gross** (e.g. RA-004: Gross ₹37.00 L, Deductions −₹4.81 L, Net ₹38.85 L). The maths is right because GST is added, but there's no GST column, so users read it as an error. | Columns are now Gross · GST · Deductions · Net, and each bill shows the formula. |
+| B6 | Low | Scorecard standings | Standing bands overlap at the boundaries (Excellent 80–100, Good 65–80, Average 50–65). A score of exactly 80 or 65 matches two bands, and the first match wins depending on array order. | Bands are *min inclusive, max exclusive* (the top band includes 100). Covered by unit tests. |
+| B7 | Medium | Holds | Hold logic is split across **three unrelated mechanisms**: `vendor.hold` (scorecard auto-block), `invoice.hold` (price mismatch) and the compliance "payment gate" (calculated on the fly). There's no single register, and releasing one doesn't show the others. Rapid Scaffolding is *On Hold* for payments while its scorecard says "no restriction". | One **Hold record** (`holds` table) with Level, Scope (All / RFQ-PO / Invoices / Payments), Reason (Compliance / Performance / Manual), source and release. Compliance and scorecard checks create holds; every gate reads the same table. |
+| B8 | Low | Contract status | Contract status stays `Active` in the data after all work orders complete and handover is done (CTR-005). "Completed" is only computed for display, so filters and reports that use the stored status are wrong. | Status moves forward (Active → Completed → In DLP → Closed) when the event happens, and is stored. |
+| B9 | Medium | Security / data | Demo login accepts any username and password; the vendor one-time code is simulated; all data lives in each browser's `localStorage`, so every user sees a different copy and data can be edited from the browser console. | Real backend: PostgreSQL, bcrypt passwords, JWT sessions, role-based permissions, server-side validation, audit log. |
+| B10 | Low | Audit trail | The audit log is capped at 400 entries (`audit.slice(0,400)`), so older history is silently deleted. | Audit rows are kept in the database with no cap. |
+
+## Architecture gaps (missing, not broken)
+See `GAP-ANALYSIS.md`.
