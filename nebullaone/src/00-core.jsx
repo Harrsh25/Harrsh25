@@ -485,7 +485,60 @@ const filterIcon = (label) => {
   const k = FILTER_ICONS[String(label || "").toLowerCase()];
   return k && Icon[k] ? h(Icon[k], { size: 16, className: "shrink-0" }) : <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-current opacity-60" />;
 };
+// Colour dot for a filter option: its status colour when it has one, else a palette colour by position
+const isAllOpt = (o, opts) => o === opts[0] && /^(all|any)\b/i.test(String(o.label));
+const optTone = (o, opts) => (isAllOpt(o, opts) ? null : o.tone || EXTRA_DOT[String(o.label).toLowerCase()] || TONE[String(o.label).toLowerCase()] || TONE[String(o.value).toLowerCase()] || FILTER_PALETTE[Math.max(0, opts.indexOf(o) - (isAllOpt(opts[0], opts) ? 1 : 0)) % FILTER_PALETTE.length]);
+// Inside the Filters side panel a FilterSelect renders as a section of chips and stages its value until Apply
+const FilterPanelCtx = y.createContext(null);
+function FilterChip({ on, tone, label, onClick }) {
+  return (
+    <button type="button" aria-pressed={on} onClick={onClick}
+      className={cls("inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-[3px] text-[12.5px] transition-colors", on ? "border-brand bg-brand-soft font-medium text-brand" : "border-line bg-white text-ink-soft hover:border-gray-300 hover:text-ink")}>
+      <span className={cls("h-2 w-2 shrink-0 rounded-full", tone ? DOT[tone] : "border border-gray-300 bg-white")} /><span className="truncate">{label}</span>
+    </button>
+  );
+}
+function FilterSection({ title, count, defaultOpen = true, children }) {
+  const [open, setOpen] = y.useState(defaultOpen);
+  return (
+    <section className="border-b border-line">
+      <button type="button" onClick={() => setOpen((o) => !o)} className="flex w-full items-center justify-between px-5 py-3.5 text-left">
+        <span className="text-[11.5px] font-semibold uppercase tracking-wider text-ink-soft">{title}{count ? <span className="ml-1.5 rounded-full bg-brand px-1.5 py-[1px] text-[10px] text-white">{count}</span> : null}</span>
+        {h(Icon.chevronDown, { size: 15, className: cls("text-ink-mute transition", open && "rotate-180") })}
+      </button>
+      {open && <div className="px-5 pb-4">{children}</div>}
+    </section>
+  );
+}
+function ChipList({ opts, isOn, onToggle }) {
+  const [fq, setFq] = y.useState("");
+  const list = opts.filter((o) => !fq.trim() || String(o.label).toLowerCase().includes(fq.trim().toLowerCase()));
+  return (
+    <>
+      {opts.length > 10 && <input className="mb-2 h-[30px] w-full rounded-md border border-line px-2.5 text-[12.5px] outline-none focus:border-brand" placeholder="Search…" value={fq} onChange={(e) => setFq(e.target.value)} />}
+      <div className="flex flex-wrap gap-1.5">{list.map((o) => <FilterChip key={String(o.value)} on={isOn(o)} tone={o.toneKey} label={String(o.label).trim()} onClick={() => onToggle(o)} />)}</div>
+    </>
+  );
+}
 function FilterSelect({ value, onChange, options, label }) {
+  const panel = y.useContext(FilterPanelCtx);
+  if (panel) return <FilterSelectPanel value={value} onChange={onChange} options={options} label={label} panel={panel} />;
+  return <FilterSelectMenu value={value} onChange={onChange} options={options} label={label} />;
+}
+// Page filter shown in the side panel: one choice; tapping the chosen chip goes back to "all"
+function FilterSelectPanel({ value, onChange, options, label, panel }) {
+  const opts = options.map((o) => (typeof o === "object" ? o : { value: o, label: o }));
+  const all = isAllOpt(opts[0], opts) ? opts[0] : null;
+  panel.register(label, { first: opts[0].value, onChange });
+  const cur = panel.draft[label] ? panel.draft[label].value : value;
+  const choices = opts.filter((o) => o !== all).map((o) => ({ ...o, toneKey: optTone(o, opts) }));
+  return (
+    <FilterSection title={label} count={all && String(cur) !== String(all.value) ? 1 : 0}>
+      <ChipList opts={choices} isOn={(o) => String(o.value) === String(cur)} onToggle={(o) => panel.stage(label, String(o.value) === String(cur) && all ? all.value : o.value, onChange)} />
+    </FilterSection>
+  );
+}
+function FilterSelectMenu({ value, onChange, options, label }) {
   const [open, setOpen] = y.useState(false);
   const [fq, setFq] = y.useState("");
   const ref = y.useRef(null);
@@ -626,7 +679,7 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
   const tableRef = y.useRef(null);
   const fcols = list ? columns.filter((c) => c.filter) : [];
   const fval = (c, r) => { const v = typeof c.filter === "function" ? c.filter(r) : r[c.key]; return (Array.isArray(v) ? v : [v]).filter((x) => x !== undefined && x !== null && x !== "").map(String); };
-  const colFiltered = fcols.length ? rows.filter((r) => fcols.every((c) => !cf[c.key] || cf[c.key] === "__all" || fval(c, r).includes(cf[c.key]))) : rows;
+  const colFiltered = fcols.length ? rows.filter((r) => fcols.every((c) => !(cf[c.key] || []).length || fval(c, r).some((v) => cf[c.key].includes(v)))) : rows;
   const prim = (x) => x != null && typeof x !== "object";
   const sortVal = (c, r) => { const v = c.sort ? c.sort(r) : prim(r[c.key]) ? r[c.key] : typeof c.filter === "function" ? c.filter(r) : null; return Array.isArray(v) ? v.join(", ") : v; };
   const canSort = (c) => list && c.label && c.sort !== false && c.key !== "__cols" && (c.sort || typeof c.filter === "function" || rows.some((r) => prim(r[c.key])));
@@ -651,20 +704,28 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
     a.download = `${(exportName || noun).replace(/\s+/g, "-")}-${todayISO()}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     toast(`Exported ${shown.length} ${noun}`);
   };
-  const clearAll = () => { setQ(""); setCf({}); onClearFilters && onClearFilters(); };
-  const active = q.trim() || fcols.some((c) => cf[c.key] && cf[c.key] !== "__all");
-  const colSelects = fcols.map((c) => {
+  const clearAll = () => { setQ(""); setCf({}); Object.values(regs.current || {}).forEach((x) => x.onChange(x.first)); onClearFilters && onClearFilters(); };
+  const active = q.trim() || fcols.some((c) => (cf[c.key] || []).length);
+  const colDefs = fcols.map((c) => {
     const name = c.filterLabel || (typeof c.label === "string" ? c.label : c.key);
     // Full list of possible values (filterOptions) plus anything else present in the data
-    const dom = (typeof c.filterOptions === "function" ? c.filterOptions() : c.filterOptions || []).map(String);
+    const dom = (typeof c.filterOptions === "function" ? c.filterOptions() : c.filterOptions || []).map((v) => (typeof v === "object" ? String(v.value) : String(v)));
     const extra = [...new Set(rows.flatMap((r) => fval(c, r)))].filter((v) => !dom.includes(v)).sort((a, b) => a.localeCompare(b, "en", { numeric: true }));
-    const vals = [...dom, ...extra];
-    if (vals.length < 1 && !(cf[c.key] && cf[c.key] !== "__all")) return null;
-    return <FilterSelect key={"cf-" + c.key} label={name} value={cf[c.key] || "__all"} onChange={(v) => setCf((o) => ({ ...o, [c.key]: v }))}
-      options={[{ value: "__all", label: c.filterAll || `All ${pluralWord(name.toLowerCase())}` }, ...vals.map((v) => (typeof v === "object" ? v : { value: v, label: v }))]} />;
-  });
-  const hasFilters = !!filters || colSelects.some(Boolean);
-  const showFilters = filtersOpen || nActive > 0;
+    const opts = [...dom, ...extra].map((v) => ({ value: v, label: v }));
+    opts.forEach((o) => (o.toneKey = optTone(o, opts)));
+    return opts.length || (cf[c.key] || []).length ? { key: c.key, name, opts } : null;
+  }).filter(Boolean);
+  const hasFilters = !!filters || colDefs.length > 0;
+  const colActive = fcols.filter((c) => (cf[c.key] || []).length).length;
+  const nFilters = nActive + colActive;
+  // Side panel: choices are staged (draft) and take effect on Apply Filters
+  const [draft, setDraft] = y.useState({ cols: {}, page: {} });
+  const regs = y.useRef({});
+  const openPanel = () => { setDraft({ cols: { ...cf }, page: {} }); setFiltersOpen(true); };
+  const panelCtx = { draft: draft.page, register: (label, r) => { regs.current[label] = r; }, stage: (label, value, onChange) => setDraft((d) => ({ ...d, page: { ...d.page, [label]: { value, onChange } } })) };
+  const applyPanel = () => { Object.values(draft.page).forEach((x) => x.onChange(x.value)); setCf(draft.cols); setFiltersOpen(false); };
+  const resetPanel = () => { Object.values(regs.current).forEach((x) => x.onChange(x.first)); setCf({}); setQ(""); onClearFilters && onClearFilters(); setDraft({ cols: {}, page: {} }); setFiltersOpen(false); };
+  y.useEffect(() => { if (!filtersOpen) return; const k = (e) => e.key === "Escape" && setFiltersOpen(false); document.addEventListener("keydown", k); return () => document.removeEventListener("keydown", k); }, [filtersOpen]);
   const table = !shown.length
     ? (rows.length || onClearFilters ? <div className="pb-8"><EmptyState icon={Icon.search} title="No matches" text={q.trim() ? `Nothing matches “${q}”. Try another word or clear the search.` : "No records match these filters."} /><div className="-mt-2 flex justify-center"><Btn icon={Icon.x} onClick={clearAll}>Clear search &amp; filters</Btn></div></div> : empty || <EmptyState icon={Icon.folder} title="Nothing here yet" text="Records you add will appear in this list." />)
     : (
@@ -709,18 +770,46 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
           <button type="button" aria-label="Search" data-tip="Search" onClick={() => setSearchOpen(true)} className="grid h-8 w-8 place-items-center rounded-md text-ink-soft hover:bg-gray-100 hover:text-ink">{h(Icon.search, { size: 16 })}</button>
         )}
         {hasFilters && (
-          <button type="button" aria-label="Filters" aria-expanded={showFilters} data-tip={showFilters ? "Hide filters" : "Filters"} onClick={() => setFiltersOpen((o) => !o)}
-            className={cls("relative grid h-8 w-8 place-items-center rounded-md hover:bg-gray-100", showFilters || nActive ? "text-brand" : "text-ink-soft hover:text-ink", showFilters && "bg-brand-soft/60")}>
+          <button type="button" aria-label="Filters" aria-expanded={filtersOpen} data-tip="Filters" onClick={() => (filtersOpen ? setFiltersOpen(false) : openPanel())}
+            className={cls("relative grid h-8 w-8 place-items-center rounded-md hover:bg-gray-100", filtersOpen || nFilters ? "text-brand" : "text-ink-soft hover:text-ink", filtersOpen && "bg-brand-soft/60")}>
             {h(Icon.filter, { size: 16 })}
-            {nActive > 0 && <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-brand px-1 text-[10px] font-semibold text-white">{nActive}</span>}
+            {nFilters > 0 && <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-brand px-1 text-[10px] font-semibold text-white">{nFilters}</span>}
           </button>
         )}
         <button type="button" aria-label="Export" data-tip="Export this view to Excel (CSV)" onClick={exportCsv} disabled={!shown.length} className="grid h-8 w-8 place-items-center rounded-md text-ink-soft hover:bg-gray-100 hover:text-ink disabled:opacity-40">{h(Icon.download, { size: 16 })}</button>
       </div>
-      {hasFilters && (
-        <div ref={filterRow} className={cls("nx-filters flex min-h-[42px] flex-wrap items-center gap-2 border-b border-line bg-gray-50/50 px-4 py-1.5", !showFilters && "hidden")}>
-          {filters}{colSelects}
-          {nActive > 0 && <button type="button" className="shrink-0 whitespace-nowrap px-1 text-[12.5px] text-brand hover:underline" onClick={clearAll}>Clear filters</button>}
+      {/* page filters also render here, hidden, so their active state can be counted on the filter button */}
+      {filters && <div ref={filterRow} className="hidden" aria-hidden="true">{filters}</div>}
+      {nFilters > 0 && (
+        <div className="flex items-center gap-2 border-b border-line bg-gray-50/50 px-4 py-1.5 text-[12.5px] text-ink-soft">
+          {h(Icon.filter, { size: 13, className: "text-brand" })}<span>{nFilters} filter{nFilters === 1 ? "" : "s"} applied</span>
+          <button type="button" className="text-brand hover:underline" onClick={openPanel}>Edit</button>
+          <button type="button" className="text-brand hover:underline" onClick={clearAll}>Clear filters</button>
+        </div>
+      )}
+      {filtersOpen && (
+        <div className="fixed inset-0 z-[56]" onMouseDown={() => setFiltersOpen(false)}>
+          <aside role="complementary" aria-label="Filters" data-filter-panel className="absolute bottom-0 right-0 top-0 flex w-[380px] max-w-full flex-col border-l border-line bg-white shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-line px-5 py-4">
+              <span className="flex items-center gap-2.5 text-[15px] font-semibold"><span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-soft text-brand">{h(Icon.filter, { size: 16 })}</span>Filters</span>
+              <IconBtn icon={Icon.x} title="Close" onClick={() => setFiltersOpen(false)} />
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              {colDefs.map((c) => {
+                const sel = draft.cols[c.key] || [];
+                return (
+                  <FilterSection key={c.key} title={c.name} count={sel.length} defaultOpen={sel.length > 0 || c.opts.length <= 12}>
+                    <ChipList opts={c.opts} isOn={(o) => sel.includes(o.value)} onToggle={(o) => setDraft((d) => ({ ...d, cols: { ...d.cols, [c.key]: sel.includes(o.value) ? sel.filter((v) => v !== o.value) : [...sel, o.value] } }))} />
+                  </FilterSection>
+                );
+              })}
+              {filters && <FilterPanelCtx.Provider value={panelCtx}><div className="nx-panel-filters [&>*:not(section)]:mx-5 [&>*:not(section)]:my-3">{filters}</div></FilterPanelCtx.Provider>}
+            </div>
+            <div className="grid grid-cols-2 gap-3 border-t border-line px-5 py-3.5">
+              <Btn onClick={resetPanel}>Reset</Btn>
+              <Btn variant="primary" onClick={applyPanel}>Apply Filters</Btn>
+            </div>
+          </aside>
         </div>
       )}
       {table}

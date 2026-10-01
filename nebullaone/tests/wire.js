@@ -61,6 +61,21 @@ const { chromium } = require('playwright'); const fs = require('fs');
   for (const m of ['Vendors', 'Purchase Orders', 'Contracts', 'Vendor Invoices', 'Spend Authorization']) {
     errs = []; await go(`approvals/approval-management?module=${encodeURIComponent(m)}`); rec('Deep link', `approval-management?module=${m}`, !errs.length && (await p.textContent('body')).includes(m), errs.join(' / ') || 'module not selected');
   }
+  // 7. Filters side panel: chips staged, applied, page filter included, reset clears
+  {
+    errs = []; await go('vendor-management/registry'); const all = await p.locator('main tbody tr').count();
+    await p.locator('button[aria-label="Filters"]').click(); await p.waitForTimeout(250); const panel = p.locator('[data-filter-panel]');
+    const before = await p.locator('main tbody tr').count();
+    await panel.locator('button[aria-pressed]:has-text("Labor")').first().click(); await panel.locator('button:has-text("Apply Filters")').click(); await p.waitForTimeout(250);
+    const after = await p.locator('main tbody tr').count(); const badge = await p.locator('button[aria-label="Filters"]').textContent();
+    rec('Filters panel', `registry: chip staged (${before} rows) → applied (${after} rows), badge ${badge.trim()}`, !errs.length && before === all && after < all && badge.trim() === '1', errs.join(' / ') || 'not applied');
+    await p.locator('button[aria-label="Filters"]').click(); await p.waitForTimeout(200); await p.locator('[data-filter-panel] button:has-text("Reset")').click(); await p.waitForTimeout(250);
+    rec('Filters panel', 'Reset clears every filter', (await p.locator('main tbody tr').count()) === all, 'rows not restored');
+    errs = []; await go('contract-labor/closeout'); await p.locator('button[aria-label="Filters"]').click(); await p.waitForTimeout(250);
+    await p.locator('[data-filter-panel] button[aria-pressed]:has-text("Execution")').first().click(); await p.locator('[data-filter-panel] button:has-text("Apply Filters")').click(); await p.waitForTimeout(250);
+    const t = await p.textContent('main');
+    rec('Filters panel', 'page-level filter (Close-out stage) works from the panel', !errs.length && /1 filter applied/.test(t) && !/Ready to close|Final settlement/.test((await p.locator('main tbody').textContent())), errs.join(' / ') || 'stage filter not applied');
+  }
   // 6. supplier portal and public pages
   for (const h of ['#/supplier/login', '#/vendor-register', `#/vendor-quote/${st.rfqs[0].id}/${st.rfqs[0].vendorIds[0]}`]) {
     errs = []; await p.goto('about:blank'); await p.goto(file.split('#')[0] + h); await p.waitForTimeout(600);
