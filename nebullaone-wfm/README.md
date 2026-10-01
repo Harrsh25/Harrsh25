@@ -18,6 +18,12 @@ The prototype was a compiled single HTML file with all data in the browser's loc
 
 See `docs/GAP-ANALYSIS.md` for how this maps to the master architecture, and `docs/BUGS.md` for the prototype bugs found and fixed.
 
+## Just want to look at it?
+
+Open **`demo/NebullaOne-WFM-demo.html`** in any browser — no install, no server. It's a single file with every screen and the real demo data (a read-only snapshot: you can browse, search, filter and open records, and switch roles on the sign-in page, but saving needs the full app below).
+
+To rebuild it after changes: start the API with seeded data, then `npm run snapshot -w @nebulla/web && npm run build:demo -w @nebulla/web` and copy `apps/web/dist-demo/index.html` to `demo/`.
+
 ## Run it locally
 
 Needs Node 20+ and PostgreSQL 16.

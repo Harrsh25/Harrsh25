@@ -17,7 +17,13 @@ export const tokenStore = {
 let onUnauthorized: () => void = () => {};
 export const setUnauthorizedHandler = (fn: () => void) => { onUnauthorized = fn; };
 
+export const IS_DEMO = import.meta.env.VITE_DEMO === '1';
+
 export async function api<T = any>(path: string, opts: { method?: string; body?: unknown } = {}): Promise<T> {
+  if (IS_DEMO) {
+    const { demoApi } = await import('../demo/demoApi');
+    return demoApi(path, opts as any) as Promise<T>;
+  }
   const token = tokenStore.get();
   const res = await fetch(`/api${path}`, {
     method: opts.method ?? (opts.body !== undefined ? 'POST' : 'GET'),
