@@ -466,7 +466,6 @@ function TableEditor({ title, icon, hint, rows, onChange, cols, blank }) {
   );
 }
 function benchSettingsErr(f) {
-  if (f.directAwardLimit !== undefined && !(Number(f.directAwardLimit) >= 0)) return "Direct award limit must be zero or more";
   for (const t of f.tdsCategories || []) {
     if (!String(t.code || "").trim() || !String(t.name || "").trim()) return "TDS categories: every row needs a code and a name";
     if (!(Number(t.rate) >= 0 && Number(t.rate) <= 100)) return `TDS ${t.code}: rate must be 0–100%`;
@@ -592,7 +591,7 @@ function reqStatus(st, r) {
   if (o.pctReceived > 0) return "Partially received";
   if (o.pctOrdered >= 100) return "Ordered";
   if (o.pctOrdered > 0) return "Partially ordered";
-  return (r.rfqIds || []).length ? "RFQ raised" : (r.directAwardIds || []).length ? "Direct award raised" : "Approved";
+  return (r.rfqIds || []).length ? "RFQ raised" : "Approved";
 }
 function reqErrors(f) {
   const e = [];
@@ -715,7 +714,7 @@ function RequisitionsPage() {
         { key: "date", label: "Requested", render: (x) => `${fmtDate(x.date)} · ${x.requestedBy}` },
         { key: "rb", label: "Required by", render: (x) => fmtDate(x.requiredBy) },
         { key: "po", label: "% ordered / received", render: (x) => { const o = reqOrdered(st, x); return <span className="num text-[12px]">{o.pctOrdered}% / {o.pctReceived}%</span>; } },
-        { key: "s", label: "Status", filterOptions: ["Draft", "Submitted", "Approved", "RFQ raised", "Direct award raised", "Partially ordered", "Ordered", "Partially received", "Received", "Stopped", "Cancelled"], filter: (x) => reqStatus(st, x), render: (x) => <Status>{reqStatus(st, x)}</Status> },
+        { key: "s", label: "Status", filterOptions: ["Draft", "Submitted", "Approved", "RFQ raised", "Partially ordered", "Ordered", "Partially received", "Received", "Stopped", "Cancelled"], filter: (x) => reqStatus(st, x), render: (x) => <Status>{reqStatus(st, x)}</Status> },
       ]} />
       {r && (
         <Drawer open onClose={() => setOpen(null)} width={760} title={`${r.id} — ${r.purpose}`} subtitle={<><Status>{reqStatus(st, r)}</Status><span className="text-ink-mute">{r.project}</span></>}
@@ -724,16 +723,13 @@ function RequisitionsPage() {
             {r.status === "Submitted" && <><Btn variant="danger" onClick={() => act(r, "Cancelled", "Rejected")}>Reject</Btn><Btn variant="success" onClick={() => act(r, "Approved", "Approved")}>Approve</Btn></>}
             {r.status === "Approved" && <Btn onClick={() => act(r, "Stopped", "Stopped")}>Stop</Btn>}
             {r.status === "Stopped" && <Btn onClick={() => act(r, "Approved", "Re-opened")}>Re-open</Btn>}
-            {r.status === "Approved" && r.purpose !== "Manpower (labour)" && <Btn icon={Icon.target} onClick={() => nav(`${VM_BASE}/direct-awards?fromReq=${r.id}`)}>Direct award</Btn>}
             {r.status === "Approved" && <Btn variant="primary" icon={Icon.send} onClick={() => nav(`${VM_BASE}/rfq?fromReq=${r.id}`)}>Create RFQ</Btn>}
           </>}>
           <div className="space-y-4 px-6 py-5">
-            {r.status === "Approved" && (() => { const rc = reqRateContracts(st, r); return (
-              <Note tone="blue" icon={Icon.branch}>Sourcing route: <b>RFQ</b> for competitive quotes, <b>direct award</b> with a justification{rc.length ? <>, or a <b>call-off</b> on an active rate contract — {rc.map((x, k) => <span key={x.b.id}>{k ? ", " : ""}<RefLink to={`${VM_BASE}/blanket-orders?open=${x.b.id}`}>{x.b.id}</RefLink> ({vendorName(st, x.b.vendorId)}: {x.hits.map((l) => l.desc).join(", ")})</span>)}</> : " (no active rate contract covers these items)"}.</Note>); })()}
             <Section title="Request" icon={Icon.info}>
               <KV items={[["Purpose", r.purpose], ["Request date", fmtDate(r.date)], ["Required by", fmtDate(r.requiredBy)], ["Company", r.company], ["Project", r.project], ["Cost centre", r.costCentre || "—"], ["Price list", r.priceList || "—"],
                 ["Client", r.client || null], ["Source store", r.sourceStore || null], ["Target store", r.targetStore || null], ["Requested by", r.requestedBy], ["Decided", r.decidedBy ? `${r.decidedBy} · ${fmtDate(r.decidedAt)}` : null],
-                ["% ordered", `${reqOrdered(st, r).pctOrdered}%`], ["% received", `${reqOrdered(st, r).pctReceived}%`], ["RFQs", (r.rfqIds || []).join(", ") || null], ["Direct awards", (r.directAwardIds || []).join(", ") || null]]} />
+                ["% ordered", `${reqOrdered(st, r).pctOrdered}%`], ["% received", `${reqOrdered(st, r).pctReceived}%`], ["RFQs", (r.rfqIds || []).join(", ") || null]]} />
             </Section>
             {r.purpose === "Manpower (labour)" && (
               <Section title="Labour requisition" icon={Icon.hardHat}>

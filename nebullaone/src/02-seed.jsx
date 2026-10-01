@@ -1,6 +1,6 @@
 // Demo seed data. Dates are relative to "today" so expiry / renewal alerts
 // always have something to show. Bump SEED_VERSION when the shape changes.
-const SEED_VERSION = 12;
+const SEED_VERSION = 11;
 
 function buildSeed() {
   const D = (n) => shiftDays(n);
@@ -420,11 +420,11 @@ function buildSeed() {
     { at: ts(-9), by: "Procurement", entity: "Vendor", id: "VEN-007", action: "Registration submitted for approval" },
   ];
 
-  return extendSeed3(extendSeed2(extendSeed({
+  return extendSeed2(extendSeed({
     version: SEED_VERSION, vendors, contracts, workOrders, measurements, raBills: st.raBills, retentionReleases, invoices, rfqs, purchaseOrders,
     laborRates, ratings, caps, tickets, audit,
     scoreConfig: { weights: { quality: 30, timeliness: 30, safety: 20, compliance: 20 }, blockThreshold: 55, capThreshold: 70, autoBlock: true, weighting: "Weighted average", period: { length: "Monthly", start: `${new Date().getMonth() >= 3 ? new Date().getFullYear() : new Date().getFullYear() - 1}-04-01` },
       criteria: [{ name: "Quality", formula: "{quality}", maxScore: 100, weight: 30 }, { name: "On-time delivery", formula: "{timeliness}", maxScore: 100, weight: 30 }, { name: "Safety", formula: "{safety}", maxScore: 100, weight: 20 }, { name: "Compliance", formula: "{compliance}", maxScore: 100, weight: 20 }] },
     rfqTemplates: ["Steel supply", "Cement supply", "Hardware", "Labour — item rate", "Equipment hire"],
-  })));
+  }));
 }

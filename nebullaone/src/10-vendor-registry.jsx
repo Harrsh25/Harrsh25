@@ -239,7 +239,7 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
           </span>
         </label>
         <div className="mt-4 grid grid-cols-2 gap-3">
-          <Field label="Trades / categories" required span={2}><TradePicker options={tradeList()} value={f.categories} onChange={(v) => upd("categories", v)} />{err("categories")}</Field>
+          <Field label="Trades / categories" required span={2}><TradePicker options={TRADES} value={f.categories} onChange={(v) => upd("categories", v)} />{err("categories")}</Field>
         </div>
       </FormSection>
 
@@ -518,7 +518,7 @@ function VendorFlags({ v }) {
           <Field label="Vendor group" hint="Filters & spend-by-group report"><Select value={v.group || ""} placeholder="— not grouped —" onChange={(g) => edit("group", g, g ? `Vendor group → ${g}` : "Removed from vendor group")} options={withCurrent(settingsOf(getState()).vendorGroups, v.group)} /></Field>
           <Field label="Internal parent company" hint="Only if this vendor is one of our group companies" span={2}><Select value={v.parentCompany || ""} placeholder="— external vendor —" onChange={(g) => edit("parentCompany", g, g ? `Marked as group company of ${g}` : "Marked as external vendor")} options={withCurrent(settingsOf(getState()).groupCompanies, v.parentCompany)} /></Field>
           <Field label="Trades / categories (multi-trade)" span={3}>
-            <TradePicker options={tradeList()} value={v.categories} onChange={(c) => edit("categories", c, "Categories updated")} />
+            <TradePicker options={TRADES} value={v.categories} onChange={(c) => edit("categories", c, "Categories updated")} />
           </Field>
         </div>
       </Section>

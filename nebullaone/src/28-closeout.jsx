@@ -12,22 +12,15 @@ function closeoutStage(st, c) {
   const openPunch = (st.punchItems || []).filter((p) => p.contractId === c.id && p.status !== "Closed").length;
   const insp = (st.inspections || []).filter((i) => i.contractId === c.id).slice(-1)[0];
   const finalBill = st.raBills.find((b) => b.contractId === c.id && b.final && b.status !== "Rejected");
-  if (c.status === "Terminated") {
-    if (c.settlement?.status !== "Agreed") return "Final settlement";
-    if (!c.blacklistDecision) return "Blacklist decision";
-    return closureChecklist(st, c).every((i) => i.ok) ? "Ready to close" : "Retention & guarantees";
-  }
   if (!wos.length || !wos.every(woDone)) return "Execution";
   if (openPunch) return "Punch list";
   if (!c.handover) return insp?.result === "Passed" ? "Handover" : "Final inspection";
   if (!finalBill) return "Final bill";
   if (finalBill.status !== "Paid") return "Final payment";
-  if (c.settlement?.status !== "Agreed") return "Final settlement";
   if (daysUntil(shiftDays((c.dlpMonths || 0) * 30, c.handover.date)) >= 0) return "Defect liability";
-  if (!releaseBlockers(st, c).every((i) => i.ok)) return "Retention & guarantees";
-  return c.release ? "Ready to close" : "Contractor release";
+  return closureChecklist(st, c).every((i) => i.ok) ? "Ready to close" : "Retention & guarantees";
 }
-const CLOSEOUT_STAGES = ["Execution", "Punch list", "Final inspection", "Handover", "Final bill", "Final payment", "Final settlement", "Defect liability", "Retention & guarantees", "Contractor release", "Blacklist decision", "Ready to close", "Closed"];
+const CLOSEOUT_STAGES = ["Execution", "Punch list", "Final inspection", "Handover", "Final bill", "Final payment", "Defect liability", "Retention & guarantees", "Ready to close", "Closed"];
 
 // ---------------------------------------------------------------- punch list
 function addPunch(c, f) {
@@ -88,7 +81,7 @@ function CloseoutDrawer({ id, onClose }) {
     <Drawer open onClose={onClose} width={980} title={`Close-out — ${c.title}`} subtitle={<><span className="mono">{c.id}</span><Status>{contractStatus(c)}</Status><span>{v.name}</span><span>· {c.project}</span></>}
       actions={<RefLink to={`${CL_BASE}/contracts?open=${id}`}>Open contract →</RefLink>}>
       <div className="space-y-4 px-6 py-5">
-        <Section><div className="overflow-x-auto p-5"><Stepper steps={CLOSEOUT_STAGES.filter((x) => x !== "Final payment" && x !== "Retention & guarantees" && (c.status === "Terminated" ? !["Punch list", "Final inspection", "Handover", "Defect liability", "Contractor release"].includes(x) : x !== "Blacklist decision")).map((x) => { const i = CLOSEOUT_STAGES.indexOf(x); return { label: x, status: i < si ? "done" : i === si ? (x === "Closed" ? "done" : "current") : "todo" }; })} /></div></Section>
+        <Section><div className="overflow-x-auto p-5"><Stepper steps={CLOSEOUT_STAGES.filter((x) => x !== "Final payment" && x !== "Retention & guarantees").map((x) => { const i = CLOSEOUT_STAGES.indexOf(x); return { label: x, status: i < si ? "done" : i === si ? (x === "Closed" ? "done" : "current") : "todo" }; })} /></div></Section>
         {c.status === "Terminated" && <Note tone="red">Terminated contract — no handover; settle the final account (bills, retention, guarantees) and close.</Note>}
         <Section title="1 · Work completion" icon={Icon.clipboardList}>
           <DataTable dense rows={wos} columns={[
@@ -128,12 +121,7 @@ function CloseoutDrawer({ id, onClose }) {
           <KV cols={4} items={[["DLP", c.handover ? `${c.dlpMonths} months → ${fmtDate(dlpEnd)}${daysUntil(dlpEnd) >= 0 ? ` (${daysUntil(dlpEnd)} days left)` : " (ended)"}` : "Starts at handover"],
             ["Retention balance", inrShort(contractLedger(st, c).retentionBalance)], ["Release", <RefLink to={`${CL_BASE}/retention`}>Retention & Deductions →</RefLink>], ["Guarantees live", liveGuarantees(c).length || "None"]]} />
         </Section>
-        <Section title="7 · Final settlement & release" icon={Icon.handshake}>
-          <KV cols={4} items={[["Final settlement", c.settlement ? <Status tone={c.settlement.status === "Agreed" ? "green" : "amber"}>{c.settlement.status}</Status> : "Not prepared"],
-            ["Net position", c.settlement ? inr(c.settlement.net) : "—"], [c.status === "Terminated" ? "Blacklist decision" : "Release certificate", c.status === "Terminated" ? (c.blacklistDecision ? c.blacklistDecision.decision : "Pending") : (c.release ? c.release.no : "Not issued")],
-            ["Open", <span className="flex flex-col gap-0.5">{settlementReady(st, c) ? <RefLink to={`${CL_BASE}/final-settlement?open=${c.id}`}>Final Settlement →</RefLink> : <span className="text-ink-mute">Settlement after the final bill</span>}{c.status === "Terminated" ? <RefLink to={`${CL_BASE}/terminations?open=${c.id}`}>Termination & Final Account →</RefLink> : (c.settlement?.status === "Agreed" || c.release) ? <RefLink to={`${CL_BASE}/contractor-release?open=${c.id}`}>Contractor Release →</RefLink> : null}</span>]]} />
-        </Section>
-        <Section title="8 · Closure checklist" icon={Icon.check} actions={c.status !== "Closed" && <Btn size="sm" variant="success" disabled={checklist.some((i) => !i.ok)} onClick={() => closeContract(c)}>Close contract</Btn>}>
+        <Section title="7 · Closure checklist" icon={Icon.check} actions={c.status !== "Closed" && <Btn size="sm" variant="success" disabled={checklist.some((i) => !i.ok)} onClick={() => closeContract(c)}>Close contract</Btn>}>
           <ul className="grid grid-cols-2 gap-x-6 gap-y-1.5 p-4">
             {checklist.map((i) => <li key={i.label} className="flex items-center gap-2 text-[12.5px]">{h(i.ok ? Icon.check : Icon.warning, { size: 14, className: i.ok ? "text-green-600" : "text-amber-500" })}{i.label}</li>)}
           </ul>

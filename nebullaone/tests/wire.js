@@ -13,9 +13,8 @@ const { chromium } = require('playwright'); const fs = require('fs');
   // 1. every page in the menu
   // make the store persist (it is only written after the first change)
   await go('vendor-management/registry'); const star = p.locator('tr:has-text("Konkan Steel") button[title*="preferred" i]'); await star.click(); await p.waitForTimeout(80); await star.click(); await p.waitForTimeout(80);
-  const links = ['vendor-management/overview', 'vendor-management/registry', 'vendor-management/approvals', 'vendor-management/compliance', 'vendor-management/requisitions', 'vendor-management/rfq', 'vendor-management/blanket-orders', 'vendor-management/price-lists', 'vendor-management/purchase-orders', 'vendor-management/goods-receipts', 'vendor-management/holds', 'vendor-management/invoices', 'vendor-management/scorecard', 'vendor-management/portal', 'vendor-management/settings', 'contract-labor/overview', 'contract-labor/onboarding', 'contract-labor/contracts', 'contract-labor/work-orders', 'contract-labor/change-orders', 'contract-labor/attendance', 'contract-labor/measurement-book', 'contract-labor/ra-bills', 'contract-labor/retention', 'contract-labor/labor-rates', 'contract-labor/performance', 'contract-labor/closeout', 'administration/audit-log', 'approvals/approval-management',
-    'administration/lifecycle', 'administration/notifications', 'administration/integrations', 'administration/state-machines', 'vendor-management/category-master', 'vendor-management/direct-awards', 'vendor-management/requalification', 'contract-labor/final-settlement', 'contract-labor/dlp-warranty', 'contract-labor/contractor-release', 'contract-labor/terminations'];
-  const NO_ROWS = ['settings', 'audit-log', 'portal', 'overview', 'approval-management', 'attendance', 'lifecycle', 'integrations', 'state-machines']; // attendance is a muster grid for data entry, not a record list
+  const links = ['vendor-management/overview', 'vendor-management/registry', 'vendor-management/approvals', 'vendor-management/compliance', 'vendor-management/requisitions', 'vendor-management/rfq', 'vendor-management/blanket-orders', 'vendor-management/price-lists', 'vendor-management/purchase-orders', 'vendor-management/goods-receipts', 'vendor-management/holds', 'vendor-management/invoices', 'vendor-management/scorecard', 'vendor-management/portal', 'vendor-management/settings', 'contract-labor/overview', 'contract-labor/onboarding', 'contract-labor/contracts', 'contract-labor/work-orders', 'contract-labor/change-orders', 'contract-labor/attendance', 'contract-labor/measurement-book', 'contract-labor/ra-bills', 'contract-labor/retention', 'contract-labor/labor-rates', 'contract-labor/performance', 'contract-labor/closeout', 'administration/audit-log', 'approvals/approval-management'];
+  const NO_ROWS = ['settings', 'audit-log', 'portal', 'overview', 'approval-management', 'attendance']; // attendance is a muster grid for data entry, not a record list
   for (const h of links) {
     errs = []; await go(h.replace(/^#?\/?productivity\//, '').replace(/^#\//, ''));
     const title = await p.locator('h1').first().textContent().catch(() => '');
@@ -47,8 +46,7 @@ const { chromium } = require('playwright'); const fs = require('fs');
   const deep = [['vendor-management/registry', st.vendors[0].id], ['vendor-management/approvals', st.vendors.find((v) => v.status === 'Pending Approval')?.id], ['vendor-management/compliance', st.vendors[0].id],
     ['vendor-management/requisitions', (st.requisitions || [])[0]?.id], ['vendor-management/rfq', st.rfqs[0].id], ['vendor-management/blanket-orders', st.blanketOrders[0]?.id],
     ['vendor-management/purchase-orders', st.purchaseOrders[0].id], ['vendor-management/invoices', st.invoices[0].id], ['contract-labor/contracts', st.contracts[0].id],
-    ['contract-labor/work-orders', st.workOrders[0].id], ['contract-labor/ra-bills', st.raBills[0].id], ['contract-labor/closeout', st.contracts[0].id],
-    ['vendor-management/direct-awards', (st.directAwards || [])[0]?.id], ['contract-labor/final-settlement', 'CTR-005']];
+    ['contract-labor/work-orders', st.workOrders[0].id], ['contract-labor/ra-bills', st.raBills[0].id], ['contract-labor/closeout', st.contracts[0].id]];
   for (const [pg, id] of deep) {
     if (!id) { rec('Deep link', pg, false, 'no sample record'); continue; }
     errs = []; await go(`${pg}?open=${id}`);
@@ -58,14 +56,6 @@ const { chromium } = require('playwright'); const fs = require('fs');
   // 5. other parameters
   errs = []; await go(`contract-labor/work-orders?contract=${st.contracts[0].id}`); rec('Deep link', 'work-orders?contract= opens a new WO for that contract', (await p.locator('[role=dialog]').count()) > 0 && !errs.length, errs.join(' / ') || 'no dialog');
   errs = []; await go(`contract-labor/ra-bills?wo=${st.workOrders[0].id}`); rec('Deep link', 'ra-bills?wo= opens bill preparation for that WO', (await p.locator('[role=dialog]').count()) > 0 && !errs.length, errs.join(' / ') || 'no dialog');
-  errs = []; await go(`vendor-management/direct-awards?fromReq=MR-001`); { const v2 = await p.$$eval('[role=dialog] input', (is) => is.map((i) => i.value).join(' ')); rec('Deep link', 'direct-awards?fromReq= opens a direct award with the requisition lines', /OPC 53/.test(v2) && !errs.length, errs.join(' / ') || 'not pre-filled'); }
-  // 6. lifecycle bar: every A–F page shows its step and a next-step link that lands on a real page
-  for (const h of links.filter((x) => !/overview|approval-management|lifecycle|settings|state-machines|compliance|scorecard|notifications|portal|integrations|audit-log/.test(x))) {
-    errs = []; await go(h); const nx = p.locator('[data-next-step]'); const has = await nx.count();
-    if (!has) { if (/requalification/.test(h)) continue; rec('Next step', h.split('/').pop(), false, 'no next-step link'); continue; }
-    await nx.click(); await p.waitForTimeout(400); const title = await p.locator('h1').first().textContent().catch(() => '');
-    rec('Next step', `${h.split('/').pop()} → ${title}`, !!title && !errs.length, errs.join(' / ') || 'next page did not load');
-  }
   errs = []; await go(`vendor-management/rfq?fromReq=MR-001`); const vals = await p.$$eval('[role=dialog] input', (is) => is.map((i) => i.value).join(' ')); rec('Deep link', 'rfq?fromReq= opens an RFQ pre-filled from the requisition', /MR-001/.test(vals) && !errs.length, errs.join(' / ') || 'not pre-filled: ' + vals.slice(0, 80));
   for (const m of ['Vendors', 'Purchase Orders', 'Contracts', 'Vendor Invoices', 'Spend Authorization']) {
     errs = []; await go(`approvals/approval-management?module=${encodeURIComponent(m)}`); rec('Deep link', `approval-management?module=${m}`, !errs.length && (await p.textContent('body')).includes(m), errs.join(' / ') || 'module not selected');

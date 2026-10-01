@@ -57,7 +57,6 @@ function Questionnaire({ v }) {
     setState((s) => {
       const x = byId(s.vendors, v.id);
       x.qualification = { ...(x.qualification || {}), ruleSet: sets.map((r) => r.name).join(", "), score, answers: { ...ans }, libAnswers: { ...la }, at: todayISO() };
-      if (x.requalRequired) { x.requalHistory = [...(x.requalHistory || []), { ...x.requalRequired, clearedAt: todayISO(), clearedBy: currentUser(), how: `Re-assessed — ${score}/100` }]; x.requalRequired = null; }
       for (const q of qs) if (q.writeBack && x[q.writeBack[0]]) x[q.writeBack[0]][q.writeBack[1]] = ans[q.key]; // response updates profile
     }, { entity: "Vendor", id: v.id, action: `Qualification questionnaire scored ${score}/100` });
     toast(`Qualification saved — ${score}/100`);

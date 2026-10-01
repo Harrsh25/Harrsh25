@@ -98,10 +98,6 @@ const DEFAULT_SETTINGS = {
   supplierNaming: "Naming series",   // Naming series | Supplier name
   defaultSupplierGroup: "",
   defaultPriceList: "Standard Buying",
-  requalGate: "Stop",             // close-out evaluation / termination asks for requalification: Stop | Warn
-  directAwardLimit: 2500000,      // direct awards above this need a single-source / proprietary / emergency justification
-  rateVarianceAction: "Warn",     // PO rate above the standard rate master (+ tolerance): Stop | Warn | Off
-  notifyDaysAhead: 30,            // expiry notifications look this far ahead
   poApprovalMin: 500000,          // POs at or above this need approval; below it "Approve & issue" is one step
   lockConfirmedOrders: true,      // issued POs can't be edited (use a change / cancel)
   purchaseWarnings: true,         // show the vendor's purchase warning on RFQ / PO
@@ -365,7 +361,7 @@ const FO = {
   vendors: () => uniqSorted(getState().vendors.map((v) => v.name)),
   contractors: () => uniqSorted(getState().vendors.filter((v) => v.isContractor || v.type === "Labor").map((v) => v.name)),
   projects: () => PROJECTS,
-  trades: () => tradeList(),
+  trades: () => TRADES,
   labourTrades: () => uniqSorted([...getState().laborRates.map((r) => r.trade), ...getState().workers.map((w) => w.trade)]),
   skills: () => SKILLS,
   regions: () => REGIONS,
@@ -380,7 +376,7 @@ const FO = {
   regTier: ["Prospective", "Spend Authorized"],
   vendorType: ["Goods", "Services", "Services · Contractor", "Labor · Contractor"],
   stage: () => [...new Set([...(settingsOf(getState()).vendorFlow || []).map((x) => x.name), ...getState().vendors.flatMap((v) => (v.approval?.stages || []).map((s) => s.dept))]), "—"],
-  qualResult: ["Qualified", "Qualified with exceptions", "Not qualified", "Expired", "Requalification required"],
+  qualResult: ["Qualified", "Qualified with exceptions", "Not qualified", "Expired"],
   preferred: ["Preferred", "Not preferred"],
   poStatus: ["Draft", "Issued", "Partially Received", "Received", "Closed", "Cancelled"],
   poBilling: ["Nothing to Bill", "Waiting Bills", "Partially Billed", "Fully Billed", "On ordered quantity", "Draft", "Cancelled"],

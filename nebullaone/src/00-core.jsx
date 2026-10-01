@@ -921,7 +921,6 @@ function Page({ title, subtitle, icon, actions, children }) {
     <Card>
       <PageHeader title={title} icon={icon}
         actions={<>{actions}<DemoMenu /></>} />
-      <StageFlow />
       {children}
       <Toaster />
     </Card>
