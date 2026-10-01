@@ -24,7 +24,7 @@ function InviteVendorModal({ onClose }) {
         <Field label="Company name" required><TextInput value={f.name} onChange={(x) => setF({ ...f, name: x })} /></Field>
         <Field label="Contact person"><TextInput value={f.contact} onChange={(x) => setF({ ...f, contact: x })} /></Field>
         <Field label="E-mail" required>{<TextInput type="email" value={f.email} onChange={(x) => setF({ ...f, email: x })} />}{dupe && <span className="mt-1 block text-[11px] text-red-600">Already registered or invited</span>}</Field>
-        <Field label="Trade / category"><Select value={f.category} placeholder="Any" onChange={(x) => setF({ ...f, category: x })} options={TRADES} /></Field>
+        <Field label="Trade / category"><Select value={f.category} placeholder="Any" onChange={(x) => setF({ ...f, category: x })} options={tradeList()} /></Field>
         <Field label="Message" span={2}><TextArea rows={3} value={f.message} onChange={(x) => setF({ ...f, message: x })} /></Field>
       </div>
     </Modal>

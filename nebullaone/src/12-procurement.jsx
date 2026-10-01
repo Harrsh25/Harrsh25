@@ -17,12 +17,12 @@ function useQueryOpen() {
 }
 
 // ---------------------------------------------------------------- purchase orders
-function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket }) {
+function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket, preset }) {
   const st = useStore();
   const set0 = settingsOf(st);
   const blank = () => ({ vendorId: "", blanketId: presetBlanket || "", project: PROJECTS[0], deliveryDate: shiftDays(14), billingPolicy: "On received quantity", tolerance: 2, lines: [{ desc: "", unit: "nos", qty: "", rate: "" }], details: docDefaults("po", st) });
   const [f, setF] = y.useState(blank);
-  y.useEffect(() => { if (open) { const b = blank(); if (presetBlanket) Object.assign(b, fromBlanket(presetBlanket)); setF(b); } }, [open]);
+  y.useEffect(() => { if (open) { const b = blank(); if (presetBlanket) Object.assign(b, fromBlanket(presetBlanket)); if (preset) { const pv = byId(st.vendors, preset.vendorId); Object.assign(b, preset, { details: { ...b.details, currency: pv?.currency || "INR", fx: fxRate(pv?.currency), paymentTerms: pv?.paymentTerms || b.details?.paymentTerms } }); } setF(b); } }, [open]);
   function fromBlanket(boId) {
     const bo = byId(st.blanketOrders, boId);
     if (!bo) return { blanketId: "" };
@@ -44,7 +44,9 @@ function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket }) {
   const descs = lines.map((l) => String(l.desc).trim().toLowerCase()).filter(Boolean);
   const dupItem = !set0.allowDuplicateItems && new Set(descs).size !== descs.length;
   const detErr = docDetailErrors("po", f.details || {});
-  const ok = f.vendorId && lines.length && lines.every((l) => String(l.desc).trim() && String(l.unit || "").trim() && qtyOk(l) && rateOk(l)) && !gate.block && !overBlanket && !VX.any(poErr) && !dupItem && !VX.any(detErr);
+  const overStd = lines.map((l) => ({ l, rv: rateVariance(st, l.desc, Number(l.rate)) })).filter((x) => x.rv && x.rv.over);
+  const stdStop = overStd.length > 0 && set0.rateVarianceAction === "Stop";
+  const ok = f.vendorId && lines.length && lines.every((l) => String(l.desc).trim() && String(l.unit || "").trim() && qtyOk(l) && rateOk(l)) && !gate.block && !overBlanket && !VX.any(poErr) && !dupItem && !VX.any(detErr) && !stdStop;
   const needsApproval = total >= (Number(set0.poApprovalMin) || 0);
   const outstanding = v ? sum(st.invoices.filter((i) => i.vendorId === v.id), (i) => invoiceTotals(i).balance) + sum(st.purchaseOrders.filter((p) => p.vendorId === v.id && ["Issued", "Partially Received"].includes(poStatus(p))), poValue) : 0;
   const overCredit = v && Number(v.creditLimit) > 0 && outstanding + total > Number(v.creditLimit);
@@ -56,9 +58,9 @@ function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket }) {
       footer={<><span className="mr-auto text-[13px]">Total <b className="num">{inr(total)}</b> + GST</span><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!ok} onClick={() => {
         const id = nextId("PO", st.purchaseOrders);
         const auto = !needsApproval;
-        setState((s) => s.purchaseOrders.unshift({ ...f, id, date: todayISO(), createdAt: new Date().toISOString(), status: auto ? "Issued" : "Draft", rfqId: null, ...(auto ? { approval: { by: currentUser(), at: new Date().toISOString(), decision: "Approved", remark: `Below the ${inrShort(set0.poApprovalMin)} approval threshold — issued directly` } } : {}), receipts: [], returns: [], blanketId: f.blanketId || null,
+        setState((s) => { if (f.directAwardId) { const da = byId(s.directAwards || [], f.directAwardId); if (da) Object.assign(da, { status: "Ordered", poId: id }); } s.purchaseOrders.unshift({ ...f, id, date: todayISO(), createdAt: new Date().toISOString(), status: auto ? "Issued" : "Draft", rfqId: null, ...(auto ? { approval: { by: currentUser(), at: new Date().toISOString(), decision: "Approved", remark: `Below the ${inrShort(set0.poApprovalMin)} approval threshold — issued directly` } } : {}), receipts: [], returns: [], blanketId: f.blanketId || null,
           lines: lines.map((l) => ({ desc: l.desc, unit: l.unit, qty: Number(l.qty), rate: Number(l.rate), ...(l.blanketLine !== undefined ? { blanketLine: l.blanketLine } : {}) })),
-          revisions: [{ rev: 0, at: new Date().toISOString(), by: currentUser(), note: bo ? `Call-off against ${bo.id}` : "PO created" }] }), { entity: "PO", id, action: `Created for ${v.name}${bo ? ` (call-off ${bo.id})` : ""} — ${auto ? "issued (below approval threshold)" : "sent for approval"}` });
+          revisions: [{ rev: 0, at: new Date().toISOString(), by: currentUser(), note: bo ? `Call-off against ${bo.id}` : f.directAwardId ? `Direct award ${f.directAwardId}` : "PO created" }] }); }, { entity: "PO", id, action: `Created for ${v.name}${bo ? ` (call-off ${bo.id})` : ""}${f.directAwardId ? ` (direct award ${f.directAwardId})` : ""} — ${auto ? "issued (below approval threshold)" : "sent for approval"}` });
         toast(auto ? `${id} issued — below the approval threshold` : `${id} created — approve it in Approval Management`); onClose(); onCreated && onCreated(id);
       }}>{needsApproval ? "Create & send for approval" : "Create & issue"}</Btn></>}>
       <div className="space-y-4">
@@ -79,6 +81,8 @@ function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket }) {
         {v && v.frozen && <Note tone="red">{v.name} is frozen — no new POs.</Note>}
         {overCredit && <Note tone="amber">Credit limit {inrShort(v.creditLimit)}: open POs and unpaid bills ({inrShort(outstanding)}) plus this PO ({inrShort(total)}) go over it.</Note>}
         {tooSoon && <Note tone="amber">Delivery is sooner than the {set0.daysToPurchase} days-to-purchase lead time.</Note>}
+        {f.directAwardId && <Note tone="blue" icon={Icon.target}>From approved direct award <b>{f.directAwardId}</b>{f.requisitionId ? <> · requisition <b>{f.requisitionId}</b></> : null} — no RFQ needed.</Note>}
+        {overStd.length > 0 && <Note tone={stdStop ? "red" : "amber"}>Above the standard rate: {overStd.map((x) => `${x.l.desc} ${inr(x.l.rate)} vs ${inr(x.rv.std.rate)} (+${x.rv.pct}%)`).join(" · ")}{stdStop ? " — not allowed (Procurement Settings → rate above standard)." : " — check before ordering."}</Note>}
         {dupItem && <Note tone="red">The same item appears twice — combine the lines (Procurement Settings → allow the same item twice).</Note>}
         {v && v.preferred && !bo && <Note tone="green" icon={Icon.star}>Preferred supplier — pricelist rates from earlier POs are suggested below.</Note>}
         <Section title={bo ? `Lines from ${bo.id} (allowance ${set0.blanketAllowancePct}%)` : "Lines"} actions={!bo && <Btn size="sm" icon={Icon.plus} onClick={() => setF({ ...f, lines: [...f.lines, { desc: "", unit: "nos", qty: "", rate: "" }] })}>Add line</Btn>}>
@@ -907,6 +911,9 @@ function ProcurementSettingsPage() {
         <Section title="Workflow gates" icon={Icon.clipboardCheck}>
           {mode("rfqComplianceGate", "Compliance at RFQ invite", "Blocking compliance failures or overdue requalification")}
           {mode("poComplianceGate", "Compliance at PO / contract", "Same checks when ordering or contracting")}
+          {mode("requalGate", "Requalification after close-out", "A poor closing evaluation or a termination asks for requalification before the next RFQ, PO, contract or work order")}
+          {mode("rateVarianceAction", "Rate above the standard rate", "PO / direct-award line above the Category & Rate Master rate plus its tolerance")}
+          <div className="grid grid-cols-[1fr_260px] items-center gap-4 border-b border-line px-4 py-3"><div><p className="text-[13px] font-medium">Direct award limit (₹)</p><p className="text-[12px] text-ink-mute">Above this, only single source / proprietary / emergency / group company may skip the RFQ</p></div><NumInput value={f.directAwardLimit} onChange={set("directAwardLimit")} /></div>
           {yesNo("requireDocsOnSubmit", "Required documents before submitting a registration", "Approvers never receive an empty record")}
           {yesNo("mobilisationBeforeWo", "Mobilisation checklist before the first work order", "Contractor Onboarding → mobilisation checklist must be complete")}
           {yesNo("qcBeforeBilling", "Quality inspection before RA billing", "Only measurements with a passed inspection can be billed")}

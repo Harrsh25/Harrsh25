@@ -115,7 +115,7 @@ function requalDue(v) {
 }
 // Qualification status with the project value it covers. The limit defaults from the
 // score (≥85 → ₹50 Cr, ≥70 → ₹10 Cr) and can be set on the Qualification tab.
-const QUAL_STATUSES = ["Qualified", "Qualified with exceptions", "Not qualified", "Expired", "Not assessed"];
+const QUAL_STATUSES = ["Qualified", "Qualified with exceptions", "Not qualified", "Expired", "Requalification required", "Not assessed"];
 function qualStatus(v) {
   const q = v?.qualification;
   if (!q) return { status: "Not assessed", tone: "gray", limit: 0, exceptions: "" };
@@ -126,6 +126,7 @@ function qualStatus(v) {
   const base = { limit, single, exceptions, expiry: q.expiryDate || null, risk: q.riskRating || "" };
   if (q.score < QUAL_PASS) return { ...base, status: "Not qualified", tone: "red", limit: 0, single: 0 };
   if (requalDue(v) || (q.expiryDate && q.expiryDate < todayISO())) return { ...base, status: "Expired", tone: "red" };
+  if (v.requalRequired) return { ...base, status: "Requalification required", tone: "red" };
   return { ...base, status: exceptions ? "Qualified with exceptions" : "Qualified", tone: exceptions ? "amber" : "green" };
 }
 // Warning when a contractor's open work (plus a new order of `value`) goes over its qualification limit
@@ -152,7 +153,11 @@ function sourcingGate(st, v, what) {
   const mode = what === "rfq" ? set0.rfqComplianceGate : set0.poComplianceGate;
   const issues = [...complianceOf(v).blocking];
   if (requalDue(v)) issues.push("requalification overdue");
-  return { mode, issues, block: mode === "Stop" && issues.length > 0, warn: mode === "Warn" && issues.length > 0 };
+  // Close-out evaluation / termination feeds back into sourcing: requalify before the next award
+  const rq = v.requalRequired && set0.requalGate !== "Off" ? `requalification required — ${v.requalRequired.reason}` : "";
+  const hard = !!rq && set0.requalGate === "Stop";
+  if (rq) issues.push(rq);
+  return { mode: hard ? "Stop" : mode, issues, block: hard || (mode === "Stop" && issues.length > 0), warn: !hard && (mode === "Warn" || !!rq) && issues.length > 0 };
 }
 
 // ---------------------------------------------------------------- PO approval (one place for drawer + Approval Management)
@@ -311,6 +316,9 @@ function closureChecklist(st, c) {
   items.push(["Retention fully released", led.retentionBalance <= 0.5 && pendingRel.length === 0]);
   items.push(["Mobilisation advance fully recovered", led.advanceBalance <= 0.5]);
   items.push(["Bank guarantees returned or encashed", liveGuarantees(c).length === 0 && !(c.guarantees || []).some((g) => bgStatus(g) === "Expired")]);
+  items.push(["Final settlement agreed with the contractor", c.settlement?.status === "Agreed"]);
+  if (c.status === "Terminated") items.push(["Blacklist decision recorded", !!c.blacklistDecision]);
+  else items.push(["Contractor release certificate issued", !!c.release]);
   return items.map(([label, ok]) => ({ label, ok }));
 }
 function closeContract(c) {
