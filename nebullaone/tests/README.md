@@ -9,6 +9,7 @@ node fix1.js    # vendor gates, roles, segregation of duties
 node fix23.js   # approvals, award → contract, contract approval, BG, WO gates, change orders
 node fix4.js    # inspection / NCR, over-quantity, material, equipment, DPR, JMS co-sign, WBS
 node fix5.js    # close-out & handover, final bill, retention, portal invoices
+node closure.js # final settlement, DLP & warranty, contractor release, termination path, requalification
 ```
 
 Results are written to `out/res-<suite>.json` (screenshots of failures to `out/`). Set `CHROMIUM=/path/to/chrome` if Chromium isn't at `/opt/pw-browsers/chromium`.

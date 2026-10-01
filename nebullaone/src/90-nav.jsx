@@ -16,6 +16,7 @@ const NXV_PAGES = [
   { group: "Vendor Management", base: VM_BASE, path: "goods-receipts", label: "Goods Receipts", icon: Icon.truck, el: GoodsReceiptsPage },
   { group: "Vendor Management", base: VM_BASE, path: "holds", label: "Holds Register", icon: Icon.lock, el: HoldsRegisterPage },
   { group: "Vendor Management", base: VM_BASE, path: "invoices", label: "Invoices & Payments", icon: Icon.receipt, el: InvoicesPage },
+  { group: "Vendor Management", base: VM_BASE, path: "requalification", label: "Requalification", icon: Icon.refresh, el: RequalificationPage },
   { group: "Vendor Management", base: VM_BASE, path: "scorecard", label: "Vendor Scorecard", icon: Icon.gauge, el: ScorecardPage },
   { group: "Vendor Management", base: VM_BASE, path: "portal", label: "Vendor Portal", icon: Icon.globe, el: VendorPortalPage },
   { group: "Vendor Management", base: VM_BASE, path: "settings", label: "Procurement Settings", icon: Icon.settings, el: ProcurementSettingsPage },
@@ -31,6 +32,10 @@ const NXV_PAGES = [
   { group: "Contract & Labor", base: CL_BASE, path: "labor-rates", label: "Labor Rate Management", icon: Icon.hardHat, el: LaborRatesPage },
   { group: "Contract & Labor", base: CL_BASE, path: "performance", label: "Performance & Progress", icon: Icon.trending, el: PerformancePage },
   { group: "Contract & Labor", base: CL_BASE, path: "closeout", label: "Close-out & Handover", icon: Icon.folderCheck, el: CloseoutPage },
+  { group: "Contract & Labor", base: CL_BASE, path: "final-settlement", label: "Final Settlement", icon: Icon.scale, el: FinalSettlementPage },
+  { group: "Contract & Labor", base: CL_BASE, path: "dlp-warranty", label: "DLP & Warranty", icon: Icon.shieldCheck, el: DlpWarrantyPage },
+  { group: "Contract & Labor", base: CL_BASE, path: "contractor-release", label: "Contractor Release", icon: Icon.handshake, el: ContractorReleasePage },
+  { group: "Contract & Labor", base: CL_BASE, path: "terminations", label: "Termination & Final Account", icon: Icon.ban, el: TerminationsPage },
   { group: "Administration", base: ADMIN_BASE, path: "audit-log", label: "Audit Log", icon: Icon.fileClock, el: AuditLogPage },
 ];
 

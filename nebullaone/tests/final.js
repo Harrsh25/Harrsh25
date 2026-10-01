@@ -227,6 +227,7 @@ require('./lib')('final', async ({ p, go, dlg, S, mut, as, T, pick, toastText })
     return [`${rr.id} ₹${r2.amount} ${r2.status} (approved ${r2.approvedBy}, released ${r2.releasedBy}); BG ${g.status}`, r2.status === 'Released' && g.status === 'Returned'];
   });
   await T('C18', 'Contract closure — checklist complete, WO frozen', async () => {
+    await mut(`(s) => { const c = s.contracts.find((x) => x.id === '${chain.contractor.contract}'); c.settlement = { status: 'Agreed', net: 0, agreedBy: 'test', agreedAt: '${new Date().toISOString().slice(0, 10)}' }; c.release = { no: 'REL-T', date: '${new Date().toISOString().slice(0, 10)}', contractorSignatory: 'test', by: 'test' }; }`);
     await as('Arjun Mehta'); await go('contract-labor/closeout?open=' + chain.contractor.contract); await p.waitForTimeout(300);
     const open = await dlg().locator('li:has(svg.text-amber-500)').allTextContents(); await dlg().locator('button:has-text("Close contract")').click(); await p.waitForTimeout(200); await as(null);
     const s = await S(); const ct = s.contracts.find((x) => x.id === chain.contractor.contract); const w = s.workOrders.find((x) => x.id === chain.contractor.wo);

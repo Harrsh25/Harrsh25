@@ -907,6 +907,7 @@ function ProcurementSettingsPage() {
         <Section title="Workflow gates" icon={Icon.clipboardCheck}>
           {mode("rfqComplianceGate", "Compliance at RFQ invite", "Blocking compliance failures or overdue requalification")}
           {mode("poComplianceGate", "Compliance at PO / contract", "Same checks when ordering or contracting")}
+          {mode("requalGate", "Requalification after close-out", "A poor closing evaluation or a termination asks for requalification before the next RFQ, PO, contract or work order")}
           {yesNo("requireDocsOnSubmit", "Required documents before submitting a registration", "Approvers never receive an empty record")}
           {yesNo("mobilisationBeforeWo", "Mobilisation checklist before the first work order", "Contractor Onboarding → mobilisation checklist must be complete")}
           {yesNo("qcBeforeBilling", "Quality inspection before RA billing", "Only measurements with a passed inspection can be billed")}
