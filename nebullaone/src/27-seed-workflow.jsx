@@ -81,7 +81,7 @@ function extendSeed2(s) {
     vp("VP-005", "VEN-009", "Binding wire 18 SWG", "kg", 50, 92, 0, 2, ""),
   ];
   const v4 = byId(s.vendors, "VEN-004");
-  if (v4) Object.assign(v4, { entityType: "Private limited company", gstTreatment: "Registered — regular", msmeType: "Small", udyamNo: "UDYAM-MH-26-0048812", paymentMethod: "NEFT", priceList: "Rate contract 2026–27", creditLimit: 5000000, payableAccount: "Sundry creditors — Goods", billDelivery: "Supplier portal",
+  if (v4) Object.assign(v4, { entityType: "Private limited company", gstTreatment: "Registered — regular", msmeType: "Small", udyamNo: "UDYAM-MH-26-0048812", paymentMethod: "NEFT", priceList: "Rate contract 2026–27", creditLimit: 5000000, billDelivery: "Supplier portal",
     purchaseWarning: "Confirm rake arrival before ordering above 2,000 bags", tags: ["Rate contract", "Cement"],
     contacts: [{ id: "CT-1", salutation: "Mr", firstName: "Rakesh", lastName: "Kulkarni", designation: "Accounts manager", department: "Accounts", email: "accounts@ultrabuild.in", phone: "020-2711 4410", mobile: "9822012345", status: "Active", primary: false }],
     addresses: [{ id: "AD-1", title: "Chakan depot", type: "Warehouse", line1: "Gat 212, Chakan MIDC Phase II", line2: "", city: "Pune", district: "Pune", state: "Maharashtra", pin: "410501", country: "India", purposes: ["Purchasing", "Sourcing only"], bu: "NebullaOne Infra Pvt Ltd", preferredShipping: true }] });

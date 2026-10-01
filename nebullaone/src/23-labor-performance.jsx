@@ -183,26 +183,12 @@ function PlanVsActual({ rows }) {
 function PerformancePage() {
   const st = useStore();
   const [tab, setTab] = y.useState("progress");
-  const [open, setOpen] = y.useState(null), [rate, setRate] = y.useState(null), [vd, setVd] = y.useState(null);
+  const [open, setOpen] = y.useState(null), [rate, setRate] = y.useState(null);
   const live = st.workOrders.filter((w) => ["Issued", "In Progress"].includes(w.status)).map((wo) => ({ wo, p: woProgress(st, wo) }));
-  const contractors = contractorVendors(st).filter((v) => st.workOrders.some((w) => w.vendorId === v.id));
-  const cRow = (v) => {
-    const wos = st.workOrders.filter((w) => w.vendorId === v.id);
-    const pr = wos.map((w) => woProgress(st, w));
-    const rt = st.ratings.filter((r) => r.vendorId === v.id);
-    const avg = (k) => (rt.length ? sum(rt, (r) => r[k]) / rt.length : null);
-    const mbs = st.measurements.filter((m) => wos.some((w) => w.id === m.woId));
-    return { v, wos, value: sum(pr, (p) => p.value), physical: pr.length ? (sum(pr, (p) => p.measured) / (sum(pr, (p) => p.value) || 1)) * 100 : 0,
-      spi: pr.length ? sum(pr, (p) => Math.min(1.2, p.spi)) / pr.length : 1, quality: avg("quality"), safety: avg("safety"), manpower: avg("manpower"),
-      incidents: sum(rt, (r) => r.incidents || 0), disputes: mbs.length ? pct(mbs.filter((m) => m.jms.status === "Disputed").length, mbs.length) : 0,
-      score: vendorScore(st, v.id).score, caps: st.caps.filter((c) => c.vendorId === v.id && c.status === "Open").length };
-  };
-  const rowsC = contractors.map(cRow);
-  const stars = (x) => (x == null ? <span className="text-ink-faint">—</span> : <span className="flex items-center gap-1"><Stars value={Math.round(x)} /><span className="num text-[11.5px] text-ink-mute">{x.toFixed(1)}</span></span>);
   return (
-    <Page title="Performance & Progress" subtitle="Planned vs physical vs financial progress per work order, and contractor scorecards" icon={Icon.trending}
+    <Page title="Performance & Progress" subtitle="Planned vs physical vs financial progress per work order" icon={Icon.trending}
       actions={<Btn variant="primary" icon={Icon.star} onClick={() => setRate({})}>Rate contractor</Btn>}>
-      <TabBar active={tab} onChange={setTab} tabs={[{ id: "progress", label: "Work order progress", icon: Icon.trending }, { id: "chart", label: "Planned vs actual", icon: Icon.chart }, { id: "dpr", label: "Daily progress", icon: Icon.calendar }, { id: "wbs", label: "Cost by WBS", icon: Icon.layers }, { id: "score", label: "Contractor scorecard", icon: Icon.gauge }, { id: "log", label: "Ratings log", icon: Icon.star }]} />
+      <TabBar active={tab} onChange={setTab} tabs={[{ id: "progress", label: "Work order progress", icon: Icon.trending }, { id: "chart", label: "Planned vs actual", icon: Icon.chart }, { id: "dpr", label: "Daily progress", icon: Icon.calendar }, { id: "wbs", label: "Cost by WBS", icon: Icon.layers }]} />
       {tab === "progress" && <DataTable noun="work orders" rows={live} rowKey={(x) => x.wo.id} onRow={(x) => setOpen(x.wo.id)} columns={[
         { key: "id", label: "WO", className: "mono text-[12px] text-ink-soft", render: (x) => x.wo.id },
         { key: "t", label: "Scope", className: "max-w-[240px] truncate font-medium", render: (x) => <span title={x.wo.title}>{x.wo.title}</span> },
@@ -217,31 +203,7 @@ function PerformancePage() {
       {tab === "chart" && <PlanVsActual rows={live} />}
       {tab === "dpr" && <DprTab />}
       {tab === "wbs" && <WbsCostTab />}
-      {tab === "score" && <DataTable noun="contractors" rows={rowsC} rowKey={(r) => r.v.id} onRow={(r) => setVd(r.v.id)} columns={[
-        { key: "n", label: "Contractor", render: (r) => <span className="font-medium">{r.v.name}</span> },
-        { key: "w", label: "WOs", align: "center", render: (r) => r.wos.length },
-        { key: "val", label: "Value", align: "right", num: true, render: (r) => inrShort(r.value) },
-        { key: "ph", label: "Physical", render: (r) => <Progress value={Math.round(r.physical)} /> },
-        { key: "spi", label: "Avg SPI", align: "right", render: (r) => <span className="num">{r.spi.toFixed(2)}</span> },
-        { key: "q", label: "Quality", render: (r) => stars(r.quality) },
-        { key: "sf", label: "Safety", render: (r) => stars(r.safety) },
-        { key: "mp", label: "Manpower", render: (r) => stars(r.manpower) },
-        { key: "inc", label: "Incidents", align: "center", render: (r) => (r.incidents ? <span className="font-semibold text-red-600">{r.incidents}</span> : "0") },
-        { key: "dis", label: "JMS disputes", align: "right", render: (r) => `${r.disputes}%` },
-        { key: "sc", label: "Score", render: (r) => <ScoreBadge value={r.score} /> },
-        { key: "cap", label: "", render: (r) => (r.caps ? <Status tone="amber">{`${r.caps} open CAP`}</Status> : null) },
-        { key: "a", label: "", align: "right", render: (r) => <Btn size="sm" icon={Icon.star} onClick={(e) => { e.stopPropagation(); setRate({ vendorId: r.v.id }); }}>Rate</Btn> },
-      ]} />}
-      {tab === "log" && <DataTable noun="ratings" rows={st.ratings.slice().reverse()} columns={[
-        { key: "p", label: "Period", filterOptions: FO.periods, filter: (r) => r.period, render: (r) => r.period }, { key: "v", label: "Contractor", filterOptions: FO.contractors, filter: (x) => vendorName(st, x.vendorId), render: (r) => <span className="font-medium">{vendorName(st, r.vendorId)}</span> },
-        { key: "w", label: "WO", className: "mono text-[12px]", render: (r) => r.woId || "—" },
-        { key: "q", label: "Quality", render: (r) => <Stars value={r.quality} /> }, { key: "s", label: "Safety", render: (r) => <Stars value={r.safety} /> }, { key: "m", label: "Manpower", render: (r) => <Stars value={r.manpower} /> },
-        { key: "i", label: "Incidents", align: "center", render: (r) => r.incidents || 0 },
-        { key: "r", label: "Remarks", className: "whitespace-normal text-[12px] text-ink-soft", render: (r) => r.remarks },
-        { key: "b", label: "By", filterOptions: FO.raters, filterLabel: "Rated by", filterAll: "Anyone", filter: (r) => r.by, render: (r) => r.by },
-      ]} />}
       {open && <WorkOrderDrawer id={open} onClose={() => setOpen(null)} />}
-      {vd && <VendorDrawer vendorId={vd} initialTab="activity" onClose={() => setVd(null)} />}
       <RatePerformanceModal open={!!rate} vendorId={rate?.vendorId} onClose={() => setRate(null)} />
     </Page>
   );

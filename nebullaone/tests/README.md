@@ -22,4 +22,4 @@ Results are written to `out/res-<suite>.json` (screenshots of failures to `out/`
 ## Registers and wiring
 
 - `wire.js` — every menu page loads without errors; clicking a row opens its record; every record link inside a drawer opens that same record on its page; `?open=`, `?contract=`, `?wo=`, `?fromReq=` and `?module=` deep links; public pages (supplier sign-in, self-registration, quote link). Writes `out/res-wire.json`.
-- `flow.js` — W-01…W-06: requisition → RFQ → award → PO → goods receipt (Goods Receipts register, requisition % ordered / received); hold placed and released from the Holds Register stops and restores POs and payments; a change order shows in Change & Variations and its approval raises the contract value; each step is in the Audit Log with a working link.
+- `flow.js` — W-01…W-06: requisition → RFQ → award → PO → goods receipt (requisition % ordered / received); vendor hold stops and release restores POs and payments; a change order's approval raises the contract value; each step is in the Audit Log with a working link.

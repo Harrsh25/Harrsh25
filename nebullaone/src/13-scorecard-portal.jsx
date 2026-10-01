@@ -104,13 +104,12 @@ function ScorecardPage() {
   const cats = {};
   rows.forEach((r) => { if (r.score != null) (cats[primaryCategory(r.v)] = cats[primaryCategory(r.v)] || []).push(r.score); });
   const catAvg = (v) => { const a = cats[primaryCategory(v)] || []; return a.length ? sum(a) / a.length : null; };
-  const scored = rows.filter((r) => r.score != null);
   const partCell = (x) => (x == null ? <span className="text-ink-faint">—</span> : <span className={cls("num", x < 60 && "text-red-600")}>{Math.round(x)}</span>);
   return (
     <Page title="Vendor Scorecard" subtitle="Weighted KPIs, category benchmarking, auto-block and corrective action" icon={Icon.gauge}
       actions={<><Btn icon={Icon.star} onClick={() => setRate(true)}>Rate performance</Btn>
         <Btn variant="primary" icon={Icon.zap} onClick={() => { const b = evaluateAutoBlock(); toast(b.length ? `${b.length} vendor(s) auto-held` : "No vendor below threshold", b.length ? "red" : "green"); }}>Run auto-block check</Btn></>}>
-      <TabBar active={tab} onChange={setTab} tabs={[{ id: "scores", label: "Scorecard", icon: Icon.gauge }, { id: "trend", label: "Monthly scores", icon: Icon.calendar }, { id: "bench", label: "Category benchmark", icon: Icon.chart }, { id: "spend", label: "Spend by group", icon: Icon.layers }, { id: "caps", label: "Corrective actions", icon: Icon.clipboardList }, { id: "model", label: "Metric model", icon: Icon.sliders }]} />
+      <TabBar active={tab} onChange={setTab} tabs={[{ id: "scores", label: "Scorecard", icon: Icon.gauge }, { id: "caps", label: "Corrective actions", icon: Icon.clipboardList }, { id: "model", label: "Metric model", icon: Icon.sliders }]} />
       {tab === "scores" && (
         <DataTable noun="vendors" rows={rows.sort((a, b) => (b.score ?? -1) - (a.score ?? -1))} rowKey={(r) => r.v.id} onRow={(r) => setOpen(r.v.id)} columns={[
           { key: "name", label: "Vendor", render: (r) => <span className="font-medium">{r.v.name}</span> },
@@ -130,31 +129,6 @@ function ScorecardPage() {
             </span>) },
         ]} />
       )}
-      {tab === "trend" && (() => {
-        const months = lastMonths(6);
-        const lbl = (m) => new Date(m).toLocaleDateString("en-IN", { month: "short", year: "2-digit" });
-        const tone = (x) => (x == null ? "text-ink-faint" : x >= 80 ? "text-green-700" : x >= 65 ? "text-blue-700" : x >= 50 ? "text-amber-700" : "text-red-600");
-        return (
-          <>
-            <DataTable noun="vendors" filters={<span className="text-[12.5px] text-ink-soft">Scored per month from the ratings and deliveries recorded in that month (ERPNext-style evaluation periods). “—” means no activity.</span>} rows={rows.filter((r) => r.score != null)} rowKey={(r) => r.v.id} onRow={(r) => setOpen(r.v.id)} columns={[
-              { key: "n", label: "Vendor", render: (r) => <span className="font-medium">{r.v.name}</span> },
-              ...months.map((m) => ({ key: m, label: lbl(m), align: "center", render: (r) => { const x = periodScore(st, r.v.id, m); return <span className={cls("num font-medium", tone(x))}>{x == null ? "—" : Math.round(x)}</span>; } })),
-              { key: "c", label: "Current", render: (r) => <ScoreBadge value={r.score} /> },
-            ]} />
-          </>
-        );
-      })()}
-      {tab === "bench" && (
-        <div className="grid grid-cols-2 gap-4 p-4">
-          <Section title="Average score by category" icon={Icon.chart}>
-            <BarList rows={Object.entries(cats).map(([k, a]) => ({ label: k, value: sum(a) / a.length })).sort((a, b) => b.value - a.value)} format={(x) => x.toFixed(1)} max={100} />
-          </Section>
-          <Section title="Vendor vs peers" icon={Icon.users}>
-            <BarList rows={scored.sort((a, b) => b.score - a.score).map((r) => ({ label: r.v.name, value: r.score, color: r.score >= 80 ? "bg-green-500" : r.score >= st.scoreConfig.blockThreshold ? "bg-amber-500" : "bg-red-500" }))} format={(x) => x.toFixed(1)} max={100} />
-          </Section>
-        </div>
-      )}
-      {tab === "spend" && <SpendByGroup onOpenVendor={setOpen} />}
       {tab === "caps" && (
         <DataTable noun="corrective actions" rows={st.caps} empty={<EmptyState icon={Icon.check} title="No corrective action plans" text="Issue a CAP from the scorecard when a vendor falls below the CAP threshold." />} columns={[
           { key: "id", label: "CAP", className: "mono text-[12px]" },

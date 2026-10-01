@@ -1,7 +1,6 @@
-// FLOW WIRING — the new registers are wired into the real flows: a requisition becomes an RFQ, an
-// awarded PO and a goods receipt; a hold placed in the register stops POs and payments and its
-// release restores them; a change order raised on a contract shows in the register and its
-// approval changes the contract value; every step lands in the audit log with a working link.
+// FLOW WIRING — a requisition becomes an RFQ, an awarded PO and a goods receipt; a vendor hold stops
+// POs and payments and its release restores them; a change order's approval changes the contract
+// value; every step lands in the audit log with a working link.
 require('./lib')('flow', async ({ p, go, dlg, S, mut, T, pick, toastText }) => {
   const btn = (t) => p.locator(`button:has-text("${t}")`);
   const esc = () => p.keyboard.press('Escape');
@@ -24,41 +23,38 @@ require('./lib')('flow', async ({ p, go, dlg, S, mut, T, pick, toastText }) => {
     await go('vendor-management/requisitions'); await p.waitForTimeout(300); const t = await p.locator('tr:has-text("MR-001")').textContent();
     return [`POs ${pos.map((x) => x.id + ':' + x.vendorId).join(', ')}; requisition row "${t.replace(/\s+/g, ' ').slice(0, 110)}"`, pos.length >= 1 && /\d+% \/ 0%/.test(t) && !/^0% /.test(t.match(/\d+% \/ \d+%/)?.[0] || '')];
   });
-  await T('W-03', 'Goods receipt on that PO shows in the Goods Receipts register and opens the PO', async () => {
+  await T('W-03', 'Goods receipt on that PO shows in the PO record and moves the requisition to received', async () => {
     await mut((s) => { const po = s.purchaseOrders.find((x) => x.id === s.purchaseOrders.find((y) => y.rfqId === s.rfqs.find((z) => z.requisitionId === 'MR-001').id).id); po.status = 'Issued'; po.approval = { by: 'test', at: new Date().toISOString(), decision: 'Approved' }; });
     await go('vendor-management/purchase-orders?open=' + poId); await p.waitForTimeout(300); await btn('Receive goods').click(); await p.waitForTimeout(200); await dlg().locator('button:has-text("Post GRN")').click(); await p.waitForTimeout(300);
     const g = (await S()).purchaseOrders.find((x) => x.id === poId).receipts.slice(-1)[0];
-    await go('vendor-management/goods-receipts'); await p.waitForTimeout(300); await p.locator(`tr:has-text("${g.id}")`).click(); await p.waitForTimeout(500);
-    const ok = (await dlg().textContent()).includes(poId);
+    const ok = (await dlg().textContent()).includes(g.id);
     await go('vendor-management/requisitions'); const t = await p.locator('tr:has-text("MR-001")').textContent();
-    return [`${g.id} listed → opened ${poId}: ${ok}; requisition "${(t.match(/\d+% \/ \d+%/) || [''])[0]}"`, ok && /\/ [1-9]\d*%/.test(t)];
+    return [`${g.id} listed in ${poId}: ${ok}; requisition "${(t.match(/\d+% \/ \d+%/) || [''])[0]}"`, ok && /\/ [1-9]\d*%/.test(t)];
   });
-  await T('W-04', 'Hold placed in the Holds Register stops new POs and payments; release restores them', async () => {
-    await go('vendor-management/holds'); await btn('Place hold').first().click(); await p.waitForTimeout(200); const d = dlg();
-    await pick(d.locator('label:has-text("Vendor") [role=combobox]').last(), 'Deccan Steel'); await pick(d.locator('label:has-text("Scope") [role=combobox]'), 'All');
-    await d.locator('label:has-text("Reason") input').fill('Quality dispute under review'); await d.locator('button:has-text("Place hold")').click(); await p.waitForTimeout(300);
-    const listed = (await p.textContent('main')).includes('Quality dispute under review');
+  await T('W-04', 'Hold placed on the vendor stops new POs and payments; release restores them', async () => {
+    await go('vendor-management/registry?open=VEN-003'); await p.waitForTimeout(300); await dlg().getByText('Status & flags', { exact: true }).click(); await p.waitForTimeout(150); const d = dlg();
+    const blk = d.locator('label:has-text("Block") [role=combobox]'); await blk.scrollIntoViewIfNeeded(); await p.waitForTimeout(150); await pick(blk, 'All'); await d.locator('label:has-text("Reason") input').first().fill('Quality dispute under review');
+    await d.locator('button:has-text("Place hold")').click(); await p.waitForTimeout(300);
     await go('vendor-management/purchase-orders'); await btn('New PO').first().click(); await p.waitForTimeout(200); await dlg().locator('label:has-text("Vendor") [role=combobox]').first().click(); await p.waitForTimeout(150);
     const offered = /Deccan Steel/.test(await p.locator('[role=listbox]').textContent()); await esc(); await esc();
     const inv = (await S()).invoices.find((i) => i.vendorId === 'VEN-003' && i.payments.length === 0);
     let stop = 'no unpaid bill';
     if (inv) { await go('vendor-management/invoices?open=' + inv.id); await p.waitForTimeout(300); stop = /Vendor on hold/i.test(await dlg().textContent()) ? 'payment stopped' : 'NOT stopped'; }
-    await go('vendor-management/holds'); await p.locator('tr:has-text("Quality dispute") button:has-text("Release")').click(); await p.waitForTimeout(150);
-    await dlg().locator('input').last().fill('Dispute settled with credit note'); await dlg().locator('button:has-text("Release hold")').click(); await p.waitForTimeout(300);
+    await go('vendor-management/registry?open=VEN-003'); await p.waitForTimeout(300); await dlg().getByText('Status & flags', { exact: true }).click(); await p.waitForTimeout(150);
+    await dlg().locator('button:has-text("Release hold")').click(); await p.waitForTimeout(300);
     const v = (await S()).vendors.find((x) => x.id === 'VEN-003');
-    return [`listed ${listed}; offered on new PO while held: ${offered}; ${stop}; after release ${v.status}`, listed && !offered && stop !== 'NOT stopped' && v.status === 'Active'];
+    return [`offered on new PO while held: ${offered}; ${stop}; after release ${v.status}`, !offered && stop !== 'NOT stopped' && v.status === 'Active'];
   });
-  await T('W-05', 'Change order raised on a contract shows in Change & Variations; approval raises the contract value', async () => {
+  await T('W-05', 'Change order raised on a contract; its approval raises the contract value', async () => {
     const before = (await S()).contracts.find((c) => c.id === 'CTR-004');
     await go('contract-labor/contracts?open=CTR-004'); await p.waitForTimeout(300); await btn('Raise change order').click(); await p.waitForTimeout(200); const d = dlg();
     await d.locator('label:has-text("Change description") input').fill('Extra dewatering — Block C'); await d.locator('label:has-text("Reason") input').fill('Ground water at 2.1 m');
     await d.locator('label:has-text("Value") input').fill('250000'); await d.locator('button:has-text("Submit for approval")').click(); await p.waitForTimeout(300);
-    await go('contract-labor/change-orders'); await p.waitForTimeout(300); const listed = (await p.textContent('main')).includes('Extra dewatering');
-    await go('contract-labor/contracts?open=CTR-004'); await p.waitForTimeout(300); await p.locator('tr:has-text("Extra dewatering") button:has-text("Approve")').click(); await p.waitForTimeout(300);
-    const s = await S(); const c = s.contracts.find((x) => x.id === 'CTR-004'); const co = c.changeOrders.find((o) => o.desc === 'Extra dewatering — Block C');
-    await go('contract-labor/change-orders'); const row = await p.locator('tr:has-text("Extra dewatering")').textContent();
+    await go('contract-labor/contracts?open=CTR-004'); await p.waitForTimeout(300); const listed = (await dlg().textContent()).includes('Extra dewatering');
+    await p.locator('tr:has-text("Extra dewatering") button:has-text("Approve")').click(); await p.waitForTimeout(300);
+    const c = (await S()).contracts.find((x) => x.id === 'CTR-004'); const co = c.changeOrders.find((o) => o.desc === 'Extra dewatering — Block C');
     const val = (x) => (Number(x.value) || 0) + (x.changeOrders || []).filter((o) => o.status === 'Approved').reduce((a, o) => a + (Number(o.amount) || 0), 0);
-    return [`listed ${listed}; ${co?.id} ${co?.status}; contract value ${val(before)} → ${val(c)}; register shows "${/Approved/.test(row) ? 'Approved' : row.slice(-20)}"`, listed && co?.status === 'Approved' && val(c) === val(before) + 250000 && /Approved/.test(row)];
+    return [`listed ${listed}; ${co?.id} ${co?.status}; contract value ${val(before)} → ${val(c)}`, listed && co?.status === 'Approved' && val(c) === val(before) + 250000];
   });
   await T('W-06', 'Audit log has each step, and its record links open the right record', async () => {
     await go('administration/audit-log'); await p.waitForTimeout(300); const t = await p.textContent('main');

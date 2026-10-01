@@ -35,31 +35,16 @@ const DOC_FIELDS = [
   { key: "vendorRef", label: "Vendor reference", group: "Header", type: "text", kinds: "rfq" },
   { key: "previewDate", label: "Preview / open date", group: "Header", type: "date", kinds: "rfq", hint: "Vendors can see the RFQ from this date" },
   { key: "awardDate", label: "Anticipated award date", group: "Header", type: "date", kinds: "rfq" },
-  { key: "requisitioningBu", label: "Requisitioning BU", group: "Header", type: "select", opts: (st) => COMPANIES(st), kinds: "po" },
-  { key: "billToBu", label: "Bill-to BU", group: "Header", type: "select", opts: (st) => COMPANIES(st), kinds: "po" },
-  { key: "docStyle", label: "Document style", group: "Header", type: "select", opts: () => ["Standard purchase order", "Blanket release", "Service order", "Rate contract order"], def: () => "Standard purchase order", kinds: "po" },
-  { key: "subcontracted", label: "Subcontracted (job work)", group: "Header", type: "check", kinds: "quote po" },
-  { key: "confirmNo", label: "Vendor order confirmation no.", group: "Header", type: "text", kinds: "po" },
-  { key: "confirmDate", label: "Confirmation date", group: "Header", type: "date", kinds: "po" },
   { key: "supplierGroup", label: "Supplier group", group: "Header", type: "readonly", value: (st, v) => v?.group || "Not grouped", kinds: "bill" },
-  { key: "journal", label: "Journal", group: "Accounting", type: "select", opts: (st) => settingsOf(st).journals, kinds: "bill payment" },
-  { key: "sourceEmail", label: "Received from e-mail", group: "Header", type: "text", kinds: "bill", hint: "Mailbox the bill arrived in" },
-  { key: "operationType", label: "Operation type", group: "Header", type: "select", opts: () => ["Receipt", "Return receipt", "Direct to site (drop-ship)"], def: () => "Receipt", kinds: "grn" },
-  { key: "responsible", label: "Responsible", group: "Header", type: "text", kinds: "grn", def: () => currentUser() },
-  { key: "shippingPolicy", label: "Shipping policy", group: "Header", type: "select", opts: () => ["As soon as possible (partial)", "When all items are ready"], def: () => "As soon as possible (partial)", kinds: "grn po" },
   { key: "deliveryNote", label: "Supplier delivery note / challan no.", group: "Header", type: "text", kinds: "grn" },
   { key: "paymentType", label: "Payment type", group: "Header", type: "select", opts: () => ["Pay", "Advance", "Refund received"], def: () => "Pay", kinds: "payment" },
-  { key: "agreementType", label: "Agreement / order type", group: "Header", type: "select", opts: () => ["Blanket order", "Rate contract", "Purchase template"], def: () => "Blanket order", kinds: "blanket" },
   { key: "orderDate", label: "Order date", group: "Header", type: "date", kinds: "blanket", def: () => todayISO() },
   { key: "linkedBlanket", label: "Link to purchase agreement", group: "Header", type: "select", opts: (st) => (st.blanketOrders || []).map((b) => ({ value: b.id, label: `${b.id} — ${b.vendorId ? vendorName(st, b.vendorId) : ""}` })), kinds: "rfq" },
-  { key: "opening", label: "Opening entry (balance brought forward)", group: "Accounting", type: "check", kinds: "bill payment" },
   // Currency & pricing
   { key: "currency", label: "Currency", group: "Currency & pricing", type: "select", opts: () => CURRENCIES, def: (st, v) => v?.currency || "INR", kinds: "rfq quote po blanket grn bill payment" },
   { key: "fx", label: "Exchange rate (₹ per unit)", group: "Currency & pricing", type: "number", def: (st, v) => fxRate(v?.currency), kinds: "rfq quote po blanket grn bill payment", show: (d) => d.currency && d.currency !== "INR" },
-  { key: "allowedCurrencies", label: "Allowed quote currencies", group: "Currency & pricing", type: "text", kinds: "rfq", def: () => "INR", hint: "Comma-separated, e.g. INR, USD" },
   { key: "priceList", label: "Price list", group: "Currency & pricing", type: "select", opts: (st) => settingsOf(st).priceLists, def: (st) => settingsOf(st).defaultPriceList, kinds: "req quote po blanket grn bill" },
   { key: "ignorePricing", label: "Ignore pricing rule (don't fill rates from the price list)", group: "Currency & pricing", type: "check", kinds: "quote po bill" },
-  { key: "discApplyOn", label: "Additional discount — apply on", group: "Currency & pricing", type: "select", opts: () => ["Net total", "Grand total"], def: () => "Net total", kinds: "quote po grn bill" },
   { key: "discPct", label: "Additional discount (%)", group: "Currency & pricing", type: "number", kinds: "quote po grn bill" },
   { key: "discAmt", label: "Additional discount (₹)", group: "Currency & pricing", type: "number", kinds: "quote po grn bill" },
   { key: "noRounding", label: "Disable rounded total", group: "Currency & pricing", type: "check", kinds: "quote po bill" },
@@ -67,7 +52,6 @@ const DOC_FIELDS = [
   // Taxes & shipping
   { key: "taxCategory", label: "Tax category", group: "Taxes & shipping", type: "select", opts: (st) => settingsOf(st).taxCategories, kinds: "quote po grn bill payment" },
   { key: "taxTemplate", label: "Purchase taxes & charges template", group: "Taxes & shipping", type: "select", opts: (st) => settingsOf(st).taxTemplates.map((t) => t.name), kinds: "quote po grn bill payment" },
-  { key: "fiscalPosition", label: "Tax position", group: "Taxes & shipping", type: "select", opts: () => ["Domestic", "Import", "SEZ", "Exempt"], def: () => "Domestic", kinds: "rfq bill" },
   { key: "shippingRule", label: "Shipping rule (freight)", group: "Taxes & shipping", type: "select", opts: (st) => settingsOf(st).shippingRules.map((r) => r.name), kinds: "quote po grn bill" },
   { key: "incoterm", label: "Incoterm", group: "Taxes & shipping", type: "select", opts: () => INCOTERMS, kinds: "quote po grn bill" },
   { key: "namedPlace", label: "Named place (incoterm location)", group: "Taxes & shipping", type: "text", kinds: "rfq quote po grn bill" },
@@ -75,26 +59,15 @@ const DOC_FIELDS = [
   { key: "supplierAddress", label: "Supplier address / site", group: "Address & contact", type: "select", opts: (st, v) => vendorAddresses(v).map((a) => ({ value: a.id, label: addrLabel(a) })), kinds: "quote po grn bill" },
   { key: "supplierContact", label: "Supplier contact", group: "Address & contact", type: "select", opts: (st, v) => vendorContacts(v).map((c) => ({ value: c.id, label: contactLabel(c) })), kinds: "quote po grn bill payment" },
   { key: "shipTo", label: "Ship-to / deliver-to address", group: "Address & contact", type: "select", opts: (st) => SITE_ADDRESSES(st), kinds: "rfq quote po grn bill" },
-  { key: "dispatchAddress", label: "Dispatch address (from)", group: "Address & contact", type: "text", kinds: "po grn" },
-  { key: "billingAddress", label: "Company billing address", group: "Address & contact", type: "select", opts: (st) => COMPANIES(st).map((c) => `${c} — registered office`), kinds: "rfq quote po grn bill" },
-  { key: "dropshipContact", label: "Drop-ship site contact", group: "Address & contact", type: "text", kinds: "po" },
   { key: "store", label: "Receiving store / warehouse", group: "Address & contact", type: "select", opts: (st) => settingsOf(st).stores, kinds: "req po grn" },
   // Accounting
   { key: "costCentre", label: "Cost centre", group: "Accounting", type: "select", opts: (st) => settingsOf(st).costCentres, kinds: "req quote po blanket grn bill payment contract" },
   { key: "project", label: "Project", group: "Accounting", type: "select", opts: () => PROJECTS, kinds: "quote po grn bill payment" },
-  { key: "payableAccount", label: "Credit to / payable account", group: "Accounting", type: "select", opts: (st) => settingsOf(st).payableAccounts, def: (st, v) => v?.payableAccount, kinds: "bill" },
   // Transport
   { key: "transporter", label: "Transporter name", group: "Transport", type: "text", kinds: "grn" },
   { key: "vehicleNo", label: "Vehicle number", group: "Transport", type: "text", kinds: "grn" },
   { key: "vehicleDate", label: "Vehicle date", group: "Transport", type: "date", kinds: "grn" },
   // Terms & printing
-  { key: "letterHead", label: "Letter head", group: "Terms & printing", type: "select", opts: (st) => settingsOf(st).letterHeads, kinds: "rfq quote po bill" },
-  { key: "printHeading", label: "Print heading", group: "Terms & printing", type: "select", opts: (st) => settingsOf(st).printHeadings, kinds: "rfq quote po bill" },
-  { key: "groupSame", label: "Group same items when printing", group: "Terms & printing", type: "check", kinds: "quote po bill" },
-  { key: "printLanguage", label: "Print language", group: "Terms & printing", type: "select", opts: (st) => settingsOf(st).printLanguages, def: (st, v) => v?.printLanguage || "English", kinds: "po" },
-  { key: "repeatFrom", label: "Auto-repeat from", group: "Terms & printing", type: "date", kinds: "po bill" },
-  { key: "repeatTo", label: "Auto-repeat to", group: "Terms & printing", type: "date", kinds: "po bill" },
-  { key: "repeatEvery", label: "Repeat every", group: "Terms & printing", type: "select", opts: () => ["Month", "Quarter", "Year"], kinds: "po bill" },
   { key: "notes", label: "Notes / remarks / instructions", group: "Terms & printing", type: "textarea", kinds: "po grn bill payment" },
 ];
 const DOC_GROUPS = ["Header", "Currency & pricing", "Taxes & shipping", "Address & contact", "Accounting", "Transport", "Terms & printing"];
@@ -119,8 +92,6 @@ function docDetailErrors(kind, d) {
   if (Number(d.discPct) < 0 || Number(d.discPct) > 100) e.discPct = "Discount must be 0–100%";
   if (Number(d.discAmt) < 0) e.discAmt = "Discount can't be negative";
   if (d.currency && d.currency !== "INR" && !(Number(d.fx) > 0)) e.fx = "Enter the exchange rate";
-  if (d.repeatFrom && d.repeatTo && d.repeatTo <= d.repeatFrom) e.repeatTo = "Must be after the start";
-  if (d.confirmDate && d.confirmDate > todayISO()) e.confirmDate = "Can't be in the future";
   if (d.vehicleDate && d.vehicleDate > todayISO()) e.vehicleDate = "Can't be in the future";
   if (kind === "rfq" && d.previewDate && d.awardDate && d.awardDate < d.previewDate) e.awardDate = "Award can't be before the open date";
   return e;
@@ -236,11 +207,11 @@ const ADDRESS_TYPES = ["Billing", "Shipping", "Office", "Site", "Registered", "W
 const SITE_PURPOSES = ["Purchasing", "Pay", "Primary pay", "Sourcing only"];
 // Top-level vendor keys the registration form edits (copied by applyForm on edit)
 const VENDOR_FORM_KEYS = ["country", "pin", "website", "taxId", "addressLine2", "district", "entityType", "taxPreference", "gstTreatment", "placeOfSupply", "msmeType", "udyamNo", "duns",
-  "federalTaxType", "tags", "logo", "logoName", "isTransporter", "printLanguage", "paymentMethod", "priceList", "creditLimit", "payableAccount", "billDelivery", "autoPostBills",
+  "federalTaxType", "tags", "logo", "logoName", "isTransporter", "paymentMethod", "priceList", "creditLimit", "billDelivery", "autoPostBills",
   "defaultBuyer", "purchaseWarning", "receiptReminderDays", "custom", "noteToApprover"];
 const vendorExtraDefaults = () => ({ addressLine2: "", district: "", entityType: "Private limited company", taxPreference: "Taxable", gstTreatment: "Registered — regular", placeOfSupply: "",
-  msmeType: "Not MSME", udyamNo: "", duns: "", federalTaxType: "", tags: [], logo: null, logoName: "", isTransporter: false, printLanguage: "English", paymentMethod: "NEFT", priceList: "",
-  creditLimit: "", payableAccount: "", billDelivery: "Supplier portal", autoPostBills: false, defaultBuyer: "", purchaseWarning: "", receiptReminderDays: "", custom: {}, notesText: "", noteToApprover: "",
+  msmeType: "Not MSME", udyamNo: "", duns: "", federalTaxType: "", tags: [], logo: null, logoName: "", isTransporter: false, paymentMethod: "NEFT", priceList: "",
+  creditLimit: "", billDelivery: "Supplier portal", autoPostBills: false, defaultBuyer: "", purchaseWarning: "", receiptReminderDays: "", custom: {}, notesText: "", noteToApprover: "",
   contacts: [], addresses: [] });
 function vendorExtraErrors(f) {
   const e = {};
@@ -292,11 +263,9 @@ function VendorMoreFields({ f, set, errors, publicMode, foreign }) {
         <Field label="Payment method"><Select value={f.paymentMethod || ""} onChange={(x) => upd("paymentMethod", x)} options={PAY_METHODS} /></Field>
         <Field label="Price list"><Select value={f.priceList || ""} placeholder="Company default" onChange={(x) => upd("priceList", x)} options={settingsOf(st).priceLists} /></Field>
         <Field label="Credit limit (₹)" hint="Outstanding above this shows a warning on new POs"><NumInput value={f.creditLimit ?? ""} onChange={(x) => upd("creditLimit", x)} />{err("creditLimit")}</Field>
-        <Field label="Payable account"><Select value={f.payableAccount || ""} placeholder="Default for vendor type" onChange={(x) => upd("payableAccount", x)} options={settingsOf(st).payableAccounts} /></Field>
         <Field label="Bill delivery"><Select value={f.billDelivery || ""} onChange={(x) => upd("billDelivery", x)} options={BILL_DELIVERY} /></Field>
         <Field label="Default buyer"><TextInput value={f.defaultBuyer || ""} onChange={(x) => upd("defaultBuyer", x)} placeholder="Name of the buyer" /></Field>
         <Field label="Receipt reminder (days before delivery)"><NumInput value={f.receiptReminderDays ?? ""} onChange={(x) => upd("receiptReminderDays", x)} placeholder={String(settingsOf(st).receiptReminderDays)} />{err("receiptReminderDays")}</Field>
-        <Field label="Print language"><Select value={f.printLanguage || "English"} onChange={(x) => upd("printLanguage", x)} options={settingsOf(st).printLanguages} /></Field>
         <div className="flex flex-col justify-end gap-1.5 pb-1">
           <Check checked={!!f.autoPostBills} onChange={(b) => upd("autoPostBills", b)} label="Auto-post bills from this vendor" />
           <Check checked={!!f.isTransporter} onChange={(b) => upd("isTransporter", b)} label="Also a transporter" />
@@ -422,9 +391,9 @@ function VendorMoreView({ v }) {
   const items = [
     ["Entity type", v.entityType], ["GST treatment", v.gstTreatment], ["Tax preference", v.taxPreference], ["Place of supply", v.placeOfSupply],
     ["MSME", v.msmeType && v.msmeType !== "Not MSME" ? `${v.msmeType}${v.udyamNo ? ` · ${v.udyamNo}` : ""}` : null], ["D-U-N-S", v.duns], ["Federal tax type", v.federalTaxType],
-    ["Payment method", v.paymentMethod], ["Price list", v.priceList], ["Credit limit", v.creditLimit ? inrShort(v.creditLimit) : null], ["Payable account", v.payableAccount],
+    ["Payment method", v.paymentMethod], ["Price list", v.priceList], ["Credit limit", v.creditLimit ? inrShort(v.creditLimit) : null],
     ["Bill delivery", v.billDelivery], ["Auto-post bills", v.autoPostBills ? "Yes" : null], ["Default buyer", v.defaultBuyer], ["Receipt reminder", v.receiptReminderDays ? `${v.receiptReminderDays} days before delivery` : null],
-    ["Print language", v.printLanguage], ["Transporter", v.isTransporter ? "Yes" : null], ["Website", v.website], ["Tags", (v.tags || []).length ? <CategoryChips list={v.tags} max={99} wrap /> : null],
+    ["Transporter", v.isTransporter ? "Yes" : null], ["Website", v.website], ["Tags", (v.tags || []).length ? <CategoryChips list={v.tags} max={99} wrap /> : null],
     ["Frozen", v.frozen ? "Yes — no new transactions" : null], ...custom,
   ].filter((r) => r[1]);
   return (
@@ -501,25 +470,18 @@ function BenchmarkSettings({ f, setF, mode, yesNo }) {
         {yesNo("purchaseWarnings", "Purchase warnings", "Show each vendor's purchase warning on RFQs and POs")}
         {yesNo("allowZeroQty", "Allow zero-quantity lines", "On RFQs, quotations and POs")}
         {yesNo("allowDuplicateItems", "Allow the same item twice on a PO", "If No, duplicate item lines are blocked")}
-        {yesNo("txnDateFx", "Use the transaction-date exchange rate", "Otherwise the rate entered on the document")}
         {yesNo("disableLastPurchaseRate", "Disable last purchase rate", "Don't default rates from the last PO for the vendor")}
         {yesNo("allowNegativeRates", "Allow negative rates", "For credit lines on bills")}
-        {yesNo("landedCostFromInvoice", "Set landed cost based on invoice rate", "Receipt valuation follows the bill rate")}
-        {yesNo("valuationRejected", "Set valuation rate for rejected materials", "Rejected quantity keeps its purchase rate")}
         {yesNo("blindReceiving", "Blind receiving", "Hide ordered quantities on the goods receipt")}
-        {yesNo("dropshipping", "Drop-shipping to site", "Vendors may deliver straight to a project site")}
         {yesNo("autoPostBills", "Auto-post bills", "Bills entered from a PO skip the draft step")}
-        {yesNo("showPayButton", "Show pay button in the PO portal", "Vendors see an advance-payment request button")}
         <div className="grid grid-cols-3 gap-3 p-4">
           {num("poApprovalMin", "PO approval — minimum amount (₹)", "At or above this a PO needs approval (double validation)")}
           {num("receiptReminderDays", "Receipt reminder (days before delivery)")}
           {num("daysToPurchase", "Days to purchase", "Added to the vendor lead time")}
           {num("invoiceQtyTolPct", "Invoice quantity tolerance (%)")}
           {num("invoiceAmtTolPct", "Invoice amount tolerance (%)")}
-          <Field label="Supplier naming by"><Select value={f.supplierNaming} onChange={set("supplierNaming")} options={["Naming series", "Supplier name"]} /></Field>
           <Field label="Default supplier group"><Select value={f.defaultSupplierGroup || ""} placeholder="— none —" onChange={set("defaultSupplierGroup")} options={f.vendorGroups || []} /></Field>
           <Field label="Default buying price list"><Select value={f.defaultPriceList || ""} onChange={set("defaultPriceList")} options={f.priceLists || []} /></Field>
-          <Field label="Project purchase-cost update"><Select value={f.projectCostUpdate} onChange={set("projectCostUpdate")} options={["Each transaction", "Daily", "Manual"]} /></Field>
           <Field label="RFQ sender e-mail (fixed outgoing account)"><TextInput value={f.rfqSenderEmail || ""} onChange={set("rfqSenderEmail")} /></Field>
           <Field label="Our company (default buying entity)"><TextInput value={f.ourCompany || ""} onChange={set("ourCompany")} /></Field>
         </div>
@@ -536,12 +498,7 @@ function BenchmarkSettings({ f, setF, mode, yesNo }) {
       <ListEditor title="Stores / warehouses" icon={Icon.boxes} items={f.stores || []} onChange={set("stores")} placeholder="Site store — Tower C" usage={() => 0} />
       <ListEditor title="Price lists" icon={Icon.receipt} items={f.priceLists || []} onChange={set("priceLists")} placeholder="Rate contract 2027–28" usage={() => 0} />
       <ListEditor title="Tax categories" icon={Icon.percent} items={f.taxCategories || []} onChange={set("taxCategories")} placeholder="In-state (CGST + SGST)" usage={() => 0} />
-      <ListEditor title="Payable accounts" icon={Icon.book} items={f.payableAccounts || []} onChange={set("payableAccounts")} placeholder="Sundry creditors — Imports" usage={() => 0} />
-      <ListEditor title="Journals" icon={Icon.book} items={f.journals || []} onChange={set("journals")} placeholder="Purchase journal" usage={() => 0} />
       <ListEditor title="Company bank accounts" icon={Icon.wallet} items={f.companyBanks || []} onChange={set("companyBanks")} placeholder="Axis Bank — Current ••1234" usage={() => 0} />
-      <ListEditor title="Letter heads" icon={Icon.file} items={f.letterHeads || []} onChange={set("letterHeads")} placeholder="NebullaOne — standard" usage={() => 0} />
-      <ListEditor title="Print headings" icon={Icon.file} items={f.printHeadings || []} onChange={set("printHeadings")} placeholder="Purchase Order" usage={() => 0} />
-      <ListEditor title="Print languages" icon={Icon.globe} items={f.printLanguages || []} onChange={set("printLanguages")} placeholder="Gujarati" usage={() => 0} />
       <div className="col-span-2 grid gap-4">
         <TableEditor title="Payment terms templates" icon={Icon.calendar} rows={f.paymentTermTemplates || []} onChange={set("paymentTermTemplates")} blank={() => ({ name: "", days: 30, discountDays: 0, discountPct: 0 })}
           hint="Early-payment discount: pay within the discount days and take the discount %." cols={[{ key: "name", label: "Name", width: 200 }, { key: "days", label: "Due in (days)", type: "number" }, { key: "discountDays", label: "Discount if paid within (days)", type: "number" }, { key: "discountPct", label: "Discount %", type: "number" }]} />
@@ -881,18 +838,6 @@ function PriceListTable({ rows, onEdit, showVendor = true }) {
     ]} />
   );
 }
-function VendorPriceListsPage() {
-  const st = useStore();
-  const [edit, setEdit] = y.useState(null);
-  return (
-    <Page title="Vendor Price Lists" subtitle="Agreed prices by vendor, product and quantity break — suggested automatically on purchase orders" icon={Icon.receipt}
-      actions={<Btn variant="primary" icon={Icon.plus} onClick={() => setEdit({})}>Add price</Btn>}>
-      <PriceListTable rows={st.vendorPrices || []} onEdit={(p) => setEdit(p)} />
-      {edit && <PriceModal base={edit.id ? edit : null} onClose={() => setEdit(null)} />}
-    </Page>
-  );
-}
-
 // ---------------------------------------------------------------- bill-level TDS (ERPNext tax withholding)
 // Bill's own TDS settings override the vendor's: consider / category / ignore threshold / manual entries
 function billTds(st, inv, v, taxable, share) {

@@ -67,17 +67,12 @@ const DEFAULT_SETTINGS = {
   taxCategories: ["In-state (CGST + SGST)", "Out-of-state (IGST)", "Import", "SEZ", "Exempt / Nil-rated", "Reverse charge"],
   taxTemplates: [{ name: "GST 18%", rate: 18 }, { name: "GST 12%", rate: 12 }, { name: "GST 5%", rate: 5 }, { name: "GST 28%", rate: 28 }, { name: "Nil", rate: 0 }],
   shippingRules: [{ name: "Free delivery", amount: 0 }, { name: "Truck load (local)", amount: 6500 }, { name: "Truck load (outstation)", amount: 18000 }, { name: "Courier", amount: 750 }],
-  letterHeads: ["NebullaOne — standard", "NebullaOne — projects"],
-  printHeadings: ["Purchase Order", "Work Order", "Service Order", "Request for Quotation"],
-  printLanguages: ["English", "Hindi", "Marathi"],
   emailTemplates: [
     { name: "RFQ — standard", subject: "Request for quotation {rfq}", body: "Dear {vendor},\nPlease quote for the items in {rfq} by {due}." },
     { name: "RFQ — urgent", subject: "URGENT: quotation needed {rfq}", body: "Dear {vendor},\nWe need your quote for {rfq} by {due}. Please confirm receipt." },
     { name: "PO — issue", subject: "Purchase order {po}", body: "Dear {vendor},\nPlease find our purchase order {po} attached." },
   ],
   companyBanks: ["HDFC Bank — Current ••4410 (Operations)", "ICICI Bank — Current ••0923 (Projects)", "SBI — Cash credit ••7781"],
-  payableAccounts: ["Sundry creditors — Goods", "Sundry creditors — Services", "Contractor payables", "Import payables"],
-  journals: ["Purchase journal", "Contractor bills journal", "Import purchase journal"],
   tdsCategories: [
     { code: "194C-1", name: "194C — Contractor (Individual/HUF)", rate: 1, basis: "Gross amount", singleThreshold: 30000, cumulativeThreshold: 100000, roundOff: true, onlyExcess: false, disableCumulative: false, disableTransaction: false },
     { code: "194C-2", name: "194C — Contractor (Company/Firm)", rate: 2, basis: "Gross amount", singleThreshold: 30000, cumulativeThreshold: 100000, roundOff: true, onlyExcess: false, disableCumulative: false, disableTransaction: false },
@@ -95,7 +90,6 @@ const DEFAULT_SETTINGS = {
     { id: "QL-2", question: "Number of permanent site supervisors", status: "Active", owner: "Procurement — Priya Nair", level: "Supplier", responder: "Supplier", required: false, critical: false, attribute: "", responseType: "Number", options: "" },
   ],
   // ---- purchasing controls (benchmark: ERPNext Buying Settings, Odoo Purchase Settings, Oracle tolerances)
-  supplierNaming: "Naming series",   // Naming series | Supplier name
   defaultSupplierGroup: "",
   defaultPriceList: "Standard Buying",
   requalGate: "Stop",             // close-out evaluation / termination asks for requalification: Stop | Warn | Off
@@ -106,13 +100,8 @@ const DEFAULT_SETTINGS = {
   receiptReminderDays: 2,         // remind the vendor this many days before the delivery date
   allowZeroQty: false,            // RFQ / quote / PO lines with zero quantity
   allowDuplicateItems: false,     // same item twice on one PO
-  txnDateFx: true,                // use the exchange rate of the transaction date
   disableLastPurchaseRate: false, // don't default rates from the last purchase
   allowNegativeRates: false,
-  landedCostFromInvoice: false,
-  valuationRejected: false,
-  projectCostUpdate: "Each transaction",
-  showPayButton: false,
   invoiceQtyTolPct: 0,            // Oracle invoice tolerances (on top of the 3-way match)
   invoiceAmtTolPct: 0,
   earlyReceiptDays: 5,            // Oracle receiving: days before the delivery date a receipt is accepted
@@ -120,7 +109,6 @@ const DEFAULT_SETTINGS = {
   receiptDateAction: "Warn",      // Stop | Warn | Off
   overReceiptAction: "Stop",      // Stop (reject) | Warn | Off
   blindReceiving: false,          // hide ordered quantity on the goods receipt
-  dropshipping: true,             // deliver straight to site
   daysToPurchase: 2,              // lead added before the vendor's lead time
   rfqSenderEmail: "procurement@nebullaone.in",
   autoPostBills: true,            // bills are payable as soon as they are saved; switch off to keep new bills as drafts
@@ -338,24 +326,6 @@ function extendSeed(s) {
   s.measurements = s.measurements.filter((m) => m.id !== "MB-031");
   return s;
 }
-
-// Period-wise score (ERPNext scorecard periods): ratings and deliveries in the month
-function periodScore(st, vendorId, monthStart) {
-  const d0 = new Date(monthStart), d1 = new Date(d0.getFullYear(), d0.getMonth() + 1, 1);
-  const label = d0.toLocaleDateString("en-US", { month: "short", year: "numeric" });
-  const w = st.scoreConfig.weights, parts = {};
-  const rt = st.ratings.filter((r) => r.vendorId === vendorId && r.period === label);
-  if (rt.length) { parts.quality = (sum(rt, (r) => r.quality) / rt.length / 5) * 100; parts.safety = (sum(rt, (r) => r.safety) / rt.length / 5) * 100; }
-  const grns = st.purchaseOrders.filter((p) => p.vendorId === vendorId).flatMap((p) => p.receipts.filter((r) => new Date(r.date) >= d0 && new Date(r.date) < d1).map((r) => ({ r, p })));
-  if (grns.length) {
-    parts.timeliness = (grns.filter(({ r, p }) => new Date(r.date) <= new Date(p.deliveryDate)).length / grns.length) * 100;
-    if (!rt.length) { const q = sum(grns, ({ r }) => sum(r.lines, (l) => l.qty)); parts.quality = q ? (sum(grns, ({ r }) => sum(r.lines, (l) => l.accepted)) / q) * 100 : undefined; }
-  }
-  const keys = Object.keys(parts).filter((k) => parts[k] != null);
-  if (!keys.length) return null;
-  return round2(sum(keys, (k) => (w[k] || 0) * parts[k]) / sum(keys, (k) => w[k] || 0));
-}
-const lastMonths = (n) => Array.from({ length: n }, (_, i) => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - (n - 1 - i)); return d.toISOString().slice(0, 10); });
 
 // Full option lists for the list filters: every possible value, not just the ones on screen
 const uniqSorted = (a) => [...new Set(a.filter(Boolean))].sort((x, y) => x.localeCompare(y));

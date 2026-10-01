@@ -64,7 +64,7 @@ function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket }) {
       <div className="space-y-4">
         <div className="grid grid-cols-3 gap-3">
           <Field label="Draw from blanket order" hint="Uses the agreed rates"><Select value={f.blanketId} placeholder="— none (standalone PO) —" onChange={(x) => setF({ ...blank(), ...(x ? fromBlanket(x) : {}), project: f.project })} options={activeBlankets.map((b) => ({ value: b.id, label: `${b.id} — ${vendorName(st, b.vendorId)}` }))} /></Field>
-          <Field label="Vendor" required hint="Only spend-authorized, unblocked vendors"><Select value={f.vendorId} disabled={!!bo} placeholder="Select vendor…" onChange={(x) => { const nv = byId(st.vendors, x); setF({ ...f, vendorId: x, details: { ...(f.details || {}), currency: nv?.currency || "INR", fx: fxRate(nv?.currency), paymentTerms: nv?.paymentTerms, printLanguage: nv?.printLanguage || "English", priceList: nv?.priceList || f.details?.priceList, supplierAddress: "", supplierContact: "" } }); }} options={vendors.map((x) => ({ value: x.id, label: x.name }))} /></Field>
+          <Field label="Vendor" required hint="Only spend-authorized, unblocked vendors"><Select value={f.vendorId} disabled={!!bo} placeholder="Select vendor…" onChange={(x) => { const nv = byId(st.vendors, x); setF({ ...f, vendorId: x, details: { ...(f.details || {}), currency: nv?.currency || "INR", fx: fxRate(nv?.currency), paymentTerms: nv?.paymentTerms, priceList: nv?.priceList || f.details?.priceList, supplierAddress: "", supplierContact: "" } }); }} options={vendors.map((x) => ({ value: x.id, label: x.name }))} /></Field>
           <Field label="Project"><Select value={f.project} onChange={(x) => setF({ ...f, project: x })} options={PROJECTS} /></Field>
           <Field label="Delivery by"><DateInput value={f.deliveryDate} onChange={(x) => setF({ ...f, deliveryDate: x })} /><FieldErr m={poErr.delivery} /></Field>
           <Field label="Bill control"><Select value={f.billingPolicy} onChange={(x) => setF({ ...f, billingPolicy: x })} options={["On received quantity", "On ordered quantity"]} /></Field>
@@ -74,7 +74,7 @@ function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket }) {
         {gate0.block && <Note tone="red">{v.name} is in the <b>{gate0.standing.name}</b> scorecard standing — new POs are prevented.</Note>}
         {!gate.block && gate.warn && <Note tone="amber">{v.name} is in the <b>{gate.standing.name}</b> scorecard standing — check performance before ordering.</Note>}
         {v && complianceOf(v).blocking.length > 0 && <Note tone={settingsOf(st).complianceGate === "Stop" ? "red" : "amber"} icon={Icon.shieldCheck}><b>Compliance:</b> {complianceOf(v).blocking.join(" · ")} — the PO can be issued, but payments {settingsOf(st).complianceGate === "Stop" ? "will be blocked" : "will be flagged"} until this is fixed.</Note>}
-        {isGroupCompany(v) && <Note tone="blue" icon={Icon.building}><b>Group company</b> ({v.parentCompany}) — inter-company purchase: no RFQ or competitive quotes needed. Spend is reported separately under Vendor Scorecard → Spend by group.</Note>}
+        {isGroupCompany(v) && <Note tone="blue" icon={Icon.building}><b>Group company</b> ({v.parentCompany}) — inter-company purchase: no RFQ or competitive quotes needed.</Note>}
         {v && v.purchaseWarning && set0.purchaseWarnings && <Note tone="amber" icon={Icon.warning}><b>Purchase warning:</b> {v.purchaseWarning}</Note>}
         {v && v.frozen && <Note tone="red">{v.name} is frozen — no new POs.</Note>}
         {overCredit && <Note tone="amber">Credit limit {inrShort(v.creditLimit)}: open POs and unpaid bills ({inrShort(outstanding)}) plus this PO ({inrShort(total)}) go over it.</Note>}
@@ -993,70 +993,6 @@ function ListEditor({ title, icon, hint, items, onChange, placeholder, usage }) 
 }
 
 // Spend roll-up by vendor group, with group companies (inter-company) reported separately
-function spendOf(st, vs) {
-  const ids = new Set(vs.map((v) => v.id));
-  const pos = st.purchaseOrders.filter((p) => ids.has(p.vendorId) && !["Draft", "Cancelled"].includes(p.status));
-  const wos = st.workOrders.filter((w) => ids.has(w.vendorId) && w.status !== "Draft");
-  const invs = st.invoices.filter((i) => ids.has(i.vendorId));
-  const scores = vs.map((v) => vendorScore(st, v.id).score).filter((x) => x != null);
-  return { vendors: vs.length, committed: sum(pos, poValue) + sum(wos, woValue), billed: sum(invs, (i) => invoiceTotals(i).payable), paid: sum(invs, (i) => invoiceTotals(i).paid),
-    outstanding: sum(invs, (i) => invoiceTotals(i).balance), score: scores.length ? sum(scores, (x) => x) / scores.length : null };
-}
-function SpendByGroup({ onOpenVendor }) {
-  const st = useStore();
-  const [openG, setOpenG] = y.useState(null);
-  const ext = st.vendors.filter((v) => !isGroupCompany(v)), intra = st.vendors.filter(isGroupCompany);
-  const groups = [...new Set([...settingsOf(st).vendorGroups, ...ext.map((v) => v.group).filter(Boolean)])];
-  const roots = [...new Set(groups.map(groupRoot))];
-  const rows = [];
-  for (const r of roots) {
-    const kids = groups.filter((g) => g.startsWith(r + " › "));
-    rows.push({ key: r, label: r, level: 0, vs: ext.filter((v) => inGroup(v, r)) });
-    for (const k of kids) rows.push({ key: k, label: k.split(" › ")[1], level: 1, vs: ext.filter((v) => v.group === k) });
-  }
-  rows.push({ key: "__none", label: "Not grouped", level: 0, vs: ext.filter((v) => !v.group) });
-  const data = rows.map((r) => ({ ...r, ...spendOf(st, r.vs) })).filter((r) => r.vendors > 0 || r.level === 0);
-  const extTotal = spendOf(st, ext), intraTotal = spendOf(st, intra);
-  const sel = openG && data.find((r) => r.key === openG);
-  const cols = [
-    { key: "label", label: "Vendor group", render: (r) => <span className={cls(r.level ? "pl-5 text-ink-soft" : "font-semibold")}>{r.level ? "└ " : ""}{r.label}</span> },
-    { key: "vendors", label: "Vendors", align: "right" },
-    { key: "c", label: "Committed (PO + WO)", align: "right", num: true, render: (r) => inrShort(r.committed) },
-    { key: "b", label: "Billed", align: "right", num: true, render: (r) => inrShort(r.billed) },
-    { key: "p", label: "Paid", align: "right", num: true, render: (r) => inrShort(r.paid) },
-    { key: "o", label: "Outstanding", align: "right", num: true, render: (r) => inrShort(r.outstanding) },
-    { key: "sh", label: "Share of external spend", render: (r) => <Progress value={Math.round(pct(r.committed, extTotal.committed))} /> },
-    { key: "s", label: "Avg score", render: (r) => <ScoreBadge value={r.score} /> },
-  ];
-  return (
-    <div className="space-y-4 p-4">
-      <Section title="Spend by vendor group — external vendors" icon={Icon.layers} actions={<span className="text-[12px] text-ink-mute">Click a group to see its vendors · groups are managed in Procurement Settings</span>}>
-        <DataTable plain rows={data} rowKey={(r) => r.key} onRow={(r) => setOpenG(r.key)} columns={cols}
-          footer={<tfoot className="border-t border-line bg-gray-50/60 text-[13px] font-semibold"><tr><td className="px-4 py-2">Total external</td><td className="px-4 py-2 text-right">{extTotal.vendors}</td><td className="num px-4 py-2 text-right">{inrShort(extTotal.committed)}</td><td className="num px-4 py-2 text-right">{inrShort(extTotal.billed)}</td><td className="num px-4 py-2 text-right">{inrShort(extTotal.paid)}</td><td className="num px-4 py-2 text-right">{inrShort(extTotal.outstanding)}</td><td /><td /></tr></tfoot>} />
-      </Section>
-      <Section title="Inter-company — group companies (reported separately)" icon={Icon.building}>
-        <DataTable plain rows={intra.map((v) => ({ v, ...spendOf(st, [v]) }))} rowKey={(r) => r.v.id} onRow={(r) => onOpenVendor(r.v.id)}
-          empty={<p className="p-4 text-[13px] text-ink-mute">No group-company vendors. Set “Internal parent company” on a vendor (Edit details) to mark it as one of ours.</p>} columns={[
-          { key: "n", label: "Vendor", render: (r) => <span className="font-medium">{r.v.name}</span> }, { key: "p", label: "Parent (our company)", render: (r) => r.v.parentCompany },
-          { key: "c", label: "Committed", align: "right", num: true, render: (r) => inrShort(r.committed) }, { key: "b", label: "Billed", align: "right", num: true, render: (r) => inrShort(r.billed) },
-          { key: "o", label: "Outstanding", align: "right", num: true, render: (r) => inrShort(r.outstanding) },
-        ]} />
-      </Section>
-      {sel && (
-        <Modal open onClose={() => setOpenG(null)} width={760} title={sel.key === "__none" ? "Vendors not grouped" : sel.key} subtitle={`${sel.vendors} vendor(s) · committed ${inrShort(sel.committed)}`}>
-          <DataTable dense rows={sel.vs.map((v) => ({ v, ...spendOf(st, [v]) }))} rowKey={(r) => r.v.id} onRow={(r) => { setOpenG(null); onOpenVendor(r.v.id); }}
-            empty={<p className="p-4 text-[13px] text-ink-mute">No vendors in this group yet.</p>} columns={[
-            { key: "n", label: "Vendor", render: (r) => <span className="font-medium">{r.v.name}</span> }, { key: "g", label: "Group", className: "text-[12px]", render: (r) => r.v.group || "—" },
-            { key: "c", label: "Committed", align: "right", num: true, render: (r) => inrShort(r.committed) }, { key: "o", label: "Outstanding", align: "right", num: true, render: (r) => inrShort(r.outstanding) },
-            { key: "s", label: "Score", render: (r) => <ScoreBadge value={r.score} /> },
-          ]} />
-        </Modal>
-      )}
-    </div>
-  );
-}
-
-// AP review of an invoice the vendor submitted in the portal
 function VendorInvoiceReview({ inv }) {
   const [remark, setRemark] = y.useState("");
   if (inv.review === "Accepted") return <Note tone="green" icon={Icon.check}>Submitted by the vendor in the portal ({inv.submittedBy}); accepted by {inv.reviewedBy} on {fmtDate(inv.reviewedAt)}.{inv.attachment && <> <FileLink name={inv.attachment.name} dataUrl={inv.attachment.dataUrl} /></>}</Note>;
