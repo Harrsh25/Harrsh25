@@ -91,7 +91,7 @@ function validateVendor(f) {
   }
   Object.assign(e, vendorExtraErrors(f));
   // Contractor statutory formats
-  if (f.isContractor || hasType(f, "Labor")) {
+  if (hasType(f, "Labor")) {
     const k = f.contractor || {};
     const c1 = VX.clra(k.labourLicence); if (c1) e.labourLicence = c1;
     if (k.labourLicence && !k.licenceExpiry) e.licenceExpiry = "Enter the licence expiry date";
@@ -170,8 +170,8 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
   const ok = (cond, text) => cond && <span className="mt-1 flex items-center gap-1 text-[11px] text-green-700">{h(Icon.check, { size: 11 })}{text}</span>;
   const isLabour = hasType(f, "Labor");
   const foreign = isForeign(f);
-  const onSite = isLabour || f.isContractor;
-  const showContractor = contractorMode || onSite;
+  // contractor statutory details (CLRA licence, PF, ESI, workforce) apply to labour suppliers only — not to Goods or Services
+  const showContractor = isLabour;
   const gstOk = GSTIN_RE.test((f.gstin || "").toUpperCase()), panOk = PAN_RE.test((f.pan || "").toUpperCase());
   const ifscOk = /^[A-Z]{4}0[A-Z0-9]{6}$/.test(f.bank.ifsc || "");
   // GSTIN carries the state code (chars 1–2) and the PAN (chars 3–12): fill both automatically
@@ -449,7 +449,7 @@ function VendorOverview({ v, comp }) {
         ["Outstanding", inrShort(sum(getState().invoices.filter((i) => i.vendorId === v.id), (i) => invoiceTotals(i).balance))], ["Registered", fmtDate(v.createdAt)], ["Categories", <CategoryChips list={v.categories} max={99} wrap />],
       ]} />
       <VendorMoreView v={v} />
-      {v.contractor && (
+      {v.contractor && hasType(v, "Labor") && (
         <Section title="Contractor profile" icon={Icon.hardHat}>
           <KV items={[
             ["Labour licence (CLRA)", v.contractor.labourLicence || "—"], ["Licence valid till", fmtDate(v.contractor.licenceExpiry)], ["Workforce", v.contractor.workforce ? `${v.contractor.workforce} workers` : "—"],
