@@ -191,7 +191,7 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank, quic
     const cur = vTypes(f), types = VENDOR_TYPES.filter((x) => (x === t ? !cur.includes(t) : cur.includes(x)));
     if (!types.length) return;
     const gOnly = types.every((x) => x === "Goods");
-    set({ ...f, types, type: types[0], tds: autoTds(types, f.supplierType), isContractor: types.includes("Labor") ? true : gOnly ? false : f.isContractor });
+    set({ ...f, types, type: types[0], tds: autoTds(types, f.supplierType), isContractor: types.includes("Labor") || types.includes("Services") });
   };
   const docsDone = requiredDocs(f).every((d) => (f.uploads || {})[d]?.file);
   const dup = publicMode ? {} : findDuplicate(f);
@@ -219,17 +219,6 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank, quic
             );
           })}
         </div>
-        <label className={cls("mt-3 flex items-start gap-3 rounded-lg border p-3", onSite ? "border-orange-200 bg-orange-50/60" : "border-line", isLabour || goodsOnly ? "cursor-default" : "cursor-pointer hover:bg-gray-50")}>
-          <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[#0b5ed7]" checked={onSite} disabled={isLabour || goodsOnly} onChange={(e) => upd("isContractor", e.target.checked)} />
-          <span className="min-w-0">
-            <span className="flex items-center gap-2 text-[13.5px] font-semibold text-ink">{h(Icon.hardHat, { size: 15, className: onSite ? "text-orange-600" : "text-ink-faint" })}This vendor executes work on site (contractor / subcontractor)</span>
-            <span className="mt-0.5 block text-[12px] leading-snug text-ink-soft">
-              {isLabour ? "Always on for Labour vendors — supplying workers means working on your site." : goodsOnly ? "Not applicable — material suppliers only deliver goods. Choose Services or Labour if they also do site work."
-                : "Tick for scaffolding, excavation, EPC, installation and similar work done on your site."}
-              {" "}Contractors get the <b>“· Contractor”</b> tag, statutory details (labour licence, PF, ESI) and are managed in <b>Contract &amp; Labor</b> — contracts, work orders, measurement book, RA bills, retention and attendance.
-            </span>
-          </span>
-        </label>
         <div className="mt-4 grid grid-cols-2 gap-3">
           <Field label="Trades / categories" required span={2}><TradePicker options={TRADES} value={f.categories} onChange={(v) => upd("categories", v)} />{err("categories")}</Field>
         </div>
@@ -529,7 +518,7 @@ function VendorFlags({ v }) {
       <Section title="Classification" icon={Icon.shapes}>
         <div className="grid grid-cols-3 gap-4 p-4">
           <Field label="Supplies"><span className="flex flex-wrap gap-1.5">{VENDOR_TYPES.map((t) => { const on = hasType(v, t); return (
-            <button key={t} type="button" role="checkbox" aria-checked={on} onClick={() => { const ts = VENDOR_TYPES.filter((x) => (x === t ? !on : hasType(v, x))); if (!ts.length) return; mut((x) => { x.types = ts; x.type = ts[0]; if (ts.includes("Labor")) x.isContractor = true; x.tds = autoTds(ts, x.supplierType); }, `Supplies changed to ${ts.map((z) => (z === "Labor" ? "Labour" : z)).join(" + ")}`); }}
+            <button key={t} type="button" role="checkbox" aria-checked={on} onClick={() => { const ts = VENDOR_TYPES.filter((x) => (x === t ? !on : hasType(v, x))); if (!ts.length) return; mut((x) => { x.types = ts; x.type = ts[0]; x.isContractor = ts.includes("Labor") || ts.includes("Services"); x.tds = autoTds(ts, x.supplierType); }, `Supplies changed to ${ts.map((z) => (z === "Labor" ? "Labour" : z)).join(" + ")}`); }}
               className={cls("rounded-full border px-2.5 py-1 text-[12.5px]", on ? "border-brand bg-brand-soft font-medium text-brand" : "border-line text-ink-soft hover:bg-gray-50")}>{on && "✓ "}{t === "Labor" ? "Labour" : t}</button>); })}</span></Field>
           <Field label="Supplier type" hint={`TDS ${tdsLabel(v.tds) || ""}`}><Select value={v.supplierType || "Company"} onChange={(t) => mut((x) => { x.supplierType = t; x.tds = autoTds(vTypes(x), t); }, `Supplier type → ${t}`)} options={SUPPLIER_TYPES} /></Field>
           <Field label="Supplier tier"><Select value={v.tier} onChange={(t) => edit("tier", t, `Tier changed to ${t}`)} options={TIERS} /></Field>
