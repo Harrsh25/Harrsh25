@@ -370,10 +370,9 @@ function Drawer({ open, title, badge, subtitle, onClose, actions, width = 760, t
             </div>
             {actions && <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2" style={{ flex: "0 1 auto" }}>{actions}</div>}
           </div>
-          {related && related.length > 0 && <DocBar related={related} />}
           {tabs && <DetailTabs {...tabs} />}
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto">{children}{comments && <RecordComments id={comments} />}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto">{related && related.length > 0 && <div className="pt-3"><DocBar related={related} /></div>}{children}{comments && <RecordComments id={comments} />}</div>
       </div>
     </div>
   );

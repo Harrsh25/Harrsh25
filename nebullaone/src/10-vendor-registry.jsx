@@ -390,7 +390,8 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
   y.useEffect(() => setTab(initialTab), [vendorId]);
   if (!v) return null;
   const comp = complianceOf(v);
-  const locked = mode === "registry" && v.status === "Pending Approval";
+  // Details can be changed only in Draft / Changes Requested / Rejected; locked while pending and once approved
+  const locked = mode === "registry" && !EDITABLE_STATUSES.includes(v.status);
   const canEdit = mode === "registry" && EDITABLE_STATUSES.includes(v.status);
   const tabs = [
     { id: "overview", label: "Overview" },
@@ -403,11 +404,13 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
   ];
   return (
     <Drawer open related={relatedFor(st, "vendor", v)} comments={v.id} onClose={onClose} width={880} title={<span className="flex items-center gap-2">{v.name}<PreferredStar v={v} size={16} always /></span>}
-      subtitle={<><span className="mono text-[12px] text-ink-mute">{v.id}</span><span className="text-ink-faint">·</span><VendorTypeTag v={v} /><GroupCoTag v={v} /><VendorStatusMenu v={v} /><VendorStatusMenu v={v} approval /><Status>{v.regTier}</Status><Status>{comp.status}</Status></>}
+      badge={APPROVAL_STATES.includes(v.status) ? <VendorStatusMenu v={v} approval /> : <VendorStatusMenu v={v} />}
       actions={<>{canEdit && <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>}</>}
       tabs={{ tabs, active: tab, onChange: setTab }}>
       <div className="space-y-4 px-6 py-5">
-        {locked && tab !== "approval" && <Note tone="amber" icon={Icon.lock}>Submitted for approval — details are locked until the approvers decide. {v.status === "Pending Approval" ? "If it is rejected or sent back, you can edit and resubmit." : ""}</Note>}
+        {locked && tab !== "approval" && (v.status === "Pending Approval"
+          ? <Note tone="amber" icon={Icon.lock}>Submitted for approval — details are locked until the approvers decide. If it is rejected or sent back, you can edit and resubmit.</Note>
+          : <Note icon={Icon.lock}>Approved vendor — registration details are locked. Status (hold, inactive, blacklist) is changed from the status badge at the top.</Note>)}
         {tab === "overview" && <VendorOverview v={v} comp={comp} />}
         <fieldset disabled={locked} className="contents">
           {tab === "overview" && <VendorContactsAddresses v={v} locked={locked} />}
@@ -433,14 +436,14 @@ function VendorOverview({ v, comp }) {
         </Note>
       )}
       {v.hold && v.status === "On Hold" && <Note tone="amber" icon={Icon.lock}><b>On hold ({v.hold.scope}):</b> {v.hold.reason}{v.hold.until ? ` — until ${fmtDate(v.hold.until)}` : ""}</Note>}
-      <Section title="Vendor master" icon={Icon.building}>
-        <KV items={[
-          ["Legal name", v.legalName], ["Vendor ID", <span className="mono">{v.id}</span>], ["Tier", v.tier], ["Supplier type", v.supplierType || "Company"], ["Open orders", openOrdersText(v)], ["Outstanding", inrShort(sum(getState().invoices.filter((i) => i.vendorId === v.id), (i) => invoiceTotals(i).balance))],
-          ["GSTIN", <span className="mono">{v.gstin}</span>], ["PAN", <span className="mono">{v.pan}</span>], ["Currency", v.currency],
-          ["Payment terms", v.paymentTerms], ["TDS", tdsLabel(v.tds)], ["Vendor group", v.group || "Not grouped"],
-          ["Internal parent", v.parentCompany ? <span className="flex items-center gap-1.5">{v.parentCompany}<GroupCoTag v={v} /></span> : "External vendor"], ["Registered", fmtDate(v.createdAt)], ["Categories", <CategoryChips list={v.categories} max={99} wrap />],
-        ]} />
-      </Section>
+      <InfoCard title="Vendor Information" icon={Icon.building} rows={[
+        ["Vendor ID", <span className="mono">{v.id}</span>], ["Legal name", v.legalName || v.name], ["Supplies", <VendorTypeTag v={v} />],
+        ["Status", lifeStatus(v) ? <Status>{v.status}</Status> : "—"], ["Approval", <Status>{approvalStatus(v)}</Status>], ["Registration", <Status>{v.regTier}</Status>],
+        ["Compliance", <Status>{comp.status}</Status>], ["Tier", v.tier], ["Supplier type", v.supplierType || "Company"],
+        ["GSTIN", <span className="mono">{v.gstin}</span>], ["PAN", <span className="mono">{v.pan}</span>], ["Currency", v.currency],
+        ["Payment terms", v.paymentTerms], ["TDS", tdsLabel(v.tds)], ["Open orders", openOrdersText(v)],
+        ["Outstanding", inrShort(sum(getState().invoices.filter((i) => i.vendorId === v.id), (i) => invoiceTotals(i).balance))], ["Registered", fmtDate(v.createdAt)], ["Categories", <CategoryChips list={v.categories} max={99} wrap />],
+      ]} />
       <Section title="Contact" icon={Icon.user}>
         <KV items={[["Contact person", [v.contact.salutation, v.contact.name].filter(Boolean).join(" ") + (v.contact.designation ? ` (${v.contact.designation})` : "")], ["Email", v.contact.email], ["Phone", [v.contact.phone, v.contact.mobile].filter(Boolean).join(" · ")],
           ["Address", [v.address, v.addressLine2, v.city, v.district, v.state, v.pin, v.country].filter(Boolean).join(", ")], ["Other contacts", (v.contacts || []).length || null], ["Other addresses / sites", (v.addresses || []).length || null]]} />
