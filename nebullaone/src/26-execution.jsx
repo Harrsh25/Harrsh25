@@ -93,18 +93,27 @@ function contractorJms(m, agree, remark, by) {
 }
 
 // ---------------------------------------------------------------- equipment
-function EquipmentRegister({ v }) {
-  const [f, setF] = y.useState(null);
+function EquipmentRegister({ v, locked, approving }) {
+  const [f, setF] = y.useState(null), [rej, setRej] = y.useState(null);
+  // the approver verifies each machine (fitness / insurance papers); additions happen on the vendor record
+  const setEq = (id, patch, action) => setState((s) => Object.assign(byId(s.vendors, v.id).equipment.find((e) => e.id === id), patch), { entity: "Vendor", id: v.id, action });
   const list = v.equipment || [];
   const inUse = (eqId) => getState().workOrders.find((w) => (w.equipment || []).some((d) => d.eqId === eqId && !d.to) && ["Issued", "In Progress", "Suspended"].includes(w.status));
   return (
-    <Section title="Equipment register" icon={Icon.truck} actions={<Btn size="sm" icon={Icon.plus} onClick={() => setF({ name: "", type: "Excavator", regNo: "", capacity: "", ownership: "Owned", fitnessExpiry: shiftDays(180) })}>Add equipment</Btn>}>
+    <Section title="Equipment register" icon={Icon.truck} actions={!locked && !approving && <Btn size="sm" icon={Icon.plus} onClick={() => setF({ name: "", type: "Excavator", regNo: "", capacity: "", ownership: "Owned", fitnessExpiry: shiftDays(180) })}>Add equipment</Btn>}>
       <DataTable dense rows={list} empty={<p className="p-4 text-[13px] text-ink-mute">No equipment registered. Contractors list their plant here; work orders deploy from this register.</p>} columns={[
         { key: "name", label: "Equipment", className: "font-medium" }, { key: "type", label: "Type" }, { key: "regNo", label: "Reg. / serial no.", className: "mono text-[12px]" },
         { key: "capacity", label: "Capacity" }, { key: "ownership", label: "Owned / hired" },
         { key: "fit", label: "Fitness / insurance till", render: (e) => <ExpiryCell iso={e.fitnessExpiry} /> },
         { key: "u", label: "Deployed on", render: (e) => { const w = inUse(e.id); return w ? <RefLink to={`${CL_BASE}/work-orders?open=${w.id}`}>{w.id}</RefLink> : <span className="text-ink-faint">Available</span>; } },
+        { key: "vf", label: "Verification", render: (e) => <span title={e.verify?.remark || undefined}><Status tone={{ Verified: "green", Rejected: "red" }[e.verify?.status] || "amber"}>{e.verify?.status || "Unverified"}</Status></span> },
+        ...(approving ? [{ key: "a", label: "", align: "right", render: (e) => e.verify?.status !== "Verified" && (
+          <span className="flex justify-end gap-1">
+            <Btn size="sm" variant="success" onClick={() => { setEq(e.id, { verify: { status: "Verified", by: currentUser(), at: todayISO() } }, `Equipment ${e.name} verified`); toast("Equipment verified"); }}>Verify</Btn>
+            {e.verify?.status !== "Rejected" && <Btn size="sm" variant="danger" onClick={() => setRej(e)}>Reject</Btn>}
+          </span>) }] : []),
       ]} />
+      {rej && <RejectReasonModal title={`Reject — ${rej.name}`} onClose={() => setRej(null)} onReject={(reason) => setEq(rej.id, { verify: { status: "Rejected", remark: reason, by: currentUser(), at: todayISO() } }, `Equipment ${rej.name} rejected — ${reason}`)} />}
       {f && (
         <Modal open onClose={() => setF(null)} width={620} title="Add equipment" footer={<><Btn onClick={() => setF(null)}>Cancel</Btn><Btn variant="primary" disabled={!f.name.trim() || !f.regNo.trim() || !f.fitnessExpiry} onClick={() => {
           setState((s) => { const x = byId(s.vendors, v.id); x.equipment = x.equipment || []; const all = s.vendors.flatMap((z) => z.equipment || []); x.equipment.push({ ...f, id: nextId("EQ", all), status: "Available" }); }, { entity: "Vendor", id: v.id, action: `Equipment added — ${f.name} (${f.regNo})` });

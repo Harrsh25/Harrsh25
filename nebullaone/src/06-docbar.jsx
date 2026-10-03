@@ -21,7 +21,7 @@ function RelatedButtons({ items }) {
   );
 }
 function DocBar({ related }) {
-  return <div className="px-6 pb-3"><RelatedButtons items={related} /></div>;
+  return <div className="px-6"><RelatedButtons items={related} /></div>;
 }
 
 // ---- reason prompt for cancel / close / reverse actions (every platform asks why and logs it)

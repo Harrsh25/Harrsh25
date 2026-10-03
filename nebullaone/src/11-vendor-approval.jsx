@@ -248,7 +248,6 @@ function VendorApproval({ v, mode = "approval" }) {
             <ActNote roles={DEPT_ROLE[pending.dept]} involved={vendorApprovers(v)} what={`the ${pending.dept} decision`} />
             <Field label={`${pending.dept} decision remark`}><TextArea rows={2} value={remark} onChange={setRemark} placeholder={canOverride ? "Required when rejecting or approving with override" : "Required when rejecting"} /></Field>
             <div className="flex justify-end gap-2">
-              <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>
               <Btn onClick={() => setRc(true)}>Request changes</Btn>
               <Btn variant="danger" disabled={!remark.trim()} title={remark.trim() ? "" : "Write a remark first"} onClick={() => { if (approvalAction(v, "Rejected", remark.trim())) { setRemark(""); toast("Registration rejected", "red"); } }}>Reject</Btn>
               {canOverride && <Btn disabled={!remark.trim()} title={remark.trim() ? "" : "Write a remark first"} onClick={() => { if (approvalAction(v, "Approved", remark.trim(), { override: true })) { setRemark(""); toast("Approved with override — logged"); } }}>Approve with override</Btn>}

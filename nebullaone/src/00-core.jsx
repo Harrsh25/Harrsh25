@@ -358,7 +358,7 @@ function Drawer({ open, title, badge, subtitle, onClose, actions, width = 760, t
           </div>
           {tabs && <DetailTabs {...tabs} />}
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto">{related && related.length > 0 && <div className="pt-3"><DocBar related={related} /></div>}{children}{comments && <RecordComments id={comments} />}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto">{related && related.length > 0 && <div className="pt-4"><DocBar related={related} /></div>}{children}{comments && <RecordComments id={comments} />}</div>
       </div>
     </div>
   );

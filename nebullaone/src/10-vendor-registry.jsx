@@ -393,13 +393,15 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
   // Details can be changed only in Draft / Changes Requested / Rejected; locked while pending and once approved
   const locked = mode === "registry" && !EDITABLE_STATUSES.includes(v.status);
   const canEdit = mode === "registry" && EDITABLE_STATUSES.includes(v.status);
+  // The approval page is view only: the approver verifies documents, bank accounts and equipment, then decides on the Approvals tab
+  const approving = mode === "approval";
   const tabs = [
     { id: "overview", label: "Overview" },
     { id: "flags", label: "Status & flags" },
-    { id: "docs", label: "Documents", count: `${v.docs.filter((d) => d.status === "Verified").length}/${requiredDocs(v).length}` },
-    { id: "bank", label: "Bank", count: v.bankAccounts.length || null },
+    { id: "docs", label: "Documents" },
+    { id: "bank", label: "Bank" },
     { id: "qual", label: "Qualification" },
-    ...(v.isContractor || hasType(v, "Labor") ? [{ id: "equip", label: "Equipment", count: (v.equipment || []).length || null }] : []),
+    ...(v.isContractor || hasType(v, "Labor") ? [{ id: "equip", label: "Equipment" }] : []),
     { id: "approval", label: "Approvals" },
   ];
   return (
@@ -409,16 +411,16 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
       tabs={{ tabs, active: tab, onChange: setTab }}>
       {/* tables show as label → value lists, except Documents, Bank and Equipment which keep their tables */}
       <ListMode.Provider value={!["docs", "bank", "equip"].includes(tab)}>
-      <div className="space-y-4 px-6 py-5">
+      <div className="space-y-4 px-6 py-4">
         {tab === "overview" && <VendorOverview v={v} comp={comp} />}
         {/* Classification is editable only while the registration is editable; flags stay editable in every status */}
         {tab === "flags" && <VendorFlagsView v={v} canEdit={canEdit} canEditFlags={mode === "registry"} />}
         <fieldset disabled={locked} className="m-0 min-w-0 space-y-4 border-0 p-0">
-          {tab === "overview" && <VendorContactsAddresses v={v} locked={locked} />}
+          {tab === "overview" && <VendorContactsAddresses v={v} locked={locked || approving} />}
           {tab === "docs" && <VendorDocs v={v} mode={mode} locked={locked} />}
-          {tab === "bank" && <VendorBanks v={v} locked={locked} />}
+          {tab === "bank" && <VendorBanks v={v} locked={locked} approving={approving} />}
           {tab === "qual" && <Questionnaire v={v} />}
-          {tab === "equip" && <EquipmentRegister v={v} />}
+          {tab === "equip" && <EquipmentRegister v={v} locked={locked} approving={approving} />}
         </fieldset>
         {tab === "approval" && <><VendorApproval v={v} mode={mode} /><VendorActivity v={v} /></>}
       </div>
@@ -604,7 +606,7 @@ function VendorDocs({ v, mode = "registry", locked }) {
   );
 }
 
-function VendorBanks({ v, locked }) {
+function VendorBanks({ v, locked, approving }) {
   const blank = { holder: "", bank: "", account: "", accountConfirm: "", ifsc: "", swift: "", iban: "", accountType: "Current", currency: v.currency || "INR", branch: "", allowIntl: isForeign(v), paymentsEnabled: true, notes: "" };
   const [f, setF] = y.useState(blank), [tried, setTried] = y.useState(false), [rej, setRej] = y.useState(null), [del, setDel] = y.useState(null);
   const mut = (fn, action) => setState((s) => fn(byId(s.vendors, v.id)), { entity: "Vendor", id: v.id, action });
@@ -622,7 +624,7 @@ function VendorBanks({ v, locked }) {
     toast(ok ? "Bank account verified" : "Verification failed — holder name mismatch", ok ? "green" : "red");
   };
   return (
-    <Section title="Bank accounts" icon={Icon.wallet} actions={!locked && !adding && <Btn size="sm" variant="primary" icon={Icon.plus} onClick={() => setAdding(true)}>Add bank account</Btn>}>
+    <Section title="Bank accounts" icon={Icon.wallet} actions={!locked && !approving && !adding && <Btn size="sm" variant="primary" icon={Icon.plus} onClick={() => setAdding(true)}>Add bank account</Btn>}>
       <DataTable dense rows={v.bankAccounts} empty={<p className="p-4 text-[13px] text-ink-mute">No bank account on file — payments are blocked until one is added.</p>}
         columns={[
           { key: "holder", label: "Account holder", render: (a) => a.holder || <span className="text-ink-mute">—</span> },
@@ -632,7 +634,11 @@ function VendorBanks({ v, locked }) {
           { key: "fl", label: "Settings", render: (a) => <span className="flex flex-wrap gap-1">{a.disabled ? <Status tone="gray">Disabled</Status> : a.paymentsEnabled === false ? <Status tone="amber">Payments off</Status> : <Status tone="green">Payments on</Status>}{a.allowIntl && <Status tone="blue">International</Status>}</span> },
           { key: "st", label: "Verification", render: (a) => <span title={a.remark || undefined}><Status tone={{ Verified: "green", Rejected: "red" }[bankStatus(a)] || "amber"}>{bankStatus(a)}</Status></span> },
           { key: "von", label: "Verified on", render: (a) => (a.verifiedAt ? <span title={[a.verifiedBy, a.method].filter(Boolean).join(" · ") || undefined}>{fmtDate(a.verifiedAt)}</span> : <span className="text-ink-mute">—</span>) },
-          { key: "d", label: "", align: "right", render: (a) => !locked && (
+          { key: "d", label: "", align: "right", render: (a) => !locked && (approving ? (
+            <span className="flex justify-end gap-1">
+              {bankStatus(a) !== "Verified" && <Btn size="sm" variant="success" onClick={() => verify(a)}>Verify</Btn>}
+              {bankStatus(a) === "Unverified" && <Btn size="sm" variant="danger" onClick={() => setRej({ a, reason: "" })}>Reject</Btn>}
+            </span>) :
             <span className="flex justify-end gap-1">
               {bankStatus(a) !== "Verified" && <Btn size="sm" variant="success" onClick={() => verify(a)}>Verify</Btn>}
               {bankStatus(a) === "Unverified" && <Btn size="sm" variant="danger" onClick={() => setRej({ a, reason: "" })}>Reject</Btn>}
@@ -642,7 +648,7 @@ function VendorBanks({ v, locked }) {
             </span>) },
         ]} />
       {v.bankAccounts.some((a) => a.isDefault && bankStatus(a) !== "Verified") && <div className="border-t border-line px-4 py-2"><Note tone="amber">The default account is not verified — payments show a warning until it is verified.</Note></div>}
-      {!locked && adding && <>
+      {!locked && !approving && adding && <>
       <div className="grid grid-cols-[1.2fr_1fr_1fr_140px_auto] items-start gap-3 border-t border-line p-4">
         <Field label="Account holder name" hint="Exactly as in bank records"><TextInput value={f.holder} onChange={(x) => setF({ ...f, holder: x })} placeholder={v.legalName} />{tried && <FieldErr m={er.holder} />}</Field>
         <Field label="Bank"><TextInput value={f.bank} onChange={(x) => setF({ ...f, bank: x })} />{tried && <FieldErr m={er.bank} />}</Field>
@@ -703,20 +709,9 @@ function VendorBanks({ v, locked }) {
 
 function VendorActivity({ v }) {
   const st = useStore();
-  const [note, setNote] = y.useState("");
   const trail = st.audit.filter((a) => a.id === v.id || (a.entity !== "Vendor" && a.action.includes(v.id)));
   return (
     <>
-      <Section title="Notes & communication" icon={Icon.message}>
-        <div className="flex gap-2 border-b border-line p-3">
-          <TextInput value={note} onChange={setNote} placeholder="Add a note for the team (logged against this vendor)" />
-          <Btn variant="primary" disabled={!note.trim()} title={note.trim() ? "" : "Write a note first"} onClick={() => { setState((s) => byId(s.vendors, v.id).notes.unshift({ at: new Date().toISOString(), by: currentUser(), text: note.trim() }), { entity: "Vendor", id: v.id, action: "Note added" }); setNote(""); }}>Post</Btn>
-        </div>
-        <ul className="divide-y divide-line">
-          {v.notes.length === 0 && <li className="p-3 text-[13px] text-ink-mute">No notes yet.</li>}
-          {v.notes.map((n, i) => <li key={i} className="p-3 text-[13px]"><span className="font-medium">{n.by}</span> <span className="text-ink-mute">· {fmtDateTime(n.at)}</span><p className="mt-0.5 text-ink-soft">{n.text}</p></li>)}
-        </ul>
-      </Section>
       <Section title="Audit trail" icon={Icon.fileClock}>
         <AuditList items={trail} />
       </Section>
