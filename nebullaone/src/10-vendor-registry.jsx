@@ -404,7 +404,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
   ];
   return (
     <Drawer open related={relatedFor(st, "vendor", v)} comments={tab === "overview" ? undefined : v.id} onClose={onClose} width={880} title={v.name}
-      subtitle={<><span className="mono text-ink-mute">{v.id}</span>{APPROVAL_STATES.includes(v.status) ? <VendorStatusMenu v={v} approval /> : <VendorStatusMenu v={v} />}</>}
+      subtitle={<><span className="mono text-ink-mute">{v.id}</span>{APPROVAL_STATES.includes(v.status) ? <VendorStatusMenu v={v} approval caret /> : <VendorStatusMenu v={v} caret />}</>}
       actions={<><span className="inline-flex h-8 items-center"><PreferredStar v={v} size={18} always /></span>{canEdit && <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>}</>}
       tabs={{ tabs, active: tab, onChange: setTab }}>
       {/* tables show as label → value lists, except Documents, Bank and Equipment which keep their tables */}
@@ -488,6 +488,7 @@ function VendorFlagsView({ v, canEdit, canEditFlags }) {
   const [ask, setAsk] = y.useState(null);
   // status changes go through the same flow as the status badge (hold and blacklist ask for a reason)
   const live = canEditFlags && !!lifeStatus(v);
+  const [freeze, setFreeze] = y.useState(null);
   const toStatus = (to) => { if (to === v.status) return; if (to === "On Hold") setAsk("hold"); else if (to === "Blacklisted") setAsk("black"); else setVendorStatus(v, to); };
   const mut = (fn, action) => setState((s) => fn(byId(s.vendors, v.id)), { entity: "Vendor", id: v.id, action });
   const edit = (k, val, label) => mut((x) => (x[k] = val), label);
@@ -514,7 +515,8 @@ function VendorFlagsView({ v, canEdit, canEditFlags }) {
         ["Enabled for new transactions", live ? box(<Select label="Enabled for new transactions" value={v.status === "Active" ? "Yes" : "No"} onChange={(x) => toStatus(x === "Yes" ? "Active" : "Inactive")} options={["Yes", "No"]} />) : yes(v.status === "Active")],
         ["Allow bills without PO", yn("allowBillWithoutPO", "Allowed bills without PO", "PO required for bills", "Allow bills without PO")],
         ["Allow bills before goods receipt", yn("allowBillWithoutReceipt", "Allowed bills before receipt", "Receipt required before billing", "Allow bills before goods receipt")],
-        ["Frozen (no new transactions)", yn("frozen", "Vendor frozen — no new RFQs, POs or bills", "Vendor unfrozen", "Frozen")],
+        ["Frozen (no new transactions)", canEditFlags ? box(<Select label="Frozen" value={v.frozen ? "Yes" : "No"} onChange={(x) => { if (x === "Yes" && !v.frozen) setFreeze(""); else if (x === "No" && v.frozen) mut((z) => { z.frozen = false; z.freeze = null; }, "Vendor unfrozen"); }} options={["Yes", "No"]} />) : yes(v.frozen)],
+        v.frozen && v.freeze && ["Freeze reason", `${v.freeze.reason} — ${v.freeze.by}, ${fmtDate(v.freeze.at)}`],
       ]} />
       <InfoCard title="Status" icon={Icon.lock} rows={[
         ["Status", live ? box(<Select label="Status" value={v.status} onChange={toStatus} options={VSTATUS} />) : <Status>{v.status}</Status>],
@@ -526,6 +528,11 @@ function VendorFlagsView({ v, canEdit, canEditFlags }) {
       ]} />
       {ask === "hold" && <BulkHoldModal ids={[v.id]} onClose={() => setAsk(null)} onDone={() => setAsk(null)} />}
       {ask === "black" && <BlacklistModal v={v} onClose={() => setAsk(null)} />}
+      {freeze !== null && (
+        <Modal open onClose={() => setFreeze(null)} width={480} title={`Freeze ${v.name}?`} subtitle="No new RFQs, POs or bills until the vendor is unfrozen"
+          footer={<><Btn onClick={() => setFreeze(null)}>Cancel</Btn><Btn variant="danger" disabled={!freeze.trim()} onClick={() => { mut((z) => { z.frozen = true; z.freeze = { reason: freeze.trim(), by: currentUser(), at: todayISO() }; }, `Vendor frozen — ${freeze.trim()}`); toast(`${v.name} frozen`); setFreeze(null); }}>Freeze vendor</Btn></>}>
+          <Field label="Reason (audit logged)" required><TextInput value={freeze} onChange={setFreeze} placeholder="e.g. Quality dispute under investigation" autoFocus /></Field>
+        </Modal>)}
     </>
   );
 }
@@ -818,7 +825,7 @@ function setVendorStatus(v, to, extra = {}) {
   }, { entity: "Vendor", id: v.id, action: `Status ${v.status} → ${to}${extra.reason ? ` — ${extra.reason}` : extra.hold ? ` (${extra.hold.scope}) — ${extra.hold.reason}` : ""}` });
   toast(`${v.name}: ${v.status} → ${to}`);
 }
-function VendorStatusMenu({ v, approval }) {
+function VendorStatusMenu({ v, approval, caret }) {
   const [open, setOpen] = y.useState(false), [pos, setPos] = y.useState(null), [ask, setAsk] = y.useState(null);
   const btn = y.useRef(null), menu = y.useRef(null);
   const opts = vendorStatusOptions(v);
@@ -835,8 +842,8 @@ function VendorStatusMenu({ v, approval }) {
   return (
     <span onClick={(e) => e.stopPropagation()} className="inline-flex">
       <button ref={btn} type="button" aria-label={approval ? `Approval status of ${v.name}` : `Change status of ${v.name}`} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}
-        className={cls("group/st inline-flex items-center gap-1 rounded-md px-1 py-0.5 -mx-1 hover:bg-gray-100", open && "bg-gray-100")}>
-        {approval ? <Status>{approvalStatus(v)}</Status> : lifeStatus(v) ? <Status>{v.status}</Status> : <span className="text-ink-faint" data-tip="Not active until the registration is approved">—</span>}{h(Icon.chevronDown, { size: 12, className: "text-ink-faint opacity-0 group-hover/st:opacity-100" })}
+        className={cls("group/st inline-flex items-center gap-1 rounded-md px-1 py-0.5 hover:bg-gray-100", !caret && "-mx-1", open && "bg-gray-100")}>
+        {approval ? <Status>{approvalStatus(v)}</Status> : lifeStatus(v) ? <Status>{v.status}</Status> : <span className="text-ink-faint" data-tip="Not active until the registration is approved">—</span>}{h(Icon.chevronDown, { size: 12, className: caret ? "text-ink-mute" : "text-ink-faint opacity-0 group-hover/st:opacity-100" })}
       </button>
       {open && pos && (
         <div ref={menu} role="menu" className="fixed z-[80] w-[260px] overflow-hidden whitespace-normal rounded-lg border border-line bg-white py-1 shadow-lg" style={{ left: pos.left, top: pos.top, bottom: pos.bottom }}>
