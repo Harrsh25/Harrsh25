@@ -260,7 +260,7 @@ function extendSeed(s) {
   s.settings = { ...DEFAULT_SETTINGS };
   s.scoreConfig.standings = DEFAULT_STANDINGS.map((b) => ({ ...b }));
   for (const v of s.vendors) {
-    v.supplierType = v.tds === "194C-1" ? "Individual" : /LLP|Company|& Co|Mart$/.test(v.legalName || "") && !/Pvt|Ltd/.test(v.legalName) ? "Partnership" : "Company";
+    v.supplierType = v.tds === "194C-1" ? "Individual / HUF" : /LLP|Company|& Co|Mart$/.test(v.legalName || "") && !/Pvt|Ltd/.test(v.legalName) ? "Partnership / LLP" : "Company";
     v.allowBillWithoutPO = false;
     v.allowBillWithoutReceipt = hasType(v, "Services");
     v.portalUsers = v.contact && v.contact.email ? [{ name: v.contact.name, email: v.contact.email, active: v.status !== "Blacklisted", role: "Admin", lastLogin: null }] : [];

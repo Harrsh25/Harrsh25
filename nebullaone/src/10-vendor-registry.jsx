@@ -485,11 +485,15 @@ function ExpiryCell({ iso }) {
 // Status & flags as label → value. For editable vendors (Draft, Changes Requested, Rejected) the editable values are
 // dropdowns in place — the layout stays the same.
 function VendorFlagsView({ v, canEdit, canEditFlags }) {
+  const [ask, setAsk] = y.useState(null);
+  // status changes go through the same flow as the status badge (hold and blacklist ask for a reason)
+  const live = canEditFlags && !!lifeStatus(v);
+  const toStatus = (to) => { if (to === v.status) return; if (to === "On Hold") setAsk("hold"); else if (to === "Blacklisted") setAsk("black"); else setVendorStatus(v, to); };
   const mut = (fn, action) => setState((s) => fn(byId(s.vendors, v.id)), { entity: "Vendor", id: v.id, action });
   const edit = (k, val, label) => mut((x) => (x[k] = val), label);
   const yes = (b) => (b ? "Yes" : "No");
   const box = (el) => <div className="max-w-[340px]">{el}</div>;
-  const yn = (k, on, off) => (canEditFlags ? box(<Select value={v[k] ? "Yes" : "No"} onChange={(x) => edit(k, x === "Yes", x === "Yes" ? on : off)} options={["Yes", "No"]} />) : yes(v[k]));
+  const yn = (k, on, off, lbl) => (canEditFlags ? box(<Select label={lbl} value={v[k] ? "Yes" : "No"} onChange={(x) => edit(k, x === "Yes", x === "Yes" ? on : off)} options={["Yes", "No"]} />) : yes(v[k]));
   const label = (t) => (t === "Labor" ? "Labour" : t);
   const setTypes = (ts) => { if (!ts.length) return toast("Pick at least one of Goods, Services or Labour", "red"); mut((x) => { x.types = ts; x.type = ts[0]; x.isContractor = ts.includes("Labor") || ts.includes("Services"); x.tds = autoTds(ts, x.supplierType); }, `Supplies changed to ${ts.map(label).join(" + ")}`); };
   const hold = v.status === "On Hold" && v.hold;
@@ -497,29 +501,31 @@ function VendorFlagsView({ v, canEdit, canEditFlags }) {
     <>
       <InfoCard title="Classification" icon={Icon.shapes} rows={[
         ["Supplies", canEdit ? box(<TradePicker placeholder="Select…" options={VENDOR_TYPES.map(label)} value={vTypes(v).map(label)} onChange={(l) => setTypes(VENDOR_TYPES.filter((t) => l.includes(label(t))))} />) : vTypes(v).map(label).join(", ")],
-        ["Supplier type", canEdit ? box(<Select value={v.supplierType || "Company"} onChange={(t) => mut((x) => { x.supplierType = t; x.tds = autoTds(vTypes(x), t); }, `Supplier type → ${t}`)} options={withCurrent(SUPPLIER_TYPES, v.supplierType)} />) : v.supplierType || "Company"],
+        ["Supplier type", canEdit ? box(<Select label="Supplier type" value={v.supplierType || "Company"} onChange={(t) => mut((x) => { x.supplierType = t; x.tds = autoTds(vTypes(x), t); }, `Supplier type → ${t}`)} options={withCurrent(SUPPLIER_TYPES, v.supplierType)} />) : v.supplierType || "Company"],
         ["Withholding tax (TDS)", tdsLabel(v.tds)],
-        ["Supplier tier", canEdit ? box(<Select value={v.tier} onChange={(t) => edit("tier", t, `Tier changed to ${t}`)} options={TIERS} />) : v.tier],
+        ["Supplier tier", canEdit ? box(<Select label="Supplier tier" value={v.tier} onChange={(t) => edit("tier", t, `Tier changed to ${t}`)} options={TIERS} />) : v.tier],
         ["Registration tier", v.regTier && <span className="flex flex-wrap items-center gap-2"><Status>{v.regTier}</Status>{v.tierRequest?.status === "Pending" && <Status tone="amber">Upgrade requested</Status>}
           {canEdit && v.regTier === "Spend Authorized" && <button className="text-[12px] font-medium text-brand" onClick={() => edit("regTier", "Prospective", "Registration tier → Prospective (downgraded)")}>Downgrade</button>}</span>],
-        ["Vendor group", canEdit ? box(<Select value={v.group || ""} placeholder="Not grouped" onChange={(g) => mut((x) => { x.group = g; const t = groupTerms(getState(), g); if (t) x.paymentTerms = t; }, g ? `Vendor group → ${g}` : "Removed from vendor group")} options={withCurrent(settingsOf(getState()).vendorGroups, v.group)} />) : v.group || "Not grouped"],
-        ["Internal parent company", canEdit ? box(<Select value={v.parentCompany || ""} placeholder="External vendor" onChange={(g) => edit("parentCompany", g, g ? `Marked as group company of ${g}` : "Marked as external vendor")} options={withCurrent(settingsOf(getState()).groupCompanies, v.parentCompany)} />) : v.parentCompany || "External vendor"],
+        ["Vendor group", canEdit ? box(<Select label="Vendor group" value={v.group || ""} placeholder="Not grouped" onChange={(g) => mut((x) => { x.group = g; const t = groupTerms(getState(), g); if (t) x.paymentTerms = t; }, g ? `Vendor group → ${g}` : "Removed from vendor group")} options={withCurrent(settingsOf(getState()).vendorGroups, v.group)} />) : v.group || "Not grouped"],
+        ["Internal parent company", canEdit ? box(<Select label="Internal parent company" value={v.parentCompany || ""} placeholder="External vendor" onChange={(g) => edit("parentCompany", g, g ? `Marked as group company of ${g}` : "Marked as external vendor")} options={withCurrent(settingsOf(getState()).groupCompanies, v.parentCompany)} />) : v.parentCompany || "External vendor"],
         ["Trades / categories", canEdit ? <TradePicker options={TRADES} value={v.categories} onChange={(c) => edit("categories", c, "Categories updated")} /> : (v.categories || []).join(", ")],
       ]} />
       <InfoCard title="Flags" icon={Icon.flag} rows={[
-        ["Preferred supplier", yn("preferred", "Marked preferred supplier", "Preferred flag removed")],
-        ["Enabled for new transactions", yes(!["Inactive", "Blacklisted"].includes(v.status) && !APPROVAL_STATES.includes(v.status))],
-        ["Allow bills without PO", yn("allowBillWithoutPO", "Allowed bills without PO", "PO required for bills")],
-        ["Allow bills before goods receipt", yn("allowBillWithoutReceipt", "Allowed bills before receipt", "Receipt required before billing")],
-        ["Frozen (no new transactions)", yn("frozen", "Vendor frozen — no new RFQs, POs or bills", "Vendor unfrozen")],
+        ["Enabled for new transactions", live ? box(<Select label="Enabled for new transactions" value={v.status === "Active" ? "Yes" : "No"} onChange={(x) => toStatus(x === "Yes" ? "Active" : "Inactive")} options={["Yes", "No"]} />) : yes(v.status === "Active")],
+        ["Allow bills without PO", yn("allowBillWithoutPO", "Allowed bills without PO", "PO required for bills", "Allow bills without PO")],
+        ["Allow bills before goods receipt", yn("allowBillWithoutReceipt", "Allowed bills before receipt", "Receipt required before billing", "Allow bills before goods receipt")],
+        ["Frozen (no new transactions)", yn("frozen", "Vendor frozen — no new RFQs, POs or bills", "Vendor unfrozen", "Frozen")],
       ]} />
       <InfoCard title="Status" icon={Icon.lock} rows={[
-        ["Status", <Status>{v.status}</Status>],
-        ["On hold", hold ? `Blocking ${v.hold.scope.toLowerCase()}` : "No"],
+        ["Status", live ? box(<Select label="Status" value={v.status} onChange={toStatus} options={VSTATUS} />) : <Status>{v.status}</Status>],
+        ["On hold", live ? box(<Select label="On hold" value={hold ? "Yes" : "No"} onChange={(x) => toStatus(x === "Yes" ? "On Hold" : "Active")} options={["Yes", "No"]} />) : hold ? `Blocking ${v.hold.scope.toLowerCase()}` : "No"],
+        hold && ["Blocking", v.hold.scope],
         hold && ["Hold until", v.hold.until ? fmtDate(v.hold.until) : "Indefinitely"],
         hold && ["Hold reason", `${v.hold.reason}${v.hold.auto ? " (auto-hold from scorecard)" : ""}`],
-        ["Blacklisted", yes(v.status === "Blacklisted")],
+        ["Blacklisted", live ? box(<Select label="Blacklisted" value={v.status === "Blacklisted" ? "Yes" : "No"} onChange={(x) => toStatus(x === "Yes" ? "Blacklisted" : "Active")} options={["Yes", "No"]} />) : yes(v.status === "Blacklisted")],
       ]} />
+      {ask === "hold" && <BulkHoldModal ids={[v.id]} onClose={() => setAsk(null)} onDone={() => setAsk(null)} />}
+      {ask === "black" && <BlacklistModal v={v} onClose={() => setAsk(null)} />}
     </>
   );
 }
@@ -840,8 +846,8 @@ function VendorStatusMenu({ v, approval }) {
             const label = can && o === "Pending Approval" ? (v.status === "Draft" ? "Submit for approval" : "Resubmit for approval") : o;
             return (
               <button key={o} type="button" role="menuitem" aria-current={cur || undefined} disabled={cur || !can} onClick={() => pick(o)} data-tip={!cur && !can ? (approval ? "Set by the approval flow" : "Available once the registration is approved") : undefined}
-                className={cls("flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px]", cur ? "bg-brand-soft/60 font-medium text-brand" : can ? "text-ink hover:bg-gray-50" : "cursor-default text-ink-mute")}>
-                <span className={cls("h-2 w-2 shrink-0 rounded-full", DOT[TONE[o.toLowerCase()] || "gray"])} /><span className="flex-1">{label}</span>{cur && h(Icon.check, { size: 14, className: "text-brand" })}
+                className={cls("flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px]", cur ? "font-medium text-brand" : can ? "text-ink hover:text-brand" : "cursor-default text-ink-mute")}>
+                <OptBox on={cur} /><span className={cls("h-2 w-2 shrink-0 rounded-full", DOT[TONE[o.toLowerCase()] || "gray"])} /><span className="flex-1">{label}</span>
               </button>
             );
           })}

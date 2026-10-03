@@ -118,8 +118,8 @@ function loadState() {
     const raw = localStorage.getItem(STORE_KEY);
     if (raw) {
       const s = JSON.parse(raw);
-      // "Disabled" vendors are now called "Inactive"
-      if (s && s.version === SEED_VERSION) { (s.vendors || []).forEach((v) => { if (v.status === "Disabled") v.status = "Inactive"; }); return s; }
+      // "Disabled" vendors are now called "Inactive"; old supplier types map to the current list
+      if (s && s.version === SEED_VERSION) { (s.vendors || []).forEach((v) => { if (v.status === "Disabled") v.status = "Inactive"; if (v.supplierType === "Partnership") v.supplierType = "Partnership / LLP"; if (v.supplierType === "Individual") v.supplierType = "Individual / HUF"; }); return s; }
     }
   } catch {}
   return buildSeed();
@@ -391,6 +391,10 @@ function NumInput({ value, onChange, ...rest }) {
 function DateInput({ value, onChange, ...rest }) {
   return <input type="date" className={inputCls} value={value ?? ""} onChange={(e) => onChange(e.target.value)} {...rest} />;
 }
+// Tick box shown in front of every dropdown option (checked = selected); options have no background highlight
+function OptBox({ on }) {
+  return <span className={cls("grid h-4 w-4 shrink-0 place-items-center rounded border", on ? "border-brand bg-brand text-white" : "border-gray-300 bg-white")}>{on && <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2.5 6.2 5 8.6 9.5 3.6" /></svg>}</span>;
+}
 // Form dropdown — same popover menu as the list filters (heading, dots, tick), positioned on screen
 function Select({ value, onChange, options, placeholder, disabled, className, label, ...rest }) {
   const fieldLabel = y.useContext(FieldCtx);
@@ -456,8 +460,8 @@ function Select({ value, onChange, options, placeholder, disabled, className, la
               const on = String(o.value) === String(value ?? "");
               return (
                 <button key={String(o.value) + i} type="button" role="option" aria-selected={on} disabled={o.disabled} onMouseEnter={() => setHi(i)} onClick={() => !o.disabled && pick(o)}
-                  className={cls("flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-[13px]", o.disabled ? "cursor-not-allowed text-ink-faint" : on ? "bg-brand-soft/60 text-brand" : i === hi ? "bg-gray-50 text-ink" : "text-ink", o.ph && !on && "text-ink-mute")}>
-                  {dotOf(o)}<span className="flex-1 truncate">{String(o.label).trim()}</span>{on && h(Icon.check, { size: 14, className: "shrink-0 text-brand" })}
+                  className={cls("flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-[13px]", o.disabled ? "cursor-not-allowed text-ink-faint" : on ? "text-brand" : i === hi ? "text-brand" : "text-ink", o.ph && !on && "text-ink-mute")}>
+                  <OptBox on={on} />{dotOf(o)}<span className="flex-1 truncate">{String(o.label).trim()}</span>
                 </button>
               );
             }) : <p className="px-3 py-2 text-[12.5px] text-ink-mute">No matches</p>}
@@ -524,8 +528,8 @@ function TradePicker({ options, value = [], onChange, placeholder = "Select trad
                 <p className="px-3 pb-0.5 pt-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-ink-faint">{g.label}</p>
                 {g.items.map((o) => { const on = value.includes(o); return (
                   <button key={o} type="button" role="option" aria-selected={on} aria-pressed={on} onClick={() => toggle(o)}
-                    className={cls("flex w-full items-center gap-2 px-3 py-1.5 text-left text-[13px]", on ? "bg-brand-soft/60 text-brand" : "text-ink hover:bg-gray-50")}>
-                    <span className={cls("grid h-4 w-4 place-items-center rounded border", on ? "border-brand bg-brand text-white" : "border-gray-300")}>{on && h(Icon.check, { size: 11 })}</span>{o}
+                    className={cls("flex w-full items-center gap-2 px-3 py-1.5 text-left text-[13px]", on ? "text-brand" : "text-ink hover:text-brand")}>
+                    <OptBox on={on} />{o}
                   </button>); })}
               </div>)) : <p className="px-3 py-3 text-center text-[12.5px] text-ink-mute">No trade matches “{q}”</p>}
           </div>
@@ -664,8 +668,8 @@ function FilterSelectMenu({ value, onChange, options, label }) {
             const on = String(o.value) === String(value);
             return (
               <button key={o.value} type="button" role="option" aria-selected={on} onClick={() => { onChange(o.value); setOpen(false); }}
-                className={cls("flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-[13px]", on ? "bg-brand-soft/60 text-brand" : "text-ink hover:bg-gray-50")}>
-                {dot(o)}<span className="flex-1 truncate">{String(o.label).trim()}</span>{on && h(Icon.check, { size: 14, className: "text-brand" })}
+                className={cls("flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-[13px]", on ? "text-brand" : "text-ink hover:text-brand")}>
+                <OptBox on={on} />{dot(o)}<span className="flex-1 truncate">{String(o.label).trim()}</span>
               </button>
             );
           })}
@@ -701,8 +705,8 @@ function QuickColFilter({ def, value, onChange }) {
             const on = sel.includes(o.value);
             return (
               <button key={o.value} type="button" role="option" aria-selected={on} onClick={() => toggle(o.value)}
-                className={cls("flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-[13px]", on ? "bg-brand-soft/60 text-brand" : "text-ink hover:bg-gray-50")}>
-                <span className={cls("h-2 w-2 shrink-0 rounded-full", o.toneKey ? DOT[o.toneKey] : "bg-gray-300")} /><span className="flex-1 truncate">{o.label}</span>{on && h(Icon.check, { size: 14, className: "text-brand" })}
+                className={cls("flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-[13px]", on ? "text-brand" : "text-ink hover:text-brand")}>
+                <OptBox on={on} /><span className={cls("h-2 w-2 shrink-0 rounded-full", o.toneKey ? DOT[o.toneKey] : "bg-gray-300")} /><span className="flex-1 truncate">{o.label}</span>
               </button>);
           })}
         </div>)}
