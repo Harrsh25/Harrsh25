@@ -16,6 +16,16 @@ function useQueryOpen() {
   return [open, setOpen];
 }
 
+// A receipt can be reversed only if what stays received still covers what is billed, and nothing was returned from it
+function grnReverseBlock(st, po, g) {
+  if ((po.returns || []).some((x) => x.grnId === g.id)) return "Goods from this receipt were returned — reverse the return first";
+  const after = { ...po, receipts: po.receipts.filter((x) => x.id !== g.id) };
+  const rec = poReceived(after);
+  const billed = (i) => sum(st.invoices.filter((x) => x.poId === po.id && !x.cancelled).flatMap((x) => x.lines.filter((l) => l.line === i)), (l) => l.qty);
+  if (po.billingPolicy !== "On ordered quantity" && rec.some((l, i) => billed(i) > l.accepted + 1e-9)) return "Already billed — cancel the bill first";
+  return "";
+}
+
 // ---------------------------------------------------------------- purchase orders
 function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket, requisitionId }) {
   const st = useStore();
@@ -267,6 +277,8 @@ function PoDrawer({ id, onClose }) {
         {["Waiting Bills", "Partially Billed"].includes(bstatus) && <Btn icon={Icon.receipt} onClick={() => setBill(true)}>Create bill</Btn>}
         {!["Closed", "Cancelled"].includes(po.status) && <Btn icon={po.status !== "Draft" && settingsOf(st).lockConfirmedOrders ? Icon.lock : Icon.pencil} title={po.status !== "Draft" && settingsOf(st).lockConfirmedOrders ? "Confirmed orders are locked — the change is recorded as a new revision with a reason" : ""} onClick={() => setAmend({ deliveryDate: po.deliveryDate, lines: po.lines.map((l) => ({ ...l })), note: "" })}>{po.status !== "Draft" && settingsOf(st).lockConfirmedOrders ? "Unlock & amend" : "Edit"}</Btn>}
       </>}>
+      {ask && ask.grn && <ReasonModal title={`Reverse ${ask.grn}`} text="The receipt is taken back out of stock and the quantities are expected again." action="Reverse receipt" onClose={() => setAsk(null)}
+        onDone={(r) => { setState((s) => { const x = byId(s.purchaseOrders, po.id); const g = x.receipts.find((y) => y.id === ask.grn); x.receipts = x.receipts.filter((y) => y.id !== ask.grn); x.reversedReceipts = [...(x.reversedReceipts || []), { ...g, reversed: { at: new Date().toISOString(), by: currentUser(), reason: r } }]; }, { entity: "PO", id: po.id, action: `${ask.grn} reversed — ${r}` }); toast(`${ask.grn} reversed`); }} />}
       {ask === "reject" && <ReasonModal title={`Reject ${po.id}`} action="Reject" onClose={() => setAsk(null)} onDone={(r) => decidePo(po, false, r)} />}
       {ask === "cancel" && <ReasonModal title={`Cancel ${po.id}`} text="Nothing has been received or billed. The vendor is told the order is cancelled." action="Cancel PO" onClose={() => setAsk(null)}
         onDone={(r) => { setState((s) => { const x = byId(s.purchaseOrders, po.id); x.status = "Cancelled"; x.cancelled = { at: new Date().toISOString(), by: currentUser(), reason: r }; }, { entity: "PO", id: po.id, action: `Cancelled — ${r}` }); toast(`${po.id} cancelled`, "red"); }} />}
@@ -295,6 +307,7 @@ function PoDrawer({ id, onClose }) {
         <DocDetailsView kind="po" value={po.details} vendor={byId(st.vendors, po.vendorId)} />
         {po.details && docAdjust(po.details, poValue(po)).total !== poValue(po) && <Note>Adjusted total after discount / freight / rounding: <b className="num">{inr(docAdjust(po.details, poValue(po)).total)}</b> (lines {inr(poValue(po))}).</Note>}
         <Section title="Goods receipts" icon={Icon.truck}>
+          {(po.reversedReceipts || []).length > 0 && <p className="border-b border-line px-4 py-2 text-[12px] text-ink-mute">Reversed: {po.reversedReceipts.map((g) => `${g.id} (${g.reversed.reason})`).join(" · ")}</p>}
           <DataTable dense rows={po.receipts} empty={<p className="p-4 text-[13px] text-ink-mute">Nothing received yet.</p>} columns={[
             { key: "id", label: "GRN", className: "mono text-[12px]" }, { key: "date", label: "Date", render: (r) => fmtDate(r.date) },
             { key: "qc", label: "Quality inspection", render: (r) => <Status tone={r.qc === "Passed" ? "green" : r.qc === "Failed" ? "red" : "amber"}>{r.qc}</Status> },
@@ -303,6 +316,7 @@ function PoDrawer({ id, onClose }) {
             { key: "ot", label: "On time", render: (r) => (new Date(r.date) <= new Date(po.deliveryDate) ? <Status tone="green">On time</Status> : <Status tone="amber">Late</Status>) },
             { key: "tr", label: "Challan · transport", className: "text-[12px]", render: (r) => [r.details?.deliveryNote, r.details?.transporter, r.details?.vehicleNo].filter(Boolean).join(" · ") || "—" },
             { key: "qi", label: "Inspection", className: "text-[12px]", render: (r) => (r.inspection ? <span data-tip={[`${r.inspection.type} · ${fmtDate(r.inspection.reportDate)}`, r.inspection.template && `Template: ${r.inspection.template}`, ...Object.entries(r.inspection.params || {}).map(([k, v]) => `${k}: ${v}`), r.inspection.batch && `Batch ${r.inspection.batch}`, r.inspection.sampleSize && `Sample ${r.inspection.sampleSize}`, r.inspection.remarks].filter(Boolean).join("\n")}>{r.inspection.id} · {r.inspection.inspectedBy}{r.inspection.verifiedBy ? ` / ${r.inspection.verifiedBy}` : ""}</span> : "—") },
+            { key: "rv", label: "", align: "right", render: (r) => { const why = grnReverseBlock(st, po, r); return <Btn size="sm" disabled={!!why} title={why || "Reverse this receipt (ERPNext cancel / SAP movement 102)"} onClick={() => setAsk({ grn: r.id })}>Reverse</Btn>; } },
           ]} />
         </Section>
         {(po.returns || []).length > 0 && (
