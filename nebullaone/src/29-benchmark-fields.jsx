@@ -268,15 +268,6 @@ function VendorMoreFields({ f, set, errors, publicMode, foreign }) {
       <Field label="Address line 2"><TextInput value={f.addressLine2 || ""} onChange={(x) => upd("addressLine2", x)} placeholder="Landmark, area" /></Field>
       <Field label="District / county"><TextInput value={f.district || ""} onChange={(x) => upd("district", x)} /></Field>
       <Field label="Place of supply" hint={!foreign ? "Defaults to the GSTIN state" : ""}><Select value={f.placeOfSupply || (foreign ? "" : f.state)} placeholder="—" onChange={(x) => upd("placeOfSupply", x)} options={withCurrent(STATES, f.placeOfSupply)} /></Field>
-      {sub("Tax & statutory")}
-      <Field label="Entity type"><Select value={f.entityType || ""} onChange={(x) => upd("entityType", x)} options={ENTITY_TYPES} /></Field>
-      {!foreign && <Field label="GST treatment"><Select value={f.gstTreatment || ""} onChange={(x) => upd("gstTreatment", x)} options={GST_TREATMENTS} /></Field>}
-      <Field label="Tax preference"><Select value={f.taxPreference || ""} onChange={(x) => upd("taxPreference", x)} options={TAX_PREFS} /></Field>
-      {!foreign && <Field label="MSME type"><Select value={f.msmeType || "Not MSME"} onChange={(x) => upd("msmeType", x)} options={MSME_TYPES} /></Field>}
-      {!foreign && <Field label="Udyam registration no." hint="MSME vendors must be paid within 45 days"><TextInput value={f.udyamNo || ""} onChange={(x) => upd("udyamNo", x.toUpperCase())} placeholder="UDYAM-MH-26-0012345" />{err("udyamNo")}</Field>}
-      {!foreign && <Field label="CIN / LLPIN (company registration)"><TextInput value={f.cin || ""} onChange={(x) => upd("cin", x.toUpperCase())} placeholder="U45200MH2010PTC123456" maxLength={21} />{err("cin")}</Field>}
-      <Field label="D-U-N-S number"><TextInput value={f.duns || ""} onChange={(x) => upd("duns", x)} placeholder="9 digits" maxLength={11} />{err("duns")}</Field>
-      {foreign && <Field label="Federal income tax type"><Select value={f.federalTaxType || ""} placeholder="—" onChange={(x) => upd("federalTaxType", x)} options={FEDERAL_TAX_TYPES} /></Field>}
       {!publicMode && <>
         {sub("Purchasing & payment defaults")}
         <Field label="Payment method"><Select value={f.paymentMethod || ""} onChange={(x) => upd("paymentMethod", x)} options={PAY_METHODS} /></Field>
@@ -289,25 +280,7 @@ function VendorMoreFields({ f, set, errors, publicMode, foreign }) {
           <Check checked={!!f.autoPostBills} onChange={(b) => upd("autoPostBills", b)} label="Auto-post bills from this vendor" />
           <Check checked={!!f.isTransporter} onChange={(b) => upd("isTransporter", b)} label="Also a transporter" />
         </div>
-        <Field label="Purchase warning / message" span={3} hint="Shown to buyers on RFQs and POs for this vendor"><TextInput value={f.purchaseWarning || ""} onChange={(x) => upd("purchaseWarning", x)} placeholder="e.g. Confirm stock before ordering above 20 MT" /></Field>
       </>}
-      {sub("Profile")}
-      <Field label="Tags" span={2}>
-        <div className="flex flex-wrap items-center gap-1.5">
-          {(f.tags || []).map((t) => <span key={t} className="flex items-center gap-1 rounded bg-gray-100 px-1.5 py-[2px] text-[12px]">{t}<button type="button" aria-label={`Remove ${t}`} onClick={() => upd("tags", f.tags.filter((x) => x !== t))} className="text-ink-mute hover:text-red-600">×</button></span>)}
-          <input value={tag} onChange={(e) => setTag(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && tag.trim()) { e.preventDefault(); if (!(f.tags || []).includes(tag.trim())) upd("tags", [...(f.tags || []), tag.trim()]); setTag(""); } }} placeholder="Type a tag and press Enter" className={cls(inputCls, "w-[200px]")} />
-        </div>
-      </Field>
-      <Field label="Logo / image" hint="PNG or JPG, up to 5 MB">
-        <label className="flex h-[32px] cursor-pointer items-center gap-2 truncate rounded-md border border-dashed border-gray-300 px-2.5 text-[12.5px] text-ink-soft hover:border-brand hover:text-brand">
-          {f.logo ? <img src={f.logo} alt="" className="h-5 w-5 rounded object-cover" /> : h(Icon.upload, { size: 13 })}<span className="truncate">{f.logoName || "Choose image"}</span>
-          <input type="file" accept=".png,.jpg,.jpeg" className="hidden" onChange={(e) => logo(e.target.files[0])} />
-        </label>
-      </Field>
-      {custom.length > 0 && <>{sub("Custom fields")}<div className="col-span-3"><CustomFieldInputs defs={custom} value={f.custom || {}} onChange={(c) => upd("custom", c)} /></div></>}
-      {sub("Notes")}
-      <Field label="Notes / vendor details" span={publicMode ? 3 : 2}><TextArea rows={2} value={f.notesText || ""} onChange={(x) => upd("notesText", x)} placeholder="Anything the team should know about this vendor" /></Field>
-      {!publicMode && <Field label="Note to approver"><TextArea rows={2} value={f.noteToApprover || ""} onChange={(x) => upd("noteToApprover", x)} placeholder="Shown on the approval screen" /></Field>}
     </div>
   );
 }
