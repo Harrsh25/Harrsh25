@@ -145,16 +145,20 @@ const RAW_CSS = "[role=dialog] .mono{white-space:nowrap}[role=dialog] p.flex.ite
   ".nx-list td.mono,.nx-list td .mono{font-family:inherit;font-size:14px;letter-spacing:0}.nx-list td button{font-size:13px}" +
   ".nx-list td.text-ink-soft,.nx-list td.text-\\[12px\\],.nx-list td .text-\\[12px\\]{font-size:14px}" +
   // Clean list look (Project Center): white header, no column dividers, roomier rows, larger soft pills
-  ".nx-list th{background:#fff;border-right-width:0;font-size:13px;font-weight:500;color:#6b7280;letter-spacing:0;padding:12px}" +
-  ".nx-list td{border-right-width:0;padding:11px 12px;border-color:#eef0f3}.nx-list th{border-color:#e5e7eb}" +
+  ".nx-list th{background:#f9fafb;border-right-width:0;font-size:12.5px;font-weight:600;color:#4b5563;letter-spacing:0;padding:8px 12px}" +
+  ".nx-list td{border-right-width:0;padding:8px 12px;border-color:#eef0f3}.nx-list th{border-color:#e5e7eb}" +
   ".nx-list tbody tr:hover{background:#f9fafb}" +
-  ".nx-list td span.rounded-md.border.text-\\[11\\.5px\\]{font-size:12.5px;padding:2px 7px;gap:5px}" +
+  ".nx-list td span.rounded-md.border.text-\\[11\\.5px\\]{font-size:12px;padding:1px 6px;gap:4px}" +
+  ".nx-list td.font-semibold,.nx-list td .font-semibold,.nx-list td.font-medium,.nx-list td .font-medium{font-weight:500}" +
+  // Project Center style: row actions are quiet text links, not bordered buttons
+  ".nx-list td button.border-line,.nx-list td button.border-red-200{border-color:transparent;background:transparent;box-shadow:none;font-weight:400;padding-left:4px;padding-right:4px}" +
+  ".nx-list td button.border-line{color:#6b7280}.nx-list td button.border-line:hover{color:#0b5ed7;background:transparent}.nx-list td button.border-red-200:hover{background:transparent;text-decoration:underline}" +
   ".nx-list td span.rounded.text-\\[11px\\]{font-size:12px;padding:2px 7px}" +
   // Stacked cards always get breathing room, even inside wrappers that don't space their children
   ":not(.grid):not(.flex)>.nx-section+.nx-section{margin-top:16px}" +
   // The list fills the page card, so its horizontal scrollbar sits at the bottom (above the footer) with a sticky header
   // Sticky first column with a divider after it (Project Center style)
-  ".nx-list .nx-stick{position:sticky;z-index:1;background:#fff}.nx-list tbody tr:hover .nx-stick{background:#f9fafb}" +
+  ".nx-list .nx-stick{position:sticky;z-index:1;background:#fff}.nx-list th.nx-stick{background:#f9fafb}.nx-list tbody tr:hover .nx-stick{background:#f9fafb}" +
   ".nx-list th.nx-stick,.nx-fill .nx-list thead th.nx-stick{z-index:3}.nx-list .nx-edge{box-shadow:inset -1px 0 0 #e5e7eb}" +
   ".nx-list td.nx-stick:first-child:not(.nx-edge){width:44px;min-width:44px;max-width:44px}" +
   ".nx-filters>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}" +

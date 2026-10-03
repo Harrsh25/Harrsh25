@@ -891,13 +891,15 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
               ))}
             </div>)}
           {(colDefs.length > 0 || filters) && (
-            <div className="flex items-center gap-0.5 border-l border-line pl-2" role="group" aria-label="Quick filters">
+            <div className="flex items-center gap-0.5" role="group" aria-label="Quick filters">
               {filters && <div ref={filterRow} className="nx-filters flex items-center gap-0.5">{filters}</div>}
               {colDefs.slice(0, filters ? 3 : 5).map((d) => <QuickColFilter key={d.key} def={d} value={cf[d.key]} onChange={(v) => setCf({ ...cf, [d.key]: v })} />)}
             </div>)}
           {actions && <div className="flex items-center gap-2">{actions}</div>}
         </div>
-        <span className="nx-search w-[220px] max-w-full"><SearchBox value={q} onChange={setQ} placeholder={placeholder} /></span>
+        {/* search sits behind an icon (Project Center); it stays open while it has text */}
+        {searchOpen || q ? <span className="nx-search w-[220px] max-w-full"><SearchBox value={q} onChange={setQ} placeholder={placeholder} autoFocus={!q} onBlur={() => !q && setSearchOpen(false)} /></span>
+          : <button type="button" aria-label="Search" data-tip="Search" onClick={() => setSearchOpen(true)} className="grid h-8 w-8 place-items-center rounded-md text-ink-soft hover:bg-gray-100 hover:text-ink">{h(Icon.search, { size: 16 })}</button>}
         {hasFilters && (
           <button type="button" aria-label="Filters" aria-expanded={filtersOpen} data-tip="Filters" onClick={() => (filtersOpen ? setFiltersOpen(false) : openPanel())}
             className={cls("relative grid h-8 w-8 place-items-center rounded-md hover:bg-gray-100", filtersOpen || nFilters ? "text-brand" : "text-ink-soft hover:text-ink", filtersOpen && "bg-brand-soft/60")}>
@@ -949,7 +951,6 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
           <IconBtn icon={Icon.chevronDown} title="Next page" className={cls("-rotate-90", pg >= pages - 1 && "pointer-events-none opacity-30")} onClick={() => setPage(pg + 1)} />
         </div>
       )}
-      <FooterBar items={[{ value: active ? `${shown.length} of ${rows.length}` : rows.length, label: noun }, ...sum$]} updated={new Date().toLocaleString("en-IN")} />
       {picker && <ColumnPicker extra={extraColumns} shown={extraOn} onApply={applyCols} onClose={() => setPicker(false)} />}
     </>
   );
@@ -1148,7 +1149,7 @@ function DemoMenu() {
 function Page({ title, subtitle, icon, actions, children }) {
   return (
     <Card>
-      <PageHeader title={title} icon={icon}
+      <PageHeader title={title}
         actions={<>{actions}<DemoMenu /></>} />
       {children}
       <Toaster />
