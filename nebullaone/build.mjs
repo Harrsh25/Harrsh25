@@ -166,7 +166,7 @@ const RAW_CSS = "[role=dialog] .mono{white-space:nowrap}[role=dialog] p.flex.ite
   "header.relative{padding-left:48px;gap:8px}header.relative>nav{position:static;transform:none;margin-right:auto}header.relative>nav a{font-size:0;gap:0;padding:0 6px}" +
   "header.relative>label{width:auto;flex:1;min-width:0}header.relative>label kbd{display:none}" +
   "main.flex-1{padding-left:8px;padding-right:8px}" +
-  ".nx-search{flex:1 1 100%;width:100%}.nx-search>label{width:100%}.nx-groupby{width:140px}" +
+  ".nx-search{flex:1 1 100%;width:100%}.nx-search>label{width:100%}" +
   ".nx-dhead{flex-wrap:wrap;padding-left:16px;padding-right:16px}.nx-dhead>div:first-child{flex:1 1 100%}.nx-dhead h2{white-space:normal}" +
   "[role=dialog] .px-6{padding-left:16px;padding-right:16px}" +
   ".grid-cols-4,.grid-cols-5,.grid-cols-6{grid-template-columns:repeat(2,minmax(0,1fr))!important}" +

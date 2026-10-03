@@ -877,19 +877,16 @@ function VendorStatusMenu({ v }) {
       {open && pos && (
         <div ref={menu} role="menu" className="fixed z-[80] w-[260px] overflow-hidden whitespace-normal rounded-lg border border-line bg-white py-1 shadow-lg" style={{ left: pos.left, top: pos.top, bottom: pos.bottom }}>
           <p className="px-3 pb-1 pt-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-ink-mute">Status</p>
-          {opts.map((o) => {
-            const cur = o === v.status;
-            const label = o === "Pending Approval" ? (v.status === "Draft" ? "Submit for approval" : "Resubmit for approval") : o;
+          {[...new Set([...VSTATUS, ...APPROVAL_STATES, v.status])].map((o) => {
+            const cur = o === v.status, can = opts.includes(o);
+            const label = can && o === "Pending Approval" ? (v.status === "Draft" ? "Submit for approval" : "Resubmit for approval") : o;
             return (
-              <button key={o} type="button" role="menuitem" aria-current={cur || undefined} disabled={cur} onClick={() => pick(o)}
-                className={cls("flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px]", cur ? "bg-brand-soft/60 font-medium text-brand" : "text-ink hover:bg-gray-50")}>
+              <button key={o} type="button" role="menuitem" aria-current={cur || undefined} disabled={cur || !can} onClick={() => pick(o)} data-tip={!cur && !can ? "Set by the approval flow" : undefined}
+                className={cls("flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px]", cur ? "bg-brand-soft/60 font-medium text-brand" : can ? "text-ink hover:bg-gray-50" : "cursor-default text-ink-mute")}>
                 <span className={cls("h-2 w-2 shrink-0 rounded-full", DOT[TONE[o.toLowerCase()] || "gray"])} /><span className="flex-1">{label}</span>{cur && h(Icon.check, { size: 14, className: "text-brand" })}
               </button>
             );
           })}
-          <p className="mt-1 border-t border-line px-3 pb-1.5 pt-2 text-[11.5px] leading-snug text-ink-mute">
-            {v.status === "Pending Approval" ? "Waiting for approvers — decided in Vendor Approvals / Approval Management." : "Draft, Pending Approval, Changes Requested and Rejected are set by the approval flow."}
-          </p>
         </div>
       )}
       {ask === "hold" && <BulkHoldModal ids={[v.id]} onClose={() => setAsk(null)} onDone={() => setAsk(null)} />}

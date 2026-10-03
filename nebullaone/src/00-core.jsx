@@ -682,16 +682,10 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
   // Sorting: click a column header (asc → desc → off). Value = column.sort(row), else its filter value, else row[key]
   const [sort, setSort] = y.useState(null);
   const tableRef = y.useRef(null);
-  // List / Board / Calendar, group-by, paging, saved views (kept per list in this browser)
-  const [view, setView] = y.useState("list"), [groupBy, setGroupBy] = y.useState(""), [collapsed, setCollapsed] = y.useState({});
+  // List / Board / Calendar layouts and paging
+  const [view, setView] = y.useState("list");
   const [page, setPage] = y.useState(0), [pageSize, setPageSize] = y.useState(50), [exporting, setExporting] = y.useState(false);
   const [calMonth, setCalMonth] = y.useState(() => todayISO().slice(0, 7));
-  const viewsKey = "nxv-views:" + columnsId;
-  const [saved, setSaved] = y.useState(() => { try { return JSON.parse(localStorage.getItem(viewsKey)) || []; } catch { return []; } });
-  const [viewsOpen, setViewsOpen] = y.useState(false), [newView, setNewView] = y.useState(""), [activeView, setActiveView] = y.useState("");
-  const viewsRef = y.useRef(null);
-  y.useEffect(() => { if (!viewsOpen) return; const off = (e) => { if (!viewsRef.current?.contains(e.target)) setViewsOpen(false); }; document.addEventListener("mousedown", off); return () => document.removeEventListener("mousedown", off); }, [viewsOpen]);
-  const keepViews = (v) => { setSaved(v); try { localStorage.setItem(viewsKey, JSON.stringify(v)); } catch {} };
   const fcols = list ? columns.filter((c) => c.filter) : [];
   const fval = (c, r) => { const v = typeof c.filter === "function" ? c.filter(r) : r[c.key]; return (Array.isArray(v) ? v : [v]).filter((x) => x !== undefined && x !== null && x !== "").map(String); };
   const colFiltered = fcols.length ? rows.filter((r) => fcols.every((c) => !(cf[c.key] || []).length || fval(c, r).some((v) => cf[c.key].includes(v)))) : rows;
@@ -706,9 +700,9 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
     const d = typeof x === "number" && typeof z === "number" ? x - z : String(x).localeCompare(String(z), "en", { numeric: true });
     return sort.dir === "asc" ? d : -d;
   });
-  y.useEffect(() => setPage(0), [q, JSON.stringify(cf), sort && sort.key, sort && sort.dir, groupBy]);
+  y.useEffect(() => setPage(0), [q, JSON.stringify(cf), sort && sort.key, sort && sort.dir]);
   const pages = Math.max(1, Math.ceil(shown.length / pageSize)), pg = Math.min(page, pages - 1);
-  const paged = !list || groupBy || exporting ? shown : shown.slice(pg * pageSize, (pg + 1) * pageSize);
+  const paged = !list || exporting ? shown : shown.slice(pg * pageSize, (pg + 1) * pageSize);
   const toggleSort = (c) => setSort((o) => (!o || o.key !== c.key ? { key: c.key, dir: "asc" } : o.dir === "asc" ? { key: c.key, dir: "desc" } : null));
   // Export exactly what is on screen (visible columns, filtered + sorted rows) as a CSV that opens in Excel
   const exportCsv = () => { setView("list"); setExporting(true); };
@@ -762,9 +756,7 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
     const m = new Map(); list0.forEach((r) => { const g = groupOf(c, r); if (!m.has(g)) m.set(g, []); m.get(g).push(r); });
     return [...m.entries()].sort((a, b) => { const ia = dom.indexOf(a[0]), ib = dom.indexOf(b[0]); return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib) || a[0].localeCompare(b[0]); });
   };
-  const gcol = list && groupBy ? fcols.find((c) => c.key === groupBy) : null;
-  const groups = gcol ? orderGroups(gcol, shown) : [];
-  const boardCol = fcols.find((c) => c.key === groupBy) || fcols.find((c) => /status|stage/i.test(colName(c))) || fcols[0];
+  const boardCol = fcols.find((c) => /status|stage/i.test(colName(c))) || fcols[0];
   const labelled = columns.filter((c) => c.label && c.key !== "__cols");
   const cell = (c, r) => (c.render ? c.render(r) : r[c.key]);
   const board = boardCol && (
@@ -812,7 +804,6 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
       </div>
     );
   })();
-  const applySaved = (v) => { setCf(v.cf || {}); setQ(v.q || ""); setSort(v.sort || null); setGroupBy(v.groupBy || ""); setView(v.view || "list"); setActiveView(v.name); setViewsOpen(false); };
   const table = !shown.length
     ? (rows.length || onClearFilters ? <div className="pb-8"><EmptyState icon={Icon.search} title="No matches" text={q.trim() ? `Nothing matches “${q}”. Try another word or clear the search.` : "No records match these filters."} /><div className="-mt-2 flex justify-center"><Btn icon={Icon.x} onClick={clearAll}>Clear search &amp; filters</Btn></div></div> : empty || <EmptyState icon={Icon.folder} title="Nothing here yet" text="Records you add will appear in this list." />)
     : (
@@ -830,14 +821,7 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
             </tr>
           </thead>
           <tbody>
-            {!gcol ? paged.map(rowEl) : groups.map(([g, rs]) => (
-              <y.Fragment key={"g:" + g}>
-                <tr data-group={g} className="cursor-pointer bg-gray-50/80 hover:bg-gray-100" onClick={() => setCollapsed((o) => ({ ...o, [g]: !o[g] }))}>
-                  <td colSpan={columns.length} className="px-4 py-1.5 text-[12.5px] font-semibold text-ink">{h(Icon.chevronDown, { size: 13, className: cls("mr-1.5 inline transition", collapsed[g] && "-rotate-90") })}{g}<span className="ml-2 rounded-full bg-white px-1.5 text-[11px] font-medium text-ink-soft ring-1 ring-line">{rs.length}</span></td>
-                </tr>
-                {!collapsed[g] && rs.map(rowEl)}
-              </y.Fragment>
-            ))}
+            {paged.map(rowEl)}
           </tbody>
           {footer}
         </table>
@@ -847,39 +831,18 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
   const sum$ = typeof summary === "function" ? summary(shown) : summary || [];
   return (
     <>
-      {/* Toolbar: actions left; search, saved views, group by, list / board / calendar, filters and export right */}
+      {/* Toolbar: list / board / calendar and actions left; search, filters and export right */}
       <div className="flex min-h-[44px] flex-wrap items-center justify-end gap-1.5 border-b border-line px-4 py-1.5">
-        {actions && <div className="mr-auto flex items-center gap-2">{actions}</div>}
-        <span className="nx-search w-[220px] max-w-full"><SearchBox value={q} onChange={(x) => { setQ(x); setActiveView(""); }} placeholder={placeholder} /></span>
-        <div className="relative" ref={viewsRef}>
-          <button type="button" aria-label="Saved views" data-tip="Saved views" onClick={() => setViewsOpen((o) => !o)} className={cls("flex h-8 items-center gap-1 rounded-md px-2 text-[12.5px] hover:bg-gray-100", activeView ? "font-medium text-brand" : "text-ink-soft hover:text-ink")}>
-            {h(Icon.star, { size: 15 })}<span className="max-w-[120px] truncate">{activeView || "Views"}</span>{h(Icon.chevronDown, { size: 12 })}
-          </button>
-          {viewsOpen && (
-            <div className="absolute right-0 z-50 mt-1 w-[280px] rounded-lg border border-line bg-white p-2 shadow-lg">
-              <button type="button" className="flex w-full items-center rounded px-2 py-1.5 text-left text-[13px] hover:bg-gray-50" onClick={() => { applySaved({ name: "" }); setActiveView(""); }}>Default view</button>
-              {saved.map((v) => (
-                <div key={v.name} className="flex items-center gap-1">
-                  <button type="button" data-view={v.name} className={cls("flex-1 truncate rounded px-2 py-1.5 text-left text-[13px] hover:bg-gray-50", activeView === v.name && "font-medium text-brand")} onClick={() => applySaved(v)}>{v.name}</button>
-                  <IconBtn icon={Icon.x} title={`Delete "${v.name}"`} onClick={() => { keepViews(saved.filter((x) => x.name !== v.name)); if (activeView === v.name) setActiveView(""); }} />
-                </div>
+        <div className="mr-auto flex items-center gap-2">
+          {(boardCol || calendar) && (
+            <div className="flex items-center gap-0.5" role="group" aria-label="Layout">
+              {[["list", "List", Icon.listChecks], ...(boardCol ? [["board", "Board", Icon.grid]] : []), ...(calendar ? [["calendar", "Calendar", Icon.calendar]] : [])].map(([k, t, ic]) => (
+                <button key={k} type="button" aria-label={`${t} layout`} aria-pressed={view === k} data-tip={t} onClick={() => setView(k)} className={cls("grid h-7 w-7 place-items-center rounded-md", view === k ? "bg-brand-soft text-brand" : "text-ink-mute hover:bg-gray-100 hover:text-ink")}>{h(ic, { size: 15 })}</button>
               ))}
-              <div className="mt-1 flex gap-1 border-t border-line pt-2">
-                <input aria-label="View name" className="h-[30px] min-w-0 flex-1 rounded-md border border-line px-2 text-[12.5px] outline-none focus:border-brand" placeholder="Name this view" value={newView} onChange={(e) => setNewView(e.target.value)} />
-                <Btn size="sm" variant="primary" disabled={!newView.trim()} onClick={() => { const v = { name: newView.trim(), cf, q, sort, groupBy, view }; keepViews([...saved.filter((x) => x.name !== v.name), v]); setActiveView(v.name); setNewView(""); setViewsOpen(false); toast(`View "${v.name}" saved`); }}>Save</Btn>
-              </div>
-              <p className="px-1 pt-1.5 text-[11px] text-ink-mute">Saves column filters, search, sort, grouping and layout for this list.</p>
-            </div>
-          )}
+            </div>)}
+          {actions && <div className="flex items-center gap-2">{actions}</div>}
         </div>
-        {fcols.length > 0 && view === "list" && (
-          <span className="nx-groupby w-[170px]"><Select aria-label="Group by" value={groupBy} placeholder="Group by…" onChange={(x) => setGroupBy(x === "__none" ? "" : x)} options={[{ value: "__none", label: "No grouping" }, ...fcols.map((c) => ({ value: c.key, label: `Group by ${colName(c)}` }))]} /></span>
-        )}
-        <div className="flex rounded-md bg-gray-100 p-0.5" role="group" aria-label="Layout">
-          {[["list", "List", Icon.listChecks], ...(boardCol ? [["board", "Board", Icon.grid]] : []), ...(calendar ? [["calendar", "Calendar", Icon.calendar]] : [])].map(([k, t, ic]) => (
-            <button key={k} type="button" aria-label={`${t} layout`} aria-pressed={view === k} data-tip={t} onClick={() => setView(k)} className={cls("grid h-7 w-7 place-items-center rounded", view === k ? "bg-white text-brand shadow-sm" : "text-ink-soft hover:text-ink")}>{h(ic, { size: 14 })}</button>
-          ))}
-        </div>
+        <span className="nx-search w-[220px] max-w-full"><SearchBox value={q} onChange={setQ} placeholder={placeholder} /></span>
         {hasFilters && (
           <button type="button" aria-label="Filters" aria-expanded={filtersOpen} data-tip="Filters" onClick={() => (filtersOpen ? setFiltersOpen(false) : openPanel())}
             className={cls("relative grid h-8 w-8 place-items-center rounded-md hover:bg-gray-100", filtersOpen || nFilters ? "text-brand" : "text-ink-soft hover:text-ink", filtersOpen && "bg-brand-soft/60")}>
@@ -924,7 +887,7 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
         </div>
       )}
       {view === "board" && shown.length ? board : view === "calendar" && cal ? cal : table}
-      {view === "list" && !groupBy && shown.length > 25 && (
+      {view === "list" && shown.length > 25 && (
         <div data-pager className="flex items-center justify-end gap-3 border-t border-line px-4 py-1.5 text-[12.5px] text-ink-soft">
           <span>Rows per page</span>
           <span className="w-[76px]"><Select aria-label="Rows per page" value={String(pageSize)} onChange={(x) => { setPageSize(Number(x)); setPage(0); }} options={["25", "50", "100"]} /></span>
