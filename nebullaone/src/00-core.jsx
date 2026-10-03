@@ -602,6 +602,9 @@ function rowSearchText(r, depth = 0) {
     if (k === "dataUrl" || k === "history" || k === "revisions") continue;
     if (typeof v === "string" && /vendorId$/i.test(k)) out.push((byId(getState().vendors, v) || {}).name || "");
     if (typeof v === "string" && k === "woId") out.push((byId(getState().workOrders, v) || {}).title || "");
+    // search what the list shows: dates as displayed (12 Sept 2026) and RA bill numbers (RA-3)
+    if (typeof v === "string" && /^\d{4}-\d{2}-\d{2}/.test(v)) out.push(fmtDate(v));
+    if (k === "seq" && v != null) out.push(`RA-${v}`);
     out.push(rowSearchText(v, depth + 1));
   }
   return out.join(" ");
