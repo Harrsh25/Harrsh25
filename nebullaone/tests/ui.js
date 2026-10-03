@@ -67,7 +67,7 @@ run('ui', async ({ p, go, T, pick, S, mut }) => {
   await T('UI-11', 'PO line HSN/SAC, GST % and need-by are saved and shown; bad HSN blocks the PO', async () => {
     await go('vendor-management/purchase-orders'); await p.locator('main button:has-text("New PO")').click(); await p.waitForTimeout(200);
     const d = p.locator('[role=dialog]').last();
-    await pick(d.locator('button[role=combobox]').first(), 'Deccan Steel Traders');
+    await pick(d.locator('label:has-text("Vendor") [role=combobox]').first(), 'Deccan Steel Traders');
     await d.locator('input[placeholder="Description"]').fill('Binding wire'); await d.locator('input[placeholder="Qty"]').fill('10'); await d.locator('input[placeholder="Rate"]').fill('100');
     await d.locator('input[aria-label="Line 1 HSN/SAC"]').fill('72');
     const create = d.locator('button:has-text("Create")').last(); const blocked = await create.isDisabled();

@@ -31,33 +31,33 @@ PATTERNS = [
  ('List header: title + primary "New" action', (Y, 'Title, primary button top-right, ⋯ menu'), ['Yes', 'Yes', 'Yes', 'Yes', 'Yes (header toolbar)'], ['fiori-list']),
  ('Document number as first column', (Y, 'Added in this round (PO, RFQ, bill)'), ['Yes (ID)', 'Yes (Reference)', 'Yes (#)', 'Yes (Order)', 'Yes (key field)'], []),
  ('Status as coloured badge', (Y, 'Dot + coloured pill on every list'), ['Indicator pill', 'Badge / row decoration', 'Coloured status text', 'Badge', 'Semantic object status'], ['odoo-views', 'fiori-list']),
- ('Search box always visible', (PART, 'Behind a search icon'), ['Field filters on top', 'Search bar always shown', 'Search in list header', 'Keyword search always shown', 'Search field in filter bar'], ['odoo-search', 'redwood-filter', 'fiori-list']),
+ ('Search box always visible', (Y, 'Search box always shown above every list'), ['Field filters on top', 'Search bar always shown', 'Search in list header', 'Keyword search always shown', 'Search field in filter bar'], ['odoo-search', 'redwood-filter', 'fiori-list']),
  ('Filters', (Y, 'Right-side Filters panel, chips, multi-select, Reset / Apply'), ['Filter row + sidebar group counts', 'Filters dropdown in search bar', 'Custom view criteria', 'Smart filter chips + Filters panel', 'Filter bar + Adapt Filters dialog'], ['frappe-filter', 'odoo-search', 'zoho-views', 'redwood-filter', 'fiori-list']),
- ('Saved views / favourites', (N, 'Not available — filters reset when you leave'), ['Saved filters / report views', 'Favorites (personal or shared)', 'Custom views (shared by role)', 'Saved searches', 'Variant management'], ['odoo-search', 'zoho-views', 'redwood-po', 'fiori-list']),
- ('Group by', (N, 'Not available'), ['Group-by sidebar & report view', 'Group By (nested)', '—', '—', 'Table grouping in personalization'], ['odoo-search', 'frappe-filter']),
- ('Other views: kanban / calendar / chart', (N, 'List only (dashboards on Overview)'), ['Report, Kanban, Calendar, Gantt', 'Kanban, pivot, graph, calendar', '—', 'Metrics tiles on the page', 'Charts in analytical list page'], ['frappe-desk', 'odoo-views']),
+ ('Saved views / favourites', (Y, 'Saved views: name a search + filters + sort + group + layout, re-apply from the Views menu'), ['Saved filters / report views', 'Favorites (personal or shared)', 'Custom views (shared by role)', 'Saved searches', 'Variant management'], ['odoo-search', 'zoho-views', 'redwood-po', 'fiori-list']),
+ ('Group by', (Y, 'Group by any filter column, collapsible group headers with counts'), ['Group-by sidebar & report view', 'Group By (nested)', '—', '—', 'Table grouping in personalization'], ['odoo-search', 'frappe-filter']),
+ ('Other views: kanban / calendar / chart', (Y, 'List, Board (kanban by status) and Calendar layouts; dashboards on Overview'), ['Report, Kanban, Calendar, Gantt', 'Kanban, pivot, graph, calendar', '—', 'Metrics tiles on the page', 'Charts in analytical list page'], ['frappe-desk', 'odoo-views']),
  ('Choose columns', (Y, 'Customize columns (+ default hidden columns)'), ['List view settings', 'Optional columns', 'Customize columns', 'Configure search views', 'Table personalization'], ['zoho-views', 'redwood-views']),
  ('Export to Excel / CSV', (Y, 'CSV of what is on screen'), ['Yes', 'Yes (xlsx)', 'Yes', 'Download to Excel', 'Export to spreadsheet'], ['redwood-po']),
  ('Select many rows + bulk action', (PART, 'Vendor registry (hold) and bills (Select payable) only'), ['Yes, every list', 'Yes, every list', 'Yes, bulk actions', 'Yes', 'Yes (table toolbar)'], []),
- ('Paging for large lists', (N, 'All rows load at once'), ['Paging (20 / 100 / 500)', 'Pager', 'Paging', 'Load more', 'Growing list / paging'], ['frappe-desk']),
+ ('Paging for large lists', (Y, 'Pager: 25 / 50 / 100 rows per page'), ['Paging (20 / 100 / 500)', 'Pager', 'Paging', 'Load more', 'Growing list / paging'], ['frappe-desk']),
  ('KPI tiles on the list page', (Y, 'Tiles on most pages'), ['Dashboards separately', '— (separate dashboards)', '—', 'Metrics on Manage Purchase Orders', 'KPI tags / analytical list page'], ['redwood-po']),
  ('Record opens as', (Y, 'Side drawer over the list'), ['Full-page form', 'Full-page form', 'Detail page beside the list', 'Full page or drawer', 'Object page (full screen / columns)'], ['frappe-desk', 'fiori-object']),
  ('Record header: ID, status, key facts, main actions', (Y, 'Title, status pills, key facts, actions top-right'), ['Yes', 'Status bar + action buttons', 'Yes', 'Yes', 'Dynamic header with KPIs & actions'], ['fiori-object', 'odoo-views']),
- ('Status / stage flow on every document', (PART, 'Steppers on vendor approval, RA bill, close-out; not on PO / bill / RFQ'), ['Status indicator', 'Status bar on every document', 'Status timeline', 'Status + progress', 'Process flow / status'], ['odoo-views']),
+ ('Status / stage flow on every document', (Y, 'Status bar on vendor, requisition, RFQ, blanket order, PO, bill, contract, work order; stepper on RA bill'), ['Status indicator', 'Status bar on every document', 'Status timeline', 'Status + progress', 'Process flow / status'], ['odoo-views']),
  ('Sections & navigation inside a record', (Y, 'Tabs + sections'), ['Tabs / sections', 'Notebook tabs', 'Tabs', 'Sections', 'Anchor bar + sections'], ['fiori-object']),
- ('Related documents with counts', (PART, 'Linked sections (receipts, bills…), no count buttons'), ['Connections dashboard', 'Smart buttons with counts', 'Related tabs', 'Related documents', 'Related apps / document flow'], ['odoo-views']),
- ('Comments, @mentions and activity on a record', (PART, 'Activity trail on vendor; audit log; no comments'), ['Comments + timeline', 'Chatter (messages, activities, followers)', 'Comments & history', 'Comments', 'Notes'], ['odoo-views', 'frappe-desk']),
+ ('Related documents with counts', (Y, 'Related-document buttons with counts open the filtered list'), ['Connections dashboard', 'Smart buttons with counts', 'Related tabs', 'Related documents', 'Related apps / document flow'], ['odoo-views']),
+ ('Comments, @mentions and activity on a record', (Y, 'Comments with @mention on every document; mentions go to the audit log'), ['Comments + timeline', 'Chatter (messages, activities, followers)', 'Comments & history', 'Comments', 'Notes'], ['odoo-views', 'frappe-desk']),
  ('Attachments on any record', (PART, 'Vendor documents, bill copy, RFQ files only'), ['Sidebar attachments', 'Chatter attachments', 'Attach files', 'Attachments', 'Attachments'], ['frappe-desk']),
  ('Print / PDF of documents', (PART, 'RFQ, handover and release certificates; no PO / bill print'), ['Print formats', 'Print / send', 'PDF & e-mail', 'Print', 'Output management'], []),
  ('Supplier-facing portal', (Y, 'Full portal incl. contractor screens'), ['Supplier portal (RFQ, PO, invoices)', 'Vendor portal', 'Vendor portal (accept PO, upload invoices)', 'Supplier Portal', 'Ariba Network'], ['erpnext-portal', 'zoho-portal', 'oracle-portal']),
- ('Phone / tablet use', (N, 'Desktop layout only'), ['Responsive + app', 'Responsive + app', 'Mobile apps', 'Responsive Redwood', 'Responsive Fiori'], []),
+ ('Phone / tablet use', (Y, 'Phone layout: menu button, slide-in sidebar, wrapping toolbars and grids'), ['Responsive + app', 'Responsive + app', 'Mobile apps', 'Responsive Redwood', 'Responsive Fiori'], []),
 ]
 
 # Screen-by-screen: file, title, what NebullaOne shows, how the five do it, verdict, suggestions
 SCREENS = [
  ('01-vendor-list', 'Vendor Registry — list', 'Vendor, status, type, trades, tier, registration, compliance, score; star for preferred; tabs Vendors / Invitations; Register & Invite buttons.',
   'All five show suppliers as a list with a search bar and saved filters (ERPNext Supplier list, Odoo Vendors kanban/list, Zoho Vendors, Oracle Manage Suppliers, SAP Manage Business Partner). Odoo opens Vendors as kanban cards by default.',
-  'On par', ['Keep the search box visible instead of behind the icon.', 'Add saved views (e.g. "Contractors needing documents").']),
+  'On par', ['Done: search box always visible.', 'Done: saved views.']),
  ('03-filters-panel', 'Filters panel', 'Right-side panel, one section per column, coloured chips, multi-select, Reset / Apply; slim "n filters applied · Edit · Clear" line.',
   'Oracle Redwood is closest (smart filter chips + Filters panel). SAP uses a filter bar with "Adapt Filters". Odoo puts Filters / Group By / Favorites in one dropdown under the search bar. ERPNext uses a filter row plus sidebar counts. Zoho uses saved custom views with criteria.',
   'On par', ['Add "Save as view" at the bottom of the panel (Odoo Favorites, SAP variants, Redwood saved searches).', 'Show the count of records next to each chip (ERPNext sidebar counts).']),
@@ -145,8 +145,8 @@ dl{{display:grid;grid-template-columns:200px 1fr;gap:6px 14px;margin:0}}dt{{font
 <h1>Screen UI comparison — NebullaOne vs ERPNext, Odoo, Zoho, Oracle, SAP</h1>
 <p class="lead">How each NebullaOne screen is laid out compared with the same screen in five platforms, using their published UI guidelines and product documentation. Screenshots are from your HTML (1440 × 860).</p>
 <div class="tiles"><div class="tile"><b>{len(PATTERNS)}</b><span>UI patterns compared</span></div><div class="tile"><b>{cnt[Y]}</b><span>NebullaOne has</span></div><div class="tile"><b>{cnt[PART]}</b><span>partly</span></div><div class="tile"><b>{cnt[N]}</b><span>missing</span></div><div class="tile"><b>{len(SCREENS)}</b><span>screens compared</span></div></div>
-<h2>Biggest UI gaps against the five</h2>
-<div class="note"><b>1. Saved views / favourites</b> — all five let users save a filter set (Odoo Favorites, SAP variants, Oracle saved searches, Zoho custom views, ERPNext saved filters). <b>2. Status bar on every document</b> — Odoo and SAP show the stage of a PO / bill at the top; NebullaOne has steppers only on approval, RA bill and close-out. <b>3. Related-document buttons with counts</b> (Odoo smart buttons, ERPNext connections). <b>4. Comments with @mention on records.</b> <b>5. Paging, group-by, and phone layout.</b> Tidy-up found on screen: a paid bill still shows the Hold form; PO list status column is off-screen at 1440 px; search hides behind an icon.</div>
+<h2>Gaps found and closed</h2>
+<div class="note">Closed in this round: saved views, status bar on every document, related-document buttons with counts, comments with @mention, paging, group-by, board and calendar layouts, phone layout, always-visible search, paid bill Hold form hidden, PO Status as the 2nd column. <b>Still partly:</b> bulk actions on every list, attachments on every record, PO / bill print.</div>
 <h2>UI pattern by pattern</h2>
 <div class="tablewrap"><table><thead><tr><th>Pattern</th><th>NebullaOne</th>{''.join(f"<th>{e(x)}</th>" for x in P)}<th>Sources</th></tr></thead><tbody>{rows}</tbody></table></div>
 <h2>Screen by screen</h2>{cards}
