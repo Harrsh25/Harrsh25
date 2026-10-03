@@ -259,20 +259,78 @@ function Modal({ open, title, subtitle, onClose, footer, width = 640, children }
 }
 
 // Detail-panel tabs (Project Center style): plain text, single line, blue when active
-function DetailTabs({ tabs, active, onChange }) {
+function DetailTabs({ tabs, active, onChange, max = 7 }) {
+  // Tabs beyond `max` go into a "More" menu; the open tab always stays visible
+  const [more, setMore] = y.useState(false);
+  const ref = y.useRef(null);
+  y.useEffect(() => {
+    if (!more) return;
+    const off = (e) => { if (ref.current && !ref.current.contains(e.target)) setMore(false); };
+    document.addEventListener("mousedown", off, true); return () => document.removeEventListener("mousedown", off, true);
+  }, [more]);
+  let shown = tabs, extra = [];
+  if (tabs.length > max) {
+    shown = tabs.slice(0, max - 1); extra = tabs.slice(max - 1);
+    const cur = extra.find((t) => t.id === active);
+    if (cur) { shown = [...shown, cur]; extra = extra.filter((t) => t !== cur); }
+  }
+  const tab = (t) => {
+    const on = t.id === active;
+    return (
+      <button key={t.id} type="button" role="tab" aria-selected={on} onClick={() => onChange(t.id)}
+        className={cls("-mb-px flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 pb-3 pt-1 text-[14px]",
+          on ? "border-brand font-medium text-brand" : "border-transparent text-ink hover:text-brand")}>
+        {t.label}
+        {t.count != null && <span className={cls("rounded-full px-1.5 text-[11px] font-medium", on ? "bg-brand-soft text-brand" : "bg-gray-100 text-ink-mute")}>{t.count}</span>}
+      </button>
+    );
+  };
   return (
-    <div role="tablist" className="flex gap-5 overflow-x-auto border-b border-line px-6">
-      {tabs.map((t) => {
-        const on = t.id === active;
-        return (
-          <button key={t.id} type="button" role="tab" aria-selected={on} onClick={() => onChange(t.id)}
-            className={cls("-mb-px flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 pb-3 pt-1 text-[14px]",
-              on ? "border-brand font-medium text-brand" : "border-transparent text-ink hover:text-brand")}>
-            {t.label}
-            {t.count != null && <span className={cls("rounded-full px-1.5 text-[11px] font-medium", on ? "bg-brand-soft text-brand" : "bg-gray-100 text-ink-mute")}>{t.count}</span>}
-          </button>
-        );
-      })}
+    <div className="flex items-end border-b border-line px-6">
+      <div role="tablist" className="flex min-w-0 flex-1 gap-5 overflow-x-auto">{shown.map(tab)}</div>
+      {extra.length > 0 && (
+        <div ref={ref} className="relative ml-4 shrink-0">
+          <button type="button" aria-haspopup="menu" aria-expanded={more} onClick={() => setMore((m) => !m)}
+            className="-mb-px flex items-center gap-1 border-b-2 border-transparent pb-3 pt-1 text-[14px] text-ink hover:text-brand">More {h(Icon.chevronDown, { size: 14 })}</button>
+          {more && (
+            <div role="menu" className="absolute right-0 top-full z-30 mt-1 min-w-[180px] rounded-lg border border-line bg-white py-1 shadow-lg">
+              {extra.map((t) => (
+                <button key={t.id} type="button" role="menuitem" onClick={() => { onChange(t.id); setMore(false); }}
+                  className="flex w-full items-center justify-between gap-3 px-3 py-1.5 text-left text-[13px] hover:bg-gray-50">
+                  {t.label}{t.count != null && <span className="rounded-full bg-gray-100 px-1.5 text-[11px] text-ink-mute">{t.count}</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Record information card: label / value rows in two columns (first half left, second half right)
+function InfoCard({ title = "Information", icon, rows, actions }) {
+  const list = rows.filter(Boolean), half = Math.ceil(list.length / 2);
+  const col = (items) => (
+    <dl className="space-y-2.5">
+      {items.map(([k, v]) => (
+        <div key={k} className="grid grid-cols-[150px_minmax(0,1fr)] gap-3 text-[13px]">
+          <dt className="text-ink-mute">{k}</dt>
+          <dd className="break-words text-ink">{v === undefined || v === null || v === "" ? <span className="text-ink-faint">-</span> : v}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+  return (
+    <div className="rounded-xl border border-line bg-white">
+      <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
+        <h3 className="flex items-center gap-2 text-[14.5px] font-semibold">{icon && h(icon, { size: 15, className: "text-ink-mute" })}{title}</h3>
+        {actions}
+      </div>
+      <div className="grid gap-x-8 gap-y-2.5 p-4" style={{ gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)" }}>
+        {col(list.slice(0, half))}
+        <div className="border-l border-line pl-8">{col(list.slice(half))}</div>
+      </div>
     </div>
   );
 }
@@ -289,7 +347,7 @@ function useContentBox() {
   y.useLayoutEffect(() => { const u = () => setB(get()); u(); window.addEventListener("resize", u); return () => window.removeEventListener("resize", u); }, []);
   return b;
 }
-function Drawer({ open, title, subtitle, onClose, actions, width = 760, tabs, related, comments, children }) {
+function Drawer({ open, title, badge, subtitle, onClose, actions, width = 760, tabs, related, comments, children }) {
   useEscape(open, onClose);
   const box = useContentBox();
   if (!open) return null;
@@ -303,11 +361,14 @@ function Drawer({ open, title, subtitle, onClose, actions, width = 760, tabs, re
           {/* Title keeps the full width; when the action buttons don't fit beside it they move to their own row */}
           <div className={cls("nx-dhead relative flex flex-wrap items-start gap-x-4 gap-y-3 pl-6 pr-14 pt-5", tabs ? "pb-5" : "pb-4")}>
             <span className="absolute right-4 top-4"><IconBtn icon={Icon.x} title="Close" onClick={onClose} /></span>
-            <div className="min-w-0 flex-1" style={{ flexBasis: 440 }}>
-              <h2 className="text-[17px] font-semibold leading-tight tracking-tight" style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "anywhere" }}>{title}</h2>
+            <div className="min-w-0" style={{ flex: "1 1 auto", minWidth: 240 }}>
+              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                <h2 className="min-w-0 text-[17px] font-semibold leading-tight tracking-tight" style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "anywhere" }}>{title}</h2>
+                {badge}
+              </div>
               {subtitle && <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-ink-soft">{subtitle}</div>}
             </div>
-            {actions && <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">{actions}</div>}
+            {actions && <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2" style={{ flex: "0 1 auto" }}>{actions}</div>}
           </div>
           {related && related.length > 0 && <DocBar related={related} />}
           {tabs && <DetailTabs {...tabs} />}

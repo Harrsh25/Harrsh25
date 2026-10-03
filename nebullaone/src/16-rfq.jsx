@@ -538,17 +538,25 @@ function RfqDrawer({ id, onClose, compose }) {
   const [ret, setRet] = y.useState(null);
   const [msg, setMsg] = y.useState({ vendorId: "", text: "" });
   const [alt, setAlt] = y.useState(false);
+  const [tab, setTab] = y.useState("overview");
   if (!rfq) return null;
   const ranked = rankQuotes(st, rfq);
   const reviewed = ranked.filter((r) => r.q.review !== "Under review" && !r.expired);
   const minRate = rfq.items.map((_, i) => Math.min(...rfq.quotes.map((q) => lineRate(q, i) ?? Infinity)));
   const open = !["Awarded", "Closed", "Cancelled"].includes(rfq.status);
   const resp = rfq.responses || {};
+  const units = [...new Set(rfq.items.map((i) => i.unit).filter(Boolean))];
+  const qtyText = units.length === 1 ? `${num(sum(rfq.items, (i) => Number(i.qty) || 0))} ${units[0]} · ${rfq.items.length} line${rfq.items.length > 1 ? "s" : ""}` : `${rfq.items.length} lines`;
   const review = (vid, status, reason) => setState((s) => { const q = byId(s.rfqs, id).quotes.find((x) => x.vendorId === vid); q.review = status; q.returnReason = reason || ""; },
     { entity: "RFQ", id, action: `Quotation from ${vendorName(st, vid)} ${status === "Accepted" ? "accepted for evaluation" : `returned — ${reason}`}` });
   return (
-    <Drawer open related={relatedFor(st, "rfq", rfq)} comments={rfq.id} onClose={onClose} width={1040} title={rfq.title}
-      subtitle={<><span className="mono">{rfq.id}</span><Status>{rfq.status}</Status><span>{modeLabel(rfq.mode)}</span><span>· {rfq.project}</span><span>· due {fmtDate(rfq.dueDate)}</span>{rfq.sourceRef && <span>· {rfq.sourceRef}</span>}</>}
+    <Drawer open related={relatedFor(st, "rfq", rfq).filter((x) => !/Vendors|Quotations/.test(x.label))} comments={rfq.id} onClose={onClose} width={1040} title={rfq.title}
+      badge={<Status>{rfq.status}</Status>}
+      tabs={{ active: tab, onChange: setTab, tabs: [
+        { id: "overview", label: "Overview" }, { id: "items", label: "BOQ Items", count: rfq.items.length }, { id: "vendors", label: "Vendors", count: rfq.vendorIds.length },
+        { id: "quotes", label: "Quotations", count: rfq.quotes.length }, { id: "compare", label: "Comparison" }, { id: "eval", label: "Evaluation" }, { id: "approval", label: "Approval" },
+        { id: "emails", label: "E-mails", count: (rfq.emails || []).length }, { id: "nego", label: "Negotiation", count: rfq.negotiation.length },
+      ] }}
       actions={<>
         <Btn icon={Icon.download} onClick={() => printRfq(rfq)}>Print / PDF</Btn>
         {open && <Btn icon={Icon.layers} onClick={() => setAlt(true)}>Alternative RFQ</Btn>}
@@ -558,11 +566,34 @@ function RfqDrawer({ id, onClose, compose }) {
       </>}>
       {cancelAsk && <ReasonModal title={`Cancel ${rfq.id}`} text="Invited vendors are told the RFQ is withdrawn; quotes received stay on record." action="Cancel RFQ" onClose={() => setCancelAsk(false)}
         onDone={(r) => { setState((s) => { const x = byId(s.rfqs, rfq.id); x.status = "Cancelled"; x.cancelled = { at: new Date().toISOString(), by: currentUser(), reason: r }; }, { entity: "RFQ", id: rfq.id, action: `Cancelled — ${r}` }); toast(`${rfq.id} cancelled`, "red"); }} />}
+      {alt && <NewRfqModal open preset={{ ...JSON.parse(JSON.stringify({ project: rfq.project, items: rfq.items, tnc: rfq.tnc, incoterm: rfq.incoterm, weights: rfq.weights, questions: rfq.questions || [], ranking: rfq.ranking || "Hidden", details: rfq.details || {}, attachments: rfq.attachments || [] })), title: `${rfq.title} — alternative`, vendorIds: [], sourceRef: `Alternative to ${rfq.id}`, altOf: rfq.id, dueDate: shiftDays(7) }} onClose={() => setAlt(false)} onCreated={() => setAlt(false)} />}
       <div className="space-y-4 px-6 py-5">
-        {alt && <NewRfqModal open preset={{ ...JSON.parse(JSON.stringify({ project: rfq.project, items: rfq.items, tnc: rfq.tnc, incoterm: rfq.incoterm, weights: rfq.weights, questions: rfq.questions || [], ranking: rfq.ranking || "Hidden", details: rfq.details || {}, attachments: rfq.attachments || [] })), title: `${rfq.title} — alternative`, vendorIds: [], sourceRef: `Alternative to ${rfq.id}`, altOf: rfq.id, dueDate: shiftDays(7) }} onClose={() => setAlt(false)} onCreated={() => setAlt(false)} />}
+        {tab === "overview" && <>
+        {rfq.status === "Draft" && <Note>Draft — press <b>Compose & send</b> to e-mail the invitation. Vendors sign in to the supplier portal with a one-time code to respond.</Note>}
         {(rfq.questions || []).length > 0 && <Note icon={Icon.listChecks}>{rfq.questions.length} requirement question(s) · ranking shown to vendors: <b>{rfq.ranking || "Hidden"}</b>{rfq.multiResponse === false ? " · one response only" : ""}</Note>}
         {(rfq.attachments || []).length > 0 && <div className="flex flex-wrap items-center gap-2 text-[12.5px]"><span className="text-ink-mute">Attachments:</span>{rfq.attachments.map((a) => <FileLink key={a.name} name={a.name} dataUrl={a.dataUrl} />)}</div>}
-        {rfq.status === "Draft" && <Note>Draft — press <b>Compose & send</b> to e-mail the invitation. Vendors sign in to the supplier portal with a one-time code to respond.</Note>}
+          <InfoCard title="RFQ Information" icon={Icon.file} rows={[
+            ["RFQ number", <span className="mono">{rfq.id}</span>], ["RFQ title", rfq.title], ["Quantity", qtyText], ["Project", rfq.project],
+            ["BOQ reference", rfq.sourceRef], ["Template / category", rfq.template], ["Incoterm", rfq.incoterm],
+            ["Status", <Status>{rfq.status}</Status>], ["Sourcing mode", modeLabel(rfq.mode)], ["Due date", fmtDate(rfq.dueDate)],
+            ["Created by", rfq.createdBy || (rfq.revisions || [])[0]?.by], ["Created on", fmtDate(rfq.createdOn)], ["Weights", `Price ${rfq.weights.price}% · quality ${rfq.weights.quality}% · delivery ${rfq.weights.delivery}%`],
+          ]} />
+          <Section title="Terms sent to vendors" icon={Icon.file}><p className="whitespace-pre-line p-4 text-[13px] leading-relaxed text-ink">{rfq.tnc || "—"}</p></Section>
+        <DocDetailsView kind="rfq" value={rfq.details} />
+        </>}
+        {tab === "items" && (
+          <Section title={`BOQ items (${rfq.items.length})`} icon={Icon.boxes}>
+            <DataTable dense rows={rfq.items.map((it, i) => ({ ...it, i }))} rowKey={(r) => r.i} columns={[
+              { key: "n", label: "#", render: (r) => r.i + 1 },
+              { key: "desc", label: "Item", className: "whitespace-normal font-medium" },
+              { key: "q", label: "Quantity", align: "right", num: true, render: (r) => `${num(r.qty)} ${r.unit || ""}` },
+              { key: "rb", label: "Needed by", render: (r) => fmtDate(r.requiredBy) },
+              { key: "best", label: "Lowest rate", align: "right", num: true, render: (r) => (Number.isFinite(minRate[r.i]) ? inr(minRate[r.i]) : "—") },
+              { key: "aw", label: "Awarded to", render: (r) => (rfq.awards || []).filter((a) => a.line === r.i).map((a) => `${vendorName(st, a.vendorId)} (${a.poId})`).join(", ") || <span className="text-ink-faint">—</span> },
+            ]} />
+          </Section>
+        )}
+        {tab === "vendors" && <>
         <Section title="Invited vendors" icon={Icon.send}>
           <DataTable dense rows={rfq.vendorIds.map((vid) => ({ id: vid, q: rfq.quotes.find((x) => x.vendorId === vid), r: resp[vid] || { status: "Not sent" }, mails: (rfq.emails || []).filter((m) => m.to === vid) }))} columns={[
             { key: "v", label: "Vendor", render: (r) => <span className="flex flex-col"><span className="font-medium">{vendorName(st, r.id)}</span><span className="text-[11.5px] text-ink-mute">{byId(st.vendors, r.id)?.contact.email}</span></span> },
@@ -579,6 +610,27 @@ function RfqDrawer({ id, onClose, compose }) {
               </span>) },
           ]} />
         </Section>
+        </>}
+        {tab === "quotes" && <>
+          <Section title={`Quotations (${rfq.quotes.length})`} icon={Icon.receipt}>
+            <DataTable dense rows={rfq.quotes} rowKey={(q) => q.vendorId} empty={<p className="p-4 text-[13px] text-ink-mute">No quotations yet.</p>} columns={[
+              { key: "v", label: "Vendor", render: (q) => <span className="font-medium">{vendorName(st, q.vendorId)}</span> },
+              { key: "no", label: "Quote no.", render: (q) => q.quoteNo || "—" },
+              { key: "on", label: "Received", render: (q) => fmtDate(q.submittedOn) },
+              { key: "amt", label: "Taxable total", align: "right", num: true, render: (q) => inrShort(quoteTotal(rfq, q)) },
+              { key: "d", label: "Delivery", align: "right", render: (q) => (q.deliveryDays != null ? `${q.deliveryDays} d` : "—") },
+              { key: "vu", label: "Valid until", render: (q) => (daysUntil(q.validUntil) < 0 ? <Status tone="red">Expired</Status> : fmtDate(q.validUntil)) },
+              { key: "s", label: "Status", render: (q) => <Status>{quoteStatus(rfq, q)}</Status> },
+            ]} />
+          </Section>
+        {(rfq.questions || []).length > 0 && rfq.quotes.length > 0 && (
+          <Section title="Answers to requirement questions" icon={Icon.listChecks}>
+            <DataTable dense rows={rfq.questions.map((q, i) => ({ q, i }))} rowKey={(r) => r.i} columns={[{ key: "q", label: "Question", render: (r) => r.q.text },
+              ...rfq.quotes.map((q) => ({ key: q.vendorId, label: vendorName(st, q.vendorId), render: (r) => q.answers?.[r.i] ?? "—" }))]} />
+          </Section>
+        )}
+        </>}
+        {tab === "compare" && <>
         <Section title="Comparison sheet (net of discount, in INR)" icon={Icon.scale}
           actions={open && reviewed.length > 0 && <Btn size="sm" variant="primary" icon={Icon.sparkles} onClick={() => setAward({})}>Award by line…</Btn>}>
           {rfq.quotes.length === 0 ? <p className="p-4 text-[13px] text-ink-mute">No quotations yet.</p> : (
@@ -602,6 +654,8 @@ function RfqDrawer({ id, onClose, compose }) {
             </div>
           )}
         </Section>
+        </>}
+        {tab === "eval" && <>
         {ranked.length > 0 && (
           <Section title={`Weighted scoring — price ${rfq.weights.price}% · quality ${rfq.weights.quality}% · delivery ${rfq.weights.delivery}% (partial bids scaled by coverage)`} icon={Icon.target}>
             <DataTable dense rows={ranked} rowKey={(r) => r.q.vendorId} columns={[
@@ -617,22 +671,27 @@ function RfqDrawer({ id, onClose, compose }) {
             ]} />
           </Section>
         )}
-        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-4">
-          <Section title="Terms sent to vendors" icon={Icon.file}><KV cols={2} items={[["Incoterm", rfq.incoterm], ["Source", rfq.sourceRef || "—"], ["Terms", <span className="whitespace-normal">{rfq.tnc}</span>]]} /></Section>
-          <Section title={`E-mails (${(rfq.emails || []).length})`} icon={Icon.mail}>
+          {!ranked.length && <p className="text-[13px] text-ink-mute">Scores appear once quotations are received.</p>}
+        </>}
+        {tab === "approval" && (
+          <Section title="Award & approval" icon={Icon.clipboardCheck} actions={open && reviewed.length > 0 && <Btn size="sm" variant="primary" icon={Icon.sparkles} onClick={() => setAward({})}>Award by line…</Btn>}>
+            <DataTable dense rows={rfq.awards || []} rowKey={(a, i) => a.poId + i} empty={<p className="p-4 text-[13px] text-ink-mute">{rfq.status === "Cancelled" ? `Cancelled — ${rfq.cancelled?.reason || ""}` : "Not awarded yet. Compare the quotations, then use Award by line — each awarded vendor gets a draft PO that goes for approval."}</p>} columns={[
+              { key: "l", label: "Item", className: "whitespace-normal", render: (a) => rfq.items[a.line]?.desc },
+              { key: "v", label: "Awarded to", render: (a) => vendorName(st, a.vendorId) },
+              { key: "po", label: "Purchase order", render: (a) => <RefLink to={`${VM_BASE}/purchase-orders?open=${a.poId}`}>{a.poId}</RefLink> },
+              { key: "ps", label: "PO status", render: (a) => <Status>{(byId(st.purchaseOrders, a.poId) || {}).status || "—"}</Status> },
+              { key: "by", label: "Awarded by", render: (a) => [a.by, a.at && fmtDate(a.at)].filter(Boolean).join(" · ") || "—" },
+            ]} />
+            {rfq.recommendation && <p className="border-t border-line px-4 py-3 text-[13px] text-ink-soft">Recommendation: {rfq.recommendation}</p>}
+          </Section>
+        )}
+        {tab === "emails" && <Section title={`E-mails (${(rfq.emails || []).length})`} icon={Icon.mail}>
             <ul className="max-h-[220px] divide-y divide-line overflow-y-auto">
               {(rfq.emails || []).length === 0 && <li className="p-3 text-[13px] text-ink-mute">Nothing sent yet.</li>}
               {(rfq.emails || []).slice().reverse().map((m, i) => <li key={i} className="px-4 py-2 text-[12.5px]"><b>{vendorName(st, m.to)}</b> <span className="text-ink-mute">· {fmtDateTime(m.at)}</span><p className="truncate text-ink-soft">{m.subject}</p></li>)}
             </ul>
-          </Section>
-        </div>
-        <DocDetailsView kind="rfq" value={rfq.details} />
-        {(rfq.questions || []).length > 0 && rfq.quotes.length > 0 && (
-          <Section title="Answers to requirement questions" icon={Icon.listChecks}>
-            <DataTable dense rows={rfq.questions.map((q, i) => ({ q, i }))} rowKey={(r) => r.i} columns={[{ key: "q", label: "Question", render: (r) => r.q.text },
-              ...rfq.quotes.map((q) => ({ key: q.vendorId, label: vendorName(st, q.vendorId), render: (r) => q.answers?.[r.i] ?? "—" }))]} />
-          </Section>
-        )}
+          </Section>}
+        {tab === "nego" && <>
         <Section title="Negotiation log" icon={Icon.message}>
           <ul className="divide-y divide-line">
             {rfq.negotiation.length === 0 && <li className="p-3 text-[13px] text-ink-mute">No negotiation recorded.</li>}
@@ -646,6 +705,7 @@ function RfqDrawer({ id, onClose, compose }) {
             </div>
           )}
         </Section>
+        </>}
       </div>
       {send && <SendRfqModal rfq={rfq} resendTo={send.to} onClose={() => setSend(null)} />}
       {record && (
