@@ -483,10 +483,15 @@ const FILTER_ICONS = {
   "blocks payment": "lock", "work order": "clipboardList", jms: "listChecks", region: "globe", "wage zone": "globe", skill: "wrench", trade: "hardHat",
   trades: "hardHat", "rule sets": "listChecks", result: "target", owner: "user", level: "layers", "submitted by": "user", "rated by": "user",
   acceptance: "check", basis: "file", period: "calendar", invitation: "mail", group: "layers", state: "globe", "supplier type": "building", "vendor group": "layers",
+  purpose: "target", "billed in": "receipt", inspection: "clipboardCheck", "release": "handshake", settlement: "scale", "scorecard standing": "gauge", risk: "warning",
+  severity: "alert", step: "listChecks", trigger: "zap", routing: "branch", who: "user", "requested / approved by": "user", "raised / decided": "calendarClock",
+  weather: "sparkles", "mobilisation checklist": "clipboardList", "open punch items": "wrench", ncrs: "fileX", "vendor bill": "receipt", against: "file",
+  "city / state": "pin", "challan · transport": "truck", "items · project": "boxes", entity: "building", designation: "user", documents: "folder",
 };
 const filterIcon = (label) => {
   const k = FILTER_ICONS[String(label || "").toLowerCase()];
-  return k && Icon[k] ? h(Icon[k], { size: 16, className: "shrink-0" }) : <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-current opacity-60" />;
+  if (/^status$/i.test(String(label || ""))) return <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-current opacity-60" />;
+  return h(Icon[k && Icon[k] ? k : "sliders"], { size: 16, className: "shrink-0" });
 };
 // Colour dot for a filter option: its status colour when it has one, else a palette colour by position
 const isAllOpt = (o, opts) => o === opts[0] && /^(all|any)\b/i.test(String(o.label));
@@ -697,7 +702,9 @@ const readCols = (id) => { try { const v = JSON.parse(localStorage.getItem("nxv-
 function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0, onClearFilters, exportName, rows, onRow, rowKey = (r) => r.id, empty, footer, dense, plain, filters, actions, noun = "records", summary, searchText = rowSearchText, placeholder = "Search…", calendar }) {
   const list = !dense && !plain;
   // Columns marked opt start hidden; they can be switched on in Customize Columns
-  const baseColumns = allColumns.filter((c) => !c.opt), optCols = allColumns.filter((c) => c.opt);
+  // List pages show names, not codes: a record's own ID / code column (key id / seq, or labelled ID / Code) is left out — it shows in the record panel
+  const isCode = (c) => list && (c.key === "id" || c.key === "seq" || /^(id|code)$/i.test(String(c.label || "")));
+  const baseColumns = allColumns.filter((c) => !c.opt && !isCode(c)), optCols = allColumns.filter((c) => c.opt && !isCode(c));
   const extraColumns = optCols.length ? [...optCols, ...(extra0 || [])] : extra0;
   const columnsId = cid0 || `auto:${noun}`;
   // Optional columns: shown when switched on in the Customize Columns panel ("+" at the end of the header)

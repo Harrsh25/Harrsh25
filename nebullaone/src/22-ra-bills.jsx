@@ -277,7 +277,7 @@ function RaBillsPage() {
       <DataTable noun="bills" summary={(r) => [{ value: inrShort(sum(r.filter((b) => b.status !== "Rejected"), (b) => b.gross)), label: "gross" }, { value: inrShort(sum(r.filter((b) => b.status !== "Rejected"), (b) => b.net)), label: "net" }]} filters={<FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Submitted", "Verified", "Certified", "Approved", "Paid", "Rejected"]} />} rows={rows} onRow={(b) => setOpen(b.id)} columns={[
         { key: "id", label: "Bill", className: "mono text-[12px] text-ink-soft" },
         { key: "seq", label: "RA no.", render: (b) => <span>RA-{b.seq}{b.claimId && <span className="ml-1 text-[11px] text-ink-mute">from {b.claimId}</span>}</span> },
-        { key: "wo", label: "Work order", filterOptions: FO.contractors, filter: (b) => vendorName(st, b.vendorId), filterLabel: "Contractor", render: (b) => <span><span className="mono text-[12px]">{b.woId}</span> · {vendorName(st, b.vendorId)}</span> },
+        { key: "wo", label: "Work order", filterOptions: FO.contractors, filter: (b) => vendorName(st, b.vendorId), filterLabel: "Contractor", render: (b) => <span><span className="font-medium">{(byId(st.workOrders, b.woId) || {}).title || b.woId}</span> · {vendorName(st, b.vendorId)}</span> },
         { key: "t", label: "Type", filterOptions: FO.woType, filter: (b) => byId(st.workOrders, b.woId).type, render: (b) => byId(st.workOrders, b.woId).type },
         { key: "d", label: "Bill date", render: (b) => fmtDate(b.date) },
         { key: "g", label: "Gross", align: "right", num: true, render: (b) => inr(b.gross) },
@@ -350,7 +350,7 @@ function RetentionPage() {
       )}
       {tab === "ded" && (
         <DataTable noun="deductions" rows={dedRows} onRow={(b) => nav(`${CL_BASE}/ra-bills?open=${b.id}`)} columns={[
-          { key: "id", label: "Bill", className: "mono text-[12px]" }, { key: "c", label: "Contract", className: "mono text-[12px]", render: (b) => b.contractId },
+          { key: "id", label: "Bill", className: "mono text-[12px]" }, { key: "c", label: "Contract", render: (b) => (byId(st.contracts, b.contractId) || {}).title || b.contractId },
           { key: "v", label: "Contractor", filterOptions: FO.contractors, filter: (x) => vendorName(st, x.vendorId), render: (b) => vendorName(st, b.vendorId) },
           { key: "g", label: "Gross", align: "right", num: true, render: (b) => inrShort(b.gross) },
           { key: "r", label: "Retention", align: "right", num: true, render: (b) => inr(b.ded.retention) },

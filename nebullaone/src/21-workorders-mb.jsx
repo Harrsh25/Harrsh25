@@ -191,7 +191,7 @@ function WorkOrdersPage() {
   return (
     <Page title="Work Orders" subtitle="Lump Sum and Item-Rate work orders issued under contracts" icon={Icon.clipboardList}
       actions={<Btn variant="primary" icon={Icon.plus} onClick={() => setCreate(true)}>Create work order</Btn>}>
-      <DataTable noun="work orders" calendar={{ label: "Finish dates", date: (w) => w.end, title: (w) => `${w.id} · ${w.title}` }} filters={<FilterSelect label="Type" value={type} onChange={setType} options={[{ value: "All", label: "All types" }, "Item-Rate", "Lump Sum"]} />} rows={rows} onRow={(w) => setOpen(w.id)} columns={[
+      <DataTable noun="work orders" calendar={{ label: "Finish dates", date: (w) => w.end, title: (w) => w.title }} filters={<FilterSelect label="Type" value={type} onChange={setType} options={[{ value: "All", label: "All types" }, "Item-Rate", "Lump Sum"]} />} rows={rows} onRow={(w) => setOpen(w.id)} columns={[
         { key: "id", label: "WO", className: "mono text-[12px] text-ink-soft" },
         { key: "title", label: "Title", className: "font-medium" },
         { key: "v", label: "Contractor", filterOptions: FO.contractors, filter: (x) => vendorName(st, x.vendorId), render: (w) => vendorName(st, w.vendorId) },
@@ -299,7 +299,7 @@ function MeasurementBookPage() {
         <DataTable noun="measurements" filters={<><FilterSelect label="Work order" value={wo} onChange={setWo} options={woOpts} /><FilterSelect label="JMS" value={jms} onChange={setJms} options={[{ value: "All", label: "All JMS status" }, "Pending", "Signed", "Disputed"]} /></>} rows={rows} onRow={(m) => setOpenMb(m.id)} columns={[
           { key: "id", label: "MB no.", className: "mono text-[12px]" },
           { key: "date", label: "Date", render: (m) => fmtDate(m.date) },
-          { key: "wo", label: "WO", className: "mono text-[12px]", render: (m) => m.woId },
+          { key: "wo", label: "Work order", render: (m) => (byId(st.workOrders, m.woId) || {}).title || m.woId },
           { key: "item", label: "Item / milestone", className: "max-w-[260px] truncate", render: (m) => <span title={lineName(m)}>{lineName(m)}</span> },
           { key: "loc", label: "Location", opt: true, className: "max-w-[200px] truncate", render: (m) => <span title={m.location}>{m.location}</span> },
           { key: "dims", label: "N × L × B × D", opt: true, className: "num text-[12px] text-ink-soft", render: (m) => (m.l || m.b || m.d ? [m.nos || 1, m.l ?? "–", m.b ?? "–", m.d ?? "–"].join(" × ") : "—") },
@@ -316,7 +316,7 @@ function MeasurementBookPage() {
       {tab === "jms" && <>
         <DataTable noun="pending entries" filters={<span className="text-[12.5px] text-ink-soft">Engineer and contractor representative sign together; disputed entries can be re-measured with a corrected quantity.</span>} actions={<Btn variant="primary" size="sm" icon={Icon.check} disabled={!sel.length} onClick={() => setSign({ ids: sel, rep: "", eng: currentUser() })}>Sign selected ({sel.length})</Btn>} rows={pendingRows} onRow={(m) => setOpenMb(m.id)} empty={<EmptyState icon={Icon.check} title="All measurements are jointly signed" />} columns={[
           { key: "sel", label: "", render: (m) => <input type="checkbox" className="h-4 w-4 accent-[#0b5ed7]" checked={sel.includes(m.id)} onClick={(e) => e.stopPropagation()} onChange={(e) => setSel(e.target.checked ? [...sel, m.id] : sel.filter((x) => x !== m.id))} /> },
-          { key: "id", label: "MB no.", className: "mono text-[12px]" }, { key: "wo", label: "WO", render: (m) => `${m.woId} · ${vendorName(st, byId(st.workOrders, m.woId).vendorId)}` },
+          { key: "id", label: "MB no.", className: "mono text-[12px]" }, { key: "wo", label: "Work order", render: (m) => `${(byId(st.workOrders, m.woId) || {}).title || m.woId} · ${vendorName(st, byId(st.workOrders, m.woId).vendorId)}` },
           { key: "item", label: "Item", className: "max-w-[240px] truncate", render: (m) => lineName(m) }, { key: "loc", label: "Location", className: "max-w-[180px] truncate", render: (m) => m.location },
           { key: "qty", label: "Engineer qty", align: "right", num: true, render: (m) => qtyText(m) },
           { key: "s", label: "Status", filterOptions: FO.jms, filter: (m) => m.jms.status, render: (m) => <span className="flex flex-col"><Status>{m.jms.status}</Status>{m.jms.remark && <span className="mt-0.5 max-w-[220px] whitespace-normal text-[11px] text-red-600">{m.jms.remark}</span>}</span> },

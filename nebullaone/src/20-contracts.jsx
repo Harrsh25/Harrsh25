@@ -111,7 +111,7 @@ function ContractsPage() {
           </div>
         </div>
       )}
-      <DataTable noun="contracts" calendar={{ label: "Completion dates", date: (c) => c.end, title: (c) => `${c.id} · ${c.title}` }} filters={<FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, ...FO.contractStatus]} />} rows={rows} onRow={(c) => setOpen(c.id)} columns={[
+      <DataTable noun="contracts" calendar={{ label: "Completion dates", date: (c) => c.end, title: (c) => c.title }} filters={<FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, ...FO.contractStatus]} />} rows={rows} onRow={(c) => setOpen(c.id)} columns={[
         { key: "id", label: "Contract", className: "mono text-[12px] text-ink-soft" },
         { key: "title", label: "Title", className: "font-medium" },
         { key: "v", label: "Contractor", filterOptions: FO.contractors, filter: (x) => vendorName(st, x.vendorId), render: (c) => vendorName(st, c.vendorId) },
