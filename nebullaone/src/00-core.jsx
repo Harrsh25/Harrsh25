@@ -272,7 +272,7 @@ function Drawer({ open, title, subtitle, onClose, actions, width = 760, tabs, st
       <div role="dialog" aria-modal="true" aria-label={typeof title === "string" ? title : undefined} className="flex h-full w-full flex-col bg-white shadow-2xl" style={{ maxWidth: width }}
         onMouseDown={(e) => e.stopPropagation()}>
         <div className={cls("shrink-0", !tabs && "border-b border-line")}>
-          <div className={cls("flex items-start justify-between gap-4 px-6 pt-5", tabs ? "pb-5" : "pb-4")}>
+          <div className={cls("nx-dhead flex items-start justify-between gap-4 px-6 pt-5", tabs ? "pb-5" : "pb-4")}>
             <div className="min-w-0">
               <h2 className="truncate text-[17px] font-semibold leading-tight tracking-tight">{title}</h2>
               {subtitle && <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-ink-soft">{subtitle}</div>}
@@ -850,7 +850,7 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
       {/* Toolbar: actions left; search, saved views, group by, list / board / calendar, filters and export right */}
       <div className="flex min-h-[44px] flex-wrap items-center justify-end gap-1.5 border-b border-line px-4 py-1.5">
         {actions && <div className="mr-auto flex items-center gap-2">{actions}</div>}
-        <span className="w-[220px] max-w-full"><SearchBox value={q} onChange={(x) => { setQ(x); setActiveView(""); }} placeholder={placeholder} /></span>
+        <span className="nx-search w-[220px] max-w-full"><SearchBox value={q} onChange={(x) => { setQ(x); setActiveView(""); }} placeholder={placeholder} /></span>
         <div className="relative" ref={viewsRef}>
           <button type="button" aria-label="Saved views" data-tip="Saved views" onClick={() => setViewsOpen((o) => !o)} className={cls("flex h-8 items-center gap-1 rounded-md px-2 text-[12.5px] hover:bg-gray-100", activeView ? "font-medium text-brand" : "text-ink-soft hover:text-ink")}>
             {h(Icon.star, { size: 15 })}<span className="max-w-[120px] truncate">{activeView || "Views"}</span>{h(Icon.chevronDown, { size: 12 })}
@@ -873,7 +873,7 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
           )}
         </div>
         {fcols.length > 0 && view === "list" && (
-          <span className="w-[170px]"><Select aria-label="Group by" value={groupBy} placeholder="Group by…" onChange={(x) => setGroupBy(x === "__none" ? "" : x)} options={[{ value: "__none", label: "No grouping" }, ...fcols.map((c) => ({ value: c.key, label: `Group by ${colName(c)}` }))]} /></span>
+          <span className="nx-groupby w-[170px]"><Select aria-label="Group by" value={groupBy} placeholder="Group by…" onChange={(x) => setGroupBy(x === "__none" ? "" : x)} options={[{ value: "__none", label: "No grouping" }, ...fcols.map((c) => ({ value: c.key, label: `Group by ${colName(c)}` }))]} /></span>
         )}
         <div className="flex rounded-md bg-gray-100 p-0.5" role="group" aria-label="Layout">
           {[["list", "List", Icon.listChecks], ...(boardCol ? [["board", "Board", Icon.grid]] : []), ...(calendar ? [["calendar", "Calendar", Icon.calendar]] : [])].map(([k, t, ic]) => (

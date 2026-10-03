@@ -156,7 +156,23 @@ const RAW_CSS = "[role=dialog] .mono{white-space:nowrap}[role=dialog] p.flex.ite
   ".nx-list th.nx-stick,.nx-fill .nx-list thead th.nx-stick{z-index:3}.nx-list .nx-edge{box-shadow:inset -1px 0 0 #e5e7eb}" +
   ".nx-list td.nx-stick:first-child:not(.nx-edge){width:44px;min-width:44px;max-width:44px}" +
   ".nx-filters>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}" +
-  ".shadow-card>.nx-fill{flex:1 1 0;min-height:280px;overflow:auto}.shadow-card>.nx-fill thead th{position:sticky;top:0;z-index:2}";
+  ".shadow-card>.nx-fill{flex:1 1 0;min-height:280px;overflow:auto}.shadow-card>.nx-fill thead th{position:sticky;top:0;z-index:2}" +
+  // Phone layout (≤768px): sidebar slides in from a menu button, toolbars and drawer headers wrap, grids drop to 1–2 columns, wide tables scroll
+  ".nx-burger,.nx-scrim{display:none}" +
+  "@media (max-width:768px){" +
+  "aside.shrink-0{position:fixed;left:0;top:0;bottom:0;z-index:75;width:264px!important;background:#f3f4f6;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.18)}" +
+  "html.nx-nav-open aside.shrink-0{transform:none}html.nx-nav-open .nx-scrim{display:block;position:fixed;inset:0;z-index:74;background:rgba(17,24,39,.3)}" +
+  ".nx-burger{display:grid;place-items:center;position:fixed;left:8px;top:8px;z-index:50;width:32px;height:32px;border-radius:8px;background:#fff;border:1px solid #e5e7eb;color:#374151}" +
+  "header.relative{padding-left:48px;gap:8px}header.relative>nav{position:static;transform:none;margin-right:auto}header.relative>nav a{font-size:0;gap:0;padding:0 6px}" +
+  "header.relative>label{width:auto;flex:1;min-width:0}header.relative>label kbd{display:none}" +
+  "main.flex-1{padding-left:8px;padding-right:8px}" +
+  ".nx-search{flex:1 1 100%;width:100%}.nx-search>label{width:100%}.nx-groupby{width:140px}" +
+  ".nx-dhead{flex-wrap:wrap;padding-left:16px;padding-right:16px}.nx-dhead>div:first-child{flex:1 1 100%}.nx-dhead h2{white-space:normal}" +
+  "[role=dialog] .px-6{padding-left:16px;padding-right:16px}" +
+  ".grid-cols-4,.grid-cols-5,.grid-cols-6{grid-template-columns:repeat(2,minmax(0,1fr))!important}" +
+  ".grid-cols-2,.grid-cols-3,[role=dialog] .grid-cols-4{grid-template-columns:minmax(0,1fr)!important}" +
+  ".nx-section{overflow-x:auto}.col-span-2,.col-span-3,.col-span-4{grid-column:1/-1}" +
+  "}";
 html = html.slice(0, styleEnd) + C_BEGIN + extraCss + RAW_CSS + C_END + html.slice(styleEnd);
 
 writeFileSync(HTML, html);

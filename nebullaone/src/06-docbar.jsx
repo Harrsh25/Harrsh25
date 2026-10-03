@@ -206,3 +206,20 @@ function RecordComments({ id }) {
     </div>
   );
 }
+
+// ---------------------------------------------------------------- phone layout: a menu button opens the sidebar (CSS in build.mjs)
+if (typeof document !== "undefined") {
+  const addBurger = () => {
+    if (document.querySelector(".nx-burger")) return;
+    const root = document.documentElement, btn = document.createElement("button"), scrim = document.createElement("div");
+    btn.type = "button"; btn.className = "nx-burger"; btn.setAttribute("aria-label", "Menu");
+    btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>';
+    scrim.className = "nx-scrim";
+    btn.onclick = () => root.classList.toggle("nx-nav-open");
+    scrim.onclick = () => root.classList.remove("nx-nav-open");
+    // picking a page closes the menu
+    document.addEventListener("click", (e) => { if (e.target.closest && e.target.closest("aside a")) root.classList.remove("nx-nav-open"); });
+    document.body.append(scrim, btn);
+  };
+  document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", addBurger) : addBurger();
+}
