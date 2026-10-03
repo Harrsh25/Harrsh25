@@ -169,7 +169,7 @@ function FormJumpBar({ root }) {
   });
   const go = (i) => root.current?.querySelectorAll("section[data-vf]")[i]?.scrollIntoView({ behavior: "smooth", block: "start" });
   return (
-    <nav aria-label="Form sections" style={{ top: -40 }} className="sticky z-10 -mx-5 -mt-4 mb-1 flex gap-1.5 overflow-x-auto border-b border-line bg-white px-5 py-2 shadow-[0_1px_0_#e5e7eb]">
+    <nav aria-label="Form sections" style={{ top: -40 }} className="sticky z-10 -mx-5 -mt-4 mb-1 flex flex-wrap gap-1.5 border-b border-line bg-white px-5 py-2 shadow-[0_1px_0_#e5e7eb]">
       {secs.map((x) => (
         <button key={x.title} type="button" onClick={() => go(x.i)} className={cls("flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px]", x.done ? "border-green-200 bg-green-50 text-green-700" : "border-line text-ink-soft hover:bg-gray-50")}>
           <span className={cls("grid h-4 w-4 place-items-center rounded-full text-[10px] font-semibold", x.done ? "bg-green-600 text-white" : "bg-gray-100 text-ink-mute")}>{x.done ? h(Icon.check, { size: 10 }) : x.i + 1}</span>{x.title}

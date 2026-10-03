@@ -271,8 +271,8 @@ function Drawer({ open, title, subtitle, onClose, actions, width = 760, tabs, st
     // Side panel (Project Center style): the list stays visible and clickable beside it — pick another row to switch records
     <div className="pointer-events-none fixed inset-0 z-[55] flex justify-end">
       <div role="dialog" aria-modal="false" aria-label={typeof title === "string" ? title : undefined} data-drawer
-        className="nx-drawer pointer-events-auto absolute bottom-2 right-2 top-[56px] flex flex-col overflow-hidden rounded-xl border border-line bg-white shadow-[-8px_0_28px_rgba(16,24,40,0.14)]"
-        style={{ width: `min(${width}px, max(560px, 46vw))`, maxWidth: "calc(100% - 16px)" }}>
+        className="nx-drawer pointer-events-auto absolute bottom-2 right-2 top-[56px] flex flex-col rounded-xl border border-line bg-white shadow-[-8px_0_28px_rgba(16,24,40,0.14)]"
+        style={{ width: `min(${width}px, max(560px, 46vw))`, maxWidth: "calc(100% - 16px)", overflow: "clip" }}>
         <div className={cls("shrink-0", !tabs && "border-b border-line")}>
           <div className={cls("nx-dhead flex items-start justify-between gap-4 px-6 pt-5", tabs ? "pb-5" : "pb-4")}>
             <div className="min-w-0">

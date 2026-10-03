@@ -160,6 +160,8 @@ const RAW_CSS = "[role=dialog] .mono{white-space:nowrap}[role=dialog] p.flex.ite
   // Phone layout (≤768px): sidebar slides in from a menu button, toolbars and drawer headers wrap, grids drop to 1–2 columns, wide tables scroll
   // Detail side panel is ~46% wide: 4-across cards drop to 2 per row
   "[data-drawer] .grid-cols-4{grid-template-columns:repeat(2,minmax(0,1fr))}" +
+  // No visible scrollbars anywhere — areas still scroll with the wheel, trackpad or touch
+  "*{scrollbar-width:none}*::-webkit-scrollbar{display:none;width:0;height:0}" +
   ".nx-burger,.nx-scrim{display:none}" +
   "@media (max-width:768px){" +
   "aside.shrink-0{position:fixed;left:0;top:0;bottom:0;z-index:75;width:264px!important;background:#f3f4f6;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.18)}" +
