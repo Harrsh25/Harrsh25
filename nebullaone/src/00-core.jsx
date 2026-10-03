@@ -264,7 +264,7 @@ function DetailTabs({ tabs, active, onChange }) {
   );
 }
 
-function Drawer({ open, title, subtitle, onClose, actions, width = 760, tabs, children }) {
+function Drawer({ open, title, subtitle, onClose, actions, width = 760, tabs, stages, related, comments, children }) {
   useEscape(open, onClose);
   if (!open) return null;
   return (
@@ -282,9 +282,10 @@ function Drawer({ open, title, subtitle, onClose, actions, width = 760, tabs, ch
               <IconBtn icon={Icon.x} title="Close" onClick={onClose} />
             </div>
           </div>
+          {(stages || (related && related.length > 0)) && <DocBar stages={stages} related={related} onGo={onClose} />}
           {tabs && <DetailTabs {...tabs} />}
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto">{children}{comments && <RecordComments id={comments} />}</div>
       </div>
     </div>
   );
@@ -671,7 +672,8 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
   // First column stays put while the rest scrolls sideways (a leading checkbox column sticks together with it)
   const lead = !dense && columns[0] && !columns[0].label && columns.length > 2 ? 1 : 0;
   const stick = (ci) => (dense || ci > lead ? null : cls("nx-stick", ci === lead && "nx-edge", ci === 1 && lead ? "left-[44px]" : "left-0"));
-  const [q, setQ] = y.useState("");
+  // ?q= from a related-document button pre-fills the page's main list search
+  const [q, setQ] = y.useState(() => (dense || plain ? "" : new URLSearchParams(String(window.location.hash).split("?")[1] || "").get("q") || ""));
   // Column filters: a column with `filter` (true = row[key], or a function returning a value / list of values) gets its own dropdown
   const [cf, setCf] = y.useState({});
   const [searchOpen, setSearchOpen] = y.useState(false), [filtersOpen, setFiltersOpen] = y.useState(false), [nActive, setNActive] = y.useState(0);

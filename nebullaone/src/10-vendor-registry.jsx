@@ -420,7 +420,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
     { id: "approval", label: "Approvals" },
   ];
   return (
-    <Drawer open onClose={onClose} width={880} title={<span className="flex items-center gap-2">{v.name}<PreferredStar v={v} size={16} always /></span>}
+    <Drawer open stages={{ steps: STAGES.vendor, current: v.status }} related={relatedFor(st, "vendor", v)} comments={v.id} onClose={onClose} width={880} title={<span className="flex items-center gap-2">{v.name}<PreferredStar v={v} size={16} always /></span>}
       subtitle={<><span className="mono text-[12px] text-ink-mute">{v.id}</span><span className="text-ink-faint">·</span><VendorTypeTag v={v} /><GroupCoTag v={v} /><VendorStatusMenu v={v} /><Status>{v.regTier}</Status><Status>{comp.status}</Status></>}
       actions={<>{canEdit && <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>}</>}
       tabs={{ tabs, active: tab, onChange: setTab }}>
