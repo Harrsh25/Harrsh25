@@ -71,7 +71,8 @@ require('./lib')('fix4', async ({ p, go, dlg, S, mut, as, T, pick, toastText }) 
   await T('G-15b', 'Equipment with expired fitness cannot be deployed', async () => {
     await mut((s) => { const w = s.workOrders.find((x) => x.id === 'WO-004'); w.equipment = w.equipment.filter((d) => d.eqId !== 'EQ-006'); });
     await go('contract-labor/work-orders?open=WO-004'); await p.waitForTimeout(300);
-    await pick(dlg().locator('[role=combobox]').filter({ hasText: 'Deploy from' }).first(), 'Tipper'); await btn('Deploy').click(); await p.waitForTimeout(150); const t = await toastText();
+    const dep = dlg().locator('[role=combobox]').filter({ hasText: 'Deploy from' }).first(); await dep.scrollIntoViewIfNeeded(); await p.waitForTimeout(100);
+    await pick(dep, 'Tipper'); await btn('Deploy').click(); await p.waitForTimeout(150); const t = await toastText();
     const w = (await S()).workOrders.find((x) => x.id === 'WO-004');
     return [`"${t.slice(0, 70)}"; deployed=${w.equipment.some((d) => d.eqId === 'EQ-006')}`, /expired/.test(t) && !w.equipment.some((d) => d.eqId === 'EQ-006')];
   });
