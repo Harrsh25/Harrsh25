@@ -1181,6 +1181,8 @@ function RefLink({ to, children }) {
   const clipped = (el) => {
     if (el.tagName === "INPUT") return el.type !== "checkbox" && el.type !== "radio" && el.scrollWidth > el.clientWidth + 1;
     if (!el.clientWidth || el.children.length > 3) return false;
+    // a cell that holds an open menu / dropdown / dialog is not "cut-off text" — never echo the whole menu
+    if (el.querySelector('[role=menu],[role=listbox],[role=dialog],[aria-multiselectable]')) return false;
     const cs = getComputedStyle(el);
     // scrollable panels (overflow auto/scroll) are not "cut-off text"
     if (/auto|scroll/.test(cs.overflowX + cs.overflowY)) return false;
