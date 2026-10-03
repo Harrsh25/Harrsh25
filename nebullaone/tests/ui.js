@@ -16,11 +16,13 @@ run('ui', async ({ p, go, T, pick, S, mut }) => {
     const views = await p.locator('main button[aria-label="Saved views"]').count(), grp = await p.locator('main [aria-label="Group by"]').count();
     return [`layout x ${Math.round(lay.x)} < search x ${Math.round(srch.x)}; Views ${views}, Group by ${grp}`, lay.x < srch.x && !views && !grp];
   });
-  await T('UI-05', 'Vendor status menu lists every status, approval ones greyed, no note text', async () => {
-    await go('vendor-management/registry'); await p.locator('main button[aria-label^="Change status of"]').first().click(); await p.waitForTimeout(150);
-    const items = await p.locator('[role=menu] [role=menuitem]').allInnerTexts(); const dis = await p.locator('[role=menu] [role=menuitem]:disabled').count();
-    const note = /set by the approval flow/i.test(await p.locator('[role=menu]').innerText()); await p.keyboard.press('Escape');
-    return [`${items.length} statuses (${items.join(', ')}), ${dis} not pickable, note ${note}`, items.length === 8 && dis === 5 && !note];
+  await T('UI-05', 'Vendor registry: Status menu has the 4 business statuses; Approval column has the workflow statuses (set by the approval flow)', async () => {
+    await go('vendor-management/registry'); const row = p.locator('main tbody tr').filter({ hasText: 'Shree Balaji' });
+    await row.locator('button[aria-label^="Change status of"]').nth(0).click(); await p.waitForTimeout(150);
+    const st = await p.locator('[role=menu] [role=menuitem]').allInnerTexts(); await p.keyboard.press('Escape'); await p.waitForTimeout(100);
+    await row.locator('button[aria-label^="Change status of"]').nth(1).click(); await p.waitForTimeout(150);
+    const ap = await p.locator('[role=menu] [role=menuitem]').allInnerTexts(); const apOn = await p.locator('[role=menu] [role=menuitem]:not(:disabled)').count(); await p.keyboard.press('Escape');
+    return [`status: ${st.join(', ')} · approval: ${ap.join(', ')} (${apOn} pickable)`, st.join() === 'Active,Inactive,On Hold,Blacklisted' && ap.length === 5 && apOn === 0];
   });
   await T('UI-03', 'Board layout shows cards in status columns', async () => {
     await go('vendor-management/purchase-orders');

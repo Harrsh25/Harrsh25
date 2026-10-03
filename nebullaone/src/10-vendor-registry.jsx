@@ -406,7 +406,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
   ];
   return (
     <Drawer open related={relatedFor(st, "vendor", v)} comments={v.id} onClose={onClose} width={880} title={<span className="flex items-center gap-2">{v.name}<PreferredStar v={v} size={16} always /></span>}
-      subtitle={<><span className="mono text-[12px] text-ink-mute">{v.id}</span><span className="text-ink-faint">·</span><VendorTypeTag v={v} /><GroupCoTag v={v} /><VendorStatusMenu v={v} /><Status>{v.regTier}</Status><Status>{comp.status}</Status></>}
+      subtitle={<><span className="mono text-[12px] text-ink-mute">{v.id}</span><span className="text-ink-faint">·</span><VendorTypeTag v={v} /><GroupCoTag v={v} /><VendorStatusMenu v={v} /><VendorStatusMenu v={v} approval /><Status>{v.regTier}</Status><Status>{comp.status}</Status></>}
       actions={<>{canEdit && <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>}</>}
       tabs={{ tabs, active: tab, onChange: setTab }}>
       <div className="space-y-4 px-6 py-5">
@@ -824,6 +824,9 @@ function BulkHoldModal({ ids, onClose, onDone }) {
 // Operational statuses are set by hand; approval statuses come from the approval flow.
 const VSTATUS = ["Active", "Inactive", "On Hold", "Blacklisted"];
 const APPROVAL_STATES = ["Draft", "Pending Approval", "Changes Requested", "Rejected"];
+// Two separate views of v.status: business status (lifecycle) and approval status (registration workflow)
+const lifeStatus = (v) => (VSTATUS.includes(v.status) ? v.status : null);
+const approvalStatus = (v) => (APPROVAL_STATES.includes(v.status) ? v.status : "Approved");
 function vendorStatusOptions(v) {
   if (APPROVAL_STATES.includes(v.status)) return v.status === "Pending Approval" ? [] : ["Pending Approval"];
   return VSTATUS;
@@ -839,7 +842,7 @@ function setVendorStatus(v, to, extra = {}) {
   }, { entity: "Vendor", id: v.id, action: `Status ${v.status} → ${to}${extra.reason ? ` — ${extra.reason}` : extra.hold ? ` (${extra.hold.scope}) — ${extra.hold.reason}` : ""}` });
   toast(`${v.name}: ${v.status} → ${to}`);
 }
-function VendorStatusMenu({ v }) {
+function VendorStatusMenu({ v, approval }) {
   const [open, setOpen] = y.useState(false), [pos, setPos] = y.useState(null), [ask, setAsk] = y.useState(null);
   const btn = y.useRef(null), menu = y.useRef(null);
   const opts = vendorStatusOptions(v);
@@ -857,16 +860,16 @@ function VendorStatusMenu({ v }) {
     <span onClick={(e) => e.stopPropagation()} className="inline-flex">
       <button ref={btn} type="button" aria-label={`Change status of ${v.name}`} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}
         className={cls("group/st inline-flex items-center gap-1 rounded-md px-1 py-0.5 -mx-1 hover:bg-gray-100", open && "bg-gray-100")}>
-        <CalmStatus>{v.status}</CalmStatus>{h(Icon.chevronDown, { size: 12, className: "text-ink-faint opacity-0 group-hover/st:opacity-100" })}
+        {approval ? <Status>{approvalStatus(v)}</Status> : lifeStatus(v) ? <Status>{v.status}</Status> : <span className="text-ink-faint" data-tip="Not active until the registration is approved">—</span>}{h(Icon.chevronDown, { size: 12, className: "text-ink-faint opacity-0 group-hover/st:opacity-100" })}
       </button>
       {open && pos && (
         <div ref={menu} role="menu" className="fixed z-[80] w-[260px] overflow-hidden whitespace-normal rounded-lg border border-line bg-white py-1 shadow-lg" style={{ left: pos.left, top: pos.top, bottom: pos.bottom }}>
-          <p className="px-3 pb-1 pt-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-ink-mute">Status</p>
-          {[...new Set([...VSTATUS, ...APPROVAL_STATES, v.status])].map((o) => {
-            const cur = o === v.status, can = opts.includes(o);
+          <p className="px-3 pb-1 pt-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-ink-mute">{approval ? "Approval status" : "Status"}</p>
+          {(approval ? [...APPROVAL_STATES, "Approved"] : VSTATUS).map((o) => {
+            const cur = approval ? o === approvalStatus(v) : o === v.status, can = !approval ? opts.includes(o) && !APPROVAL_STATES.includes(v.status) : o === "Pending Approval" && opts.includes(o);
             const label = can && o === "Pending Approval" ? (v.status === "Draft" ? "Submit for approval" : "Resubmit for approval") : o;
             return (
-              <button key={o} type="button" role="menuitem" aria-current={cur || undefined} disabled={cur || !can} onClick={() => pick(o)} data-tip={!cur && !can ? "Set by the approval flow" : undefined}
+              <button key={o} type="button" role="menuitem" aria-current={cur || undefined} disabled={cur || !can} onClick={() => pick(o)} data-tip={!cur && !can ? (approval ? "Set by the approval flow" : "Available once the registration is approved") : undefined}
                 className={cls("flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px]", cur ? "bg-brand-soft/60 font-medium text-brand" : can ? "text-ink hover:bg-gray-50" : "cursor-default text-ink-mute")}>
                 <span className={cls("h-2 w-2 shrink-0 rounded-full", DOT[TONE[o.toLowerCase()] || "gray"])} /><span className="flex-1">{label}</span>{cur && h(Icon.check, { size: 14, className: "text-brand" })}
               </button>
@@ -892,11 +895,11 @@ function BlacklistModal({ v, onClose }) {
 // ---------------------------------------------------------------- registry page
 function VendorRegistryPage() {
   const st = useStore();
-  const [type, setType] = y.useState("All"), [status, setStatus] = y.useState("All"), [tier, setTier] = y.useState("All"), [grp, setGrp] = y.useState("All");
+  const [type, setType] = y.useState("All"), [status, setStatus] = y.useState("All"), [appr, setAppr] = y.useState("All"), [tier, setTier] = y.useState("All"), [grp, setGrp] = y.useState("All");
   const [open, setOpen] = useQueryOpen(), [reg, setReg] = y.useState(false), [share, setShare] = y.useState(false), [invite, setInvite] = y.useState(false), [view, setView] = y.useState("vendors");
   const [sel, setSel] = y.useState([]), [holdFor, setHoldFor] = y.useState(null);
   const rows = st.vendors.filter((v) =>
-    (type === "All" || hasType(v, type)) && (status === "All" || v.status === status) && (tier === "All" || v.tier === tier) &&
+    (type === "All" || hasType(v, type)) && (status === "All" || lifeStatus(v) === status) && (appr === "All" || approvalStatus(v) === appr) && (tier === "All" || v.tier === tier) &&
     (grp === "All" || (grp === "__intra" ? isGroupCompany(v) : grp === "__none" ? !v.group : inGroup(v, grp))) &&
     true);
   const compIssues = st.vendors.filter((v) => v.status === "Active" && complianceOf(v).status !== "Compliant").length;
@@ -911,17 +914,19 @@ function VendorRegistryPage() {
       {view === "invites" && <InvitesTable onOpenVendor={setOpen} />}
       {view === "vendors" && <>
       {sel.length > 0 && <BulkBar sel={sel} onClear={() => setSel([])} onHold={() => setHoldFor(sel)} />}
-      <DataTable columnsId="vendor-registry" extraColumns={VENDOR_EXTRA_COLUMNS(st)} noun="vendors" exportName="vendor-master" placeholder="Search vendors…"
+      <DataTable columnsId="vendor-registry-2" defaultCols={["name", "status", "approval", "type", "cat"]} extraColumns={VENDOR_EXTRA_COLUMNS(st)} noun="vendors" exportName="vendor-master" placeholder="Search vendors…"
         onClearFilters={() => { setType("All"); setStatus("All"); setTier("All"); }}
         summary={(r) => [{ value: r.filter((v) => v.preferred).length, label: "preferred", color: "text-amber-600" }]}
         filters={<>
-        <FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Active", "Pending Approval", "Changes Requested", "Draft", "On Hold", "Blacklisted", "Inactive", "Rejected"]} />
+        <FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, ...VSTATUS]} />
+        <FilterSelect label="Approval" value={appr} onChange={setAppr} options={[{ value: "All", label: "All approval" }, ...APPROVAL_STATES, "Approved"]} />
         <FilterSelect label="Tier" value={tier} onChange={setTier} options={[{ value: "All", label: "All tiers" }, ...TIERS]} />
       </>}
         rows={rows} onRow={(v) => setOpen(v.id)} columns={[
         { key: "sel", label: "", render: (v) => <input type="checkbox" aria-label={`Select ${v.name}`} className="h-4 w-4 accent-[#0b5ed7]" checked={sel.includes(v.id)} onClick={(e) => e.stopPropagation()} onChange={(e) => setSel(e.target.checked ? [...sel, v.id] : sel.filter((x) => x !== v.id))} /> },
         { key: "name", label: "Vendor", filterOptions: FO.preferred, filterLabel: "Preferred", filterAll: "All vendors", filter: (v) => (v.preferred ? "Preferred" : "Not preferred"), render: (v) => <span className="flex items-center justify-between gap-2 font-medium"><span className="truncate">{v.name}</span><PreferredStar v={v} size={14} /></span> },
-        { key: "status", label: "Status", sort: (v) => v.status, render: (v) => <VendorStatusMenu v={v} /> },
+        { key: "status", label: "Status", sort: (v) => lifeStatus(v) || "", render: (v) => <VendorStatusMenu v={v} /> },
+        { key: "approval", label: "Approval", sort: (v) => approvalStatus(v), render: (v) => <VendorStatusMenu v={v} approval /> },
         { key: "type", label: "Supplies", filterOptions: ["Goods", "Services", "Labour"], filter: (v) => vTypes(v).map((t) => (t === "Labor" ? "Labour" : t)), render: (v) => <span className="flex flex-wrap items-center gap-1.5 text-ink-soft">{typeLabel(v)}<GroupCoTag v={v} /></span> },
         { key: "cat", label: "Trades", filterOptions: TRADES, filter: (v) => v.categories, filterLabel: "Trade", sort: (v) => v.categories[0] || "", render: (v) => <CategoryChips list={v.categories} /> },
         { key: "tier", label: "Tier", sort: (v) => TIERS.indexOf(v.tier) },

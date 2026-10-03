@@ -55,13 +55,13 @@ require('./lib')('status', async ({ p, go, S, mut, T }) => {
     await mut(`(s) => { s.vendors.find((y) => y.id === '${v.id}').status = 'Active'; }`);
     return [`${v.name} in list: ${!!on}${on ? ' (disabled ' + dis + ')' : ''}`, !on || dis === 'true'];
   });
-  await T('ST-V-2', 'Vendor status menu: approval statuses cannot be set by hand', async () => {
+  await T('ST-V-2', 'Vendor status menu holds only the business statuses; approval statuses are not set by hand', async () => {
     const v = s0.vendors.find((x) => x.status === 'Active'); await go(`vendor-management/registry?open=${v.id}`); await p.waitForTimeout(300);
     const btn = p.locator('[data-drawer] button[aria-haspopup]').filter({ hasText: 'Active' }).first();
     if (!(await btn.count())) return ['no status menu in panel header', false];
     await btn.click(); await p.waitForTimeout(150);
     const items = await p.locator('[role=menu] [role=menuitem], [role=listbox] [role=option]').evaluateAll((e) => e.map((x) => x.innerText.trim() + (x.getAttribute('aria-disabled') === 'true' || x.disabled ? '(off)' : '')));
     const bad = items.filter((x) => /^(Pending Approval|Changes Requested|Draft|Rejected)$/.test(x));
-    return [items.join(', '), items.length >= 8 && !bad.length];
+    return [items.join(', '), items.length === 4 && !bad.length];
   });
 });
