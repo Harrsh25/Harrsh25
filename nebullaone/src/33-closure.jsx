@@ -309,7 +309,7 @@ function ContractorReleasePage() {
       {c && row && (
         <Drawer open onClose={() => setOpen(null)} width={760} title={`Contractor release — ${c.title}`} subtitle={<><span className="mono">{c.id}</span><Status>{contractStatus(c)}</Status><span>{vendorName(st, c.vendorId)}</span></>}
           actions={<>{c.release ? <Btn icon={Icon.download} onClick={() => printRelease(c)}>Print certificate</Btn> : <Btn variant="primary" disabled={row.open.length > 0} title={row.open.map((i) => i.label).join("\n")} onClick={() => setF({ date: todayISO(), signatory: byId(st.vendors, c.vendorId).contact?.name || "", ev: evalBlank(false) })}>Issue release certificate</Btn>}
-            {c.release && c.status !== "Closed" && <Btn variant="success" disabled={closureChecklist(st, c).some((i) => !i.ok)} onClick={() => closeContract(c)}>Close contract</Btn>}</>}>
+            {c.release && c.status !== "Closed" && <Btn variant="success" disabled={closureChecklist(st, c).some((i) => !i.ok)} title={closureChecklist(st, c).filter((i) => !i.ok).map((i) => i.label).join("\n")} onClick={() => closeContract(c)}>Close contract</Btn>}</>}>
           <div className="space-y-4 px-6 py-5">
             <Section title="No-dues conditions" icon={Icon.listChecks}>
               <ul className="grid grid-cols-2 gap-x-6 gap-y-1.5 p-4">{row.all.map((i) => <li key={i.label} className="flex items-center gap-2 text-[12.5px]">{h(i.ok ? Icon.check : Icon.warning, { size: 14, className: i.ok ? "text-green-600" : "text-amber-500" })}{i.label}</li>)}</ul>

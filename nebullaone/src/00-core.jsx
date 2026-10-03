@@ -219,10 +219,10 @@ function Btn({ variant = "secondary", icon, children, className, size = "md", ..
   );
 }
 
-function IconBtn({ icon, title, onClick, className }) {
+function IconBtn({ icon, title, onClick, className, disabled }) {
   return (
-    <button type="button" title={title} aria-label={title} onClick={onClick}
-      className={cls("grid h-7 w-7 place-items-center rounded-md text-ink-soft hover:bg-gray-100 hover:text-ink", className)}>
+    <button type="button" title={title} aria-label={title} onClick={onClick} disabled={disabled}
+      className={cls("grid h-7 w-7 place-items-center rounded-md text-ink-soft hover:bg-gray-100 hover:text-ink disabled:pointer-events-none disabled:opacity-30", className)}>
       {h(icon, { size: 15 })}
     </button>
   );
@@ -1019,8 +1019,8 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
           <span>Rows per page</span>
           <span className="w-[76px]"><Select aria-label="Rows per page" value={String(pageSize)} onChange={(x) => { setPageSize(Number(x)); setPage(0); }} options={["25", "50", "100"]} /></span>
           <span className="num">{pg * pageSize + 1}–{Math.min(shown.length, (pg + 1) * pageSize)} of {shown.length}</span>
-          <IconBtn icon={Icon.chevronDown} title="Previous page" className={cls("rotate-90", pg === 0 && "pointer-events-none opacity-30")} onClick={() => setPage(pg - 1)} />
-          <IconBtn icon={Icon.chevronDown} title="Next page" className={cls("-rotate-90", pg >= pages - 1 && "pointer-events-none opacity-30")} onClick={() => setPage(pg + 1)} />
+          <IconBtn icon={Icon.chevronDown} title="Previous page" className="rotate-90" disabled={pg === 0} onClick={() => setPage(pg - 1)} />
+          <IconBtn icon={Icon.chevronDown} title="Next page" className="-rotate-90" disabled={pg >= pages - 1} onClick={() => setPage(pg + 1)} />
         </div>
       )}
       {picker && <ColumnPicker extra={extraColumns} shown={extraOn} onApply={applyCols} onClose={() => setPicker(false)} />}

@@ -933,13 +933,13 @@ function ProcurementSettingsPage() {
   const mode = (k, label, hint) => (
     <div className="grid grid-cols-[1fr_260px] items-center gap-4 border-b border-line px-4 py-3 last:border-0">
       <div><p className="text-[13px] font-medium">{label}</p><p className="text-[12px] text-ink-mute">{hint}</p></div>
-      <div className="flex gap-1 rounded-lg bg-gray-100 p-0.5">{["Stop", "Warn", "Off"].map((m) => <button key={m} onClick={() => setF({ ...f, [k]: m })} className={cls("h-[28px] flex-1 rounded-md text-[13px]", f[k] === m ? cls("bg-white font-medium shadow-sm", m === "Stop" ? "text-red-600" : m === "Warn" ? "text-amber-700" : "text-ink") : "text-ink-soft")}>{m}</button>)}</div>
+      <div className="flex gap-1 rounded-lg bg-gray-100 p-0.5">{["Stop", "Warn", "Off"].map((m) => <button key={m} type="button" aria-pressed={f[k] === m} onClick={() => setF({ ...f, [k]: m })} className={cls("h-[28px] flex-1 rounded-md text-[13px]", f[k] === m ? cls("bg-white font-medium shadow-sm", m === "Stop" ? "text-red-600" : m === "Warn" ? "text-amber-700" : "text-ink") : "text-ink-soft")}>{m}</button>)}</div>
     </div>
   );
   const yesNo = (k, label, hint) => (
     <div className="grid grid-cols-[1fr_260px] items-center gap-4 border-b border-line px-4 py-3 last:border-0">
       <div><p className="text-[13px] font-medium">{label}</p><p className="text-[12px] text-ink-mute">{hint}</p></div>
-      <div className="flex gap-1 rounded-lg bg-gray-100 p-0.5">{[[true, "Yes"], [false, "No"]].map(([v, l]) => <button key={l} onClick={() => setF({ ...f, [k]: v })} className={cls("h-[28px] flex-1 rounded-md text-[13px]", f[k] === v ? "bg-white font-medium text-brand shadow-sm" : "text-ink-soft")}>{l}</button>)}</div>
+      <div className="flex gap-1 rounded-lg bg-gray-100 p-0.5">{[[true, "Yes"], [false, "No"]].map(([v, l]) => <button key={l} type="button" aria-pressed={!!f[k] === v} onClick={() => setF({ ...f, [k]: v })} className={cls("h-[28px] flex-1 rounded-md text-[13px]", !!f[k] === v ? "bg-white font-medium text-brand shadow-sm" : "text-ink-soft")}>{l}</button>)}</div>
     </div>
   );
   return (

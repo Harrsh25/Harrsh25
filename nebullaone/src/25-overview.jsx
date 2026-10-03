@@ -52,7 +52,7 @@ const Bar = ({ value, color = "bg-brand" }) => (
 );
 const Chips = ({ items, active, onChange }) => (
   <span className="flex gap-1">{items.map((i) => (
-    <button key={i.id} type="button" onClick={() => onChange(i.id)} className={cls("rounded-full px-2 py-0.5 text-[11.5px] font-medium", active === i.id ? "bg-ink text-white" : "bg-gray-100 text-ink-soft hover:bg-gray-200")}>{i.label}{i.n != null ? ` ${i.n}` : ""}</button>
+    <button key={i.id} type="button" aria-pressed={active === i.id} onClick={() => onChange(i.id)} className={cls("rounded-full px-2 py-0.5 text-[11.5px] font-medium", active === i.id ? "bg-ink text-white" : "bg-gray-100 text-ink-soft hover:bg-gray-200")}>{i.label}{i.n != null ? ` ${i.n}` : ""}</button>
   ))}</span>
 );
 const ageText = (iso) => { const d = daysUntil(iso); return d === null ? "—" : d < 0 ? `${-d} day${d === -1 ? "" : "s"} overdue` : d === 0 ? "today" : `in ${d} day${d === 1 ? "" : "s"}`; };

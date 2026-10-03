@@ -107,7 +107,7 @@ function CloseoutDrawer({ id, onClose }) {
             { key: "result", label: "Result", render: (i) => <Status tone={i.result === "Passed" ? "green" : "red"}>{i.result}</Status> }, { key: "note", label: "Remarks", className: "whitespace-normal text-[12px]" },
           ]} />
         </Section>
-        <Section title="4 · Handover certificate" icon={Icon.file} actions={c.handover ? <Btn size="sm" icon={Icon.download} onClick={printCert}>Print certificate</Btn> : c.status === "Active" && <Btn size="sm" variant="primary" disabled={lastInsp?.result !== "Passed" || inspBlock.length > 0} onClick={() => setHo({ date: todayISO(), takenOverBy: "", note: "" })}>Issue handover certificate</Btn>}>
+        <Section title="4 · Handover certificate" icon={Icon.file} actions={c.handover ? <Btn size="sm" icon={Icon.download} onClick={printCert}>Print certificate</Btn> : c.status === "Active" && <Btn size="sm" variant="primary" disabled={lastInsp?.result !== "Passed" || inspBlock.length > 0} title={lastInsp?.result !== "Passed" ? "Pass the final inspection first" : inspBlock.length ? "Close the open punch-list items first" : ""} onClick={() => setHo({ date: todayISO(), takenOverBy: "", note: "" })}>Issue handover certificate</Btn>}>
           {c.handover ? <KV cols={4} items={[["Handed over", fmtDate(c.handover.date)], ["Taken over by", c.handover.takenOverBy], ["Certified by", c.handover.by], ["DLP ends", fmtDate(dlpEnd)]]} />
             : <p className="p-4 text-[13px] text-ink-mute">{lastInsp?.result === "Passed" ? "Final inspection passed — issue the certificate. The defect liability period starts from the handover date." : "Issued after a passed final inspection."}</p>}
         </Section>
@@ -133,7 +133,7 @@ function CloseoutDrawer({ id, onClose }) {
             ["Net position", c.settlement ? inr(c.settlement.net) : "—"], [c.status === "Terminated" ? "Blacklist decision" : "Release certificate", c.status === "Terminated" ? (c.blacklistDecision ? c.blacklistDecision.decision : "Pending") : (c.release ? c.release.no : "Not issued")],
             ["Open", <span className="flex flex-col gap-0.5">{settlementReady(st, c) ? <RefLink to={`${CL_BASE}/final-settlement?open=${c.id}`}>Final Settlement →</RefLink> : <span className="text-ink-mute">Settlement after the final bill</span>}{c.status === "Terminated" ? <RefLink to={`${CL_BASE}/terminations?open=${c.id}`}>Termination & Final Account →</RefLink> : (c.settlement?.status === "Agreed" || c.release) ? <RefLink to={`${CL_BASE}/contractor-release?open=${c.id}`}>Contractor Release →</RefLink> : null}</span>]]} />
         </Section>
-        <Section title="8 · Closure checklist" icon={Icon.check} actions={c.status !== "Closed" && <Btn size="sm" variant="success" disabled={checklist.some((i) => !i.ok)} onClick={() => closeContract(c)}>Close contract</Btn>}>
+        <Section title="8 · Closure checklist" icon={Icon.check} actions={c.status !== "Closed" && <Btn size="sm" variant="success" disabled={checklist.some((i) => !i.ok)} title={checklist.filter((i) => !i.ok).map((i) => i.label).join("\n")} onClick={() => closeContract(c)}>Close contract</Btn>}>
           <ul className="grid grid-cols-2 gap-x-6 gap-y-1.5 p-4">
             {checklist.map((i) => <li key={i.label} className="flex items-center gap-2 text-[12.5px]">{h(i.ok ? Icon.check : Icon.warning, { size: 14, className: i.ok ? "text-green-600" : "text-amber-500" })}{i.label}</li>)}
           </ul>
