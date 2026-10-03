@@ -403,9 +403,9 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
     { id: "approval", label: "Approvals" },
   ];
   return (
-    <Drawer open related={relatedFor(st, "vendor", v)} comments={v.id} onClose={onClose} width={880} title={v.name}
+    <Drawer open related={relatedFor(st, "vendor", v)} comments={tab === "overview" ? undefined : v.id} onClose={onClose} width={880} title={v.name}
       subtitle={<><span className="mono text-ink-mute">{v.id}</span>{APPROVAL_STATES.includes(v.status) ? <VendorStatusMenu v={v} approval /> : <VendorStatusMenu v={v} />}</>}
-      actions={<><span className="inline-flex h-[32px] w-[32px] items-center justify-center rounded-md border border-line"><PreferredStar v={v} size={16} always /></span>{canEdit && <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>}</>}
+      actions={<><span className="inline-flex h-[32px] items-center"><PreferredStar v={v} size={18} always /></span>{canEdit && <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>}</>}
       tabs={{ tabs, active: tab, onChange: setTab }}>
       {/* tables show as label → value lists, except Documents, Bank and Equipment which keep their tables */}
       <ListMode.Provider value={!["docs", "bank", "equip"].includes(tab)}>
@@ -440,7 +440,7 @@ function VendorOverview({ v, comp }) {
       )}
       {v.hold && v.status === "On Hold" && <Note tone="amber" icon={Icon.lock}><b>On hold ({v.hold.scope}):</b> {v.hold.reason}{v.hold.until ? ` — until ${fmtDate(v.hold.until)}` : ""}</Note>}
       <InfoCard title="Vendor Information" icon={Icon.building} rows={[
-        ["Vendor ID", <span className="mono">{v.id}</span>], ["Legal name", v.legalName || v.name], ["Supplies", <VendorTypeTag v={v} />],
+        ["Legal name", v.legalName || v.name], ["Supplies", <VendorTypeTag v={v} />],
         ["Status", lifeStatus(v) ? <Status>{v.status}</Status> : "—"], ["Approval", <Status>{approvalStatus(v)}</Status>], ["Registration", <Status>{v.regTier}</Status>],
         ["Compliance", <Status>{comp.status}</Status>], ["Tier", v.tier], ["Supplier type", v.supplierType || "Company"],
         ["GSTIN", <span className="mono">{v.gstin}</span>], ["PAN", <span className="mono">{v.pan}</span>], ["Currency", v.currency],
@@ -481,31 +481,36 @@ function ExpiryCell({ iso }) {
   );
 }
 
-// Status & flags as label → value; editable vendors (Draft, Changes Requested, Rejected) get an Edit button that opens the form
+// Status & flags as label → value. For editable vendors (Draft, Changes Requested, Rejected) the editable values are
+// dropdowns in place — the layout stays the same.
 function VendorFlagsView({ v, canEdit }) {
-  const [editing, setEditing] = y.useState(false);
-  if (editing && canEdit) return <VendorFlags v={v} onDone={() => setEditing(false)} />;
-  const editBtn = canEdit && <Btn size="sm" icon={Icon.pencil} onClick={() => setEditing(true)}>Edit</Btn>;
+  const mut = (fn, action) => setState((s) => fn(byId(s.vendors, v.id)), { entity: "Vendor", id: v.id, action });
+  const edit = (k, val, label) => mut((x) => (x[k] = val), label);
   const yes = (b) => (b ? "Yes" : "No");
+  const box = (el) => <div className="max-w-[340px]">{el}</div>;
+  const yn = (k, on, off) => (canEdit ? box(<Select value={v[k] ? "Yes" : "No"} onChange={(x) => edit(k, x === "Yes", x === "Yes" ? on : off)} options={["Yes", "No"]} />) : yes(v[k]));
+  const label = (t) => (t === "Labor" ? "Labour" : t);
+  const setTypes = (ts) => { if (!ts.length) return toast("Pick at least one of Goods, Services or Labour", "red"); mut((x) => { x.types = ts; x.type = ts[0]; x.isContractor = ts.includes("Labor") || ts.includes("Services"); x.tds = autoTds(ts, x.supplierType); }, `Supplies changed to ${ts.map(label).join(" + ")}`); };
   const hold = v.status === "On Hold" && v.hold;
   return (
     <>
-      <InfoCard title="Classification" icon={Icon.shapes} actions={editBtn} rows={[
-        ["Supplies", vTypes(v).map((t) => (t === "Labor" ? "Labour" : t)).join(", ")],
-        ["Supplier type", v.supplierType || "Company"],
+      <InfoCard title="Classification" icon={Icon.shapes} rows={[
+        ["Supplies", canEdit ? box(<TradePicker placeholder="Select…" options={VENDOR_TYPES.map(label)} value={vTypes(v).map(label)} onChange={(l) => setTypes(VENDOR_TYPES.filter((t) => l.includes(label(t))))} />) : vTypes(v).map(label).join(", ")],
+        ["Supplier type", canEdit ? box(<Select value={v.supplierType || "Company"} onChange={(t) => mut((x) => { x.supplierType = t; x.tds = autoTds(vTypes(x), t); }, `Supplier type → ${t}`)} options={withCurrent(SUPPLIER_TYPES, v.supplierType)} />) : v.supplierType || "Company"],
         ["Withholding tax (TDS)", tdsLabel(v.tds)],
-        ["Supplier tier", v.tier],
-        ["Registration tier", v.regTier && <span className="flex flex-wrap items-center gap-2"><Status>{v.regTier}</Status>{v.tierRequest?.status === "Pending" && <Status tone="amber">Upgrade requested</Status>}</span>],
-        ["Vendor group", v.group || "Not grouped"],
-        ["Internal parent company", v.parentCompany || "External vendor"],
-        ["Trades / categories", (v.categories || []).join(", ")],
+        ["Supplier tier", canEdit ? box(<Select value={v.tier} onChange={(t) => edit("tier", t, `Tier changed to ${t}`)} options={TIERS} />) : v.tier],
+        ["Registration tier", v.regTier && <span className="flex flex-wrap items-center gap-2"><Status>{v.regTier}</Status>{v.tierRequest?.status === "Pending" && <Status tone="amber">Upgrade requested</Status>}
+          {canEdit && v.regTier === "Spend Authorized" && <button className="text-[12px] font-medium text-brand" onClick={() => edit("regTier", "Prospective", "Registration tier → Prospective (downgraded)")}>Downgrade</button>}</span>],
+        ["Vendor group", canEdit ? box(<Select value={v.group || ""} placeholder="Not grouped" onChange={(g) => mut((x) => { x.group = g; const t = groupTerms(getState(), g); if (t) x.paymentTerms = t; }, g ? `Vendor group → ${g}` : "Removed from vendor group")} options={withCurrent(settingsOf(getState()).vendorGroups, v.group)} />) : v.group || "Not grouped"],
+        ["Internal parent company", canEdit ? box(<Select value={v.parentCompany || ""} placeholder="External vendor" onChange={(g) => edit("parentCompany", g, g ? `Marked as group company of ${g}` : "Marked as external vendor")} options={withCurrent(settingsOf(getState()).groupCompanies, v.parentCompany)} />) : v.parentCompany || "External vendor"],
+        ["Trades / categories", canEdit ? <TradePicker options={TRADES} value={v.categories} onChange={(c) => edit("categories", c, "Categories updated")} /> : (v.categories || []).join(", ")],
       ]} />
-      <InfoCard title="Flags" icon={Icon.flag} actions={editBtn} rows={[
-        ["Preferred supplier", yes(v.preferred)],
+      <InfoCard title="Flags" icon={Icon.flag} rows={[
+        ["Preferred supplier", yn("preferred", "Marked preferred supplier", "Preferred flag removed")],
         ["Enabled for new transactions", yes(!["Inactive", "Blacklisted"].includes(v.status) && !APPROVAL_STATES.includes(v.status))],
-        ["Allow bills without PO", yes(v.allowBillWithoutPO)],
-        ["Allow bills before goods receipt", yes(v.allowBillWithoutReceipt)],
-        ["Frozen (no new transactions)", yes(v.frozen)],
+        ["Allow bills without PO", yn("allowBillWithoutPO", "Allowed bills without PO", "PO required for bills")],
+        ["Allow bills before goods receipt", yn("allowBillWithoutReceipt", "Allowed bills before receipt", "Receipt required before billing")],
+        ["Frozen (no new transactions)", yn("frozen", "Vendor frozen — no new RFQs, POs or bills", "Vendor unfrozen")],
       ]} />
       <InfoCard title="Status" icon={Icon.lock} rows={[
         ["Status", <Status>{v.status}</Status>],
@@ -514,44 +519,6 @@ function VendorFlagsView({ v, canEdit }) {
         hold && ["Hold reason", `${v.hold.reason}${v.hold.auto ? " (auto-hold from scorecard)" : ""}`],
         ["Blacklisted", yes(v.status === "Blacklisted")],
       ]} />
-    </>
-  );
-}
-
-function VendorFlags({ v, onDone }) {
-  const mut = (fn, action) => setState((s) => fn(byId(s.vendors, v.id)), { entity: "Vendor", id: v.id, action });
-  const edit = (k, val, label) => mut((x) => (x[k] = val), `${label}`);
-  return (
-    <>
-      <Section title="Classification" icon={Icon.shapes} actions={onDone && <Btn size="sm" variant="primary" onClick={onDone}>Done</Btn>}>
-        <div className="grid grid-cols-3 gap-4 p-4">
-          <Field label="Supplies"><span className="flex flex-wrap gap-1.5">{VENDOR_TYPES.map((t) => { const on = hasType(v, t); return (
-            <button key={t} type="button" role="checkbox" aria-checked={on} onClick={() => { const ts = VENDOR_TYPES.filter((x) => (x === t ? !on : hasType(v, x))); if (!ts.length) return; mut((x) => { x.types = ts; x.type = ts[0]; x.isContractor = ts.includes("Labor") || ts.includes("Services"); x.tds = autoTds(ts, x.supplierType); }, `Supplies changed to ${ts.map((z) => (z === "Labor" ? "Labour" : z)).join(" + ")}`); }}
-              className={cls("rounded-full border px-2.5 py-1 text-[12.5px]", on ? "border-brand bg-brand-soft font-medium text-brand" : "border-line text-ink-soft hover:bg-gray-50")}>{on && "✓ "}{t === "Labor" ? "Labour" : t}</button>); })}</span></Field>
-          <Field label="Supplier type" hint={`TDS ${tdsLabel(v.tds) || ""}`}><Select value={v.supplierType || "Company"} onChange={(t) => mut((x) => { x.supplierType = t; x.tds = autoTds(vTypes(x), t); }, `Supplier type → ${t}`)} options={withCurrent(SUPPLIER_TYPES, v.supplierType)} /></Field>
-          <Field label="Supplier tier"><Select value={v.tier} onChange={(t) => edit("tier", t, `Tier changed to ${t}`)} options={TIERS} /></Field>
-          <Field label="Registration tier" hint={v.regTier === "Prospective" ? "Upgrade needs Finance approval (Approval tab)" : "Downgrade is immediate"}>
-            <span className="flex h-[32px] items-center gap-2 text-[13px]"><Status>{v.regTier}</Status>
-              {v.tierRequest?.status === "Pending" && <Status tone="amber">Upgrade requested</Status>}
-              {v.regTier === "Spend Authorized" && <button className="text-[12px] font-medium text-brand" onClick={() => tryAct("Procurement Head", [], "downgrading a vendor") && edit("regTier", "Prospective", "Registration tier → Prospective (downgraded)")}>Downgrade</button>}
-            </span>
-          </Field>
-          <Field label="Vendor group" hint="Used to filter the vendor list"><Select value={v.group || ""} placeholder="Not grouped" onChange={(g) => mut((x) => { x.group = g; const t = groupTerms(getState(), g); if (t) x.paymentTerms = t; }, g ? `Vendor group → ${g}${groupTerms(getState(), g) ? ` (payment terms ${groupTerms(getState(), g)})` : ""}` : "Removed from vendor group")} options={withCurrent(settingsOf(getState()).vendorGroups, v.group)} /></Field>
-          <Field label="Internal parent company" hint="Only if this vendor is one of our group companies" span={2}><Select value={v.parentCompany || ""} placeholder="External vendor" onChange={(g) => edit("parentCompany", g, g ? `Marked as group company of ${g}` : "Marked as external vendor")} options={withCurrent(settingsOf(getState()).groupCompanies, v.parentCompany)} /></Field>
-          <Field label="Trades / categories (multi-trade)" span={3}>
-            <TradePicker options={TRADES} value={v.categories} onChange={(c) => edit("categories", c, "Categories updated")} />
-          </Field>
-        </div>
-      </Section>
-      <Section title="Flags" icon={Icon.flag}>
-        <div className="flex flex-wrap items-center gap-6 p-4">
-          <Check checked={v.preferred} onChange={(b) => edit("preferred", b, b ? "Marked preferred supplier" : "Preferred flag removed")} label="Preferred supplier" />
-          {!APPROVAL_STATES.includes(v.status) && v.status !== "Blacklisted" && <Check checked={v.status !== "Inactive"} onChange={(b) => edit("status", b ? "Active" : "Inactive", b ? "Vendor enabled" : "Vendor disabled")} label="Enabled for new transactions" />}
-          <Check checked={!!v.allowBillWithoutPO} onChange={(b) => edit("allowBillWithoutPO", b, b ? "Allowed bills without PO" : "PO required for bills")} label="Allow bills without PO" />
-          <Check checked={!!v.allowBillWithoutReceipt} onChange={(b) => edit("allowBillWithoutReceipt", b, b ? "Allowed bills before receipt" : "Receipt required before billing")} label="Allow bills before goods receipt" />
-          <Check checked={!!v.frozen} onChange={(b) => edit("frozen", b, b ? "Vendor frozen — no new RFQs, POs or bills" : "Vendor unfrozen")} label="Freeze vendor (no new transactions)" />
-        </div>
-      </Section>
     </>
   );
 }
@@ -574,8 +541,8 @@ function VendorDocs({ v, mode = "registry", locked }) {
         { key: "name", label: "Document", className: "font-medium" },
         { key: "file", label: "File", render: (d) => (d.file ? <FileLink name={d.file} dataUrl={d.dataUrl} /> : <span className="text-ink-mute">—</span>) },
         { key: "status", label: "Status", render: (d) => <span title={d.status === "Rejected" && d.remark ? `Rejected: ${d.remark}` : undefined}><Status>{docState(d)}</Status></span> },
-        { key: "expiry", label: "Valid till", render: (d) => <ExpiryCell iso={d.expiry} /> },
         { key: "verified", label: "Verified on", render: (d) => (d.verifiedAt && d.status === "Verified" ? fmtDate(d.verifiedAt) : d.verifiedAt && d.status === "Rejected" ? <span className="text-red-600" title={d.remark || undefined}>Rejected {fmtDate(d.verifiedAt)}</span> : <span className="text-ink-mute">—</span>) },
+        { key: "expiry", label: "Valid till", render: (d) => <ExpiryCell iso={d.expiry} /> },
         { key: "ver", label: "Versions", render: (d) => ((d.versions || []).length ? <button className="text-[12px] font-medium text-brand hover:underline" onClick={() => setHist(d)}>v{(d.versions || []).length + 1} · history</button> : d.file ? <span className="text-[12px] text-ink-mute">v1</span> : "—") },
         { key: "a", label: "", align: "right", render: (d) => (
           <span className="flex justify-end gap-1">
@@ -641,7 +608,7 @@ function VendorBanks({ v, locked }) {
   const foreign = isForeign(v);
   const er = { ...bankErrors(f, v, v.bankAccounts) };
   { const x = vendorExtraErrors({ bank: f }); if (f.accountConfirm !== f.account) er.confirm = "Account numbers don't match"; if (x.bank_iban) er.iban = x.bank_iban; }
-  const [ed, setEd] = y.useState(null);
+  const [ed, setEd] = y.useState(null), [adding, setAdding] = y.useState(false);
   const tail = (a) => "••" + String(a.account).slice(-4);
   const verify = (a) => {
     const ok = nameMatch(a.holder || v.legalName, v);
@@ -652,7 +619,7 @@ function VendorBanks({ v, locked }) {
     toast(ok ? "Bank account verified" : "Verification failed — holder name mismatch", ok ? "green" : "red");
   };
   return (
-    <Section title="Bank accounts" icon={Icon.wallet}>
+    <Section title="Bank accounts" icon={Icon.wallet} actions={!locked && !adding && <Btn size="sm" variant="primary" icon={Icon.plus} onClick={() => setAdding(true)}>Add bank account</Btn>}>
       <DataTable dense rows={v.bankAccounts} empty={<p className="p-4 text-[13px] text-ink-mute">No bank account on file — payments are blocked until one is added.</p>}
         columns={[
           { key: "holder", label: "Account holder", render: (a) => a.holder || <span className="text-ink-mute">—</span> },
@@ -673,7 +640,7 @@ function VendorBanks({ v, locked }) {
             </span>) },
         ]} />
       {v.bankAccounts.some((a) => a.isDefault && bankStatus(a) !== "Verified") && <div className="border-t border-line px-4 py-2"><Note tone="amber">The default account is not verified — payments show a warning until it is verified.</Note></div>}
-      {!locked && <>
+      {!locked && adding && <>
       <div className="grid grid-cols-[1.2fr_1fr_1fr_140px_auto] items-start gap-3 border-t border-line p-4">
         <Field label="Account holder name" hint="Exactly as in bank records"><TextInput value={f.holder} onChange={(x) => setF({ ...f, holder: x })} placeholder={v.legalName} />{tried && <FieldErr m={er.holder} />}</Field>
         <Field label="Bank"><TextInput value={f.bank} onChange={(x) => setF({ ...f, bank: x })} />{tried && <FieldErr m={er.bank} />}</Field>
@@ -683,7 +650,7 @@ function VendorBanks({ v, locked }) {
         <div className="pt-[22px]"><Btn variant="primary" icon={Icon.plus} onClick={() => {
           setTried(true); if (VX.any(er)) return;
           mut((x) => x.bankAccounts.push({ id: Date.now(), ...f, account: f.account.replace(/\s/g, ""), status: "Unverified", addedAt: todayISO(), isDefault: x.bankAccounts.length === 0 }), `Bank account added (${f.bank} ••${f.account.slice(-4)}) — pending verification`);
-          toast("Bank account added — verify it before payments"); setF(blank); setTried(false);
+          toast("Bank account added — verify it before payments"); setF(blank); setTried(false); setAdding(false);
         }}>Add</Btn></div>
       </div>
       <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr] items-start gap-3 px-4 pb-4">
@@ -693,7 +660,8 @@ function VendorBanks({ v, locked }) {
         <Field label="Branch"><TextInput value={f.branch} onChange={(x) => setF({ ...f, branch: x })} /></Field>
         {foreign && <Field label="IBAN"><TextInput value={f.iban} onChange={(x) => setF({ ...f, iban: x.toUpperCase() })} className={cls(inputCls, "mono")} />{(tried || f.iban) && <FieldErr m={er.iban} />}</Field>}
         <Field label="Bank notes" span={foreign ? 2 : 3}><TextInput value={f.notes} onChange={(x) => setF({ ...f, notes: x })} placeholder="e.g. Use for project payments only" /></Field>
-        <div className="col-span-full flex flex-wrap gap-6"><Check checked={!!f.allowIntl} onChange={(b) => setF({ ...f, allowIntl: b })} label="Allow international payments" /><Check checked={f.paymentsEnabled !== false} onChange={(b) => setF({ ...f, paymentsEnabled: b })} label="Send money (payments enabled)" /></div>
+        <div className="col-span-full flex flex-wrap gap-6"><Check checked={!!f.allowIntl} onChange={(b) => setF({ ...f, allowIntl: b })} label="Allow international payments" /><Check checked={f.paymentsEnabled !== false} onChange={(b) => setF({ ...f, paymentsEnabled: b })} label="Send money (payments enabled)" />
+          <Btn size="sm" className="ml-auto" onClick={() => { setAdding(false); setF(blank); setTried(false); }}>Cancel</Btn></div>
       </div>
       </>}
       {ed && (
