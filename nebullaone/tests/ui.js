@@ -63,4 +63,19 @@ run('ui', async ({ p, go, T, pick, S, mut }) => {
     await p.setViewportSize({ width: 1440, height: 900 });
     return [`scrollWidth ${sw}, sidebar x ${Math.round(x)}`, sw <= 390 && Math.round(x) === 0];
   });
+
+  await T('UI-11', 'PO line HSN/SAC, GST % and need-by are saved and shown; bad HSN blocks the PO', async () => {
+    await go('vendor-management/purchase-orders'); await p.locator('main button:has-text("New PO")').click(); await p.waitForTimeout(200);
+    const d = p.locator('[role=dialog]').last();
+    await pick(d.locator('button[role=combobox]').first(), 'Deccan Steel Traders');
+    await d.locator('input[placeholder="Description"]').fill('Binding wire'); await d.locator('input[placeholder="Qty"]').fill('10'); await d.locator('input[placeholder="Rate"]').fill('100');
+    await d.locator('input[aria-label="Line 1 HSN/SAC"]').fill('72');
+    const create = d.locator('button:has-text("Create")').last(); const blocked = await create.isDisabled();
+    await d.locator('input[aria-label="Line 1 HSN/SAC"]').fill('7217');
+    await pick(d.locator('[aria-label="Line 1 GST %"]'), 'GST 18%');
+    await d.locator('input[aria-label="Line 1 need-by date"]').fill(new Date(Date.now() + 864e6).toISOString().slice(0, 10));
+    const foot = await d.innerText(); await create.click(); await p.waitForTimeout(300);
+    const st = await S(); const po = st.purchaseOrders[0]; const l = po.lines[0];
+    return [`blocked with "72": ${blocked}; saved ${JSON.stringify({ hsn: l.hsn, gst: l.gstPct, needBy: l.needBy })}; footer GST ${/GST ₹180/.test(foot)}`, blocked && l.hsn === '7217' && l.gstPct === 18 && !!l.needBy && /GST ₹180/.test(foot)];
+  });
 });

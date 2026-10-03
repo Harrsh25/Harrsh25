@@ -21,6 +21,7 @@ const keepCurrent = (opts, cur) => (cur === undefined || cur === null || cur ===
 const fxRate = (cur) => (cur && cur !== "INR" ? DEFAULT_FX[cur] || 1 : 1);
 
 // Field catalogue. group decides the sub-heading; kinds lists the documents that show it.
+const ITC_ELIGIBILITY = ["All other ITC", "Ineligible — section 17(5)", "Ineligible — others", "Import of goods", "Import of services", "Input service distributor"];
 const DOC_FIELDS = [
   // Header
   { key: "company", label: "Company / buying entity", group: "Header", type: "select", opts: (st) => COMPANIES(st), def: (st) => settingsOf(st).ourCompany, kinds: "req rfq quote po blanket grn bill payment contract" },
@@ -67,7 +68,19 @@ const DOC_FIELDS = [
   { key: "transporter", label: "Transporter name", group: "Transport", type: "text", kinds: "grn" },
   { key: "vehicleNo", label: "Vehicle number", group: "Transport", type: "text", kinds: "grn" },
   { key: "vehicleDate", label: "Vehicle date", group: "Transport", type: "date", kinds: "grn" },
+  // India GST on bills (ERPNext place_of_supply / eligibility_for_itc, Zoho Books source of supply / ITC eligibility)
+  { key: "placeOfSupply", label: "Place of supply", group: "Taxes & shipping", type: "select", opts: () => STATES, def: (st, v) => v?.placeOfSupply || v?.state || "", kinds: "bill" },
+  { key: "itcEligibility", label: "ITC eligibility", group: "Taxes & shipping", type: "select", opts: () => ITC_ELIGIBILITY, def: () => ITC_ELIGIBILITY[0], kinds: "bill" },
+  // Transport documents on the receipt (ERPNext lr_no / lr_date, e-Way bill)
+  { key: "ewayBill", label: "e-Way bill no.", group: "Transport", type: "text", kinds: "grn", hint: "12 digits — needed for goods above ₹50,000 moved by road" },
+  { key: "lrNo", label: "LR / bill of lading no.", group: "Transport", type: "text", kinds: "grn" },
+  { key: "lrDate", label: "LR date", group: "Transport", type: "date", kinds: "grn" },
+  { key: "receivedBy", label: "Received by", group: "Header", type: "text", kinds: "grn", def: () => currentUser() },
+  // Payment extras (Zoho Books bank charges, ERPNext reference date)
+  { key: "referenceDate", label: "Cheque / reference date", group: "Header", type: "date", kinds: "payment" },
+  { key: "bankCharges", label: "Bank charges (₹)", group: "Currency & pricing", type: "number", kinds: "payment" },
   // Terms & printing
+  { key: "terms", label: "Terms & conditions", group: "Terms & printing", type: "textarea", kinds: "po" },
   { key: "notes", label: "Notes / remarks / instructions", group: "Terms & printing", type: "textarea", kinds: "po grn bill payment" },
 ];
 const DOC_GROUPS = ["Header", "Currency & pricing", "Taxes & shipping", "Address & contact", "Accounting", "Transport", "Terms & printing"];
@@ -93,6 +106,10 @@ function docDetailErrors(kind, d) {
   if (Number(d.discAmt) < 0) e.discAmt = "Discount can't be negative";
   if (d.currency && d.currency !== "INR" && !(Number(d.fx) > 0)) e.fx = "Enter the exchange rate";
   if (d.vehicleDate && d.vehicleDate > todayISO()) e.vehicleDate = "Can't be in the future";
+  if (d.lrDate && d.lrDate > todayISO()) e.lrDate = "Can't be in the future";
+  if (d.ewayBill && !/^\d{12}$/.test(String(d.ewayBill).replace(/\s/g, ""))) e.ewayBill = "e-Way bill no. is 12 digits";
+  if (Number(d.bankCharges) < 0) e.bankCharges = "Can't be negative";
+  if (d.referenceDate && d.referenceDate > shiftDays(90)) e.referenceDate = "More than 90 days ahead";
   if (kind === "rfq" && d.previewDate && d.awardDate && d.awardDate < d.previewDate) e.awardDate = "Award can't be before the open date";
   return e;
 }
@@ -206,17 +223,18 @@ const ACCOUNT_TYPES = ["Current", "Savings", "Cash credit", "Overdraft", "Escrow
 const ADDRESS_TYPES = ["Billing", "Shipping", "Office", "Site", "Registered", "Warehouse"];
 const SITE_PURPOSES = ["Purchasing", "Pay", "Primary pay", "Sourcing only"];
 // Top-level vendor keys the registration form edits (copied by applyForm on edit)
-const VENDOR_FORM_KEYS = ["country", "pin", "website", "taxId", "addressLine2", "district", "entityType", "taxPreference", "gstTreatment", "placeOfSupply", "msmeType", "udyamNo", "duns",
+const VENDOR_FORM_KEYS = ["country", "pin", "website", "taxId", "addressLine2", "district", "entityType", "taxPreference", "gstTreatment", "placeOfSupply", "msmeType", "udyamNo", "duns", "cin",
   "federalTaxType", "tags", "logo", "logoName", "isTransporter", "paymentMethod", "priceList", "creditLimit", "billDelivery", "autoPostBills",
   "defaultBuyer", "purchaseWarning", "receiptReminderDays", "custom", "noteToApprover"];
 const vendorExtraDefaults = () => ({ addressLine2: "", district: "", entityType: "Private limited company", taxPreference: "Taxable", gstTreatment: "Registered — regular", placeOfSupply: "",
-  msmeType: "Not MSME", udyamNo: "", duns: "", federalTaxType: "", tags: [], logo: null, logoName: "", isTransporter: false, paymentMethod: "NEFT", priceList: "",
+  msmeType: "Not MSME", udyamNo: "", duns: "", cin: "", federalTaxType: "", tags: [], logo: null, logoName: "", isTransporter: false, paymentMethod: "NEFT", priceList: "",
   creditLimit: "", billDelivery: "Supplier portal", autoPostBills: false, defaultBuyer: "", purchaseWarning: "", receiptReminderDays: "", custom: {}, notesText: "", noteToApprover: "",
   contacts: [], addresses: [] });
 function vendorExtraErrors(f) {
   const e = {};
   if (f.udyamNo && !/^UDYAM-[A-Z]{2}-\d{2}-\d{7}$/.test(String(f.udyamNo).toUpperCase())) e.udyamNo = "Format UDYAM-MH-26-0012345";
   if (f.msmeType && f.msmeType !== "Not MSME" && !f.udyamNo) e.udyamNo = "Enter the Udyam registration no.";
+  if (f.cin && !/^([LU]\d{5}[A-Z]{2}\d{4}[A-Z]{3}\d{6}|[A-Z]{3}-\d{4})$/.test(String(f.cin).toUpperCase())) e.cin = "CIN is 21 characters (e.g. U45200MH2010PTC123456) or LLPIN like AAB-1234";
   if (f.duns && !/^\d{9}$/.test(String(f.duns).replace(/-/g, ""))) e.duns = "D-U-N-S is 9 digits";
   if (!VX.blank(f.creditLimit)) { const c = VX.num(f.creditLimit, { min: 0, label: "Credit limit" }); if (c) e.creditLimit = c; }
   if (!VX.blank(f.receiptReminderDays)) { const c = VX.num(f.receiptReminderDays, { min: 0, max: 30, int: true, label: "Reminder days" }); if (c) e.receiptReminderDays = c; }
@@ -256,6 +274,7 @@ function VendorMoreFields({ f, set, errors, publicMode, foreign }) {
       <Field label="Tax preference"><Select value={f.taxPreference || ""} onChange={(x) => upd("taxPreference", x)} options={TAX_PREFS} /></Field>
       {!foreign && <Field label="MSME type"><Select value={f.msmeType || "Not MSME"} onChange={(x) => upd("msmeType", x)} options={MSME_TYPES} /></Field>}
       {!foreign && <Field label="Udyam registration no." hint="MSME vendors must be paid within 45 days"><TextInput value={f.udyamNo || ""} onChange={(x) => upd("udyamNo", x.toUpperCase())} placeholder="UDYAM-MH-26-0012345" />{err("udyamNo")}</Field>}
+      {!foreign && <Field label="CIN / LLPIN (company registration)"><TextInput value={f.cin || ""} onChange={(x) => upd("cin", x.toUpperCase())} placeholder="U45200MH2010PTC123456" maxLength={21} />{err("cin")}</Field>}
       <Field label="D-U-N-S number"><TextInput value={f.duns || ""} onChange={(x) => upd("duns", x)} placeholder="9 digits" maxLength={11} />{err("duns")}</Field>
       {foreign && <Field label="Federal income tax type"><Select value={f.federalTaxType || ""} placeholder="—" onChange={(x) => upd("federalTaxType", x)} options={FEDERAL_TAX_TYPES} /></Field>}
       {!publicMode && <>
@@ -390,7 +409,7 @@ function VendorMoreView({ v }) {
   const custom = Object.entries(v.custom || {}).filter(([, x]) => x !== "" && x !== undefined);
   const items = [
     ["Entity type", v.entityType], ["GST treatment", v.gstTreatment], ["Tax preference", v.taxPreference], ["Place of supply", v.placeOfSupply],
-    ["MSME", v.msmeType && v.msmeType !== "Not MSME" ? `${v.msmeType}${v.udyamNo ? ` · ${v.udyamNo}` : ""}` : null], ["D-U-N-S", v.duns], ["Federal tax type", v.federalTaxType],
+    ["MSME", v.msmeType && v.msmeType !== "Not MSME" ? `${v.msmeType}${v.udyamNo ? ` · ${v.udyamNo}` : ""}` : null], ["CIN / LLPIN", v.cin], ["D-U-N-S", v.duns], ["Federal tax type", v.federalTaxType],
     ["Payment method", v.paymentMethod], ["Price list", v.priceList], ["Credit limit", v.creditLimit ? inrShort(v.creditLimit) : null],
     ["Bill delivery", v.billDelivery], ["Auto-post bills", v.autoPostBills ? "Yes" : null], ["Default buyer", v.defaultBuyer], ["Receipt reminder", v.receiptReminderDays ? `${v.receiptReminderDays} days before delivery` : null],
     ["Transporter", v.isTransporter ? "Yes" : null], ["Website", v.website], ["Tags", (v.tags || []).length ? <CategoryChips list={v.tags} max={99} wrap /> : null],

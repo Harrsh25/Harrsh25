@@ -44,7 +44,10 @@ function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket }) {
   const descs = lines.map((l) => String(l.desc).trim().toLowerCase()).filter(Boolean);
   const dupItem = !set0.allowDuplicateItems && new Set(descs).size !== descs.length;
   const detErr = docDetailErrors("po", f.details || {});
-  const ok = f.vendorId && lines.length && lines.every((l) => String(l.desc).trim() && String(l.unit || "").trim() && qtyOk(l) && rateOk(l)) && !gate.block && !overBlanket && !VX.any(poErr) && !dupItem && !VX.any(detErr);
+  // Line extras (all five platforms carry tax and a need-by date per line; HSN/SAC is the India GST code)
+  const lineErr = (l) => (l.hsn && !/^\d{4}(\d{2}){0,2}$/.test(String(l.hsn)) ? "HSN/SAC is 4, 6 or 8 digits" : l.gstPct !== undefined && l.gstPct !== "" && !GST_RATES.includes(Number(l.gstPct)) ? `GST must be one of ${GST_RATES.join(", ")}%` : l.needBy && l.needBy < todayISO() ? "Need-by date can't be in the past" : "");
+  const gstTotal = round2(sum(lines, (l) => (Number(l.qty) || 0) * (Number(l.rate) || 0) * (Number(l.gstPct) || 0) / 100));
+  const ok = f.vendorId && lines.length && lines.every((l) => String(l.desc).trim() && String(l.unit || "").trim() && qtyOk(l) && rateOk(l) && !lineErr(l)) && !gate.block && !overBlanket && !VX.any(poErr) && !dupItem && !VX.any(detErr);
   const needsApproval = total >= (Number(set0.poApprovalMin) || 0);
   const outstanding = v ? sum(st.invoices.filter((i) => i.vendorId === v.id), (i) => invoiceTotals(i).balance) + sum(st.purchaseOrders.filter((p) => p.vendorId === v.id && ["Issued", "Partially Received"].includes(poStatus(p))), poValue) : 0;
   const overCredit = v && Number(v.creditLimit) > 0 && outstanding + total > Number(v.creditLimit);
@@ -53,11 +56,11 @@ function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket }) {
   const activeBlankets = st.blanketOrders.filter((b) => blanketStatus(st, b) === "Active");
   return (
     <Modal open={open} onClose={onClose} width={860} title={bo ? `Call-off PO against ${bo.id}` : "New purchase order"}
-      footer={<><span className="mr-auto text-[13px]">Total <b className="num">{inr(total)}</b> + GST</span><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!ok} onClick={() => {
+      footer={<><span className="mr-auto text-[13px]">Total <b className="num">{inr(total)}</b>{gstTotal > 0 ? <> + GST {inr(gstTotal)} = <b className="num">{inr(total + gstTotal)}</b></> : " + GST"}</span><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!ok} onClick={() => {
         const id = nextId("PO", st.purchaseOrders);
         const auto = !needsApproval;
         setState((s) => s.purchaseOrders.unshift({ ...f, id, date: todayISO(), createdAt: new Date().toISOString(), status: auto ? "Issued" : "Draft", rfqId: null, ...(auto ? { approval: { by: currentUser(), at: new Date().toISOString(), decision: "Approved", remark: `Below the ${inrShort(set0.poApprovalMin)} approval threshold — issued directly` } } : {}), receipts: [], returns: [], blanketId: f.blanketId || null,
-          lines: lines.map((l) => ({ desc: l.desc, unit: l.unit, qty: Number(l.qty), rate: Number(l.rate), ...(l.blanketLine !== undefined ? { blanketLine: l.blanketLine } : {}) })),
+          lines: lines.map((l) => ({ desc: l.desc, unit: l.unit, qty: Number(l.qty), rate: Number(l.rate), ...(l.hsn ? { hsn: String(l.hsn) } : {}), ...(l.gstPct !== undefined && l.gstPct !== "" ? { gstPct: Number(l.gstPct) } : {}), ...(l.needBy ? { needBy: l.needBy } : {}), ...(l.blanketLine !== undefined ? { blanketLine: l.blanketLine } : {}) })),
           revisions: [{ rev: 0, at: new Date().toISOString(), by: currentUser(), note: bo ? `Call-off against ${bo.id}` : "PO created" }] }), { entity: "PO", id, action: `Created for ${v.name}${bo ? ` (call-off ${bo.id})` : ""} — ${auto ? "issued (below approval threshold)" : "sent for approval"}` });
         toast(auto ? `${id} issued — below the approval threshold` : `${id} created — approve it in Approval Management`); onClose(); onCreated && onCreated(id);
       }}>{needsApproval ? "Create & send for approval" : "Create & issue"}</Btn></>}>
@@ -95,6 +98,12 @@ function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket }) {
                   <NumInput value={l.qty} onChange={(x) => setLine(i, "qty", x)} placeholder="Qty" />
                   <NumInput value={l.rate} disabled={!!bo} onChange={(x) => setLine(i, "rate", x)} placeholder="Rate" />
                   {!bo ? <IconBtn icon={Icon.trash} title="Remove line" onClick={() => f.lines.length > 1 && setF({ ...f, lines: f.lines.filter((_, j) => j !== i) })} /> : <span />}
+                  <div className="col-span-5 -mt-1 grid grid-cols-[120px_110px_150px_1fr] items-center gap-2 text-[12px]">
+                    <TextInput aria-label={`Line ${i + 1} HSN/SAC`} value={l.hsn || ""} onChange={(x) => setLine(i, "hsn", x.replace(/\D/g, "").slice(0, 8))} placeholder="HSN / SAC" />
+                    <Select aria-label={`Line ${i + 1} GST %`} value={l.gstPct ?? ""} placeholder="GST %" onChange={(x) => setLine(i, "gstPct", x === "" ? "" : Number(x))} options={GST_RATES.map((g) => ({ value: g, label: `GST ${g}%` }))} />
+                    <DateInput aria-label={`Line ${i + 1} need-by date`} value={l.needBy || ""} onChange={(x) => setLine(i, "needBy", x)} title="Need-by date for this line" />
+                    {lineErr(l) ? <span className="text-red-600">{lineErr(l)}</span> : <span className="text-ink-mute">HSN / SAC · GST · need-by (optional)</span>}
+                  </div>
                 </div>
               );
             })}
@@ -257,7 +266,7 @@ function PoDrawer({ id, onClose }) {
         </div>
         <Section title="Lines — ordered vs received vs billed" icon={Icon.boxes}>
           <DataTable dense rows={rec.map((l, i) => ({ ...l, billed: sum(invs.flatMap((x) => x.lines.filter((z) => z.line === i)), (z) => z.qty) }))} rowKey={(_, i) => i} columns={[
-            { key: "desc", label: "Item", className: "font-medium" },
+            { key: "desc", label: "Item", className: "font-medium", render: (l) => <span className="flex flex-col">{l.desc}{(l.hsn || l.gstPct !== undefined || l.needBy) && <span className="text-[11.5px] font-normal text-ink-mute">{[l.hsn && `HSN/SAC ${l.hsn}`, l.gstPct !== undefined && `GST ${l.gstPct}%`, l.needBy && `need by ${fmtDate(l.needBy)}`].filter(Boolean).join(" · ")}</span>}</span> },
             { key: "qty", label: "Ordered", align: "right", num: true, render: (l) => `${num(l.qty)} ${l.unit}` },
             { key: "rate", label: "Rate", align: "right", num: true, render: (l) => inr(l.rate) },
             { key: "received", label: "Received", align: "right", num: true, render: (l) => num(l.received) },

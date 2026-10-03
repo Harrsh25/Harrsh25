@@ -22,6 +22,8 @@ function ContractModal({ open, onClose, onCreated, edit }) {
     f.bgNo && f.bgExpiry && f.bgExpiry <= f.start && "BG must be valid beyond the contract start",
     f.bgNo && f.bgExpiry && f.bgExpiry < todayISO() && "BG has already expired",
     !edit && f.start && f.start < shiftDays(-90) && "start is more than 90 days in the past",
+    !VX.blank(f.paymentDays) && VX.num(f.paymentDays, { min: 0, max: 180, int: true }) && "payment days must be 0–180",
+    !VX.blank(f.noticeDays) && VX.num(f.noticeDays, { min: 0, max: 180, int: true }) && "notice days must be 0–180",
   ].filter(Boolean);
   const missing = [contractExtrasErr(f), !f.vendorId && "contractor", !f.title.trim() && "title", !(value > 0) && "value", !(f.end > f.start) && "completion after start", !scopeOk && "complete BOQ lines", f.bgNo && !f.bgExpiry && "BG validity date", ...termErr].filter(Boolean);
   const save = (submit) => {
@@ -51,6 +53,8 @@ function ContractModal({ open, onClose, onCreated, edit }) {
           <Field label="Start date"><DateInput value={f.start} onChange={set("start")} /></Field>
           <Field label="Completion date"><DateInput value={f.end} onChange={set("end")} /></Field>
           <Field label="Contract owner"><TextInput value={f.owner} onChange={set("owner")} /></Field>
+          <Field label="Payment due (days after certification)" hint="Oracle / SAP contract payment terms"><NumInput value={f.paymentDays ?? ""} onChange={set("paymentDays")} placeholder="e.g. 30" /></Field>
+          <Field label="Termination notice (days)"><NumInput value={f.noticeDays ?? ""} onChange={set("noticeDays")} placeholder="e.g. 15" /></Field>
         </div>
         {v && blockers.length > 0 && <Note tone="red">{v.name} can't be contracted right now: {blockers.join(" · ")}.</Note>}
         {v && v.qualification && qualStatus(v).limit > 0 && value > qualStatus(v).limit && <Note tone="amber" icon={Icon.alert}>Contract value {inrShort(value)} is above {v.name}'s qualification limit of {inrShort(qualStatus(v).limit)} ({qualStatus(v).status}) — work orders beyond the limit will show a warning.</Note>}
@@ -232,7 +236,7 @@ function ContractDrawer({ id, onClose }) {
         <ContractExtrasView c={c} />
         <Section title="Terms" icon={Icon.scale}>
           <KV cols={4} items={[
-            ["Start", fmtDate(c.start)], ["Completion", fmtDate(c.end)], ["Signed on", fmtDate(c.signedOn)], ["Owner", c.owner],
+            ["Start", fmtDate(c.start)], ["Completion", fmtDate(c.end)], ["Signed on", fmtDate(c.signedOn)], ["Owner", c.owner], ["Payment due", c.paymentDays !== undefined && c.paymentDays !== "" ? `${c.paymentDays} days after certification` : "—"], ["Termination notice", c.noticeDays !== undefined && c.noticeDays !== "" ? `${c.noticeDays} days` : "—"],
             ["Retention", `${c.retentionPct}%`], ["Mobilisation advance", `${c.advancePct || 0}% · ${inrShort(c.advanceAmount)}`], ["Advance recovery", `${c.advanceRecoveryPct || 0}% per bill`], ["Labour cess", `${c.cessPct}%`],
             ["GST", `${c.gstPct}%`], ["DLP", `${c.dlpMonths} months${c.handover ? ` from handover ${fmtDate(c.handover.date)}` : ""}`], ["LD", c.ldPctPerWeek ? `${c.ldPctPerWeek}%/week, cap ${c.ldCapPct}%` : "—"], ["Performance BG", c.pbgPct ? `${c.pbgPct}% required` : "Not required"],
           ]} />

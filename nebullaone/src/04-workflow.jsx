@@ -200,7 +200,7 @@ function releaseRetention(r) {
 // ---------------------------------------------------------------- contracts: approval, signing, guarantees, termination, closure
 const CONTRACT_FLOW = ["Legal Counsel", "Finance Controller"];
 const CONTRACT_DEFAULTS = () => ({ project: PROJECTS[0], type: "Item-Rate", start: todayISO(), end: shiftDays(365), retentionPct: 5, advancePct: 10, advanceRecoveryPct: 10, cessPct: 1, gstPct: 18,
-  dlpMonths: 12, ldPctPerWeek: 0.5, ldCapPct: 5, pbgPct: 5, bgNo: "", bgExpiry: "", owner: currentUser() });
+  dlpMonths: 12, ldPctPerWeek: 0.5, ldCapPct: 5, pbgPct: 5, bgNo: "", bgExpiry: "", owner: currentUser(), paymentDays: 30, noticeDays: 15 });
 // Project → WBS elements (cost breakdown the work orders are booked against)
 const PROJECT_WBS = {
   "Skyline Towers — Phase 1": ["1.1 Site enabling", "2.1 Tower A — substructure", "2.2 Tower A — superstructure", "2.3 Tower B — substructure", "2.4 Tower B — superstructure", "3.1 Finishes", "4.1 MEP services"],
