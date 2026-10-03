@@ -603,6 +603,29 @@ function FilterSelectMenu({ value, onChange, options, label }) {
   );
 }
 
+// "⋯" menu on the list toolbar: export and column settings
+function ListMoreMenu({ onExport, canExport, onColumns }) {
+  const [open, setOpen] = y.useState(false), ref = y.useRef(null);
+  y.useEffect(() => {
+    if (!open) return;
+    const off = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const esc = (e) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", off, true); document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", off, true); document.removeEventListener("keydown", esc); };
+  }, [open]);
+  const item = (label, icon, fn, dis) => <button type="button" role="menuitem" disabled={dis} onClick={() => { setOpen(false); fn(); }} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[13px] text-ink hover:bg-gray-50 disabled:opacity-40">{h(icon, { size: 14, className: "text-ink-mute" })}{label}</button>;
+  return (
+    <div ref={ref} className="relative">
+      <button type="button" aria-label="More" aria-haspopup="menu" aria-expanded={open} data-tip="More" onClick={() => setOpen((o) => !o)} className={cls("grid h-8 w-8 place-items-center rounded-md hover:bg-gray-100", open ? "bg-gray-100 text-ink" : "text-ink-soft hover:text-ink")}>{h(Icon.more, { size: 16 })}</button>
+      {open && (
+        <div role="menu" className="absolute right-0 z-50 mt-1 w-[210px] rounded-lg border border-line bg-white py-1 shadow-lg">
+          {item("Export to Excel (CSV)", Icon.download, onExport, !canExport)}
+          {onColumns && item("Customize columns", Icon.sliders, onColumns)}
+        </div>)}
+    </div>
+  );
+}
+
 // Quick filter on a list column (Project Center style): an icon in the toolbar, multi-select menu, applies at once
 function QuickColFilter({ def, value, onChange }) {
   const [open, setOpen] = y.useState(false), ref = y.useRef(null);
@@ -881,25 +904,35 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
   const sum$ = typeof summary === "function" ? summary(shown) : summary || [];
   return (
     <>
-      {/* Toolbar: list / board / calendar and actions left; search, filters and export right */}
+      {/* Toolbar: layout pill + quick filters left; search, filters and ⋯ (export) right. Search opens across the whole bar. */}
       <div className="flex min-h-[44px] flex-wrap items-center justify-end gap-1.5 border-b border-line px-4 py-1.5">
+        {searchOpen || q ? (
+          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-md border border-brand/40 bg-white px-2.5 ring-2 ring-brand/10" data-searchbar>
+            {h(Icon.search, { size: 15, className: "shrink-0 text-ink-mute" })}
+            <input autoFocus aria-label="Search" className="h-8 min-w-0 flex-1 bg-transparent text-[13.5px] text-ink outline-none placeholder:text-ink-mute" placeholder={placeholder} value={q}
+              onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); setQ(""); setSearchOpen(false); } }} onBlur={() => !q && setSearchOpen(false)} />
+            <button type="button" aria-label="Close search" className="grid h-6 w-6 place-items-center rounded text-ink-mute hover:bg-gray-100 hover:text-ink" onMouseDown={(e) => e.preventDefault()} onClick={() => { setQ(""); setSearchOpen(false); }}>{h(Icon.x, { size: 14 })}</button>
+          </div>
+        ) : (
         <div className="mr-auto flex items-center gap-2">
           {(boardCol || calendar) && (
-            <div className="flex items-center gap-0.5" role="group" aria-label="Layout">
+            <div className="flex items-center gap-0.5 rounded-lg bg-gray-100 p-0.5" role="group" aria-label="Layout">
               {[["list", "List", Icon.listChecks], ...(boardCol ? [["board", "Board", Icon.grid]] : []), ...(calendar ? [["calendar", "Calendar", Icon.calendar]] : [])].map(([k, t, ic]) => (
-                <button key={k} type="button" aria-label={`${t} layout`} aria-pressed={view === k} data-tip={t} onClick={() => setView(k)} className={cls("grid h-7 w-7 place-items-center rounded-md", view === k ? "bg-brand-soft text-brand" : "text-ink-mute hover:bg-gray-100 hover:text-ink")}>{h(ic, { size: 15 })}</button>
+                <button key={k} type="button" aria-label={`${t} layout`} aria-pressed={view === k} data-tip={view === k ? undefined : t} onClick={() => setView(k)}
+                  className={cls("flex h-7 items-center gap-1.5 rounded-md text-[13px]", view === k ? "bg-white px-2.5 font-medium text-brand shadow-sm" : "w-8 justify-center text-ink-soft hover:text-ink")}>
+                  {h(ic, { size: 15 })}{view === k && t}
+                </button>
               ))}
             </div>)}
+          {(boardCol || calendar) && (colDefs.length > 0 || filters) && <span className="mx-0.5 h-5 w-px bg-line" />}
           {(colDefs.length > 0 || filters) && (
             <div className="flex items-center gap-0.5" role="group" aria-label="Quick filters">
               {filters && <div ref={filterRow} className="nx-filters flex items-center gap-0.5">{filters}</div>}
               {colDefs.slice(0, filters ? 3 : 5).map((d) => <QuickColFilter key={d.key} def={d} value={cf[d.key]} onChange={(v) => setCf({ ...cf, [d.key]: v })} />)}
             </div>)}
           {actions && <div className="flex items-center gap-2">{actions}</div>}
-        </div>
-        {/* search sits behind an icon (Project Center); it stays open while it has text */}
-        {searchOpen || q ? <span className="nx-search w-[220px] max-w-full"><SearchBox value={q} onChange={setQ} placeholder={placeholder} autoFocus={!q} onBlur={() => !q && setSearchOpen(false)} /></span>
-          : <button type="button" aria-label="Search" data-tip="Search" onClick={() => setSearchOpen(true)} className="grid h-8 w-8 place-items-center rounded-md text-ink-soft hover:bg-gray-100 hover:text-ink">{h(Icon.search, { size: 16 })}</button>}
+        </div>)}
+        {!(searchOpen || q) && <button type="button" aria-label="Search" data-tip="Search" onClick={() => setSearchOpen(true)} className="grid h-8 w-8 place-items-center rounded-md text-ink-soft hover:bg-gray-100 hover:text-ink">{h(Icon.search, { size: 16 })}</button>}
         {hasFilters && (
           <button type="button" aria-label="Filters" aria-expanded={filtersOpen} data-tip="Filters" onClick={() => (filtersOpen ? setFiltersOpen(false) : openPanel())}
             className={cls("relative grid h-8 w-8 place-items-center rounded-md hover:bg-gray-100", filtersOpen || nFilters ? "text-brand" : "text-ink-soft hover:text-ink", filtersOpen && "bg-brand-soft/60")}>
@@ -907,7 +940,7 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
             {nFilters > 0 && <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-brand px-1 text-[10px] font-semibold text-white">{nFilters}</span>}
           </button>
         )}
-        <button type="button" aria-label="Export" data-tip="Export this view to Excel (CSV)" onClick={exportCsv} disabled={!shown.length} className="grid h-8 w-8 place-items-center rounded-md text-ink-soft hover:bg-gray-100 hover:text-ink disabled:opacity-40">{h(Icon.download, { size: 16 })}</button>
+        <ListMoreMenu onExport={exportCsv} canExport={shown.length > 0} onColumns={list ? () => setPicker(true) : null} />
       </div>
       {nFilters > 0 && (
         <div className="flex items-center gap-2 border-b border-line bg-gray-50/50 px-4 py-1.5 text-[12.5px] text-ink-soft">
