@@ -5,6 +5,7 @@ require('./lib')('status', async ({ p, go, S, mut, T }) => {
   // open a record in a given state and check which actions are offered
   const check = async (id, scn, setup, url, allow = [], deny = []) => T(id, scn, async () => {
     if (setup) { const rid = (url.match(/open=([^&]+)/) || [])[1]; await p.evaluate(`(()=>{const s=JSON.parse(localStorage.getItem('nxv-store-v1'));(${setup})(s, ${JSON.stringify(rid)});localStorage.setItem('nxv-store-v1',JSON.stringify(s));})()`); } await go(url); await p.waitForTimeout(300);
+    if (!(await p.locator('[data-drawer]').count())) return ['record panel did not open', false];
     const a = await acts(); const live = a.filter((x) => !x.d).map((x) => x.t);
     const has = (t) => live.some((x) => x === t || x.startsWith(t + ' ') || (t.length > 6 && x.startsWith(t)));
     const missing = allow.filter((t) => !has(t)), wrong = deny.filter((t) => has(t));

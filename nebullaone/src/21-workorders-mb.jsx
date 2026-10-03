@@ -275,7 +275,7 @@ function MeasurementBookPage() {
   const st = useStore();
   const [wo, setWo] = y.useState("All"), [jms, setJms] = y.useState("All"), [tab, setTab] = y.useState("mb");
   const [withdraw, setWithdraw] = y.useState(null);
-  const [add, setAdd] = y.useState(false), [sign, setSign] = y.useState(null), [sel, setSel] = y.useState([]), [openMb, setOpenMb] = y.useState(null), [ncrFor, setNcrFor] = y.useState(null);
+  const [add, setAdd] = y.useState(false), [sign, setSign] = y.useState(null), [sel, setSel] = y.useState([]), [openMb, setOpenMb] = useQueryOpen(), [ncrFor, setNcrFor] = y.useState(null);
   const lineName = (m) => {
     const w = byId(st.workOrders, m.woId);
     if (w.type === "Lump Sum") { const ms = w.milestones.find((x) => x.id === m.lineId); return ms ? ms.name : m.lineId; }
