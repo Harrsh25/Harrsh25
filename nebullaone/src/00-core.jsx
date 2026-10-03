@@ -264,15 +264,28 @@ function DetailTabs({ tabs, active, onChange }) {
   );
 }
 
+// Side panels (record, Filters, Customize Columns) sit exactly over the page's content card, below the top bar
+function useContentBox() {
+  const get = () => {
+    const m = typeof document !== "undefined" && document.querySelector("main");
+    if (!m) return { top: 56, right: 8, bottom: 8 };
+    const r = m.getBoundingClientRect(), pb = parseFloat(getComputedStyle(m).paddingBottom) || 0;
+    return { top: Math.max(0, Math.round(r.top)), right: Math.max(0, Math.round(window.innerWidth - r.right)), bottom: Math.max(0, Math.round(window.innerHeight - r.bottom + pb)) };
+  };
+  const [b, setB] = y.useState(get);
+  y.useLayoutEffect(() => { const u = () => setB(get()); u(); window.addEventListener("resize", u); return () => window.removeEventListener("resize", u); }, []);
+  return b;
+}
 function Drawer({ open, title, subtitle, onClose, actions, width = 760, tabs, related, comments, children }) {
   useEscape(open, onClose);
+  const box = useContentBox();
   if (!open) return null;
   return (
     // Side panel (Project Center style): the list stays visible and clickable beside it — pick another row to switch records
     <div className="pointer-events-none fixed inset-0 z-[55] flex justify-end">
       <div role="dialog" aria-modal="false" aria-label={typeof title === "string" ? title : undefined} data-drawer
-        className="nx-drawer pointer-events-auto absolute bottom-2 right-2 top-[56px] flex flex-col rounded-xl border border-line bg-white shadow-[-8px_0_28px_rgba(16,24,40,0.14)]"
-        style={{ width: `min(${width}px, max(560px, 46vw))`, maxWidth: "calc(100% - 16px)", overflow: "clip" }}>
+        className="nx-drawer pointer-events-auto absolute flex flex-col rounded-xl border border-line bg-white shadow-[-8px_0_28px_rgba(16,24,40,0.14)]"
+        style={{ ...box, width: `min(${width}px, max(560px, 46vw))`, maxWidth: "calc(100% - 16px)", overflow: "clip" }}>
         <div className={cls("shrink-0", !tabs && "border-b border-line")}>
           <div className={cls("nx-dhead flex items-start justify-between gap-4 px-6 pt-5", tabs ? "pb-5" : "pb-4")}>
             <div className="min-w-0">
@@ -661,7 +674,14 @@ function rowSearchText(r, depth = 0) {
 // dense / plain tables (inside panels and cards) are just the table.
 const pluralWord = (w) => (/(s|ing|ce|ance|by|pay|ed)$/.test(w) ? w : /(ch|sh|x)$/.test(w) ? w + "es" : /[^aeiou]y$/.test(w) ? w.slice(0, -1) + "ies" : w + "s");
 // Customize Columns panel (Project Center style): toggle optional columns on/off, Apply saves the choice for this browser
+// Filters side panel, docked over the content card like the record panel
+function FilterAside({ children, ...rest }) {
+  const box = useContentBox();
+  return <aside role="complementary" aria-label="Filters" data-filter-panel style={box} {...rest}
+    className="nx-drawer absolute flex w-[380px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-xl border border-line bg-white shadow-[-8px_0_28px_rgba(16,24,40,0.14)]">{children}</aside>;
+}
 function ColumnPicker({ extra, shown, onApply, onClose }) {
+  const box = useContentBox();
   const [draft, setDraft] = y.useState(shown);
   const on = (k) => draft.includes(k);
   const flip = (k) => setDraft((d) => (d.includes(k) ? d.filter((x) => x !== k) : [...d, k]));
@@ -669,8 +689,8 @@ function ColumnPicker({ extra, shown, onApply, onClose }) {
   y.useEffect(() => { const esc = (e) => e.key === "Escape" && onClose(); document.addEventListener("keydown", esc); return () => document.removeEventListener("keydown", esc); }, []);
   return (
     <div className="fixed inset-0 z-[65]" onMouseDown={onClose}>
-      <aside role="dialog" aria-label="Customize columns" onMouseDown={(e) => e.stopPropagation()}
-        className="absolute bottom-3 right-3 top-3 flex w-[380px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-xl border border-line bg-white shadow-2xl">
+      <aside role="dialog" aria-label="Customize columns" onMouseDown={(e) => e.stopPropagation()} style={box}
+        className="nx-drawer absolute flex w-[380px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-xl border border-line bg-white shadow-[-8px_0_28px_rgba(16,24,40,0.14)]">
         <div className="flex items-center gap-2.5 border-b border-line px-4 py-3">
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-soft text-brand">{h(Icon.sliders, { size: 15 })}</span>
           <h3 className="flex-1 text-[14.5px] font-semibold">Customize Columns <span data-tip="Show or hide extra columns in this list. Your choice is remembered on this browser." className="ml-1 inline-flex align-middle text-ink-mute">{h(Icon.info, { size: 13 })}</span></h3>
@@ -928,7 +948,7 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
       )}
       {filtersOpen && (
         <div className="fixed inset-0 z-[56]" onMouseDown={() => setFiltersOpen(false)}>
-          <aside role="complementary" aria-label="Filters" data-filter-panel className="absolute bottom-0 right-0 top-0 flex w-[380px] max-w-full flex-col border-l border-line bg-white shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
+          <FilterAside onMouseDown={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-line px-5 py-4">
               <span className="flex items-center gap-2.5 text-[15px] font-semibold"><span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-soft text-brand">{h(Icon.filter, { size: 16 })}</span>Filters</span>
               <IconBtn icon={Icon.x} title="Close" onClick={() => setFiltersOpen(false)} />
@@ -948,7 +968,7 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
               <Btn onClick={resetPanel}>Reset</Btn>
               <Btn variant="primary" onClick={applyPanel}>Apply Filters</Btn>
             </div>
-          </aside>
+          </FilterAside>
         </div>
       )}
       {view === "board" && shown.length ? board : view === "calendar" && cal ? cal : table}
