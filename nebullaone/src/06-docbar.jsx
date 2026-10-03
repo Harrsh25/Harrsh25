@@ -30,7 +30,7 @@ function RelatedButtons({ items }) {
               <span className="text-[11px] text-ink-mute">{x.label}</span>
             </span>
           </>);
-        const c = "flex min-w-[92px] items-center gap-2 rounded-md border border-line bg-white px-2.5 py-1 text-left hover:border-brand/40 hover:bg-brand-soft/40";
+        const c = "flex min-w-[76px] items-center gap-1.5 rounded-md border border-line bg-white px-2 py-0.5 text-left hover:border-brand/40 hover:bg-brand-soft/40";
         return x.to && (x.count || x.value != null)
           ? <RouterLink key={x.label} to={x.to} data-count={x.count} className={c}>{body}</RouterLink>
           : <span key={x.label} data-count={x.count} className={cls(c, "cursor-default opacity-70 hover:border-line hover:bg-white")}>{body}</span>;

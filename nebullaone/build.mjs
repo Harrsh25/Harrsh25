@@ -158,6 +158,8 @@ const RAW_CSS = "[role=dialog] .mono{white-space:nowrap}[role=dialog] p.flex.ite
   ".nx-filters>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}" +
   ".shadow-card>.nx-fill{flex:1 1 0;min-height:280px;overflow:auto}.shadow-card>.nx-fill thead th{position:sticky;top:0;z-index:2}" +
   // Phone layout (≤768px): sidebar slides in from a menu button, toolbars and drawer headers wrap, grids drop to 1–2 columns, wide tables scroll
+  // Detail side panel is ~46% wide: 4-across cards drop to 2 per row
+  "[data-drawer] .grid-cols-4{grid-template-columns:repeat(2,minmax(0,1fr))}" +
   ".nx-burger,.nx-scrim{display:none}" +
   "@media (max-width:768px){" +
   "aside.shrink-0{position:fixed;left:0;top:0;bottom:0;z-index:75;width:264px!important;background:#f3f4f6;transform:translateX(-100%);transition:transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.18)}" +
@@ -169,6 +171,7 @@ const RAW_CSS = "[role=dialog] .mono{white-space:nowrap}[role=dialog] p.flex.ite
   ".nx-search{flex:1 1 100%;width:100%}.nx-search>label{width:100%}" +
   ".nx-dhead{flex-wrap:wrap;padding-left:16px;padding-right:16px}.nx-dhead>div:first-child{flex:1 1 100%}.nx-dhead h2{white-space:normal}" +
   "[role=dialog] .px-6{padding-left:16px;padding-right:16px}" +
+  ".nx-drawer{top:0!important;right:0!important;bottom:0!important;width:100%!important;max-width:100%!important;border-radius:0!important}" +
   ".grid-cols-4,.grid-cols-5,.grid-cols-6{grid-template-columns:repeat(2,minmax(0,1fr))!important}" +
   ".grid-cols-2,.grid-cols-3,[role=dialog] .grid-cols-4{grid-template-columns:minmax(0,1fr)!important}" +
   ".nx-section{overflow-x:auto}.col-span-2,.col-span-3,.col-span-4{grid-column:1/-1}" +

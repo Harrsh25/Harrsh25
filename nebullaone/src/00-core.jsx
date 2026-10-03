@@ -248,7 +248,7 @@ function Modal({ open, title, subtitle, onClose, footer, width = 640, children }
 // Detail-panel tabs (Project Center style): plain text, single line, blue when active
 function DetailTabs({ tabs, active, onChange }) {
   return (
-    <div role="tablist" className="flex gap-7 overflow-x-auto border-b border-line px-6">
+    <div role="tablist" className="flex gap-5 overflow-x-auto border-b border-line px-6">
       {tabs.map((t) => {
         const on = t.id === active;
         return (
@@ -268,9 +268,11 @@ function Drawer({ open, title, subtitle, onClose, actions, width = 760, tabs, st
   useEscape(open, onClose);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-[55] flex justify-end bg-gray-900/25" onMouseDown={onClose}>
-      <div role="dialog" aria-modal="true" aria-label={typeof title === "string" ? title : undefined} className="flex h-full w-full flex-col bg-white shadow-2xl" style={{ maxWidth: width }}
-        onMouseDown={(e) => e.stopPropagation()}>
+    // Side panel (Project Center style): the list stays visible and clickable beside it — pick another row to switch records
+    <div className="pointer-events-none fixed inset-0 z-[55] flex justify-end">
+      <div role="dialog" aria-modal="false" aria-label={typeof title === "string" ? title : undefined} data-drawer
+        className="nx-drawer pointer-events-auto absolute bottom-2 right-2 top-[56px] flex flex-col overflow-hidden rounded-xl border border-line bg-white shadow-[-8px_0_28px_rgba(16,24,40,0.14)]"
+        style={{ width: `min(${width}px, max(560px, 46vw))`, maxWidth: "calc(100% - 16px)" }}>
         <div className={cls("shrink-0", !tabs && "border-b border-line")}>
           <div className={cls("nx-dhead flex items-start justify-between gap-4 px-6 pt-5", tabs ? "pb-5" : "pb-4")}>
             <div className="min-w-0">
@@ -592,6 +594,41 @@ function FilterSelectMenu({ value, onChange, options, label }) {
   );
 }
 
+// Quick filter on a list column (Project Center style): an icon in the toolbar, multi-select menu, applies at once
+function QuickColFilter({ def, value, onChange }) {
+  const [open, setOpen] = y.useState(false), ref = y.useRef(null);
+  y.useEffect(() => {
+    if (!open) return;
+    const off = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const esc = (e) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", off); document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", off); document.removeEventListener("keydown", esc); };
+  }, [open]);
+  const sel = value || [];
+  const toggle = (v) => onChange(sel.includes(v) ? sel.filter((x) => x !== v) : [...sel, v]);
+  return (
+    <div ref={ref} className="relative">
+      <button type="button" aria-label={def.name} data-quick-filter={def.name} data-tip={sel.length ? `${def.name}: ${sel.join(", ")}` : def.name} aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((o) => !o)}
+        className={cls("relative grid h-8 w-8 place-items-center rounded-md", sel.length ? "bg-brand-soft text-brand" : open ? "bg-gray-100 text-ink" : "text-ink-mute hover:bg-gray-100 hover:text-ink")}>
+        {filterIcon(def.name)}
+        {sel.length > 0 && <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-brand px-1 text-[10px] font-semibold text-white">{sel.length}</span>}
+      </button>
+      {open && (
+        <div role="listbox" aria-multiselectable="true" className="absolute left-0 z-50 mt-1 max-h-[320px] w-max min-w-[200px] max-w-[min(320px,calc(100vw-24px))] overflow-y-auto rounded-lg border border-line bg-white py-1 shadow-lg">
+          <p className="flex items-center justify-between px-3 pb-1 pt-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-ink-mute">{def.name}{sel.length > 0 && <button type="button" className="normal-case tracking-normal text-brand" onClick={() => onChange([])}>Clear</button>}</p>
+          {def.opts.map((o) => {
+            const on = sel.includes(o.value);
+            return (
+              <button key={o.value} type="button" role="option" aria-selected={on} onClick={() => toggle(o.value)}
+                className={cls("flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-[13px]", on ? "bg-brand-soft/60 text-brand" : "text-ink hover:bg-gray-50")}>
+                <span className={cls("h-2 w-2 shrink-0 rounded-full", o.toneKey ? DOT[o.toneKey] : "bg-gray-300")} /><span className="flex-1 truncate">{o.label}</span>{on && h(Icon.check, { size: 14, className: "text-brand" })}
+              </button>);
+          })}
+        </div>)}
+    </div>
+  );
+}
+
 // Generic table built on the host's th/td cells
 // Text used by the list search: every plain value on the row (2 levels deep) plus vendor / work-order names
 function rowSearchText(r, depth = 0) {
@@ -840,6 +877,11 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
                 <button key={k} type="button" aria-label={`${t} layout`} aria-pressed={view === k} data-tip={t} onClick={() => setView(k)} className={cls("grid h-7 w-7 place-items-center rounded-md", view === k ? "bg-brand-soft text-brand" : "text-ink-mute hover:bg-gray-100 hover:text-ink")}>{h(ic, { size: 15 })}</button>
               ))}
             </div>)}
+          {(colDefs.length > 0 || filters) && (
+            <div className="flex items-center gap-0.5 border-l border-line pl-2" role="group" aria-label="Quick filters">
+              {filters && <div ref={filterRow} className="nx-filters flex items-center gap-0.5">{filters}</div>}
+              {colDefs.slice(0, filters ? 3 : 5).map((d) => <QuickColFilter key={d.key} def={d} value={cf[d.key]} onChange={(v) => setCf({ ...cf, [d.key]: v })} />)}
+            </div>)}
           {actions && <div className="flex items-center gap-2">{actions}</div>}
         </div>
         <span className="nx-search w-[220px] max-w-full"><SearchBox value={q} onChange={setQ} placeholder={placeholder} /></span>
@@ -852,8 +894,6 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
         )}
         <button type="button" aria-label="Export" data-tip="Export this view to Excel (CSV)" onClick={exportCsv} disabled={!shown.length} className="grid h-8 w-8 place-items-center rounded-md text-ink-soft hover:bg-gray-100 hover:text-ink disabled:opacity-40">{h(Icon.download, { size: 16 })}</button>
       </div>
-      {/* page filters also render here, hidden, so their active state can be counted on the filter button */}
-      {filters && <div ref={filterRow} className="hidden" aria-hidden="true">{filters}</div>}
       {nFilters > 0 && (
         <div className="flex items-center gap-2 border-b border-line bg-gray-50/50 px-4 py-1.5 text-[12.5px] text-ink-soft">
           {h(Icon.filter, { size: 13, className: "text-brand" })}<span>{nFilters} filter{nFilters === 1 ? "" : "s"} applied</span>
