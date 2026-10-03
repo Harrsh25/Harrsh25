@@ -66,7 +66,7 @@ const { chromium } = require('playwright'); const fs = require('fs');
     errs = []; await go('vendor-management/registry'); const all = await p.locator('main tbody tr').count();
     await p.locator('button[aria-label="Filters"]').click(); await p.waitForTimeout(250); const panel = p.locator('[data-filter-panel]');
     const before = await p.locator('main tbody tr').count();
-    await panel.locator('button[aria-pressed]:has-text("Labor")').first().click(); await panel.locator('button:has-text("Apply Filters")').click(); await p.waitForTimeout(250);
+    await panel.locator('button[aria-pressed]').filter({ hasText: /^\s*(Labou?r)/ }).first().click(); await panel.locator('button:has-text("Apply Filters")').click(); await p.waitForTimeout(250);
     const after = await p.locator('main tbody tr').count(); const badge = await p.locator('button[aria-label="Filters"]').textContent();
     rec('Filters panel', `registry: chip staged (${before} rows) → applied (${after} rows), badge ${badge.trim()}`, !errs.length && before === all && after < all && badge.trim() === '1', errs.join(' / ') || 'not applied');
     await p.locator('button[aria-label="Filters"]').click(); await p.waitForTimeout(200); await p.locator('[data-filter-panel] button:has-text("Reset")').click(); await p.waitForTimeout(250);

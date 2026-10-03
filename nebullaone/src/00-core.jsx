@@ -6,7 +6,20 @@
 //   rt footer bar · le status badge · Ws progress bar · Te empty state · R classnames
 //   fn useNavigate · Ht useLocation · Zn Link · at auth store
 
-const Card = B, PageHeader = H, TabBar = nr, Toolbar = se, Th = S, Td = g;
+const Card = B, PageHeader = H, Toolbar = se, Th = S, Td = g;
+// Page tabs — same look as the host tab bar, plus tab roles so keyboards, screen readers and tests can find them
+function TabBar({ tabs, active, onChange }) {
+  return (
+    <div role="tablist" className="flex gap-1 border-b border-line px-3">
+      {tabs.map((t) => (
+        <button key={t.id} type="button" role="tab" aria-selected={t.id === active} onClick={() => onChange(t.id)}
+          className={cls("-mb-px flex h-[36px] items-center gap-1.5 border-b-2 px-3 text-[13px]", t.id === active ? "border-brand font-medium text-brand" : "border-transparent text-ink-soft hover:text-ink")}>
+          {t.icon && h(t.icon, { size: 13 })}{t.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 const FooterBar = rt, StatusPill = le, Progress = Ws, EmptyState = Te, cls = R;
 const useNavigate = fn, RouterLink = Zn;
 
@@ -725,21 +738,41 @@ function ColumnPicker({ extra, shown, onApply, onClose }) {
     </div>
   );
 }
-const readCols = (id) => { try { const v = JSON.parse(localStorage.getItem("nxv-cols:" + id)); return Array.isArray(v) ? v : null; } catch { return null; } };
+const readCols = (id) => { try { const v = JSON.parse(localStorage.getItem("nxv-cols2:" + id)); return Array.isArray(v) ? v : null; } catch { return null; } };
 
-function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0, onClearFilters, exportName, rows, onRow, rowKey = (r) => r.id, empty, footer, dense, plain, filters, actions, noun = "records", summary, searchText = rowSearchText, placeholder = "Search…", calendar }) {
+function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0, onClearFilters, exportName, rows, onRow, rowKey = (r) => r.id, empty, footer, dense, plain, filters, actions, noun = "records", summary, searchText = rowSearchText, placeholder = "Search…", calendar, defaultCols }) {
   const list = !dense && !plain;
   // Columns marked opt start hidden; they can be switched on in Customize Columns
   // List pages show names, not codes: a record's own ID / code column (key id / seq, or labelled ID / Code) is left out — it shows in the record panel
   const isCode = (c) => list && (c.key === "id" || c.key === "seq" || /^(id|code)$/i.test(String(c.label || "")));
-  const baseColumns = allColumns.filter((c) => !c.opt && !isCode(c)), optCols = allColumns.filter((c) => c.opt && !isCode(c));
-  const extraColumns = optCols.length ? [...optCols, ...(extra0 || [])] : extra0;
-  const columnsId = cid0 || `auto:${noun}`;
+  // Every list shows 5 default data columns: the first column (the record's name) is fixed, the other four are
+  // switched on by default; every other column (and the page's extra columns) can be switched on in Customize Columns.
+  // Columns without a label (row checkbox, row actions) are not data columns and always show.
+  const isAct = (c) => !c.label || /^actions?$/i.test(String(c.label));
+  const dataCols = allColumns.filter((c) => !isAct(c) && !isCode(c));
+  const optDefs = [...dataCols.filter((c) => !c.opt), ...dataCols.filter((c) => c.opt), ...(extra0 || [])];
+  const autoDefaults = () => {
+    const base = dataCols.filter((c) => !c.opt).map((c) => c.key), pick = base.slice(0, 5);
+    // keep the record's status visible by default
+    const stat = base.find((k) => { const c = dataCols.find((x) => x.key === k); return /^(status|stage|state|standing)$/i.test(String(c.label)) || k === "status"; });
+    if (stat && !pick.includes(stat) && pick.length === 5) pick[4] = stat;
+    return pick;
+  };
+  const defKeys = list ? (defaultCols || autoDefaults()).slice(0, 5) : [];
+  const fixedKey = list ? defKeys[0] : null;
+  const extraColumns = list && optDefs.length > 1 ? optDefs.filter((c) => c.key !== fixedKey).map((c) => ({ ...c, default: defKeys.includes(c.key), desc: c.desc || (typeof c.filterLabel === "string" ? c.filterLabel : "") })) : null;
+  const columnsId = cid0 || `auto:${String(window.location.hash).split("?")[0].replace(/^#\/productivity\//, "")}:${noun}`;
   // Optional columns: shown when switched on in the Customize Columns panel ("+" at the end of the header)
   const [extraOn, setExtraOn] = y.useState(() => (extraColumns ? readCols(columnsId) || extraColumns.filter((c) => c.default).map((c) => c.key) : []));
   const [picker, setPicker] = y.useState(false);
-  const applyCols = (keys) => { setExtraOn(keys); try { localStorage.setItem("nxv-cols:" + columnsId, JSON.stringify(keys)); } catch {} };
-  const columns = !extraColumns || !list ? baseColumns : [...baseColumns, ...extraColumns.filter((c) => extraOn.includes(c.key)),
+  const applyCols = (keys) => { setExtraOn(keys); try { localStorage.setItem("nxv-cols2:" + columnsId, JSON.stringify(keys)); } catch {} };
+  const known = extraColumns ? new Set(extraColumns.map((c) => c.key)) : new Set();
+  const visibleData = !list ? allColumns.filter((c) => !c.opt && !isCode(c)) : allColumns.filter((c) => !isCode(c) && (isAct(c) || c.key === fixedKey || (known.has(c.key) && extraOn.includes(c.key)) || (!known.has(c.key) && !c.opt)));
+  const visExtra = list && extra0 ? extra0.filter((c) => extraOn.includes(c.key)) : [];
+  // trailing unlabeled columns (row actions) stay at the end
+  const lastData = visibleData.reduce((n, c, i) => (!isAct(c) ? i : n), -1);
+  const head = visibleData.slice(0, lastData + 1), tail = visibleData.slice(lastData + 1);
+  const columns = !extraColumns || !list ? visibleData : [...head, ...visExtra, ...tail,
     { key: "__cols", label: "", width: 48, align: "right", head: <button type="button" aria-label="Customize columns" data-tip="Customize columns" onClick={() => setPicker(true)} className="grid h-7 w-7 place-items-center rounded-md text-ink-mute hover:bg-gray-100 hover:text-ink">{h(Icon.plus, { size: 15 })}</button>, render: () => null }];
   // First column stays put while the rest scrolls sideways (a leading checkbox column sticks together with it)
   const lead = !dense && columns[0] && !columns[0].label && columns.length > 2 ? 1 : 0;
@@ -758,7 +791,7 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
   const [view, setView] = y.useState("list");
   const [page, setPage] = y.useState(0), [pageSize, setPageSize] = y.useState(50), [exporting, setExporting] = y.useState(false);
   const [calMonth, setCalMonth] = y.useState(() => todayISO().slice(0, 7));
-  const fcols = list ? columns.filter((c) => c.filter) : [];
+  const fcols = list ? [...allColumns.filter((c) => !isCode(c)), ...(extra0 || [])].filter((c) => c.filter) : [];
   const fval = (c, r) => { const v = typeof c.filter === "function" ? c.filter(r) : r[c.key]; return (Array.isArray(v) ? v : [v]).filter((x) => x !== undefined && x !== null && x !== "").map(String); };
   const colFiltered = fcols.length ? rows.filter((r) => fcols.every((c) => !(cf[c.key] || []).length || fval(c, r).some((v) => cf[c.key].includes(v)))) : rows;
   const prim = (x) => x != null && typeof x !== "object";

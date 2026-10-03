@@ -2,7 +2,9 @@
 require('./lib')('fix1', async ({ p, go, dlg, S, mut, as, T, pick, toastText }) => {
   const reg = async (name, gst, pan, submit) => {
     await go('vendor-management/registry'); await p.click('text=Register vendor'); const d = dlg();
-    await d.locator('input').nth(0).fill(name); await d.locator('button[aria-pressed]:has-text("Hardware")').first().click();
+    await d.locator('button:has-text("Fill all details now")').click().catch(() => {}); await p.waitForTimeout(150);
+    await d.locator('input').nth(0).fill(name);
+    await d.locator('[role=combobox][aria-haspopup=listbox]:has-text("Select trades")').first().click(); await p.locator('[role=option]:has-text("Hardware")').first().click(); await p.keyboard.press('Escape');
     await d.locator('input[placeholder="27AAKCS4412M1Z3"]').fill(gst); await d.locator('input[placeholder="AAKCS4412M"]').fill(pan);
     await d.locator('label:has-text("Contact person") input').fill('Aud'); await d.locator('input[type=email]').fill('aud@' + pan.toLowerCase() + '.in');
     await d.locator(`button:has-text("${submit ? 'Submit for approval' : 'Save draft'}")`).click(); await p.waitForTimeout(300);

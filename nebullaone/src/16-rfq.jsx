@@ -702,7 +702,7 @@ function RfqPage() {
   return (
     <Page title="RFQ & Quotations" subtitle="Requests for quotation, vendor responses, comparison and award" icon={Icon.scale}
       actions={<Btn variant="primary" icon={Icon.plus} onClick={() => setCreate(true)}>New RFQ</Btn>}>
-      <DataTable noun="RFQs" extraColumns={LIST_EXTRA.rfqs(st)} calendar={{ label: "Quote due dates", date: (r) => r.dueDate, title: (r) => r.title }} filters={<FilterSelect label="Stage" value={filter} onChange={setFilter} options={[{ value: "All", label: "All stages" }, { value: "To Send", label: "To send", tone: "blue" }, { value: "Waiting", label: "Waiting", tone: "amber" }, { value: "Late", label: "Late", tone: "red" }, { value: "Done", label: "Awarded / closed", tone: "green" }]} />} rows={rows} onRow={(r) => { setCompose(false); setOpen(r.id); }} columns={[
+      <DataTable noun="RFQs" defaultCols={["title", "project", "resp", "due", "s"]} extraColumns={LIST_EXTRA.rfqs(st)} calendar={{ label: "Quote due dates", date: (r) => r.dueDate, title: (r) => r.title }} filters={<FilterSelect label="Stage" value={filter} onChange={setFilter} options={[{ value: "All", label: "All stages" }, { value: "To Send", label: "To send", tone: "blue" }, { value: "Waiting", label: "Waiting", tone: "amber" }, { value: "Late", label: "Late", tone: "red" }, { value: "Done", label: "Awarded / closed", tone: "green" }]} />} rows={rows} onRow={(r) => { setCompose(false); setOpen(r.id); }} columns={[
         { key: "id", label: "RFQ no.", className: "mono text-[12px]" },
         { key: "title", label: "Requirement", className: "font-medium" },
         { key: "project", label: "Project", filterOptions: FO.projects, filter: true },

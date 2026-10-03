@@ -300,7 +300,7 @@ function MeasurementBookPage() {
       {tab === "ncr" && <NcrTable rows={(st.ncrs || []).filter((n) => wo === "All" || n.woId === wo)} />}
       {ncrFor && <NcrModal woId={ncrFor.woId} mb={ncrFor} onClose={() => setNcrFor(null)} />}
       {tab === "mb" && <>
-        <DataTable noun="measurements" extraColumns={LIST_EXTRA.mb(st)} filters={<><FilterSelect label="Work order" value={wo} onChange={setWo} options={woOpts} /><FilterSelect label="JMS" value={jms} onChange={setJms} options={[{ value: "All", label: "All JMS status" }, "Pending", "Signed", "Disputed"]} /></>} rows={rows} onRow={(m) => setOpenMb(m.id)} columns={[
+        <DataTable noun="measurements" defaultCols={["wo", "item", "qty", "jms", "qc"]} extraColumns={LIST_EXTRA.mb(st)} filters={<><FilterSelect label="Work order" value={wo} onChange={setWo} options={woOpts} /><FilterSelect label="JMS" value={jms} onChange={setJms} options={[{ value: "All", label: "All JMS status" }, "Pending", "Signed", "Disputed"]} /></>} rows={rows} onRow={(m) => setOpenMb(m.id)} columns={[
           { key: "id", label: "MB no.", className: "mono text-[12px]" },
           { key: "date", label: "Date", render: (m) => fmtDate(m.date) },
           { key: "wo", label: "Work order", render: (m) => (byId(st.workOrders, m.woId) || {}).title || m.woId },

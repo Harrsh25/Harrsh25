@@ -2,6 +2,15 @@
 // newest first; clicking an entry opens its record.
 
 // ---------------------------------------------------------------- audit log
+// The record an entry is about, by name (codes are not shown on lists)
+function auditName(a) {
+  const st = getState();
+  for (const k of ["vendors", "purchaseOrders", "invoices", "contracts", "workOrders", "raBills", "rfqs", "requisitions", "blanketOrders", "invitations"]) {
+    const r = (st[k] || []).find((x) => x.id === a.id);
+    if (r) return r.name || r.title || r.company || (r.vendorId ? `${vendorName(st, r.vendorId)}${r.number ? " · " + r.number : ""}` : a.id);
+  }
+  return a.id || "—";
+}
 function auditLink(a) {
   const id = String(a.id || "").split(",")[0].trim();
   const map = { Vendor: `${VM_BASE}/registry?open=`, PO: `${VM_BASE}/purchase-orders?open=`, Invoice: `${VM_BASE}/invoices?open=`, Payment: `${VM_BASE}/invoices?open=`, RFQ: `${VM_BASE}/rfq?open=`,
@@ -20,8 +29,8 @@ function AuditLogPage() {
           { key: "at", label: "When", sort: (r) => r.at, render: (r) => fmtDateTime(r.at) },
           { key: "by", label: "Who", filterOptions: () => uniqSorted(getState().audit.map((a) => a.by)), filter: (r) => r.by },
           { key: "entity", label: "Entity", filterOptions: () => uniqSorted(getState().audit.map((a) => a.entity)), filter: (r) => r.entity },
-          { key: "id", label: "Record", render: (r) => <span className={cls("mono text-[12px]", auditLink(r) && "text-brand")}>{r.id}</span> },
-          { key: "action", label: "Action", className: "max-w-[520px] whitespace-normal text-[12.5px]" },
+          { key: "rec", label: "Record", sort: (r) => auditName(r), render: (r) => <span className={cls("text-[12.5px]", auditLink(r) && "text-brand")}>{auditName(r)}</span> },
+          { key: "desc", label: "Activity", sort: (r) => r.action, className: "max-w-[520px] whitespace-normal text-[12.5px]", render: (r) => r.action },
         ]} />
     </Page>
   );
