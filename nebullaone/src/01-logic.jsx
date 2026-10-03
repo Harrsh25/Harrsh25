@@ -257,13 +257,14 @@ function invoiceTotals(inv) {
   const taxable = sum(inv.lines, (l) => l.qty * l.rate);
   const gst = round2((taxable * (inv.gstPct || 0)) / 100);
   const gross = inv.source === "RA Bill" ? inv.amount : round2(taxable + gst);
-  const paid = sum(inv.payments, (p) => p.amount + (p.tds || 0));
+  const paid = sum(inv.payments.filter((p) => !p.reversed), (p) => p.amount + (p.tds || 0));
   const notes = sum(inv.notes || [], (n) => (n.type === "Debit Note" ? -n.amount : n.amount));
   // A vendor invoice rejected by AP is not payable
-  const payable = inv.review === "Rejected" ? 0 : round2(gross + notes);
+  const payable = inv.review === "Rejected" || inv.cancelled ? 0 : round2(gross + notes);
   return { taxable, gst, gross, paid, notes, payable, balance: round2(payable - paid) };
 }
 function invoiceStatus(inv) {
+  if (inv.cancelled) return "Cancelled";
   if (inv.review === "Pending") return "Awaiting Review";
   if (inv.review === "Rejected") return "Rejected";
   const t = invoiceTotals(inv);

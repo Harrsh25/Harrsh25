@@ -366,8 +366,23 @@ function contractBoq(st, c) {
 
 // ---------------------------------------------------------------- daily sweep
 // Holds with a release date in the past end automatically (the vendor returns to Active).
+// Payment terms that come with a vendor group (a child group inherits its parent's)
+const groupTerms = (st, g) => { const m = (settingsOf(st).vendorGroupTerms || {}); return !g ? "" : m[g] || m[String(g).split(" › ")[0]] || ""; };
+// Odoo "Receipt reminder": N days before the expected delivery the vendor is reminded to confirm / ship
+const reminderDays = (st, v) => (v && !VX.blank(v.receiptReminderDays) ? Number(v.receiptReminderDays) : Number(settingsOf(st).receiptReminderDays) || 0);
+const receiptReminderDue = (st, po) => {
+  const v = byId(st.vendors || [], po.vendorId), d = reminderDays(st, v);
+  return d > 0 && ["Issued", "Partially Received"].includes(poStatus(po)) && daysUntil(po.deliveryDate) >= 0 && daysUntil(po.deliveryDate) <= d && !(po.reminders || []).some((r) => r.for === po.deliveryDate);
+};
 function sweepState(s) {
   let changed = false;
+  for (const po of s.purchaseOrders || []) {
+    if (receiptReminderDue(s, po)) {
+      po.reminders = [...(po.reminders || []), { at: new Date().toISOString(), for: po.deliveryDate, auto: true }];
+      (s.audit = s.audit || []).unshift({ at: new Date().toISOString(), by: "System", entity: "PO", id: po.id, action: `Receipt reminder e-mailed to the vendor — delivery due ${fmtDate(po.deliveryDate)}` });
+      changed = true;
+    }
+  }
   for (const v of s.vendors || []) {
     if (v.status === "On Hold" && v.hold && v.hold.until && daysUntil(v.hold.until) < 0) {
       v.holdHistory = [...(v.holdHistory || []), { ...v.hold, endedAt: todayISO(), ended: "Release date passed" }];

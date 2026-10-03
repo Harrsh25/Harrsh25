@@ -24,6 +24,19 @@ function DocBar({ related }) {
   return <div className="px-6 pb-3"><RelatedButtons items={related} /></div>;
 }
 
+// ---- reason prompt for cancel / close / reverse actions (every platform asks why and logs it)
+function ReasonModal({ title, text, action = "Confirm", tone = "danger", onClose, onDone }) {
+  const [r, setR] = y.useState("");
+  const bad = VX.reason(r);
+  return (
+    <Modal open onClose={onClose} width={480} title={title}
+      footer={<><Btn onClick={onClose}>Back</Btn><Btn variant={tone} disabled={!!bad} onClick={() => { onDone(r.trim()); onClose(); }}>{action}</Btn></>}>
+      {text && <p className="mb-3 text-[13px] text-ink-soft">{text}</p>}
+      <Field label="Reason" required><TextArea rows={2} value={r} onChange={setR} placeholder="Why — kept in the audit log" /></Field>
+    </Modal>
+  );
+}
+
 // ---- related documents per record: { label, count, to, icon, value? }
 const q_ = (x) => encodeURIComponent(x);
 function relatedFor(st, kind, r) {

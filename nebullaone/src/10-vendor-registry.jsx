@@ -312,7 +312,7 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank, quic
           <div className="grid grid-cols-2 gap-3">
             <Field label="Supplier tier"><Select value={f.tier} onChange={(v) => upd("tier", v)} options={TIERS} /></Field>
             <Field label="Registration tier" hint="Prospective vendors can quote but can't receive POs"><Select value={f.regTier} onChange={(v) => upd("regTier", v)} options={["Spend Authorized", "Prospective"]} /></Field>
-            <Field label="Vendor group" hint="Used to filter the vendor list"><Select value={f.group} placeholder="Not grouped" onChange={(v) => upd("group", v)} options={withCurrent(settingsOf(getState()).vendorGroups, f.group)} /></Field>
+            <Field label="Vendor group" hint="Used to filter the vendor list"><Select value={f.group} placeholder="Not grouped" onChange={(v) => set({ ...f, group: v, paymentTerms: groupTerms(getState(), v) || f.paymentTerms })} options={withCurrent(settingsOf(getState()).vendorGroups, f.group)} /></Field>
             <Field label="Internal parent company" hint="Only if this vendor is one of our group companies"><Select value={f.parentCompany} placeholder="External vendor" onChange={(v) => upd("parentCompany", v)} options={withCurrent(settingsOf(getState()).groupCompanies, f.parentCompany)} /></Field>
           </div>
         </FormSection>
@@ -530,7 +530,7 @@ function VendorFlags({ v }) {
               {v.regTier === "Spend Authorized" && <button className="text-[12px] font-medium text-brand" onClick={() => tryAct("Procurement Head", [], "downgrading a vendor") && edit("regTier", "Prospective", "Registration tier → Prospective (downgraded)")}>Downgrade</button>}
             </span>
           </Field>
-          <Field label="Vendor group" hint="Used to filter the vendor list"><Select value={v.group || ""} placeholder="Not grouped" onChange={(g) => edit("group", g, g ? `Vendor group → ${g}` : "Removed from vendor group")} options={withCurrent(settingsOf(getState()).vendorGroups, v.group)} /></Field>
+          <Field label="Vendor group" hint="Used to filter the vendor list"><Select value={v.group || ""} placeholder="Not grouped" onChange={(g) => mut((x) => { x.group = g; const t = groupTerms(getState(), g); if (t) x.paymentTerms = t; }, g ? `Vendor group → ${g}${groupTerms(getState(), g) ? ` (payment terms ${groupTerms(getState(), g)})` : ""}` : "Removed from vendor group")} options={withCurrent(settingsOf(getState()).vendorGroups, v.group)} /></Field>
           <Field label="Internal parent company" hint="Only if this vendor is one of our group companies" span={2}><Select value={v.parentCompany || ""} placeholder="External vendor" onChange={(g) => edit("parentCompany", g, g ? `Marked as group company of ${g}` : "Marked as external vendor")} options={withCurrent(settingsOf(getState()).groupCompanies, v.parentCompany)} /></Field>
           <Field label="Trades / categories (multi-trade)" span={3}>
             <TradePicker options={TRADES} value={v.categories} onChange={(c) => edit("categories", c, "Categories updated")} />

@@ -65,7 +65,7 @@ const DOC_FIELDS = [
   { key: "costCentre", label: "Cost centre", group: "Accounting", type: "select", opts: (st) => settingsOf(st).costCentres, kinds: "req quote po blanket grn bill payment contract" },
   { key: "project", label: "Project", group: "Accounting", type: "select", opts: () => PROJECTS, kinds: "quote po grn bill payment" },
   // Transport
-  { key: "transporter", label: "Transporter name", group: "Transport", type: "text", kinds: "grn" },
+  { key: "transporter", label: "Transporter", group: "Transport", type: "suggest", opts: (st) => st.vendors.filter((v) => v.isTransporter).map((v) => v.name), kinds: "grn" },
   { key: "vehicleNo", label: "Vehicle number", group: "Transport", type: "text", kinds: "grn" },
   { key: "vehicleDate", label: "Vehicle date", group: "Transport", type: "date", kinds: "grn" },
   // India GST on bills (ERPNext place_of_supply / eligibility_for_itc, Zoho Books source of supply / ITC eligibility)
@@ -128,6 +128,8 @@ function DocDetails({ kind, value, onChange, vendor, subtotal, open: openInit = 
   const input = (f) => {
     const val = d[f.key];
     if (f.type === "readonly") return <span className="flex h-[32px] items-center text-[13px] text-ink-soft">{f.value(st, vendor)}</span>;
+    // free text with a pick-list (e.g. vendors marked "Also a transporter")
+    if (f.type === "suggest") { const lid = `nx-dl-${f.key}`; return <><input list={lid} className={inputCls} value={val ?? ""} onChange={(e) => set(f.key, e.target.value)} placeholder="Pick or type" /><datalist id={lid}>{(f.opts(st, vendor) || []).map((o) => <option key={o} value={o} />)}</datalist></>; }
     if (f.type === "select") return <Select value={val ?? ""} placeholder="—" onChange={(x) => set(f.key, x)} options={keepCurrent(f.opts(st, vendor) || [], val)} />;
     if (f.type === "number") return <NumInput value={val ?? ""} onChange={(x) => set(f.key, x)} />;
     if (f.type === "date") return <DateInput value={val || ""} onChange={(x) => set(f.key, x)} />;
@@ -215,7 +217,7 @@ const ENTITY_TYPES = ["Private limited company", "Public limited company", "LLP"
 const GST_TREATMENTS = ["Registered — regular", "Registered — composition", "Unregistered", "Overseas", "SEZ"];
 const TAX_PREFS = ["Taxable", "Tax exempt", "Non-GST supply"];
 const MSME_TYPES = ["Not MSME", "Micro", "Small", "Medium"];
-const PAY_METHODS = ["NEFT", "RTGS", "IMPS", "Cheque", "Wire transfer (SWIFT)", "UPI"];
+const PAY_METHODS = PAY_MODES;
 const BILL_DELIVERY = ["Supplier portal", "E-mail", "Paper (courier)"];
 const FEDERAL_TAX_TYPES = ["Corporation", "Partnership", "Individual / sole proprietor", "Exempt organisation", "Not applicable"];
 const SALUTATIONS = ["Mr", "Ms", "Mrs", "Dr", "Er"];
@@ -260,11 +262,12 @@ function VendorMoreFields({ f, set, errors, publicMode, foreign }) {
       <Field label="Payment method"><Select value={f.paymentMethod || ""} onChange={(x) => upd("paymentMethod", x)} options={PAY_METHODS} /></Field>
       <Field label="Price list"><Select value={f.priceList || ""} placeholder="Company default" onChange={(x) => upd("priceList", x)} options={settingsOf(st).priceLists} /></Field>
       <Field label="Credit limit (₹)"><NumInput value={f.creditLimit ?? ""} onChange={(x) => upd("creditLimit", x)} placeholder="Warn on POs above this" />{err("creditLimit")}</Field>
-      <Field label="Bill delivery"><Select value={f.billDelivery || ""} onChange={(x) => upd("billDelivery", x)} options={BILL_DELIVERY} /></Field>
       <Field label="Default buyer"><TextInput value={f.defaultBuyer || ""} onChange={(x) => upd("defaultBuyer", x)} placeholder="Name of the buyer" /></Field>
       <Field label="Receipt reminder (days)"><NumInput value={f.receiptReminderDays ?? ""} onChange={(x) => upd("receiptReminderDays", x)} placeholder={`${settingsOf(st).receiptReminderDays} days before delivery`} />{err("receiptReminderDays")}</Field>
-      <Check checked={!!f.autoPostBills} onChange={(b) => upd("autoPostBills", b)} label="Auto-post bills" />
-      <Check checked={!!f.isTransporter} onChange={(b) => upd("isTransporter", b)} label="Also a transporter" />
+      <div className="flex flex-col justify-end gap-1.5 pb-1">
+        <Check checked={!!f.autoPostBills} onChange={(b) => upd("autoPostBills", b)} label="Auto-post bills" />
+        <Check checked={!!f.isTransporter} onChange={(b) => upd("isTransporter", b)} label="Also a transporter" />
+      </div>
     </div>
   );
 }
@@ -368,7 +371,7 @@ function VendorMoreView({ v }) {
     ["Entity type", v.entityType], ["GST treatment", v.gstTreatment], ["Tax preference", v.taxPreference], ["Place of supply", v.placeOfSupply],
     ["MSME", v.msmeType && v.msmeType !== "Not MSME" ? `${v.msmeType}${v.udyamNo ? ` · ${v.udyamNo}` : ""}` : null], ["CIN / LLPIN", v.cin], ["D-U-N-S", v.duns], ["Federal tax type", v.federalTaxType],
     ["Payment method", v.paymentMethod], ["Price list", v.priceList], ["Credit limit", v.creditLimit ? inrShort(v.creditLimit) : null],
-    ["Bill delivery", v.billDelivery], ["Auto-post bills", v.autoPostBills ? "Yes" : null], ["Default buyer", v.defaultBuyer], ["Receipt reminder", v.receiptReminderDays ? `${v.receiptReminderDays} days before delivery` : null],
+    ["Auto-post bills", v.autoPostBills ? "Yes" : null], ["Default buyer", v.defaultBuyer], ["Receipt reminder", v.receiptReminderDays ? `${v.receiptReminderDays} days before delivery` : null],
     ["Transporter", v.isTransporter ? "Yes" : null], ["Website", v.website], ["Tags", (v.tags || []).length ? <CategoryChips list={v.tags} max={99} wrap /> : null],
     ["Frozen", v.frozen ? "Yes — no new transactions" : null], ...custom,
   ].filter((r) => r[1]);
@@ -658,6 +661,7 @@ function RequisitionsPage() {
             {r.status === "Submitted" && <><Btn variant="danger" onClick={() => act(r, "Cancelled", "Rejected")}>Reject</Btn><Btn variant="success" onClick={() => act(r, "Approved", "Approved")}>Approve</Btn></>}
             {r.status === "Approved" && <Btn onClick={() => act(r, "Stopped", "Stopped")}>Stop</Btn>}
             {r.status === "Stopped" && <Btn onClick={() => act(r, "Approved", "Re-opened")}>Re-open</Btn>}
+            {["Approved", "RFQ raised", "Partially ordered"].includes(reqStatus(st, r)) && <Btn onClick={() => nav(`${VM_BASE}/purchase-orders?fromReq=${r.id}`)} icon={Icon.package}>Create PO</Btn>}
             {r.status === "Approved" && <Btn variant="primary" icon={Icon.send} onClick={() => nav(`${VM_BASE}/rfq?fromReq=${r.id}`)}>Create RFQ</Btn>}
           </>}>
           <div className="space-y-4 px-6 py-5">

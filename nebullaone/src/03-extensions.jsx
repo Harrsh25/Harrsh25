@@ -32,6 +32,8 @@ const DEFAULT_SETTINGS = {
     "Civil Contractors › Structural", "Civil Contractors › Finishing", "EPC Contractors › Transmission", "EPC Contractors › Solar",
     "Labour Contractors", "Specialist Subcontractors", "Equipment & Services",
   ],
+  // Payment terms per vendor group (ERPNext Supplier Group default payment terms) — picking the group fills the vendor's terms
+  vendorGroupTerms: { "Labour Contractors": "Net 15", "Material Suppliers › Cement": "Net 30", "Material Suppliers › Steel": "Net 45" },
   // Our own group companies — vendors linked to one are inter-company suppliers
   groupCompanies: ["NebullaOne Equipment Pvt Ltd", "NebullaOne Precast Ltd", "NebullaOne Realty Ltd"],
   // Compliance requirements (Procore-style insurance requirements + Ariba/Oracle-style document rules).
@@ -227,7 +229,7 @@ const quoteStatus = (rfq, q) => {
 function poBillingStatus(st, po) {
   if (po.status === "Draft" || po.status === "Cancelled") return "—";
   const rec = poReceived(po);
-  const billed = (i) => sum(st.invoices.filter((x) => x.poId === po.id).flatMap((x) => x.lines.filter((l) => l.line === i)), (l) => l.qty);
+  const billed = (i) => sum(st.invoices.filter((x) => x.poId === po.id && !x.cancelled).flatMap((x) => x.lines.filter((l) => l.line === i)), (l) => l.qty);
   const billable = (l) => (po.billingPolicy === "On ordered quantity" ? l.qty : l.accepted + (settingsOf(st).billRejectedQty ? l.rejected : 0));
   const toBill = sum(rec, (l, i) => Math.max(0, billable(l) - billed(i)));
   const anyBilled = rec.some((_, i) => billed(i) > 0);

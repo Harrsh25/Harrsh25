@@ -532,7 +532,7 @@ function RfqDrawer({ id, onClose, compose }) {
   const st = useStore();
   const rfq = byId(st.rfqs, id);
   const [send, setSend] = y.useState(compose ? { all: true } : null);
-  const [record, setRecord] = y.useState(null);
+  const [record, setRecord] = y.useState(null), [cancelAsk, setCancelAsk] = y.useState(false);
   const [award, setAward] = y.useState(null);
   const [share, setShare] = y.useState(null);
   const [ret, setRet] = y.useState(null);
@@ -553,8 +553,11 @@ function RfqDrawer({ id, onClose, compose }) {
         <Btn icon={Icon.download} onClick={() => printRfq(rfq)}>Print / PDF</Btn>
         {open && <Btn icon={Icon.layers} onClick={() => setAlt(true)}>Alternative RFQ</Btn>}
         {rfq.status === "Draft" && <Btn variant="primary" icon={Icon.send} onClick={() => setSend({ all: true })}>Compose & send</Btn>}
+        {open && !(rfq.awards || []).length && <Btn variant="danger" onClick={() => setCancelAsk(true)}>Cancel RFQ</Btn>}
         {open && rfq.status !== "Draft" && <Btn icon={Icon.plus} onClick={() => setRecord(rfq.vendorIds.find((v) => !rfq.quotes.some((q) => q.vendorId === v)) || rfq.vendorIds[0])}>Record quote on vendor's behalf</Btn>}
       </>}>
+      {cancelAsk && <ReasonModal title={`Cancel ${rfq.id}`} text="Invited vendors are told the RFQ is withdrawn; quotes received stay on record." action="Cancel RFQ" onClose={() => setCancelAsk(false)}
+        onDone={(r) => { setState((s) => { const x = byId(s.rfqs, rfq.id); x.status = "Cancelled"; x.cancelled = { at: new Date().toISOString(), by: currentUser(), reason: r }; }, { entity: "RFQ", id: rfq.id, action: `Cancelled — ${r}` }); toast(`${rfq.id} cancelled`, "red"); }} />}
       <div className="space-y-4 px-6 py-5">
         {alt && <NewRfqModal open preset={{ ...JSON.parse(JSON.stringify({ project: rfq.project, items: rfq.items, tnc: rfq.tnc, incoterm: rfq.incoterm, weights: rfq.weights, questions: rfq.questions || [], ranking: rfq.ranking || "Hidden", details: rfq.details || {}, attachments: rfq.attachments || [] })), title: `${rfq.title} — alternative`, vendorIds: [], sourceRef: `Alternative to ${rfq.id}`, altOf: rfq.id, dueDate: shiftDays(7) }} onClose={() => setAlt(false)} onCreated={() => setAlt(false)} />}
         {(rfq.questions || []).length > 0 && <Note icon={Icon.listChecks}>{rfq.questions.length} requirement question(s) · ranking shown to vendors: <b>{rfq.ranking || "Hidden"}</b>{rfq.multiResponse === false ? " · one response only" : ""}</Note>}

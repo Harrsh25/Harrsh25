@@ -17,12 +17,19 @@ function useQueryOpen() {
 }
 
 // ---------------------------------------------------------------- purchase orders
-function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket }) {
+function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket, requisitionId }) {
   const st = useStore();
   const set0 = settingsOf(st);
   const blank = () => ({ vendorId: "", blanketId: presetBlanket || "", project: PROJECTS[0], deliveryDate: shiftDays(14), billingPolicy: "On received quantity", tolerance: 2, lines: [{ desc: "", unit: "nos", qty: "", rate: "" }], details: docDefaults("po", st) });
   const [f, setF] = y.useState(blank);
-  y.useEffect(() => { if (open) { const b = blank(); if (presetBlanket) Object.assign(b, fromBlanket(presetBlanket)); setF(b); } }, [open]);
+  y.useEffect(() => { if (open) { const b = blank(); if (presetBlanket) Object.assign(b, fromBlanket(presetBlanket)); if (requisitionId) Object.assign(b, fromRequisition(requisitionId)); setF(b); } }, [open]);
+  // Requisition → PO directly (ERPNext Material Request → Purchase Order, Oracle / SAP requisition to order)
+  function fromRequisition(rid) {
+    const r = (st.requisitions || []).find((x) => x.id === rid);
+    if (!r) return {};
+    return { requisitionId: rid, project: r.project || PROJECTS[0], deliveryDate: r.requiredBy && r.requiredBy >= todayISO() ? r.requiredBy : shiftDays(14),
+      lines: (r.items || []).filter((i) => i.desc).map((i) => ({ desc: i.desc, unit: i.unit || "nos", qty: i.qty, rate: i.rate || "", ...(i.requiredBy ? { needBy: i.requiredBy } : {}) })) };
+  }
   function fromBlanket(boId) {
     const bo = byId(st.blanketOrders, boId);
     if (!bo) return { blanketId: "" };
@@ -67,7 +74,7 @@ function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket }) {
       <div className="space-y-4">
         <div className="grid grid-cols-3 gap-3">
           <Field label="Draw from blanket order" hint="Uses the agreed rates"><Select value={f.blanketId} placeholder="— none (standalone PO) —" onChange={(x) => setF({ ...blank(), ...(x ? fromBlanket(x) : {}), project: f.project })} options={activeBlankets.map((b) => ({ value: b.id, label: `${b.id} — ${vendorName(st, b.vendorId)}` }))} /></Field>
-          <Field label="Vendor" required hint="Only spend-authorized, unblocked vendors"><Select value={f.vendorId} disabled={!!bo} placeholder="Select vendor…" onChange={(x) => { const nv = byId(st.vendors, x); setF({ ...f, vendorId: x, details: { ...(f.details || {}), currency: nv?.currency || "INR", fx: fxRate(nv?.currency), paymentTerms: nv?.paymentTerms, priceList: nv?.priceList || f.details?.priceList, supplierAddress: "", supplierContact: "" } }); }} options={vendors.map((x) => ({ value: x.id, label: x.name }))} /></Field>
+          <Field label="Vendor" required hint="Only spend-authorized, unblocked vendors"><Select value={f.vendorId} disabled={!!bo} placeholder="Select vendor…" onChange={(x) => { const nv = byId(st.vendors, x); setF({ ...f, vendorId: x, details: { ...(f.details || {}), buyer: nv?.defaultBuyer || (f.details || {}).buyer || currentUser(), currency: nv?.currency || "INR", fx: fxRate(nv?.currency), paymentTerms: nv?.paymentTerms, priceList: nv?.priceList || f.details?.priceList, supplierAddress: "", supplierContact: "" } }); }} options={vendors.map((x) => ({ value: x.id, label: x.name }))} /></Field>
           <Field label="Project"><Select value={f.project} onChange={(x) => setF({ ...f, project: x })} options={PROJECTS} /></Field>
           <Field label="Delivery by"><DateInput value={f.deliveryDate} onChange={(x) => setF({ ...f, deliveryDate: x })} /><FieldErr m={poErr.delivery} /></Field>
           <Field label="Bill control"><Select value={f.billingPolicy} onChange={(x) => setF({ ...f, billingPolicy: x })} options={["On received quantity", "On ordered quantity"]} /></Field>
@@ -233,7 +240,7 @@ function GrnModal({ po, onClose }) {
 function PoDrawer({ id, onClose }) {
   const st = useStore();
   const po = byId(st.purchaseOrders, id);
-  const [grn, setGrn] = y.useState(false);
+  const [grn, setGrn] = y.useState(false), [ask, setAsk] = y.useState(null);
   const [amend, setAmend] = y.useState(null);
   const [bill, setBill] = y.useState(false);
   if (!po) return null;
@@ -252,12 +259,21 @@ function PoDrawer({ id, onClose }) {
   return (
     <Drawer open related={relatedFor(st, "po", po)} comments={po.id} onClose={onClose} width={940} title={`${po.id} · ${v.name}`} subtitle={<><Status>{status}</Status><Status tone="blue">{bstatus}</Status><span>{po.project}</span><span>· delivery by {fmtDate(po.deliveryDate)}</span>{po.rfqId && <span>· from <RefLink to={`${VM_BASE}/rfq?open=${po.rfqId}`}>{po.rfqId}</RefLink></span>}{po.blanketId && <span>· call-off {po.blanketId}</span>}{po.quoteNo && <span>· vendor quote {po.quoteNo}</span>}</>}
       actions={<>
-        {po.status === "Draft" && <Btn variant="primary" onClick={() => decidePo(po, true)}>Approve & issue</Btn>}
+        {po.status === "Draft" && <><Btn variant="danger" onClick={() => setAsk("reject")}>Reject</Btn><Btn variant="primary" onClick={() => decidePo(po, true)}>Approve & issue</Btn></>}
+        {/* Cancel while nothing is received or billed; close (short-close) once part is received and no more is expected */}
+        {["Issued"].includes(status) && !st.invoices.some((i) => i.poId === po.id && !i.cancelled) && <Btn variant="danger" onClick={() => setAsk("cancel")}>Cancel PO</Btn>}
+        {status === "Partially Received" && <Btn onClick={() => setAsk("close")}>Close (short-close)</Btn>}
         {!["Draft", "Closed", "Cancelled"].includes(po.status) && status !== "Received" && <Btn variant="primary" icon={Icon.truck} disabled={isBlockedFor(v, "All")} onClick={() => setGrn(true)}>Receive goods</Btn>}
         {["Waiting Bills", "Partially Billed"].includes(bstatus) && <Btn icon={Icon.receipt} onClick={() => setBill(true)}>Create bill</Btn>}
         {!["Closed", "Cancelled"].includes(po.status) && <Btn icon={po.status !== "Draft" && settingsOf(st).lockConfirmedOrders ? Icon.lock : Icon.pencil} title={po.status !== "Draft" && settingsOf(st).lockConfirmedOrders ? "Confirmed orders are locked — the change is recorded as a new revision with a reason" : ""} onClick={() => setAmend({ deliveryDate: po.deliveryDate, lines: po.lines.map((l) => ({ ...l })), note: "" })}>{po.status !== "Draft" && settingsOf(st).lockConfirmedOrders ? "Unlock & amend" : "Edit"}</Btn>}
       </>}>
+      {ask === "reject" && <ReasonModal title={`Reject ${po.id}`} action="Reject" onClose={() => setAsk(null)} onDone={(r) => decidePo(po, false, r)} />}
+      {ask === "cancel" && <ReasonModal title={`Cancel ${po.id}`} text="Nothing has been received or billed. The vendor is told the order is cancelled." action="Cancel PO" onClose={() => setAsk(null)}
+        onDone={(r) => { setState((s) => { const x = byId(s.purchaseOrders, po.id); x.status = "Cancelled"; x.cancelled = { at: new Date().toISOString(), by: currentUser(), reason: r }; }, { entity: "PO", id: po.id, action: `Cancelled — ${r}` }); toast(`${po.id} cancelled`, "red"); }} />}
+      {ask === "close" && <ReasonModal title={`Close ${po.id}`} text="The quantity not yet received is no longer expected. What was received can still be billed." action="Close PO" tone="primary" onClose={() => setAsk(null)}
+        onDone={(r) => { setState((s) => { const x = byId(s.purchaseOrders, po.id); x.status = "Closed"; x.closed = { at: new Date().toISOString(), by: currentUser(), reason: r }; }, { entity: "PO", id: po.id, action: `Closed (short-close) — ${r}` }); toast(`${po.id} closed`); }} />}
       <div className="space-y-4 px-6 py-5">
+        {(po.reminders || []).length > 0 && <Note icon={Icon.mail}>Receipt reminder sent to the vendor {fmtDateTime(po.reminders[po.reminders.length - 1].at)}{po.reminders[po.reminders.length - 1].auto ? ` (automatic, ${reminderDays(st, v)} days before delivery)` : ""}.</Note>}
         <div className="grid grid-cols-4 gap-3">
           <StatTile tone="blue" label="PO value" value={inrShort(poValue(po))} sub="excl. GST" icon={Icon.package} />
           <StatTile tone="green" label="Accepted" value={`${pct(sum(rec, (l) => l.accepted), sum(rec, (l) => l.qty))}%`} icon={Icon.check} />
@@ -336,8 +352,10 @@ function PoDrawer({ id, onClose }) {
 function PurchaseOrdersPage() {
   const st = useStore();
   const [open, setOpen] = useQueryOpen();
-  const [create, setCreate] = y.useState(false);
-  const live = st.purchaseOrders.filter((p) => !["Cancelled"].includes(p.status));
+  const fromReq = new URLSearchParams(Ht().search).get("fromReq");
+  const [create, setCreate] = y.useState(!!fromReq);
+  // cancelled orders stay on the list with their status, as in every platform
+  const live = st.purchaseOrders;
   return (
     <Page title="Purchase Orders" subtitle="PO generation, partial deliveries, goods receipt, returns & billing status" icon={Icon.package}
       actions={<Btn variant="primary" icon={Icon.plus} onClick={() => setCreate(true)}>New PO</Btn>}>
@@ -352,7 +370,7 @@ function PurchaseOrdersPage() {
         { key: "dd", label: "Delivery by", render: (p) => <span className={cls(poStatus(p) !== "Received" && daysUntil(p.deliveryDate) < 0 && "text-red-600")}>{fmtDate(p.deliveryDate)}</span> },
         { key: "b", label: "Billing", filterOptions: FO.poBilling, filter: (p) => poBillingStatus(st, p), render: (p) => <Status>{poBillingStatus(st, p)}</Status> },
       ]} />
-      <NewPoModal open={create} onClose={() => setCreate(false)} onCreated={setOpen} />
+      <NewPoModal open={create} requisitionId={fromReq} onClose={() => setCreate(false)} onCreated={setOpen} />
       {open && <PoDrawer id={open} onClose={() => setOpen(null)} />}
     </Page>
   );
@@ -493,8 +511,9 @@ function PayModal({ invIds, onClose }) {
   const invs = invIds.map((i) => byId(st.invoices, i));
   // Payment is released by Accounts / Finance, never by whoever entered or approved the bill
   const payBlock = (inv) => actBlock(PAY_ROLES, [inv.enteredBy, inv.review === "Accepted" ? inv.reviewedBy : null, inv.raBillId ? (byId(st.raBills, inv.raBillId)?.history || []).find((x) => x.status === "Approved")?.by : null], "releasing payment");
-  const [mode, setMode] = y.useState("NEFT"), [date, setDate] = y.useState(todayISO());
   const v0 = invs.length === 1 ? byId(st.vendors, invs[0].vendorId) : null;
+  // the vendor's payment method (Oracle / SAP / Odoo) preselects the mode
+  const [mode, setMode] = y.useState(() => (v0 && PAY_MODES.includes(v0.paymentMethod) ? v0.paymentMethod : "NEFT")), [date, setDate] = y.useState(todayISO());
   const [pd, setPd] = y.useState(() => ({ ...docDefaults("payment", st, v0), paidFrom: set0.companyBanks[0], vendorBank: invs.length === 1 ? invs[0].recipientBank || String((v0?.bankAccounts || []).find((b) => b.isDefault)?.id || "") : "", refNo: "", refDate: todayISO(), received: "" }));
   const [override, setOverride] = y.useState({});
   const rows = invs.map((inv) => {
@@ -683,7 +702,7 @@ function InvoiceDrawer({ id, onClose }) {
   const st = useStore();
   const inv = byId(st.invoices, id);
   const [pay, setPay] = y.useState(false), [hold, setHold] = y.useState({ reason: HOLD_REASONS[0], note: "", until: shiftDays(14) }), [note, setNote] = y.useState(null);
-  const [sched, setSched] = y.useState(null), [adv, setAdv] = y.useState(null), [wo, setWo] = y.useState(null);
+  const [sched, setSched] = y.useState(null), [adv, setAdv] = y.useState(null), [wo, setWo] = y.useState(null), [ask, setAsk] = y.useState(null);
   if (!inv) return null;
   const t = invoiceTotals(inv), m = threeWay(st, inv), gate = paymentGate(st, inv), status = invoiceStatus(inv), sbp = shouldBePaid(st, inv);
   const mut = (fn, action) => setState((s) => fn(byId(s.invoices, id)), { entity: "Invoice", id, action });
@@ -694,7 +713,12 @@ function InvoiceDrawer({ id, onClose }) {
     <Drawer open related={relatedFor(st, "bill", inv)} comments={inv.id} onClose={onClose} width={920} title={`${inv.id} · ${vendorName(st, inv.vendorId)}`}
       subtitle={<><Status>{status}</Status><span>{inv.source}{inv.poId ? <> <RefLink to={`${VM_BASE}/purchase-orders?open=${inv.poId}`}>{inv.poId}</RefLink></> : inv.raBillId ? <> <RefLink to={`${CL_BASE}/ra-bills?open=${inv.raBillId}`}>{inv.raBillId}</RefLink></> : ""}</span><span>· vendor ref {inv.number}</span><span>· due {fmtDate(inv.due)}</span>{status !== "Paid" && <span>· should be paid: <b className={cls(sbp === "No" ? "text-red-600" : sbp === "Exception" ? "text-amber-700" : "text-green-700")}>{sbp}</b></span>}</>}
       actions={<>{inv.posted === false && <Btn variant="primary" onClick={() => mut((x) => { x.posted = true; x.postedBy = currentUser(); x.postedAt = new Date().toISOString(); }, "Bill posted — now payable")}>Post bill</Btn>}
-        {inv.posted !== false && t.balance > 0.5 && inv.review !== "Pending" && <Btn variant="primary" icon={Icon.rupee} onClick={() => setPay(true)}>Record payment</Btn>}</>}>
+        {inv.posted !== false && t.balance > 0.5 && inv.review !== "Pending" && !inv.cancelled && <Btn variant="primary" icon={Icon.rupee} onClick={() => setPay(true)}>Record payment</Btn>}
+        {!inv.cancelled && inv.source !== "RA Bill" && !inv.payments.some((p) => !p.reversed) && <Btn variant="danger" onClick={() => setAsk({ kind: "cancel" })}>Cancel bill</Btn>}</>}>
+      {ask && ask.kind === "cancel" && <ReasonModal title={`Cancel ${inv.id}`} text="The bill stops being payable and its quantities can be billed again. Bills with payments must have them reversed first." action="Cancel bill"
+        onClose={() => setAsk(null)} onDone={(r) => { mut((x) => { x.cancelled = { at: new Date().toISOString(), by: currentUser(), reason: r }; }, `Bill cancelled — ${r}`); toast(`${inv.id} cancelled`, "red"); }} />}
+      {ask && ask.kind === "reverse" && <ReasonModal title={`Reverse payment ${ask.p.id}`} text={`${inr(ask.p.amount)}${ask.p.tds ? ` + TDS ${inr(ask.p.tds)}` : ""} goes back on the bill's balance (bounced cheque, wrong account…).`} action="Reverse payment"
+        onClose={() => setAsk(null)} onDone={(r) => mut((x) => { const p = x.payments.find((q) => q.id === ask.p.id); p.reversed = { at: new Date().toISOString(), by: currentUser(), reason: r }; }, `Payment ${ask.p.id} reversed — ${r}`)} />}
       <div className="space-y-4 px-6 py-5">
         {inv.review && <VendorInvoiceReview inv={inv} />}
         <div className="grid grid-cols-4 gap-3">
@@ -766,6 +790,7 @@ function InvoiceDrawer({ id, onClose }) {
             { key: "tds", label: "TDS withheld", align: "right", num: true, render: (p) => (p.tds ? inr(p.tds) : "—") },
             { key: "amount", label: "Amount", align: "right", num: true, render: (p) => inr(p.amount) },
             { key: "o", label: "", render: (p) => (p.override ? <span title={p.override.reason}><Status tone="purple">Override</Status></span> : null) },
+            { key: "rv", label: "", align: "right", render: (p) => (p.reversed ? <span title={p.reversed.reason}><Status tone="red">Reversed</Status></span> : !inv.cancelled && <Btn size="sm" onClick={() => setAsk({ kind: "reverse", p })}>Reverse</Btn>) },
           ]} />
         </Section>
       </div>
@@ -836,7 +861,7 @@ function InvoicesPage() {
     if (wo.type === "Lump Sum") return 0;
     return m.qty * (wo.items.find((i) => i.id === m.lineId)?.rate || 0);
   }) + sum(st.workOrders.filter((w) => w.type === "Lump Sum"), (wo) => woProgress(st, wo).measured - woProgress(st, wo).billed);
-  const tdsFY = sum(st.invoices.flatMap((i) => i.payments), (p) => p.tds) + sum(st.raBills.filter((b) => ["Approved", "Paid"].includes(b.status)), (b) => b.ded.tds);
+  const tdsFY = sum(st.invoices.flatMap((i) => i.payments).filter((p) => !p.reversed), (p) => p.tds) + sum(st.raBills.filter((b) => ["Approved", "Paid"].includes(b.status)), (b) => b.ded.tds);
   return (
     <Page title="Invoices & Payments" subtitle="Vendor bills, 3-way matching, holds, instalments, advances, TDS and payment runs" icon={Icon.receipt}
       actions={<>
@@ -946,6 +971,12 @@ function ProcurementSettingsPage() {
         <BenchmarkSettings f={f} setF={setF} mode={mode} yesNo={yesNo} part="masters" />
         <ListEditor title="Vendor groups" icon={Icon.layers} hint={'Use "Parent › Child" (e.g. Material Suppliers › Steel). Picking a parent in filters includes all its children.'}
           items={f.vendorGroups} onChange={set("vendorGroups")} placeholder="Material Suppliers › Aluminium" usage={(g) => getState().vendors.filter((v) => inGroup(v, g)).length} />
+        <Section title="Payment terms per vendor group" icon={Icon.wallet}>
+          <p className="px-4 pt-3 text-[12px] text-ink-mute">Picking a group on a vendor fills its payment terms (a child group uses its parent's terms if it has none).</p>
+          <div className="grid grid-cols-3 gap-3 p-4">
+            {(f.vendorGroups || []).map((g) => <Field key={g} label={g}><Select value={(f.vendorGroupTerms || {})[g] || ""} placeholder="No default" onChange={(x) => setF({ ...f, vendorGroupTerms: { ...(f.vendorGroupTerms || {}), [g]: x } })} options={PAYMENT_TERMS} /></Field>)}
+          </div>
+        </Section>
         <ListEditor title="Our group companies" icon={Icon.building} hint="Vendors linked to one of these are inter-company suppliers: no RFQ needed, spend reported separately."
           items={f.groupCompanies} onChange={set("groupCompanies")} placeholder="NebullaOne Infra Ltd" usage={(g) => getState().vendors.filter((v) => v.parentCompany === g).length} />
         </>}
