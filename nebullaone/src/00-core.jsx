@@ -603,29 +603,6 @@ function FilterSelectMenu({ value, onChange, options, label }) {
   );
 }
 
-// "⋯" menu on the list toolbar: export and column settings
-function ListMoreMenu({ onExport, canExport, onColumns }) {
-  const [open, setOpen] = y.useState(false), ref = y.useRef(null);
-  y.useEffect(() => {
-    if (!open) return;
-    const off = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    const esc = (e) => e.key === "Escape" && setOpen(false);
-    document.addEventListener("mousedown", off, true); document.addEventListener("keydown", esc);
-    return () => { document.removeEventListener("mousedown", off, true); document.removeEventListener("keydown", esc); };
-  }, [open]);
-  const item = (label, icon, fn, dis) => <button type="button" role="menuitem" disabled={dis} onClick={() => { setOpen(false); fn(); }} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[13px] text-ink hover:bg-gray-50 disabled:opacity-40">{h(icon, { size: 14, className: "text-ink-mute" })}{label}</button>;
-  return (
-    <div ref={ref} className="relative">
-      <button type="button" aria-label="More" aria-haspopup="menu" aria-expanded={open} data-tip="More" onClick={() => setOpen((o) => !o)} className={cls("grid h-8 w-8 place-items-center rounded-md hover:bg-gray-100", open ? "bg-gray-100 text-ink" : "text-ink-soft hover:text-ink")}>{h(Icon.more, { size: 16 })}</button>
-      {open && (
-        <div role="menu" className="absolute right-0 z-50 mt-1 w-[210px] rounded-lg border border-line bg-white py-1 shadow-lg">
-          {item("Export to Excel (CSV)", Icon.download, onExport, !canExport)}
-          {onColumns && item("Customize columns", Icon.sliders, onColumns)}
-        </div>)}
-    </div>
-  );
-}
-
 // Quick filter on a list column (Project Center style): an icon in the toolbar, multi-select menu, applies at once
 function QuickColFilter({ def, value, onChange }) {
   const [open, setOpen] = y.useState(false), ref = y.useRef(null);
@@ -940,7 +917,7 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
             {nFilters > 0 && <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-brand px-1 text-[10px] font-semibold text-white">{nFilters}</span>}
           </button>
         )}
-        <ListMoreMenu onExport={exportCsv} canExport={shown.length > 0} onColumns={list ? () => setPicker(true) : null} />
+        <button type="button" aria-label="Export" data-tip="Export this view to Excel (CSV)" onClick={exportCsv} disabled={!shown.length} className="grid h-8 w-8 place-items-center rounded-md text-ink-soft hover:bg-gray-100 hover:text-ink disabled:opacity-40">{h(Icon.download, { size: 16 })}</button>
       </div>
       {nFilters > 0 && (
         <div className="flex items-center gap-2 border-b border-line bg-gray-50/50 px-4 py-1.5 text-[12.5px] text-ink-soft">
