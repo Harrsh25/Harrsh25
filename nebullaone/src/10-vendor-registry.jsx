@@ -24,12 +24,9 @@ const VENDOR_EXTRA_COLUMNS = (st) => [
   { key: "xGstin", label: "GSTIN", desc: "GST registration number", render: (v) => muted(v.gstin) },
   { key: "xPan", label: "PAN", desc: "Permanent account number", render: (v) => muted(v.pan) },
   { key: "xSupType", label: "Supplier type", desc: "Company, LLP, individual — decides TDS rate", sort: (v) => v.supplierType || "Company", render: (v) => v.supplierType || "Company" },
-  { key: "xGroup", label: "Vendor group", desc: "Group used to filter the vendor list", sort: (v) => v.group, render: (v) => muted(v.group) },
-  { key: "xParent", label: "Internal parent company", desc: "Set only for our own group companies", render: (v) => muted(v.parentCompany) },
   { key: "xStanding", label: "Scorecard standing", desc: "Excellent / Good / Average / Poor", filterLabel: "Standing", filterOptions: FO.standings, filter: (v) => standingOf(st, v.id)?.name, render: (v) => { const b = standingOf(st, v.id); return b ? <Status tone={b.color === "blue" ? "blue" : b.color}>{b.name}</Status> : muted(null); } },
   { key: "xRegOn", label: "Registered on", desc: "Date the vendor record was created", render: (v) => fmtDate(v.createdAt) },
   { key: "xApprOn", label: "Approved on", desc: "Date the last approval stage signed off", render: (v) => muted(approvedOn(v) && fmtDate(approvedOn(v))) },
-  { key: "xHold", label: "Hold reason", desc: "Why the vendor is on hold", render: (v) => muted(v.status === "On Hold" && v.hold?.reason) },
   { key: "xRelease", label: "Hold release date", desc: "When the hold lifts automatically", render: (v) => muted(v.status === "On Hold" && v.hold ? (v.hold.until ? fmtDate(v.hold.until) : "Indefinite") : null) },
 ];
 
@@ -914,7 +911,7 @@ function VendorRegistryPage() {
       {view === "invites" && <InvitesTable onOpenVendor={setOpen} />}
       {view === "vendors" && <>
       {sel.length > 0 && <BulkBar sel={sel} onClear={() => setSel([])} onHold={() => setHoldFor(sel)} />}
-      <DataTable columnsId="vendor-registry-2" defaultCols={["name", "status", "approval", "type", "cat"]} extraColumns={VENDOR_EXTRA_COLUMNS(st)} noun="vendors" exportName="vendor-master" placeholder="Search vendors…"
+      <DataTable columnsId="vendor-registry-3" defaultCols={["name", "type", "cat", "status", "approval"]} extraColumns={VENDOR_EXTRA_COLUMNS(st)} noun="vendors" exportName="vendor-master" placeholder="Search vendors…"
         onClearFilters={() => { setType("All"); setStatus("All"); setTier("All"); }}
         summary={(r) => [{ value: r.filter((v) => v.preferred).length, label: "preferred", color: "text-amber-600" }]}
         filters={<>
@@ -925,13 +922,13 @@ function VendorRegistryPage() {
         rows={rows} onRow={(v) => setOpen(v.id)} columns={[
         { key: "sel", label: "", render: (v) => <input type="checkbox" aria-label={`Select ${v.name}`} className="h-4 w-4 accent-[#0b5ed7]" checked={sel.includes(v.id)} onClick={(e) => e.stopPropagation()} onChange={(e) => setSel(e.target.checked ? [...sel, v.id] : sel.filter((x) => x !== v.id))} /> },
         { key: "name", label: "Vendor", filterOptions: FO.preferred, filterLabel: "Preferred", filterAll: "All vendors", filter: (v) => (v.preferred ? "Preferred" : "Not preferred"), render: (v) => <span className="flex items-center justify-between gap-2 font-medium"><span className="truncate">{v.name}</span><PreferredStar v={v} size={14} /></span> },
-        { key: "status", label: "Status", sort: (v) => lifeStatus(v) || "", render: (v) => <VendorStatusMenu v={v} /> },
-        { key: "approval", label: "Approval", sort: (v) => approvalStatus(v), render: (v) => <VendorStatusMenu v={v} approval /> },
         { key: "type", label: "Supplies", filterOptions: ["Goods", "Services", "Labour"], filter: (v) => vTypes(v).map((t) => (t === "Labor" ? "Labour" : t)), render: (v) => <span className="flex flex-wrap items-center gap-1.5 text-ink-soft">{typeLabel(v)}<GroupCoTag v={v} /></span> },
         { key: "cat", label: "Trades", filterOptions: TRADES, filter: (v) => v.categories, filterLabel: "Trade", sort: (v) => v.categories[0] || "", render: (v) => <CategoryChips list={v.categories} /> },
+        { key: "status", label: "Status", sort: (v) => lifeStatus(v) || "", render: (v) => <VendorStatusMenu v={v} /> },
         { key: "tier", label: "Tier", sort: (v) => TIERS.indexOf(v.tier) },
         { key: "reg", label: "Registration", sort: (v) => v.regTier, render: (v) => <CalmStatus>{v.regTier}</CalmStatus> },
         { key: "comp", label: "Compliance", sort: (v) => complianceOf(v).status, render: (v) => <CalmStatus>{complianceOf(v).status}</CalmStatus> },
+        { key: "approval", label: "Approval", sort: (v) => approvalStatus(v), render: (v) => <VendorStatusMenu v={v} approval /> },
         { key: "score", label: "Score", sort: (v) => vendorScore(st, v.id).score ?? -1, render: (v) => { const sc = vendorScore(st, v.id).score; return sc == null ? <span data-tip="No orders, work orders or ratings yet" className="text-[12.5px] text-ink-faint">New</span> : <ScoreBadge value={sc} />; } },
       ]} />
       </>}
