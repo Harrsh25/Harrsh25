@@ -723,7 +723,7 @@ function InvoiceDrawer({ id, onClose }) {
           <Section title="Bill copy, payment & TDS" icon={Icon.file}>
             <KV items={[["Bill copy", inv.attachment ? <FileLink name={inv.attachment.name} dataUrl={inv.attachment.dataUrl} /> : null], ["Payment reference", inv.payRef || null],
               ["Recipient bank", inv.recipientBank ? (vendorBankOptions(byId(st.vendors, inv.vendorId)).find((o) => o.value === inv.recipientBank) || {}).label : null],
-              ["TDS", inv.tdsSetup?.consider === false ? "Not considered" : [tdsLabel(inv.tdsSetup?.category || byId(st.vendors, inv.vendorId)?.tds), inv.tdsSetup?.group, inv.tdsSetup?.ignoreThreshold && "threshold ignored", inv.tdsSetup?.edit && `manual ${inr(inv.tdsSetup.manual)}`].filter(Boolean).join(" · ")]].filter((x) => x[1])} />
+              ["TDS", inv.tdsSetup?.consider === false ? "Not considered" : [tdsLabel(inv.tdsSetup?.category || billTdsDefault(byId(st.vendors, inv.vendorId), inv)), inv.tdsSetup?.group, inv.tdsSetup?.ignoreThreshold && "threshold ignored", inv.tdsSetup?.edit && `manual ${inr(inv.tdsSetup.manual)}`].filter(Boolean).join(" · ")]].filter((x) => x[1])} />
           </Section>
         )}
         <DocDetailsView kind="bill" value={inv.details} vendor={byId(st.vendors, inv.vendorId)} />

@@ -34,8 +34,8 @@ const VENDOR_EXTRA_COLUMNS = (st) => [
 ];
 
 function VendorTypeTag({ v }) {
-  const c = { Goods: "bg-sky-50 text-sky-700 border-sky-200", Services: "bg-violet-50 text-violet-700 border-violet-200", Labor: "bg-orange-50 text-orange-700 border-orange-200" }[v.type];
-  return <span className={cls("rounded border px-1.5 py-[1px] text-[11px] font-medium", c)}>{v.type}{v.isContractor ? " · Contractor" : ""}</span>;
+  const c = { Goods: "bg-sky-50 text-sky-700 border-sky-200", Services: "bg-violet-50 text-violet-700 border-violet-200", Labor: "bg-orange-50 text-orange-700 border-orange-200" }[vTypes(v)[0]];
+  return <span className={cls("rounded border px-1.5 py-[1px] text-[11px] font-medium", c)}>{typeLabel(v)}{v.isContractor ? " · Contractor" : ""}</span>;
 }
 function CategoryChips({ list, max = 2, wrap }) {
   return (
@@ -48,10 +48,11 @@ function CategoryChips({ list, max = 2, wrap }) {
 
 // ---------------------------------------------------------------- registration
 const SUPPLIER_TYPES = ["Company", "Partnership / LLP", "Individual / HUF", "Proprietorship"];
-const autoTds = (type, st) => (type === "Goods" ? "194Q" : /Individual|Proprietor/.test(st || "") ? "194C-1" : "194C-2");
+// Default TDS on the vendor: goods-only suppliers 194Q, anyone doing services / labour 194C (each bill can still pick its own section)
+const autoTds = (type, st) => ([].concat(type).every((t) => t === "Goods") ? "194Q" : /Individual|Proprietor/.test(st || "") ? "194C-1" : "194C-2");
 const emptyVendor = () => ({
   supplierType: "Company", allowBillWithoutPO: false, allowBillWithoutReceipt: false, portalUsers: [], changeRequest: null,
-  uploads: {}, name: "", legalName: "", type: "Goods", isContractor: false, categories: [], tier: "Approved", regTier: "Spend Authorized",
+  uploads: {}, name: "", legalName: "", type: "Goods", types: ["Goods"], isContractor: false, categories: [], tier: "Approved", regTier: "Spend Authorized",
   gstin: "", pan: "", contact: { name: "", email: "", phone: "" }, address: "", city: "", state: "Maharashtra", country: "India", pin: "", website: "", taxId: "", currency: "INR",
   paymentTerms: "Net 30", tds: "194Q", group: currentSettings().defaultSupplierGroup || "", parentCompany: "", bank: { holder: "", bank: "", account: "", accountConfirm: "", ifsc: "", swift: "", iban: "", accountType: "Current", currency: "", branch: "" },
   ...vendorExtraDefaults(),
@@ -93,7 +94,7 @@ function validateVendor(f) {
   }
   Object.assign(e, vendorExtraErrors(f));
   // Contractor statutory formats
-  if (f.isContractor || f.type === "Labor") {
+  if (f.isContractor || hasType(f, "Labor")) {
     const k = f.contractor || {};
     const c1 = VX.clra(k.labourLicence); if (c1) e.labourLicence = c1;
     if (k.labourLicence && !k.licenceExpiry) e.licenceExpiry = "Enter the licence expiry date";
@@ -108,20 +109,23 @@ function validateVendor(f) {
 
 function createVendor(f, submit, source = "Internal") {
   const st = getState();
-  const id = nextId("VEN", st.vendors);
+  const prev = f.existingId && byId(st.vendors, f.existingId);
+  const id = prev ? prev.id : nextId("VEN", st.vendors);
   const v = {
     ...f, id, name: f.name.trim(), legalName: f.legalName.trim() || f.name.trim(), gstin: isForeign(f) ? "" : f.gstin.toUpperCase(), pan: isForeign(f) ? "" : f.pan.toUpperCase(),
     status: submit ? "Pending Approval" : "Draft", preferred: false, hold: null, notes: f.notesText && f.notesText.trim() ? [{ at: todayISO(), by: currentUser(), text: f.notesText.trim() }] : [], insurance: [],
     bankAccounts: f.bank.account ? [{ id: 1, ...f.bank, accountConfirm: undefined, iban: (f.bank.iban || "").replace(/\s/g, "").toUpperCase(), currency: f.bank.currency || f.currency, account: String(f.bank.account).replace(/\s/g, ""), ifsc: (f.bank.ifsc || "").toUpperCase(), status: "Unverified", addedAt: todayISO(), isDefault: true }] : [],
     approval: { stages: vendorFlowFor(f).map((dept, i) => ({ dept, status: submit && i === 0 ? "Pending" : "Waiting", by: null, at: null, remark: "" })) },
     qualification: null, background: null, createdAt: todayISO(),
-    contractor: f.isContractor || f.type === "Labor" ? { ...f.contractor } : null,
-    onboarding: f.isContractor || f.type === "Labor" ? { checklist: ONBOARD_CHECKLIST.map((item) => ({ item, done: false })), startedAt: todayISO() } : null,
+    contractor: f.isContractor || hasType(f, "Labor") ? { ...f.contractor } : null,
+    onboarding: f.isContractor || hasType(f, "Labor") ? { checklist: ONBOARD_CHECKLIST.map((item) => ({ item, done: false })), startedAt: todayISO() } : null,
   };
   delete v.bank;
   delete v.uploads;
   delete v.notesText;
-  v.source = source;
+  v.source = prev ? prev.source : source;
+  if (prev) { v.createdAt = prev.createdAt; v.notes = [...(prev.notes || []), ...v.notes]; v.completedByVendor = todayISO(); }
+  delete v.existingId;
   if (submit) v.submittedBy = source === "Internal" ? currentUser() : f.contact.name;
   v.portalUsers = v.contact.email ? [{ name: v.contact.name, email: v.contact.email.toLowerCase(), active: true, role: "Admin", lastLogin: null }] : [];
   v.changeRequest = null;
@@ -130,10 +134,10 @@ function createVendor(f, submit, source = "Internal") {
     return u && u.file ? { name, status: "Pending", file: u.file, dataUrl: u.dataUrl || null, expiry: u.expiry || null, uploadedAt: todayISO() } : { name, status: "Missing", expiry: null };
   });
   setState((s) => {
-    s.vendors.unshift(v);
+    if (prev) s.vendors[s.vendors.findIndex((x) => x.id === id)] = v; else s.vendors.unshift(v);
     const inv = f.inviteId && byId(s.invites, f.inviteId);
     if (inv) Object.assign(inv, { status: "Registered", vendorId: id, registeredOn: todayISO() });
-  }, { entity: "Vendor", id, action: `${source === "Self-registration" ? "Self-registered via portal" : "Registered"}${f.inviteId ? ` (invite ${f.inviteId})` : ""}${submit ? " & submitted for approval" : " as draft"}` });
+  }, { entity: "Vendor", id, action: `${prev ? "Registration completed by the vendor" : source === "Self-registration" ? "Self-registered via portal" : "Registered"}${f.inviteId ? ` (invite ${f.inviteId})` : ""}${submit ? " & submitted for approval" : " as draft"}` });
   return id;
 }
 
@@ -159,7 +163,7 @@ function FormSection({ n, title, desc, done, right, children }) {
   );
 }
 
-function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
+function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank, quick }) {
   const formRoot = y.useRef(null);
   const upd = (k, val) => set({ ...f, [k]: val });
   const updC = (k, val) => set({ ...f, contact: { ...f.contact, [k]: val } });
@@ -167,7 +171,7 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
   const updK = (k, val) => set({ ...f, contractor: { ...f.contractor, [k]: val } });
   const err = (k) => errors[k] && <span className="mt-1 block text-[11px] text-red-600">{errors[k]}</span>;
   const ok = (cond, text) => cond && <span className="mt-1 flex items-center gap-1 text-[11px] text-green-700">{h(Icon.check, { size: 11 })}{text}</span>;
-  const isLabour = f.type === "Labor";
+  const isLabour = hasType(f, "Labor");
   const foreign = isForeign(f);
   const onSite = isLabour || f.isContractor;
   const showContractor = contractorMode || onSite;
@@ -181,7 +185,14 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
     if (GST_STATES[g.slice(0, 2)]) next.state = GST_STATES[g.slice(0, 2)];
     set(next);
   };
-  const setType = (t) => set({ ...f, type: t, tds: autoTds(t, f.supplierType), isContractor: t === "Labor" ? true : t === "Goods" ? false : f.isContractor });
+  // Tick any combination of Goods / Services / Labour (at least one stays ticked)
+  const goodsOnly = vTypes(f).every((t) => t === "Goods");
+  const setType = (t) => {
+    const cur = vTypes(f), types = VENDOR_TYPES.filter((x) => (x === t ? !cur.includes(t) : cur.includes(x)));
+    if (!types.length) return;
+    const gOnly = types.every((x) => x === "Goods");
+    set({ ...f, types, type: types[0], tds: autoTds(types, f.supplierType), isContractor: types.includes("Labor") ? true : gOnly ? false : f.isContractor });
+  };
   const docsDone = requiredDocs(f).every((d) => (f.uploads || {})[d]?.file);
   const dup = publicMode ? {} : findDuplicate(f);
   const dupNote = (v, text) => v && <span className="mt-1 block text-[11px] text-red-600">{text} <b>{v.name}</b> ({v.id}, {v.status})</span>;
@@ -196,24 +207,24 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
           <Field label="Company / trade name" required><TextInput value={f.name} onChange={(v) => upd("name", v)} placeholder="e.g. Shree Balaji Infra" />{err("name")}</Field>
           <Field label="Registered legal name" hint="As on the GST certificate — leave empty if same"><TextInput value={f.legalName} onChange={(v) => upd("legalName", v)} placeholder={f.name || "Legal name"} /></Field>
         </div>
-        <p className="mb-2 mt-4 text-[12.5px] font-medium text-ink">Vendor type <span className="text-red-500">*</span></p>
+        <p className="mb-2 mt-4 text-[12.5px] font-medium text-ink">What they supply <span className="text-red-500">*</span> <span className="font-normal text-ink-mute">— tick all that apply</span></p>
         <div className="grid grid-cols-3 gap-3">
           {VENDOR_TYPES.map((t) => {
-            const on = f.type === t, I = TYPE_INFO[t];
+            const on = hasType(f, t), I = TYPE_INFO[t];
             return (
-              <button key={t} type="button" onClick={() => setType(t)} className={cls("flex items-start gap-3 rounded-lg border p-3 text-left transition-colors", on ? "border-brand bg-brand-soft/60 ring-1 ring-brand" : "border-line hover:border-gray-300 hover:bg-gray-50")}>
+              <button key={t} type="button" role="checkbox" aria-checked={on} onClick={() => setType(t)} className={cls("flex items-start gap-3 rounded-lg border p-3 text-left transition-colors", on ? "border-brand bg-brand-soft/60 ring-1 ring-brand" : "border-line hover:border-gray-300 hover:bg-gray-50")}>
                 <span className={cls("grid h-8 w-8 shrink-0 place-items-center rounded-md", on ? "bg-brand text-white" : "bg-gray-100 text-ink-soft")}>{h(I.icon, { size: 16 })}</span>
                 <span><span className={cls("block text-[13.5px] font-semibold", on ? "text-brand" : "text-ink")}>{t === "Labor" ? "Labour" : t}</span><span className="block text-[11.5px] leading-snug text-ink-mute">{I.text}</span></span>
               </button>
             );
           })}
         </div>
-        <label className={cls("mt-3 flex items-start gap-3 rounded-lg border p-3", onSite ? "border-orange-200 bg-orange-50/60" : "border-line", isLabour || f.type === "Goods" ? "cursor-default" : "cursor-pointer hover:bg-gray-50")}>
-          <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[#0b5ed7]" checked={onSite} disabled={isLabour || f.type === "Goods"} onChange={(e) => upd("isContractor", e.target.checked)} />
+        <label className={cls("mt-3 flex items-start gap-3 rounded-lg border p-3", onSite ? "border-orange-200 bg-orange-50/60" : "border-line", isLabour || goodsOnly ? "cursor-default" : "cursor-pointer hover:bg-gray-50")}>
+          <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[#0b5ed7]" checked={onSite} disabled={isLabour || goodsOnly} onChange={(e) => upd("isContractor", e.target.checked)} />
           <span className="min-w-0">
             <span className="flex items-center gap-2 text-[13.5px] font-semibold text-ink">{h(Icon.hardHat, { size: 15, className: onSite ? "text-orange-600" : "text-ink-faint" })}This vendor executes work on site (contractor / subcontractor)</span>
             <span className="mt-0.5 block text-[12px] leading-snug text-ink-soft">
-              {isLabour ? "Always on for Labour vendors — supplying workers means working on your site." : f.type === "Goods" ? "Not applicable — material suppliers only deliver goods. Choose Services or Labour if they also do site work."
+              {isLabour ? "Always on for Labour vendors — supplying workers means working on your site." : goodsOnly ? "Not applicable — material suppliers only deliver goods. Choose Services or Labour if they also do site work."
                 : "Tick for scaffolding, excavation, EPC, installation and similar work done on your site."}
               {" "}Contractors get the <b>“· Contractor”</b> tag, statutory details (labour licence, PF, ESI) and are managed in <b>Contract &amp; Labor</b> — contracts, work orders, measurement book, RA bills, retention and attendance.
             </span>
@@ -224,13 +235,26 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
         </div>
       </FormSection>
 
+      {quick ? (
+        <FormSection n={++n} title="Tax & contact" desc="The rest — bank, documents, addresses, MSME, contractor details — is added later by your team or by the vendor" done={gstOk && panOk && !!f.contact.name && EMAIL_RE.test(f.contact.email)}>
+          <div className="grid grid-cols-3 gap-3">
+            <Field label="GSTIN" required><TextInput value={f.gstin} onChange={setGstin} placeholder="27AAKCS4412M1Z3" maxLength={15} className={cls(inputCls, "mono")} />{err("gstin") || dupNote(dup.gstin, "Already registered:") || ok(gstOk, `Valid · ${GST_STATES[f.gstin.slice(0, 2)] || "state " + f.gstin.slice(0, 2)}`)}</Field>
+            <Field label="PAN" required hint="Filled from the GSTIN"><TextInput value={f.pan} onChange={(v) => upd("pan", v.toUpperCase())} placeholder="AAKCS4412M" maxLength={10} className={cls(inputCls, "mono")} />{err("pan")}</Field>
+            <Field label="GST treatment"><Select value={f.gstTreatment || "Registered — regular"} onChange={(v) => upd("gstTreatment", v)} options={GST_TREATMENTS} /></Field>
+            <Field label="Contact person" required><TextInput value={f.contact.name} onChange={(v) => updC("name", v)} />{err("contactName")}</Field>
+            <Field label="E-mail" required hint="Becomes the vendor's portal login"><TextInput type="email" value={f.contact.email} onChange={(v) => updC("email", v)} />{err("email")}</Field>
+            <Field label="Phone"><TextInput value={f.contact.phone} onChange={(v) => updC("phone", v)} placeholder="+91 98xxx xxxxx" />{err("phone")}</Field>
+            <Field label="Payment terms"><Select value={f.paymentTerms} onChange={(v) => upd("paymentTerms", v)} options={PAYMENT_TERMS} /></Field>
+          </div>
+        </FormSection>
+      ) : (<>
       <FormSection n={++n} title="Tax & payment" desc={foreign ? "Foreign vendor — GSTIN and PAN are not required" : "GSTIN fills the PAN and state automatically"} done={foreign ? !!f.taxId : gstOk && panOk}>
         <div className="grid grid-cols-3 gap-3">
-          <Field label="Country" required><Select value={f.country || "India"} onChange={(v) => set({ ...f, country: v, currency: COUNTRY_CURRENCY[v] || f.currency, tds: v === "India" ? autoTds(f.type, f.supplierType) : "NONE" })} options={COUNTRIES} /></Field>
+          <Field label="Country" required><Select value={f.country || "India"} onChange={(v) => set({ ...f, country: v, currency: COUNTRY_CURRENCY[v] || f.currency, tds: v === "India" ? autoTds(vTypes(f), f.supplierType) : "NONE" })} options={COUNTRIES} /></Field>
           {foreign && <Field label="Tax / VAT registration no." required span={2}><TextInput value={f.taxId || ""} onChange={(v) => upd("taxId", v.toUpperCase())} placeholder="e.g. TRN 100234567800003" className={cls(inputCls, "mono")} />{err("taxId")}</Field>}
           {!foreign && <Field label="GSTIN" required><TextInput value={f.gstin} onChange={setGstin} placeholder="27AAKCS4412M1Z3" maxLength={15} className={cls(inputCls, "mono")} />{err("gstin") || dupNote(dup.gstin, "Already registered:") || ok(gstOk, `Valid · ${GST_STATES[f.gstin.slice(0, 2)] || "state code " + f.gstin.slice(0, 2)}`)}</Field>}
           {!foreign && <Field label="PAN" required><TextInput value={f.pan} onChange={(v) => upd("pan", v.toUpperCase())} placeholder="AAKCS4412M" maxLength={10} className={cls(inputCls, "mono")} />{err("pan") || (dup.pan && <span className="mt-1 block text-[11px] text-amber-700">Same PAN as <b>{dup.pan.name}</b> ({dup.pan.id}) — another branch of the same company?</span>) || ok(panOk && gstOk && f.gstin.slice(2, 12) === f.pan, "Matches GSTIN")}</Field>}
-          <Field label="Supplier type" hint="Individual / HUF: 1% TDS, others 2%"><Select value={f.supplierType || "Company"} onChange={(v) => set({ ...f, supplierType: v, tds: autoTds(f.type, v) })} options={SUPPLIER_TYPES} /></Field>
+          <Field label="Supplier type" hint="Individual / HUF: 1% TDS, others 2%"><Select value={f.supplierType || "Company"} onChange={(v) => set({ ...f, supplierType: v, tds: autoTds(vTypes(f), v) })} options={SUPPLIER_TYPES} /></Field>
           <Field label={publicMode ? "Preferred payment terms" : "Payment terms"}><Select value={f.paymentTerms} onChange={(v) => upd("paymentTerms", v)} options={PAYMENT_TERMS} /></Field>
           <Field label="Currency"><Select value={f.currency} onChange={(v) => upd("currency", v)} options={withCurrent(CURRENCIES, f.currency)} /></Field>
           {!publicMode && <Field label="Withholding tax (TDS)" hint="Set automatically from vendor & supplier type"><Select value={f.tds} onChange={(v) => upd("tds", v)} options={TDS_SECTIONS} /></Field>}
@@ -302,6 +326,7 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
           </div>
         </FormSection>
       )}
+      </>)}
     </div>
   );
 }
@@ -345,15 +370,26 @@ function DocUploadList({ docs, uploads, onChange }) {
 function RegisterVendorModal({ open, onClose, onCreated, contractorMode }) {
   const [f, setF] = y.useState(emptyVendor);
   const [errors, setErrors] = y.useState({});
+  // Quick register (≈10 fields, like ERPNext / Odoo / Zoho); "Fill all details" opens the full form
+  const [full, setFull] = y.useState(false), [shared, setShared] = y.useState(null);
   y.useEffect(() => {
-    if (open) { setF(contractorMode ? { ...emptyVendor(), type: "Labor", isContractor: true, tds: "194C-2" } : emptyVendor()); setErrors({}); }
+    if (open) { setF(contractorMode ? { ...emptyVendor(), type: "Labor", types: ["Labor"], isContractor: true, tds: "194C-2" } : emptyVendor()); setErrors({}); setFull(false); setShared(null); }
   }, [open]);
+  // Save as a draft and e-mail the vendor a link to fill in the rest (bank, documents, addresses…)
+  const saveAndSend = () => {
+    const e = validateVendor(f); setErrors(e); if (Object.keys(e).length) return;
+    const id = createVendor(f, false);
+    setShared({ id, inv: sendCompletionInvite(id) });
+    onCreated && onCreated(id);
+  };
+  if (open && shared) return <ShareLinkModal title={`${shared.id} saved — link sent to ${shared.inv.email}`} url={appUrl(`/vendor-register?invite=${shared.inv.id}`)} onClose={onClose}
+    text={`The vendor opens this link, sees what you entered, adds bank details, documents and the remaining company details, and submits. ${shared.id} then goes to Pending Approval. Until then it stays a draft you can also edit yourself.`} />;
   const save = (submit) => {
     const e = validateVendor(f);
     setErrors(e);
     if (Object.keys(e).length) return;
     if (submit && currentSettings().requireDocsOnSubmit) {
-      const tmp = { ...f, isContractor: f.isContractor || f.type === "Labor" };
+      const tmp = { ...f, isContractor: f.isContractor || hasType(f, "Labor") };
       const missing = requiredDocs(tmp).filter((n) => !(f.uploads || {})[n]?.file);
       if (missing.length) { setErrors({ docs: `Upload before submitting: ${missing.join(", ")}` }); toast(`Upload the required documents first — ${missing.join(", ")}. Or save as draft.`, "red"); return; }
     }
@@ -365,10 +401,13 @@ function RegisterVendorModal({ open, onClose, onCreated, contractorMode }) {
   return (
     <Modal open={open} onClose={onClose} width={820}
       title={contractorMode ? "Onboard contractor" : "Register vendor"}
-      subtitle="Saving creates a vendor ID and a draft record; submitting routes it through Procurement → Legal → Finance."
-      footer={<><Btn onClick={onClose}>Cancel</Btn><Btn onClick={() => save(false)}>Save draft</Btn><Btn variant="primary" icon={Icon.send} onClick={() => save(true)}>Submit for approval</Btn></>}>
+      subtitle={full ? "All details. Saving creates a draft; submitting routes it through Procurement → Legal → Finance." : "Just the basics — save a draft, or send it to the vendor to fill in the rest."}
+      footer={<>{!full && <button type="button" className="mr-auto text-[13px] font-medium text-brand hover:underline" onClick={() => setFull(true)}>Fill all details now</button>}
+        <Btn onClick={onClose}>Cancel</Btn><Btn onClick={() => save(false)}>Save draft</Btn>
+        {!full && <Btn icon={Icon.mail} onClick={saveAndSend}>Save & send to vendor</Btn>}
+        <Btn variant="primary" icon={Icon.send} onClick={() => save(true)}>Submit for approval</Btn></>}>
       {errors.docs && <div className="mb-3"><Note tone="red">{errors.docs}</Note></div>}
-      <VendorForm f={f} set={setF} errors={errors} contractorMode={contractorMode} />
+      <VendorForm f={f} set={setF} errors={errors} contractorMode={contractorMode} quick={!full} />
     </Modal>
   );
 }
@@ -379,6 +418,7 @@ function RegisterVendorModal({ open, onClose, onCreated, contractorMode }) {
 // mode "approval": opened from Vendor Approvals / Approval Management — decisions allowed.
 const EDITABLE_STATUSES = ["Draft", "Rejected", "Changes Requested"];
 function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "registry" }) {
+  const [share, setShare] = y.useState(null);
   const st = useStore();
   const v = byId(st.vendors, vendorId);
   // Contacts & addresses live on Overview, the activity trail on Approvals
@@ -397,13 +437,13 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
     { id: "docs", label: "Documents", count: `${v.docs.filter((d) => d.status === "Verified").length}/${requiredDocs(v).length}` },
     { id: "bank", label: "Bank", count: v.bankAccounts.length || null },
     { id: "qual", label: "Qualification" },
-    ...(v.isContractor || v.type === "Labor" ? [{ id: "equip", label: "Equipment", count: (v.equipment || []).length || null }] : []),
+    ...(v.isContractor || hasType(v, "Labor") ? [{ id: "equip", label: "Equipment", count: (v.equipment || []).length || null }] : []),
     { id: "approval", label: "Approvals" },
   ];
   return (
     <Drawer open related={relatedFor(st, "vendor", v)} comments={v.id} onClose={onClose} width={880} title={<span className="flex items-center gap-2">{v.name}<PreferredStar v={v} size={16} always /></span>}
       subtitle={<><span className="mono text-[12px] text-ink-mute">{v.id}</span><span className="text-ink-faint">·</span><VendorTypeTag v={v} /><GroupCoTag v={v} /><VendorStatusMenu v={v} /><Status>{v.regTier}</Status><Status>{comp.status}</Status></>}
-      actions={<>{canEdit && <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>}</>}
+      actions={<>{v.status === "Draft" && v.contact?.email && <Btn icon={Icon.mail} onClick={() => setShare(sendCompletionInvite(v.id))}>Send to vendor to complete</Btn>}{canEdit && <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>}</>}
       tabs={{ tabs, active: tab, onChange: setTab }}>
       <div className="space-y-4 px-6 py-5">
         {locked && tab !== "approval" && <Note tone="amber" icon={Icon.lock}>Submitted for approval — details are locked until the approvers decide. {v.status === "Pending Approval" ? "If it is rejected or sent back, you can edit and resubmit." : ""}</Note>}
@@ -419,6 +459,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
         {tab === "approval" && <><VendorApproval v={v} mode={mode} /><VendorActivity v={v} /></>}
       </div>
       {edit && <EditRegistrationModal v={v} owner onClose={() => setEdit(false)} />}
+      {share && <ShareLinkModal title={`Link sent to ${share.email}`} url={appUrl(`/vendor-register?invite=${share.id}`)} onClose={() => setShare(null)} text="The vendor fills in the rest of the registration and submits; the record then goes to Pending Approval." />}
     </Drawer>
   );
 }
@@ -487,8 +528,10 @@ function VendorFlags({ v }) {
     <>
       <Section title="Classification" icon={Icon.shapes}>
         <div className="grid grid-cols-3 gap-4 p-4">
-          <Field label="Vendor type"><Select value={v.type} onChange={(t) => edit("type", t, `Type changed to ${t}`)} options={VENDOR_TYPES} /></Field>
-          <Field label="Supplier type" hint={`TDS ${tdsLabel(v.tds) || ""}`}><Select value={v.supplierType || "Company"} onChange={(t) => mut((x) => { x.supplierType = t; x.tds = autoTds(x.type, t); }, `Supplier type → ${t}`)} options={SUPPLIER_TYPES} /></Field>
+          <Field label="Supplies"><span className="flex flex-wrap gap-1.5">{VENDOR_TYPES.map((t) => { const on = hasType(v, t); return (
+            <button key={t} type="button" role="checkbox" aria-checked={on} onClick={() => { const ts = VENDOR_TYPES.filter((x) => (x === t ? !on : hasType(v, x))); if (!ts.length) return; mut((x) => { x.types = ts; x.type = ts[0]; if (ts.includes("Labor")) x.isContractor = true; x.tds = autoTds(ts, x.supplierType); }, `Supplies changed to ${ts.map((z) => (z === "Labor" ? "Labour" : z)).join(" + ")}`); }}
+              className={cls("rounded-full border px-2.5 py-1 text-[12.5px]", on ? "border-brand bg-brand-soft font-medium text-brand" : "border-line text-ink-soft hover:bg-gray-50")}>{on && "✓ "}{t === "Labor" ? "Labour" : t}</button>); })}</span></Field>
+          <Field label="Supplier type" hint={`TDS ${tdsLabel(v.tds) || ""}`}><Select value={v.supplierType || "Company"} onChange={(t) => mut((x) => { x.supplierType = t; x.tds = autoTds(vTypes(x), t); }, `Supplier type → ${t}`)} options={SUPPLIER_TYPES} /></Field>
           <Field label="Supplier tier"><Select value={v.tier} onChange={(t) => edit("tier", t, `Tier changed to ${t}`)} options={TIERS} /></Field>
           <Field label="Registration tier" hint={v.regTier === "Prospective" ? "Upgrade needs Finance approval (Approval tab)" : "Downgrade is immediate"}>
             <span className="flex h-[32px] items-center gap-2 text-[13px]"><Status>{v.regTier}</Status>
@@ -892,7 +935,7 @@ function VendorRegistryPage() {
   const [open, setOpen] = useQueryOpen(), [reg, setReg] = y.useState(false), [share, setShare] = y.useState(false), [invite, setInvite] = y.useState(false), [view, setView] = y.useState("vendors");
   const [sel, setSel] = y.useState([]), [holdFor, setHoldFor] = y.useState(null);
   const rows = st.vendors.filter((v) =>
-    (type === "All" || v.type === type) && (status === "All" || v.status === status) && (tier === "All" || v.tier === tier) &&
+    (type === "All" || hasType(v, type)) && (status === "All" || v.status === status) && (tier === "All" || v.tier === tier) &&
     (grp === "All" || (grp === "__intra" ? isGroupCompany(v) : grp === "__none" ? !v.group : inGroup(v, grp))) &&
     true);
   const compIssues = st.vendors.filter((v) => v.status === "Active" && complianceOf(v).status !== "Compliant").length;
@@ -919,7 +962,7 @@ function VendorRegistryPage() {
         { key: "sel", label: "", render: (v) => <input type="checkbox" aria-label={`Select ${v.name}`} className="h-4 w-4 accent-[#0b5ed7]" checked={sel.includes(v.id)} onClick={(e) => e.stopPropagation()} onChange={(e) => setSel(e.target.checked ? [...sel, v.id] : sel.filter((x) => x !== v.id))} /> },
         { key: "name", label: "Vendor", filterOptions: FO.preferred, filterLabel: "Preferred", filterAll: "All vendors", filter: (v) => (v.preferred ? "Preferred" : "Not preferred"), render: (v) => <span className="flex items-center justify-between gap-3 font-medium"><span className="truncate">{v.name}</span><PreferredStar v={v} size={14} /></span> },
         { key: "status", label: "Status", sort: (v) => v.status, render: (v) => <VendorStatusMenu v={v} /> },
-        { key: "type", label: "Type", render: (v) => <span className="flex flex-wrap items-center gap-1.5 text-ink-soft">{v.type}<GroupCoTag v={v} /></span> },
+        { key: "type", label: "Supplies", filterOptions: ["Goods", "Services", "Labour"], filter: (v) => vTypes(v).map((t) => (t === "Labor" ? "Labour" : t)), render: (v) => <span className="flex flex-wrap items-center gap-1.5 text-ink-soft">{typeLabel(v)}<GroupCoTag v={v} /></span> },
         { key: "cat", label: "Trades", sort: (v) => v.categories[0] || "", render: (v) => <CategoryChips list={v.categories} /> },
         { key: "tier", label: "Tier", sort: (v) => TIERS.indexOf(v.tier) },
         { key: "reg", label: "Registration", sort: (v) => v.regTier, render: (v) => <CalmStatus>{v.regTier}</CalmStatus> },

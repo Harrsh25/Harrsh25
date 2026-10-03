@@ -417,7 +417,7 @@ function SplitAwardModal({ rfq, onClose, preset }) {
   const [note, setNote] = y.useState("");
   const groups = {};
   pick.forEach((vid, i) => { if (vid) (groups[vid] = groups[vid] || []).push(i); });
-  const isCon = (vid) => { const v = byId(st.vendors, vid); return v && (v.isContractor || v.type === "Labor"); };
+  const isCon = (vid) => { const v = byId(st.vendors, vid); return v && (v.isContractor || hasType(v, "Labor")); };
   const allCon = Object.keys(groups).length > 0 && Object.keys(groups).every(isCon);
   const [as, setAs] = y.useState("po");
   const target = allCon ? as : "po";

@@ -72,20 +72,22 @@ function PublicShell({ title, subtitle, children, width = 920 }) {
 function SelfRegisterPage() {
   const inviteId = new URLSearchParams(Ht().search).get("invite");
   const invite = inviteId && byId(getState().invites, inviteId);
-  const [f, setF] = y.useState(() => ({ ...emptyVendor(), regTier: "Prospective", tier: "Transactional", ...(invite && invite.status === "Invited" ? { inviteId, name: invite.name, legalName: invite.name, categories: invite.category ? [invite.category] : [], contact: { name: invite.contact || "", email: invite.email, phone: "" } } : {}) }));
+  // An invite linked to a draft (your team started it with Quick register): show that vendor's details and complete the same record
+  const draft = invite && invite.status === "Invited" && invite.vendorId && byId(getState().vendors, invite.vendorId);
+  const [f, setF] = y.useState(() => draft ? { ...emptyVendor(), ...draft, types: vTypes(draft), contact: { ...emptyVendor().contact, ...draft.contact }, bank: { ...emptyVendor().bank }, uploads: {}, existingId: draft.id, inviteId } : ({ ...emptyVendor(), regTier: "Prospective", tier: "Transactional", ...(invite && invite.status === "Invited" ? { inviteId, name: invite.name, legalName: invite.name, categories: invite.category ? [invite.category] : [], contact: { name: invite.contact || "", email: invite.email, phone: "" } } : {}) }));
   const [errors, setErrors] = y.useState({});
   const [agree, setAgree] = y.useState(false);
   const [done, setDone] = y.useState(null);
   const mustUpload = ["PAN Card", "GST Certificate", "Cancelled Cheque / Bank Letter"];
   const submit = () => {
     const e = validateVendor(f);
-    if (getState().vendors.some((v) => v.gstin === f.gstin.toUpperCase())) e.gstin = "This GSTIN is already registered with us — contact procurement.";
+    if (getState().vendors.some((v) => v.id !== f.existingId && v.gstin === f.gstin.toUpperCase())) e.gstin = "This GSTIN is already registered with us — contact procurement.";
     const missing = mustUpload.filter((n) => !(f.uploads[n] && f.uploads[n].file));
     if (missing.length) e.docs = `Please upload: ${missing.join(", ")}`;
     if (!f.bank.account || !f.bank.ifsc) e.bank = "Bank details are required";
     setErrors(e);
     if (Object.keys(e).length) { toast("Please fix the highlighted fields", "red"); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
-    const id = createVendor({ ...f, tds: f.type === "Goods" ? "194Q" : "194C-2" }, true, "Self-registration");
+    const id = createVendor({ ...f, tds: autoTds(vTypes(f), f.supplierType) }, true, "Self-registration");
     setDone(id);
     window.scrollTo({ top: 0 });
   };
@@ -158,7 +160,7 @@ function approvalRows(st, module) {
       const i = v.approval.stages.findIndex((s) => ["Pending", "Rejected", "Changes Requested"].includes(s.status));
       const stage = v.approval.stages[i];
       return {
-        ref: v.id, title: v.name, sub: `${v.type}${v.isContractor ? " · contractor" : ""} · ${v.source === "Self-registration" ? "self-registered" : "internal"}`,
+        ref: v.id, title: v.name, sub: `${typeLabel(v)}${v.isContractor ? " · contractor" : ""} · ${v.source === "Self-registration" ? "self-registered" : "internal"}`,
         by: v.source === "Self-registration" ? v.contact.name : "Procurement", date: fmtDate(v.createdAt),
         level: `L${i + 1} / ${v.approval.stages.length} · ${stage?.dept || ""}`, status: v.status === "Rejected" ? "Rejected" : v.status === "Changes Requested" ? "Changes Requested" : "Pending", vendor: v,
         extra: `${v.docs.filter((d) => d.status !== "Missing").length}/${requiredDocs(v).length} docs`,

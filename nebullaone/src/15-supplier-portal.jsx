@@ -134,7 +134,7 @@ function VendorQuotePage() {
 function PortalBody({ vid, vendorMode }) {
   const st = useStore();
   const v = byId(st.vendors, vid);
-  const isContractor = v.isContractor || v.type === "Labor";
+  const isContractor = v.isContractor || hasType(v, "Labor");
   // Holds and suspension are enforced here too: an "All" hold stops new quotes, WO acceptance, claims and attendance;
   // an "Invoices" hold stops claims and invoice submission
   const txBlocked = isBlockedFor(v, "All") || !["Active", "On Hold"].includes(v.status) && v.status !== "Pending Approval" && v.status !== "Changes Requested" && v.status !== "Draft";
@@ -347,7 +347,7 @@ function applyForm(x, f, { lockBank } = {}) {
   for (const k of VENDOR_FORM_KEYS) if (f[k] !== undefined) x[k] = f[k];
   if (f.notesText && f.notesText.trim()) { x.notes = x.notes || []; x.notes.unshift({ at: todayISO(), by: currentUser(), text: f.notesText.trim() }); }
   x.contact = { ...f.contact };
-  if (x.contractor || f.isContractor || f.type === "Labor") x.contractor = { ...f.contractor };
+  if (x.contractor || f.isContractor || hasType(f, "Labor")) x.contractor = { ...f.contractor };
   if (!lockBank && f.bank.account) {
     const cur = x.bankAccounts.find((b) => b.account === f.bank.account);
     if (!cur) { x.bankAccounts.forEach((b) => (b.isDefault = false)); x.bankAccounts.push({ id: Date.now(), ...f.bank, isDefault: true }); }

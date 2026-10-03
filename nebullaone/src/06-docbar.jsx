@@ -37,7 +37,7 @@ function relatedFor(st, kind, r) {
       { label: "Balance due", count: bills.length, value: inrShort(due), to: `${VM}/invoices?q=${q_(r.name)}`, icon: Icon.wallet },
       { label: "RFQs", count: st.rfqs.filter((x) => (x.vendorIds || []).includes(r.id)).length, to: `${VM}/rfq?q=${q_(r.name)}`, icon: Icon.scale },
     ];
-    if (r.isContractor || r.type === "Labor" || st.contracts.some((c) => c.vendorId === r.id)) out.push(
+    if (r.isContractor || hasType(r, "Labor") || st.contracts.some((c) => c.vendorId === r.id)) out.push(
       { label: "Contracts", count: st.contracts.filter((c) => c.vendorId === r.id).length, to: `${CL}/contracts?q=${q_(r.name)}`, icon: Icon.file },
       { label: "Work orders", count: st.workOrders.filter((w) => w.vendorId === r.id).length, to: `${CL}/work-orders?q=${q_(r.name)}`, icon: Icon.hardHat });
     return out;

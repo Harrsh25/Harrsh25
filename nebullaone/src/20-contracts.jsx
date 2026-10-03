@@ -1,7 +1,7 @@
 // Contract & Labor Management — contractor onboarding and contract creation /
 // tracking (renewal reminders, change orders, bank guarantees).
 
-const contractorVendors = (st) => st.vendors.filter((v) => v.isContractor || v.type === "Labor");
+const contractorVendors = (st) => st.vendors.filter((v) => v.isContractor || hasType(v, "Labor"));
 
 // ---------------------------------------------------------------- onboarding
 function OnboardingPage() {

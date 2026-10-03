@@ -118,14 +118,14 @@ const APPLIES = [
   { value: "contractor", label: "Contractors & labour" }, { value: "strategic-contractor", label: "Strategic contractors" },
 ];
 const appliesTo = (rule, v) => {
-  const con = v.type === "Labor" || !!v.isContractor;
-  return { all: true, goods: v.type === "Goods", services: v.type === "Services" && !con, contractor: con, "strategic-contractor": con && v.tier === "Strategic" }[rule.applies] ?? false;
+  const con = hasType(v, "Labor") || !!v.isContractor;
+  return { all: true, goods: hasType(v, "Goods"), services: hasType(v, "Services") && !con, contractor: con, "strategic-contractor": con && v.tier === "Strategic" }[rule.applies] ?? false;
 };
 const ROLES = ["Procurement Executive", "Procurement Head", "Legal Counsel", "Project Manager", "Finance Controller", "Accounts"];
 const settingsOf = (st) => ({ ...DEFAULT_SETTINGS, ...(st.settings || {}) });
 // Stages that apply to a vendor registration: scope All | Contractors | Non-contractors
 function vendorFlowFor(v, st) {
-  const flow = (settingsOf(st || getState()).vendorFlow || []).filter((x) => x.name && (x.scope === "All" || !x.scope || (x.scope === "Contractors") === !!(v && (v.isContractor || v.type === "Labor"))));
+  const flow = (settingsOf(st || getState()).vendorFlow || []).filter((x) => x.name && (x.scope === "All" || !x.scope || (x.scope === "Contractors") === !!(v && (v.isContractor || hasType(v, "Labor")))));
   return flow.length ? flow.map((x) => x.name) : APPROVAL_FLOW;
 }
 // Stages for a contract: a stage with a minimum value only applies at or above it
@@ -260,7 +260,7 @@ function extendSeed(s) {
   for (const v of s.vendors) {
     v.supplierType = v.tds === "194C-1" ? "Individual" : /LLP|Company|& Co|Mart$/.test(v.legalName || "") && !/Pvt|Ltd/.test(v.legalName) ? "Partnership" : "Company";
     v.allowBillWithoutPO = false;
-    v.allowBillWithoutReceipt = v.type === "Services";
+    v.allowBillWithoutReceipt = hasType(v, "Services");
     v.portalUsers = v.contact && v.contact.email ? [{ name: v.contact.name, email: v.contact.email, active: v.status !== "Blacklisted", role: "Admin", lastLogin: null }] : [];
     v.changeRequest = null;
   }
@@ -331,7 +331,7 @@ function extendSeed(s) {
 const uniqSorted = (a) => [...new Set(a.filter(Boolean))].sort((x, y) => x.localeCompare(y));
 const FO = {
   vendors: () => uniqSorted(getState().vendors.map((v) => v.name)),
-  contractors: () => uniqSorted(getState().vendors.filter((v) => v.isContractor || v.type === "Labor").map((v) => v.name)),
+  contractors: () => uniqSorted(getState().vendors.filter((v) => v.isContractor || hasType(v, "Labor")).map((v) => v.name)),
   projects: () => PROJECTS,
   trades: () => TRADES,
   labourTrades: () => uniqSorted([...getState().laborRates.map((r) => r.trade), ...getState().workers.map((w) => w.trade)]),

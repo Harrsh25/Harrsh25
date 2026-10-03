@@ -477,7 +477,7 @@ const EXTRA_DOT = { "attention needed": "amber", "payments blocked": "red", "not
 // Icon for each filter (by its label); status-like filters use a plain dot, as in Project Center
 const FILTER_PALETTE = ["blue", "purple", "cyan", "orange", "green", "amber", "red"];
 const FILTER_ICONS = {
-  type: "shapes", tier: "chart", preferred: "star", registration: "clipboardCheck", compliance: "shieldCheck", vendor: "building", contractor: "hardHat",
+  type: "shapes", supplies: "shapes", tier: "chart", preferred: "star", registration: "clipboardCheck", compliance: "shieldCheck", vendor: "building", contractor: "hardHat",
   project: "folder", "deliver to": "truck", source: "branch", billing: "receipt", "bill type": "file", match: "scale", "should pay": "wallet",
   stage: "activity", mode: "users", category: "layers", standing: "gauge", insurance: "shield", "required coverage": "shield", "payment gate": "lock",
   "blocks payment": "lock", "work order": "clipboardList", jms: "listChecks", region: "globe", "wage zone": "globe", skill: "wrench", trade: "hardHat",

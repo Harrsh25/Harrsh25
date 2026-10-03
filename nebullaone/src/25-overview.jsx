@@ -202,7 +202,7 @@ function buildContractOverview(st, f) {
     const wo = byId(st.workOrders, m.woId); return wo.type === "Lump Sum" ? 0 : m.qty * (wo.items.find((i) => i.id === m.lineId)?.rate || 0);
   }) + sum(wos.filter((w) => w.type === "Lump Sum"), (wo) => Math.max(0, woProgress(st, wo).measured - woProgress(st, wo).billed));
   const inCert = raBills.filter((b) => ["Submitted", "Verified", "Certified"].includes(b.status));
-  const contractors = st.vendors.filter((v) => (v.isContractor || v.type === "Labor") && vend(v.id) && (f.project === "All" || contracts.some((c) => c.vendorId === v.id) || wos.some((w) => w.vendorId === v.id)));
+  const contractors = st.vendors.filter((v) => (v.isContractor || hasType(v, "Labor")) && vend(v.id) && (f.project === "All" || contracts.some((c) => c.vendorId === v.id) || wos.some((w) => w.vendorId === v.id)));
 
   const A = [];
   for (const w of liveWOs) {
@@ -330,7 +330,7 @@ const Metric = ({ label, value, sub, tone }) => (
   <div className="px-4 py-2"><p className="text-[11.5px] text-ink-mute">{label}</p><b className={cls("num text-[15px]", tone || "text-ink")}>{value}</b>{sub && <p className="text-[11px] text-ink-faint">{sub}</p>}</div>
 );
 function OverviewFilters({ f, setF, st, contractorsOnly }) {
-  const vs = st.vendors.filter((v) => !contractorsOnly || v.isContractor || v.type === "Labor");
+  const vs = st.vendors.filter((v) => !contractorsOnly || v.isContractor || hasType(v, "Labor"));
   return (<>
     <FilterSelect label="Period" value={f.period} onChange={(x) => setF({ ...f, period: x })} options={[{ value: "30", label: "Last 30 days" }, { value: "90", label: "Last 90 days" }, { value: "180", label: "Last 180 days" }, { value: "365", label: "Last 12 months" }, { value: "all", label: "All time" }]} />
     <FilterSelect label="Project" value={f.project} onChange={(x) => setF({ ...f, project: x })} options={[{ value: "All", label: "All projects" }, ...PROJECTS]} />

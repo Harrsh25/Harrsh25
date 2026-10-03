@@ -13,7 +13,7 @@ const RULE_SETS = [
     ],
   },
   {
-    id: "contractor", name: "Contractor — labour & HSE", applies: (v) => v.isContractor || v.type === "Labor", requalifyDays: 365,
+    id: "contractor", name: "Contractor — labour & HSE", applies: (v) => v.isContractor || hasType(v, "Labor"), requalifyDays: 365,
     questions: [
       { key: "workforce", q: "Average deployable workforce", type: "number", score: (a) => Math.min(10, a / 20), writeBack: ["contractor", "workforce"] },
       { key: "clra", q: "Valid CLRA labour licence?", type: "yesno", score: (a) => (a === "Yes" ? 10 : 0) },
@@ -22,7 +22,7 @@ const RULE_SETS = [
     ],
   },
   {
-    id: "goods", name: "Material supplier", applies: (v) => v.type === "Goods", requalifyDays: 730,
+    id: "goods", name: "Material supplier", applies: (v) => hasType(v, "Goods"), requalifyDays: 730,
     questions: [
       { key: "mfr", q: "Manufacturer or trader?", type: "select", options: ["Manufacturer", "Authorised dealer", "Trader"], score: (a) => ({ Manufacturer: 10, "Authorised dealer": 8, Trader: 5 })[a] || 0 },
       { key: "capacity", q: "Maximum monthly supply capacity (₹ L)", type: "number", score: (a) => Math.min(10, a / 20) },
@@ -49,7 +49,7 @@ function Questionnaire({ v }) {
   const sets = ruleSetsFor(v);
   const qs = sets.flatMap((s) => s.questions.map((q) => ({ ...q, set: s.name })));
   const [ans, setAns] = y.useState(() => ({ ...(v.qualification?.answers || {}) }));
-  const lib = (settingsOf(getState()).questionLibrary || []).filter((q) => q.status === "Active" && (q.level !== "Contractor" || v.isContractor || v.type === "Labor"));
+  const lib = (settingsOf(getState()).questionLibrary || []).filter((q) => q.status === "Active" && (q.level !== "Contractor" || v.isContractor || hasType(v, "Labor")));
   const [la, setLa] = y.useState(() => ({ ...(v.qualification?.libAnswers || {}) }));
   const done = qs.every((q) => ans[q.key] !== undefined && ans[q.key] !== "") && lib.filter((q) => q.required && q.responder === "Supplier").every((q) => la[q.id] !== undefined && la[q.id] !== "");
   const submit = () => {
@@ -305,7 +305,7 @@ function VendorApprovalsPage() {
       {tab === "queue" && (
         <DataTable noun="vendors" rows={queue} onRow={(v) => setOpen(v.id)} empty={<EmptyState icon={Icon.check} title="Approval queue is clear" text="New registrations will show up here." />} columns={[
           { key: "name", label: "Vendor", className: "font-medium" },
-          { key: "type", label: "Type", filterOptions: VENDOR_TYPES, filter: (v) => v.type, render: (v) => <span className="text-ink-soft">{v.type}</span> },
+          { key: "type", label: "Supplies", filterOptions: VENDOR_TYPES, filter: (v) => vTypes(v), render: (v) => <span className="text-ink-soft">{typeLabel(v)}</span> },
           { key: "stage", label: "Routing", filterOptions: FO.stage, filter: (v) => (v.approval?.stages || []).find((s) => s.status === "Pending")?.dept || "—", filterLabel: "Stage", render: (v) => (
             <span className="flex items-center gap-1">
               {v.approval.stages.map((s) => (

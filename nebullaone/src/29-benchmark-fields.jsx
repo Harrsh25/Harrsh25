@@ -600,7 +600,7 @@ function RequisitionModal({ onClose, base }) {
   const errs = reqErrors(f);
   const L = f.labour || {};
   const manpower = f.purpose === "Manpower (labour)";
-  const contractors = st.vendors.filter((v) => (v.isContractor || v.type === "Labor") && eligibleForRfq(v));
+  const contractors = st.vendors.filter((v) => (v.isContractor || hasType(v, "Labor")) && eligibleForRfq(v));
   const cards = st.laborRates.filter((r) => r.status === "Active");
   const setL = (k, x) => setF({ ...f, labour: { ...L, [k]: x } });
   const setItem = (i, k, x) => setF({ ...f, items: f.items.map((it, j) => (j === i ? { ...it, [k]: x } : it)) });
@@ -861,10 +861,12 @@ function PriceListTable({ rows, onEdit, showVendor = true }) {
 }
 // ---------------------------------------------------------------- bill-level TDS (ERPNext tax withholding)
 // Bill's own TDS settings override the vendor's: consider / category / ignore threshold / manual entries
+// Vendor that supplies several things: a bill against a PO for goods takes 194Q, other bills (services / labour) 194C
+const billTdsDefault = (v, inv) => (!v ? "" : vTypes(v).length > 1 && hasType(v, "Goods") ? (inv && inv.poId ? "194Q" : autoTds(vTypes(v).filter((t) => t !== "Goods"), v.supplierType)) : v.tds);
 function billTds(st, inv, v, taxable, share) {
   const t = inv.tdsSetup || {};
   if (inv.source === "RA Bill" || t.consider === false) return 0;
-  const code = t.category || v.tds;
+  const code = t.category || billTdsDefault(v, inv);
   if (t.manual !== undefined && t.manual !== "" && t.edit) return round2(Number(t.manual) * (share ?? 1));
   const cat = (settingsOf(st).tdsCategories || []).find((c) => c.code === code);
   const rate = tdsRate(code);
@@ -907,7 +909,7 @@ function BillExtras({ f, setF, v }) {
         <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-ink-mute">Tax withholding (TDS)</p>
         <div className="grid grid-cols-4 gap-3">
           <div className="flex items-end pb-1.5"><Check checked={t.consider !== false} onChange={(b) => setT("consider", b)} label="Consider for tax withholding" /></div>
-          <Field label="Tax withholding category"><Select value={t.category || v?.tds || ""} onChange={(x) => setT("category", x)} options={tdsOptions()} /></Field>
+          <Field label="Tax withholding category"><Select value={t.category || billTdsDefault(v, f) || ""} onChange={(x) => setT("category", x)} options={tdsOptions()} /></Field>
           <Field label="Tax withholding group"><Select value={t.group || ""} placeholder="—" onChange={(x) => setT("group", x)} options={["Domestic vendors", "Contractors", "Non-resident (195)"]} /></Field>
           <div className="flex flex-col justify-end gap-1 pb-1">
             <Check checked={!!t.ignoreThreshold} onChange={(b) => setT("ignoreThreshold", b)} label="Ignore withholding threshold" />

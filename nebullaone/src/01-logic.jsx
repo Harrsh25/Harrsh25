@@ -1,6 +1,10 @@
 // Domain logic shared by the Vendor Management and Contract & Labor pages.
 
 const VENDOR_TYPES = ["Goods", "Services", "Labor"];
+// A vendor can supply goods, services and labour together: types = any of the three (type = the first, kept for older records)
+const vTypes = (v) => (v && Array.isArray(v.types) && v.types.length ? VENDOR_TYPES.filter((t) => v.types.includes(t)) : v && v.type ? [v.type] : []);
+const hasType = (v, t) => vTypes(v).includes(t);
+const typeLabel = (v) => vTypes(v).map((t) => (t === "Labor" ? "Labour" : t)).join(" + ");
 const TRADES = [
   "Civil", "RCC / Structural", "Formwork", "Masonry", "Electrical", "Tower Erection", "Stringing", "Plumbing",
   "Waterproofing", "Scaffolding", "Excavation", "Equipment Hire", "Manpower Supply", "Steel", "Cement & Aggregates",
