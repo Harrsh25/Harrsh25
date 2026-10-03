@@ -330,7 +330,7 @@ function VendorApprovalsPage() {
         </div>
       )}
       {tab === "scores" && (
-        <DataTable noun="vendors" rows={st.vendors.filter((v) => v.qualification)} onRow={(v) => setOpen(v.id)} columns={[
+        <DataTable noun="vendors" defaultCols={["name", "score", "res", "lim", "exp"]} rows={st.vendors.filter((v) => v.qualification)} onRow={(v) => setOpen(v.id)} columns={[
           { key: "name", label: "Vendor", className: "font-medium" },
           { key: "sets", label: "Rule sets", filterOptions: FO.ruleSets, filter: (v) => v.qualification.ruleSet, render: (v) => <span className="text-[12px] text-ink-soft">{v.qualification.ruleSet}</span> },
           { key: "score", label: "Score", render: (v) => <ScoreBadge value={v.qualification.score} /> },

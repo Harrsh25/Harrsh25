@@ -127,7 +127,6 @@ function WorkOrderDrawer({ id, onClose }) {
         {["Issued", "In Progress"].includes(wo.status) && <Btn onClick={() => setAct({ status: "Suspended", reason: "" })}>Suspend</Btn>}
         {wo.status === "Suspended" && <Btn variant="primary" onClick={() => mut("In Progress", "Resumed")}>Resume</Btn>}
         {["Issued", "In Progress", "Suspended"].includes(wo.status) && hasWork && <Btn onClick={() => setAct({ status: "Short-closed", reason: "" })}>Short-close</Btn>}
-        {["Draft", "Issued"].includes(wo.status) && !hasWork && <Btn variant="danger" onClick={() => setAct({ status: "Cancelled", reason: "" })}>Cancel</Btn>}
       </>}>
       {cancelAsk && <ReasonModal title={`Cancel ${wo.id}`} text="No work has been measured. The contractor is told the work order is withdrawn and its BOQ quantity is free again." action="Cancel WO" onClose={() => setCancelAsk(false)}
         onDone={(r) => { setState((s) => { const x = byId(s.workOrders, id); x.status = "Cancelled"; x.cancelled = { at: new Date().toISOString(), by: currentUser(), reason: r }; }, { entity: "Work order", id, action: `Cancelled — ${r}` }); toast(`${wo.id} cancelled`, "red"); }} />}

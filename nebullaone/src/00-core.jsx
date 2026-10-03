@@ -675,6 +675,11 @@ function rowSearchText(r, depth = 0) {
     if (k === "dataUrl" || k === "history" || k === "revisions") continue;
     if (typeof v === "string" && /vendorId$/i.test(k)) out.push((byId(getState().vendors, v) || {}).name || "");
     if (typeof v === "string" && k === "woId") out.push((byId(getState().workOrders, v) || {}).title || "");
+    // other linked records: search by the name the list shows, not only the code
+    if (typeof v === "string" && /^(contractId|poId|rfqId|requisitionId|blanketId|raBillId|invoiceId)$/.test(k)) {
+      const coll = { contractId: "contracts", poId: "purchaseOrders", rfqId: "rfqs", requisitionId: "requisitions", blanketId: "blanketOrders", raBillId: "raBills", invoiceId: "invoices" }[k];
+      const x = byId(getState()[coll] || [], v) || {}; out.push(x.title || x.name || x.purpose || x.number || "");
+    }
     // search what the list shows: dates as displayed (12 Sept 2026) and RA bill numbers (RA-3)
     if (typeof v === "string" && /^\d{4}-\d{2}-\d{2}/.test(v)) out.push(fmtDate(v));
     if (k === "seq" && v != null) out.push(`RA-${v}`);
@@ -848,7 +853,7 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
   const rowEl = (r, i) => (
     <tr key={rowKey(r, i)} onClick={onRow ? () => onRow(r) : undefined} className={cls("group hover:bg-gray-50", onRow && "cursor-pointer")}>
       {columns.map((c, ci) => (
-        <Td key={c.key} align={c.align} className={cls(c.num && "num", dense && "py-[5px]", c.className, stick(ci))}>
+        <Td key={c.key} align={c.align} className={cls(c.num && "num", dense && "py-[5px]", c.className, stick(ci) || (ci === columns.length - 1 && "relative"))}>
           {c.render ? c.render(r, i) : r[c.key]}
           {/* record numbers are not shown on lists; kept here (screen readers, search, tests) */}
           {ci === columns.length - 1 && <span className="sr-only">{[...new Set([rowKey(r, i), r.id, r.c && r.c.id, r.contractId, r.woId, r.poId].filter((x) => typeof x === "string"))].join(" ")}</span>}

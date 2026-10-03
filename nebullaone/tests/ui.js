@@ -2,12 +2,17 @@
 const run = require('./lib');
 run('ui', async ({ p, go, T, pick, S, mut }) => {
   await go('vendor-management/purchase-orders');
-  await T('UI-01', 'Search box is visible on lists (no icon click needed)', async () => {
-    const v = await p.locator('main input[placeholder^="Search"]').first().isVisible(); return [v ? 'visible' : 'hidden', v];
+  await T('UI-01', 'Search icon opens a full-width search box; Esc closes it', async () => {
+    await go('vendor-management/registry'); await p.waitForTimeout(200);
+    await p.locator('main button[aria-label="Search"]').first().click(); await p.waitForTimeout(150);
+    const bar = p.locator('[data-searchbar]').first(); const box = await bar.boundingBox(), card = await p.locator('main .shadow-card').first().boundingBox();
+    await bar.locator('input').fill('Konkan'); await p.waitForTimeout(150); const rows = await p.locator('main tbody tr').count();
+    await p.keyboard.press('Escape'); await p.waitForTimeout(150); const closed = !(await p.locator('[data-searchbar]').count());
+    return [`bar width ${Math.round(box.width)} of ${Math.round(card.width)}; rows for "Konkan" ${rows}; closed on Esc ${closed}`, box.width > card.width * 0.8 && rows >= 1 && closed];
   });
   await T('UI-02', 'Layout buttons sit on the left of the toolbar; no Views or Group by', async () => {
     await go('vendor-management/registry'); await p.waitForTimeout(200);
-    const lay = await p.locator('main [role=group][aria-label="Layout"]').first().boundingBox(), srch = await p.locator('main input[placeholder^="Search"]').first().boundingBox();
+    const lay = await p.locator('main [role=group][aria-label="Layout"]').first().boundingBox(), srch = await p.locator('main button[aria-label="Search"]').first().boundingBox();
     const views = await p.locator('main button[aria-label="Saved views"]').count(), grp = await p.locator('main [aria-label="Group by"]').count();
     return [`layout x ${Math.round(lay.x)} < search x ${Math.round(srch.x)}; Views ${views}, Group by ${grp}`, lay.x < srch.x && !views && !grp];
   });

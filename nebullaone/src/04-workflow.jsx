@@ -99,7 +99,7 @@ function SpendAuthPanel({ v }) {
       <p className="text-[13px] text-ink-soft">Prospective vendors can take part in RFQs only. Spend authorization (Finance approval) allows POs, contracts and payments.</p>
       {req && req.status === "Rejected" && <Note tone="red">Last request rejected by {req.decidedBy}: {req.remark}</Note>}
       {b.length > 0 && <Note tone="amber">Before requesting: {b.join(" · ")}</Note>}
-      <div className="grid grid-cols-[1fr_auto] items-end gap-2">
+      <div className="grid items-end gap-2" style={{ gridTemplateColumns: "minmax(0,1fr) auto" }}>
         <Field label="Justification"><TextInput value={note} onChange={setNote} placeholder="e.g. L1 on RFQ-004; needed for Tower C package" /></Field>
         <Btn variant="primary" disabled={b.length > 0} onClick={() => requestSpendAuth(v, note.trim()) && setNote("")}>Request spend authorization</Btn>
       </div>

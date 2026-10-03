@@ -11,7 +11,7 @@ require('./lib')('final', async ({ p, go, dlg, S, mut, as, T, pick, toastText })
     const code = (await p.locator('b.mono').textContent()).trim(); await p.locator('input[placeholder="••••••"]').fill(code); await p.click('button:has-text("Sign in")'); await p.waitForTimeout(400); };
   const register = async (page, button, f) => {
     await go(page); await btn(button).first().click(); await p.waitForTimeout(250); const d = dlg();
-    await d.locator('input').nth(0).fill(f.name); await d.locator(`button[aria-pressed]:has-text("${f.trade}")`).first().click();
+    await d.locator('button:has-text("Fill all details now")').click().catch(() => {}); await p.waitForTimeout(150); await d.locator('input').nth(0).fill(f.name); await d.locator('[role=combobox][aria-haspopup=listbox]:has-text("Select trades")').first().click(); await p.locator('[role=option]').filter({ hasText: f.trade }).first().click(); await d.locator('h2,h3').first().click();
     await d.locator('input[placeholder="27AAKCS4412M1Z3"]').fill(f.gst); await d.locator('input[placeholder="AAKCS4412M"]').fill(f.pan);
     await d.locator('label:has-text("Contact person") input').fill(f.contact); await d.locator('input[type=email]').fill(f.email);
     await d.locator('label:has-text("Account holder name") input').fill(f.name); await d.locator('input[placeholder="e.g. HDFC Bank"]').fill('HDFC Bank'); await d.locator('label:has-text("Account no.") input').first().fill('50200011223344'); await d.locator('label:has-text("IFSC") input').fill('HDFC0000123');

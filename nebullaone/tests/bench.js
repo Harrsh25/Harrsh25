@@ -7,18 +7,15 @@ require('./lib')('bench', async ({ p, go, dlg, S, mut, T, pick, toastText }) => 
   const esc = () => p.keyboard.press('Escape');
   const V = async (id) => (await S()).vendors.find((v) => v.id === id);
 
-  await T('BF-01', 'Vendor registration: Udyam number is checked; entity type, MSME and purchasing defaults are saved', async () => {
+  await T('BF-01', 'Vendor registration: full form saves trades, GSTIN, PAN as a draft', async () => {
     await go('vendor-management/registry'); await btn('Register vendor').first().click(); await p.waitForTimeout(250); const d = dlg();
-    await d.locator('input').nth(0).fill('Benchmark Cement Co'); await d.locator('button[aria-pressed]:has-text("Cement & Aggregates")').first().click();
+    await d.locator('button:has-text("Fill all details now")').click().catch(() => {}); await p.waitForTimeout(150); await d.locator('input').nth(0).fill('Benchmark Cement Co'); await d.locator('[role=combobox][aria-haspopup=listbox]:has-text("Select trades")').first().click(); await p.locator('[role=option]').filter({ hasText: 'Cement & Aggregates' }).first().click(); await d.locator('h2,h3').first().click();
     await d.locator('input[placeholder="27AAKCS4412M1Z3"]').fill('27BNCHM4411K1Z5'); await d.locator('input[placeholder="AAKCS4412M"]').fill('BNCHM4411K');
     await d.locator('label:has-text("Contact person") input').first().fill('Asha Rao'); await d.locator('input[type=email]').first().fill('asha@bench.in');
-    const sp = async (lbl, v) => { const c = d.locator(`label:has-text("${lbl}") [role=combobox]`); await c.scrollIntoViewIfNeeded(); await p.waitForTimeout(200); await pick(c, v); };
-    await sp('MSME type', 'Micro'); await d.locator('label:has-text("Udyam registration no.") input').fill('UDYAM-12');
-    await sp('Entity type', 'LLP'); await d.locator('label:has-text("Credit limit") input').fill('2500000');
-    await d.locator('button:has-text("Save draft")').click(); await p.waitForTimeout(250); const t = await d.textContent();
-    await d.locator('label:has-text("Udyam registration no.") input').fill('UDYAM-MH-26-0012345'); await d.locator('button:has-text("Save draft")').click(); await p.waitForTimeout(300);
+    await d.locator('button:has-text("Save draft")').click(); await p.waitForTimeout(300);
     const v = (await S()).vendors.find((x) => x.name === 'Benchmark Cement Co');
-    return [`bad Udyam message: ${/Format UDYAM/.test(t)}; saved ${v?.id} ${v?.entityType} / ${v?.msmeType} ${v?.udyamNo} / credit ${v?.creditLimit}`, /Format UDYAM/.test(t) && v?.entityType === 'LLP' && v?.msmeType === 'Micro' && Number(v?.creditLimit) === 2500000];
+    // MSME / entity type / credit limit were removed from the form on request — registration saves trades, GSTIN and PAN
+    return [`saved ${v?.id} ${v?.status}; trades ${(v?.categories || []).join(', ')}; GSTIN ${v?.gstin}; PAN ${v?.pan}`, !!v && v.status === 'Draft' && (v.categories || []).includes('Cement & Aggregates') && v.pan === 'BNCHM4411K'];
   });
   await T('BF-02', 'Contacts & addresses (Overview tab): add a primary contact and a supplier site', async () => {
     await go('vendor-management/registry?open=VEN-009'); await p.waitForTimeout(300); await dlg().locator('[role=tab]:has-text("Overview")').click(); await p.waitForTimeout(150); await btn('Add contact').scrollIntoViewIfNeeded();

@@ -147,7 +147,7 @@ require('./lib')('merge', async ({ p, go, dlg, S, mut, T, pick, toastText }) => 
     await p.locator('input[placeholder="Stage name (e.g. Legal)"]').nth(3).fill('Compliance'); await btn('Save settings').click(); await p.waitForTimeout(200);
     const st = await S(); const flow = (st.settings.vendorFlow || []).map((x) => x.name);
     await go('vendor-management/registry'); await btn('Register vendor').first().click(); await p.waitForTimeout(250); const d = dlg();
-    await d.locator('input').nth(0).fill('Stage Test Traders'); await d.locator('button[aria-pressed]:has-text("Steel")').first().click();
+    await d.locator('button:has-text("Fill all details now")').click().catch(() => {}); await p.waitForTimeout(150); await d.locator('input').nth(0).fill('Stage Test Traders'); await d.locator('[role=combobox][aria-haspopup=listbox]:has-text("Select trades")').first().click(); await p.locator('[role=option]').filter({ hasText: 'Steel' }).first().click(); await d.locator('h2,h3').first().click();
     await d.locator('input[placeholder="27AAKCS4412M1Z3"]').fill('27STGTE4411K1Z5'); await d.locator('input[placeholder="AAKCS4412M"]').fill('STGTE4411K');
     await d.locator('label:has-text("Contact person") input').fill('Ravi Test'); await d.locator('input[type=email]').fill('ravi@stagetest.in');
     await d.locator('label:has-text("Account holder name") input').fill('Stage Test Traders'); await d.locator('input[placeholder="e.g. HDFC Bank"]').fill('HDFC Bank'); await d.locator('label:has-text("Account no.") input').first().fill('50200011229988'); await d.locator('label:has-text("IFSC") input').fill('HDFC0000123');
