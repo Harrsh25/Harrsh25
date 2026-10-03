@@ -141,16 +141,62 @@ function RequestChangesModal({ v, onClose }) {
   );
 }
 
-function EditRegistrationModal({ v, onClose, owner }) {
+// Fields compared when an approved vendor's change goes for approval
+const EDIT_LABELS = { name: "Company / trade name", legalName: "Legal name", types: "What they supply", categories: "Trades", gstin: "GSTIN", pan: "PAN", supplierType: "Supplier type",
+  address: "Address", city: "City", state: "State", pin: "PIN code", country: "Country", currency: "Currency", paymentTerms: "Payment terms", paymentMethod: "Payment method", tds: "TDS",
+  tier: "Supplier tier", regTier: "Registration tier", website: "Website", contact: "Contact", contractor: "Contractor details", bankAccounts: "Bank accounts", docs: "Documents" };
+const fmtEditVal = (v) => (v == null || v === "" ? "—" : Array.isArray(v) ? (v.length && typeof v[0] === "object" ? `${v.length} item(s)` : v.join(", ")) : typeof v === "object" ? Object.values(v).filter((x) => x && typeof x !== "object").join(" · ") : String(v));
+function vendorEditDiff(v, f) {
+  // baseline = the record saved through the unchanged form, so form defaults and blank fields don't show up as changes
+  const before = JSON.parse(JSON.stringify(v)), after = JSON.parse(JSON.stringify(v));
+  applyForm(before, vendorToForm(v)); applyForm(after, f);
+  const norm = (x) => JSON.stringify(x === "" || x === undefined ? null : x);
+  return Object.keys(EDIT_LABELS).filter((k) => norm(before[k]) !== norm(after[k]))
+    .map((k) => ({ field: EDIT_LABELS[k], from: fmtEditVal(before[k]), to: fmtEditVal(after[k]) }));
+}
+function EditRegistrationModal({ v, onClose, owner, review }) {
+  // owner: Draft / Rejected / Changes Requested — edits apply at once. review: approved vendor — the change waits for approval.
   const [f, setF] = y.useState(() => vendorToForm(v));
   const [reason, setReason] = y.useState("");
+  const save = () => {
+    if (review) {
+      const changes = vendorEditDiff(v, f);
+      if (!changes.length) { toast("Nothing changed", "amber"); return; }
+      setState((s) => { byId(s.vendors, v.id).pendingEdit = { form: f, changes, reason, by: currentUser(), at: new Date().toISOString() }; },
+        { entity: "Vendor", id: v.id, action: `Change submitted for approval — ${changes.map((c) => c.field).join(", ")}${reason ? ` (${reason})` : ""}` });
+      toast("Change sent for approval — the vendor keeps its current details until it is approved"); onClose(); return;
+    }
+    setState((s) => applyForm(byId(s.vendors, v.id), f, { lockBank: !owner }), { entity: "Vendor", id: v.id, action: owner ? "Registration details edited" : `Registration edited by approver — ${reason}` });
+    toast("Registration updated"); onClose();
+  };
   return (
-    <Modal open onClose={onClose} width={880} title={`Edit registration — ${v.name}`} subtitle={owner ? `${v.status} — you can change any detail, then submit for approval.` : "Approvers may correct details during review. Bank details are locked; only the vendor can change them."}
-      footer={<>{!owner && <Field label=""><TextInput value={reason} onChange={setReason} placeholder="Reason for edit (logged)" /></Field>}<span className="flex-1" /><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!owner && !reason} onClick={() => {
-        setState((s) => applyForm(byId(s.vendors, v.id), f, { lockBank: !owner }), { entity: "Vendor", id: v.id, action: owner ? "Registration details edited" : `Registration edited by approver — ${reason}` });
-        toast("Registration updated"); onClose();
-      }}>Save changes</Btn></>}>
-      <VendorForm f={f} set={setF} errors={{}} lockBank={!owner} />
+    <Modal open onClose={onClose} width={880} title={`Edit registration — ${v.name}`}
+      subtitle={review ? "Approved vendor — your changes go for approval and apply once approved. Until then the current details stay in use." : owner ? `${v.status} — you can change any detail, then submit for approval.` : "Approvers may correct details during review. Bank details are locked; only the vendor can change them."}
+      footer={<>{(!owner || review) && <Field label=""><TextInput value={reason} onChange={setReason} placeholder={review ? "Why is this changing? (shown to the approver)" : "Reason for edit (logged)"} /></Field>}<span className="flex-1" /><Btn onClick={onClose}>Cancel</Btn>
+        <Btn variant="primary" disabled={!reason.trim() && (!owner || review)} title={!reason.trim() && (!owner || review) ? "Give a reason first" : ""} onClick={save}>{review ? "Submit change for approval" : "Save changes"}</Btn></>}>
+      <VendorForm f={f} set={setF} errors={{}} lockBank={!owner && !review} />
     </Modal>
+  );
+}
+
+// Change to an approved vendor waiting for approval: what changes, approve (apply) or reject (discard)
+function PendingEditPanel({ v }) {
+  const pe = v.pendingEdit; const [rej, setRej] = y.useState(false);
+  if (!pe) return null;
+  const decide = (ok, remark) => {
+    setState((s) => { const x = byId(s.vendors, v.id); if (ok) applyForm(x, x.pendingEdit.form); x.notes = x.notes || []; x.notes.unshift({ at: todayISO(), by: currentUser(), text: ok ? `Change approved — ${pe.changes.map((c) => c.field).join(", ")}` : `Change rejected — ${remark}` }); delete x.pendingEdit; },
+      { entity: "Vendor", id: v.id, action: ok ? `Change approved and applied — ${pe.changes.map((c) => c.field).join(", ")}` : `Change rejected — ${remark}` });
+    toast(ok ? "Change approved and applied" : "Change rejected — current details kept", ok ? "green" : "red");
+  };
+  return (
+    <div className="rounded-xl border border-amber-200 bg-amber-50/50">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200 px-4 py-3">
+        <p className="text-[13.5px] font-semibold text-amber-900">Change waiting for approval <span className="font-normal text-amber-800">— by {pe.by} on {fmtDate(pe.at)}{pe.reason ? ` · ${pe.reason}` : ""}</span></p>
+        <span className="flex gap-2"><Btn size="sm" variant="danger" onClick={() => setRej(true)}>Reject change</Btn><Btn size="sm" variant="success" icon={Icon.check} onClick={() => decide(true)}>Approve change</Btn></span>
+      </div>
+      <table className="w-full text-[13px]"><thead><tr><Th>Field</Th><Th>Current</Th><Th>New</Th></tr></thead>
+        <tbody>{pe.changes.map((c) => <tr key={c.field}><Td className="font-medium">{c.field}</Td><Td className="whitespace-normal text-ink-mute line-through">{c.from}</Td><Td className="whitespace-normal font-medium text-ink">{c.to}</Td></tr>)}</tbody></table>
+      {rej && <ReasonModal title={`Reject change — ${v.name}`} text="The change is discarded; the vendor keeps its current details." action="Reject change" onClose={() => setRej(false)} onDone={(r) => decide(false, r)} />}
+    </div>
   );
 }

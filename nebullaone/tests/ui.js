@@ -22,7 +22,7 @@ run('ui', async ({ p, go, T, pick, S, mut }) => {
     const st = await p.locator('[role=menu] [role=menuitem]').allInnerTexts(); await p.keyboard.press('Escape'); await p.waitForTimeout(100);
     await row.locator('button[aria-label^="Change status of"]').nth(1).click(); await p.waitForTimeout(150);
     const ap = await p.locator('[role=menu] [role=menuitem]').allInnerTexts(); const apOn = await p.locator('[role=menu] [role=menuitem]:not(:disabled)').count(); await p.keyboard.press('Escape');
-    return [`status: ${st.join(', ')} · approval: ${ap.join(', ')} (${apOn} pickable)`, st.join() === 'Active,Inactive,On Hold,Blacklisted' && ap.length === 5 && apOn === 0];
+    return [`status: ${st.join(', ')} · approval: ${ap.join(', ')} (${apOn} pickable)`, st.join() === 'Active,Inactive,On Hold,Blacklisted' && ap.length === 6 && apOn === 0];
   });
   await T('UI-03', 'Board layout shows cards in status columns', async () => {
     await go('vendor-management/purchase-orders');

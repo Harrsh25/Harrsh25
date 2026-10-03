@@ -391,6 +391,9 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
   if (!v) return null;
   const comp = complianceOf(v);
   const locked = mode === "registry" && v.status === "Pending Approval";
+  // Edit flow: Draft / Rejected / Changes Requested → edit directly; Pending Approval → locked;
+  // approved (Active / Inactive / On Hold) → edit goes for approval first; Blacklisted → no edit
+  const reviewEdit = mode === "registry" && ["Active", "Inactive", "On Hold"].includes(v.status) && !v.pendingEdit;
   const canEdit = mode === "registry" && EDITABLE_STATUSES.includes(v.status);
   const tabs = [
     { id: "overview", label: "Overview" },
@@ -404,10 +407,11 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
   return (
     <Drawer open related={relatedFor(st, "vendor", v)} comments={v.id} onClose={onClose} width={880} title={<span className="flex items-center gap-2">{v.name}<PreferredStar v={v} size={16} always /></span>}
       subtitle={<><span className="mono text-[12px] text-ink-mute">{v.id}</span><span className="text-ink-faint">·</span><VendorTypeTag v={v} /><GroupCoTag v={v} /><VendorStatusMenu v={v} /><VendorStatusMenu v={v} approval /><Status>{v.regTier}</Status><Status>{comp.status}</Status></>}
-      actions={<>{canEdit && <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>}</>}
+      actions={<>{(canEdit || reviewEdit) && <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>}</>}
       tabs={{ tabs, active: tab, onChange: setTab }}>
       <div className="space-y-4 px-6 py-5">
         {locked && tab !== "approval" && <Note tone="amber" icon={Icon.lock}>Submitted for approval — details are locked until the approvers decide. {v.status === "Pending Approval" ? "If it is rejected or sent back, you can edit and resubmit." : ""}</Note>}
+        <PendingEditPanel v={v} />
         {tab === "overview" && <VendorOverview v={v} comp={comp} />}
         <fieldset disabled={locked} className="contents">
           {tab === "overview" && <VendorContactsAddresses v={v} locked={locked} />}
@@ -419,7 +423,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
         </fieldset>
         {tab === "approval" && <><VendorApproval v={v} mode={mode} /><VendorActivity v={v} /></>}
       </div>
-      {edit && <EditRegistrationModal v={v} owner onClose={() => setEdit(false)} />}
+      {edit && <EditRegistrationModal v={v} owner={canEdit} review={!canEdit} onClose={() => setEdit(false)} />}
     </Drawer>
   );
 }
@@ -823,7 +827,7 @@ const VSTATUS = ["Active", "Inactive", "On Hold", "Blacklisted"];
 const APPROVAL_STATES = ["Draft", "Pending Approval", "Changes Requested", "Rejected"];
 // Two separate views of v.status: business status (lifecycle) and approval status (registration workflow)
 const lifeStatus = (v) => (VSTATUS.includes(v.status) ? v.status : null);
-const approvalStatus = (v) => (APPROVAL_STATES.includes(v.status) ? v.status : "Approved");
+const approvalStatus = (v) => (APPROVAL_STATES.includes(v.status) ? v.status : v.pendingEdit ? "Change Pending" : "Approved");
 function vendorStatusOptions(v) {
   if (APPROVAL_STATES.includes(v.status)) return v.status === "Pending Approval" ? [] : ["Pending Approval"];
   return VSTATUS;
@@ -862,7 +866,7 @@ function VendorStatusMenu({ v, approval }) {
       {open && pos && (
         <div ref={menu} role="menu" className="fixed z-[80] w-[260px] overflow-hidden whitespace-normal rounded-lg border border-line bg-white py-1 shadow-lg" style={{ left: pos.left, top: pos.top, bottom: pos.bottom }}>
           <p className="px-3 pb-1 pt-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-ink-mute">{approval ? "Approval status" : "Status"}</p>
-          {(approval ? [...APPROVAL_STATES, "Approved"] : VSTATUS).map((o) => {
+          {(approval ? [...APPROVAL_STATES, "Change Pending", "Approved"] : VSTATUS).map((o) => {
             const cur = approval ? o === approvalStatus(v) : o === v.status, can = !approval ? opts.includes(o) && !APPROVAL_STATES.includes(v.status) : o === "Pending Approval" && opts.includes(o);
             const label = can && o === "Pending Approval" ? (v.status === "Draft" ? "Submit for approval" : "Resubmit for approval") : o;
             return (
@@ -916,7 +920,7 @@ function VendorRegistryPage() {
         summary={(r) => [{ value: r.filter((v) => v.preferred).length, label: "preferred", color: "text-amber-600" }]}
         filters={<>
         <FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, ...VSTATUS]} />
-        <FilterSelect label="Approval" value={appr} onChange={setAppr} options={[{ value: "All", label: "All approval" }, ...APPROVAL_STATES, "Approved"]} />
+        <FilterSelect label="Approval" value={appr} onChange={setAppr} options={[{ value: "All", label: "All approval" }, ...APPROVAL_STATES, "Change Pending", "Approved"]} />
         <FilterSelect label="Tier" value={tier} onChange={setTier} options={[{ value: "All", label: "All tiers" }, ...TIERS]} />
       </>}
         rows={rows} onRow={(v) => setOpen(v.id)} columns={[

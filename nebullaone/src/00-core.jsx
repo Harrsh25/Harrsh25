@@ -89,7 +89,7 @@ const PROJECTS = [
 ];
 
 // Status → tone for the host StatusPill
-const TONE = {
+const TONE = { "change pending": "amber",
   active: "green", approved: "green", verified: "green", certified: "green", paid: "green", signed: "green",
   compliant: "green", completed: "green", awarded: "green", received: "green", onboarded: "green", released: "green",
   "spend authorized": "green", closed: "gray", superseded: "gray", disabled: "gray", inactive: "gray", draft: "gray", expired: "red",

@@ -297,7 +297,7 @@ function VendorApprovalsPage() {
   const st = useStore();
   const [tab, setTab] = y.useState("queue");
   const [open, setOpen] = useQueryOpen();
-  const queue = st.vendors.filter((v) => ["Pending Approval", "Draft", "Rejected", "Changes Requested"].includes(v.status));
+  const queue = st.vendors.filter((v) => ["Pending Approval", "Draft", "Rejected", "Changes Requested"].includes(v.status) || v.pendingEdit);
   const byDept = [...new Set([...(settingsOf(st).vendorFlow || []).map((x) => x.name), ...st.vendors.flatMap((v) => (v.approval?.stages || []).filter((s) => s.status === "Pending").map((s) => s.dept))])].filter(Boolean).map((d) => ({ d, n: st.vendors.filter((v) => v.approval.stages.some((s) => s.dept === d && s.status === "Pending")).length }));
   return (
     <Page title="Vendor Approvals" subtitle="Multi-stage approval, qualification rule sets and requalification" icon={Icon.clipboardCheck}>
