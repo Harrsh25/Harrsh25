@@ -407,6 +407,8 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
       badge={APPROVAL_STATES.includes(v.status) ? <VendorStatusMenu v={v} approval /> : <VendorStatusMenu v={v} />}
       actions={<>{canEdit && <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>}</>}
       tabs={{ tabs, active: tab, onChange: setTab }}>
+      {/* every tab shows its tables as label → value lists */}
+      <ListMode.Provider value={true}>
       <div className="space-y-4 px-6 py-5">
         {locked && tab !== "approval" && (v.status === "Pending Approval"
           ? <Note tone="amber" icon={Icon.lock}>Submitted for approval — details are locked until the approvers decide. If it is rejected or sent back, you can edit and resubmit.</Note>
@@ -416,12 +418,13 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
           {tab === "overview" && <VendorContactsAddresses v={v} locked={locked} />}
           {tab === "flags" && <VendorFlags v={v} />}
           {tab === "docs" && <><VendorDocs v={v} mode={mode} locked={locked} /><InsurancePolicies v={v} mode={mode} locked={locked} /></>}
-          {tab === "bank" && <VendorBanks v={v} />}
+          {tab === "bank" && <VendorBanks v={v} locked={locked} />}
           {tab === "qual" && <Questionnaire v={v} />}
           {tab === "equip" && <EquipmentRegister v={v} />}
         </fieldset>
         {tab === "approval" && <><VendorApproval v={v} mode={mode} /><VendorActivity v={v} /></>}
       </div>
+      </ListMode.Provider>
       {edit && <EditRegistrationModal v={v} owner onClose={() => setEdit(false)} />}
     </Drawer>
   );
@@ -634,7 +637,7 @@ function VendorDocs({ v, mode = "registry", locked }) {
   );
 }
 
-function VendorBanks({ v }) {
+function VendorBanks({ v, locked }) {
   const blank = { holder: "", bank: "", account: "", accountConfirm: "", ifsc: "", swift: "", iban: "", accountType: "Current", currency: v.currency || "INR", branch: "", allowIntl: isForeign(v), paymentsEnabled: true, notes: "" };
   const [f, setF] = y.useState(blank), [tried, setTried] = y.useState(false), [rej, setRej] = y.useState(null), [del, setDel] = y.useState(null);
   const mut = (fn, action) => setState((s) => fn(byId(s.vendors, v.id)), { entity: "Vendor", id: v.id, action });
@@ -663,7 +666,7 @@ function VendorBanks({ v }) {
           { key: "st", label: "Verification", render: (a) => <span className="flex flex-col"><Status tone={{ Verified: "green", Rejected: "red" }[bankStatus(a)] || "amber"}>{bankStatus(a)}</Status>
             {a.verifiedAt && <span className="text-[11px] text-ink-mute">{a.verifiedBy} · {fmtDate(a.verifiedAt)}{a.method ? ` · ${a.method}` : ""}</span>}
             {a.remark && <span className="max-w-[220px] whitespace-normal text-[11px] text-red-600">{a.remark}</span>}</span> },
-          { key: "d", label: "", align: "right", render: (a) => (
+          { key: "d", label: "", align: "right", render: (a) => !locked && (
             <span className="flex justify-end gap-1">
               {bankStatus(a) !== "Verified" && <Btn size="sm" variant="success" onClick={() => verify(a)}>Verify</Btn>}
               {bankStatus(a) === "Unverified" && <Btn size="sm" variant="danger" onClick={() => setRej({ a, reason: "" })}>Reject</Btn>}
@@ -673,6 +676,7 @@ function VendorBanks({ v }) {
             </span>) },
         ]} />
       {v.bankAccounts.some((a) => a.isDefault && bankStatus(a) !== "Verified") && <div className="border-t border-line px-4 py-2"><Note tone="amber">The default account is not verified — payments show a warning until it is verified.</Note></div>}
+      {!locked && <>
       <div className="grid grid-cols-[1.2fr_1fr_1fr_140px_auto] items-start gap-3 border-t border-line p-4">
         <Field label="Account holder name" hint="Exactly as in bank records"><TextInput value={f.holder} onChange={(x) => setF({ ...f, holder: x })} placeholder={v.legalName} />{tried && <FieldErr m={er.holder} />}</Field>
         <Field label="Bank"><TextInput value={f.bank} onChange={(x) => setF({ ...f, bank: x })} />{tried && <FieldErr m={er.bank} />}</Field>
@@ -694,6 +698,7 @@ function VendorBanks({ v }) {
         <Field label="Bank notes" span={foreign ? 2 : 3}><TextInput value={f.notes} onChange={(x) => setF({ ...f, notes: x })} placeholder="e.g. Use for project payments only" /></Field>
         <div className="col-span-full flex flex-wrap gap-6"><Check checked={!!f.allowIntl} onChange={(b) => setF({ ...f, allowIntl: b })} label="Allow international payments" /><Check checked={f.paymentsEnabled !== false} onChange={(b) => setF({ ...f, paymentsEnabled: b })} label="Send money (payments enabled)" /></div>
       </div>
+      </>}
       {ed && (
         <Modal open onClose={() => setEd(null)} width={560} title={`Bank account ${tail(ed)} — settings`}
           footer={<><Btn onClick={() => setEd(null)}>Cancel</Btn><Btn variant="primary" onClick={() => {

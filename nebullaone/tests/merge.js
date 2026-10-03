@@ -21,7 +21,7 @@ require('./lib')('merge', async ({ p, go, dlg, S, mut, T, pick, toastText }) => 
     const d = dlg(); await d.locator('label:has-text("Account holder name") input').fill((await S()).vendors.find((x) => x.id === 'VEN-011').legalName); await d.locator('label:has-text("Bank") input').nth(1).fill('Axis Bank');
     await d.locator('label:has-text("Account no.") input').first().fill('918020012345678'); await d.locator('label:has-text("Re-enter account no.") input').fill('918020012345678'); await d.locator('label:has-text("IFSC") input').fill('UTIB0000123'); await d.locator('button:has-text("Add")').last().click(); await p.waitForTimeout(200);
     let v = (await S()).vendors.find((x) => x.id === 'VEN-011'); const a = v.bankAccounts.find((b) => b.account === '918020012345678'); const st0 = a?.status;
-    await d.locator(`tr:has-text("5678") button:has-text("Verify")`).click(); await p.waitForTimeout(200);
+    await d.locator('div.relative').filter({ hasText: '5678' }).last().locator('button:has-text("Verify")').click(); await p.waitForTimeout(200);
     v = (await S()).vendors.find((x) => x.id === 'VEN-011'); const a2 = v.bankAccounts.find((b) => b.account === '918020012345678');
     return [`added ${st0}; after verify ${a2?.status} by ${a2?.verifiedBy}`, st0 === 'Unverified' && a2?.status === 'Verified' && !!a2.verifiedAt];
   });

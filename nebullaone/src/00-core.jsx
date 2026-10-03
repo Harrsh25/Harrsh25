@@ -790,7 +790,10 @@ function ColumnPicker({ extra, shown, onApply, onClose }) {
 }
 const readCols = (id) => { try { const v = JSON.parse(localStorage.getItem("nxv-cols2:" + id)); return Array.isArray(v) ? v : null; } catch { return null; } };
 
-function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0, onClearFilters, exportName, rows, onRow, rowKey = (r) => r.id, empty, footer, dense, plain, filters, actions, noun = "records", summary, searchText = rowSearchText, placeholder = "Search…", calendar, defaultCols, asList }) {
+const ListMode = y.createContext(false);
+function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0, onClearFilters, exportName, rows, onRow, rowKey = (r) => r.id, empty, footer, dense, plain, filters, actions, noun = "records", summary, searchText = rowSearchText, placeholder = "Search…", calendar, defaultCols, asList: asList0 }) {
+  // Inside a record panel that asks for it (ListMode), small tables show as label → value lists
+  const asList = asList0 || (dense && y.useContext(ListMode));
   // asList: each row as a block of label → value lines (record panels), action column top-right
   if (asList) return (
     <div className="divide-y divide-line">
@@ -1155,7 +1158,7 @@ function Section({ title, icon, actions, children, className }) {
 // Details as a one-column list: label on the left, value on the right, one row per field
 function KV({ items }) {
   return (
-    <dl className="divide-y divide-line px-4 py-1">
+    <dl className="nx-kv divide-y divide-line px-4 py-1">
       {items.filter(Boolean).map(([k, v]) => (
         <div key={k} className="grid grid-cols-[180px_minmax(0,1fr)] items-start gap-4 py-2.5 text-[13px]">
           <dt className="text-ink-mute">{k}</dt>
