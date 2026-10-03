@@ -194,7 +194,7 @@ function WorkOrdersPage() {
   return (
     <Page title="Work Orders" subtitle="Lump Sum and Item-Rate work orders issued under contracts" icon={Icon.clipboardList}
       actions={<Btn variant="primary" icon={Icon.plus} onClick={() => setCreate(true)}>Create work order</Btn>}>
-      <DataTable noun="work orders" calendar={{ label: "Finish dates", date: (w) => w.end, title: (w) => w.title }} filters={<FilterSelect label="Type" value={type} onChange={setType} options={[{ value: "All", label: "All types" }, "Item-Rate", "Lump Sum"]} />} rows={rows} onRow={(w) => setOpen(w.id)} columns={[
+      <DataTable noun="work orders" extraColumns={LIST_EXTRA.wo(st)} calendar={{ label: "Finish dates", date: (w) => w.end, title: (w) => w.title }} filters={<FilterSelect label="Type" value={type} onChange={setType} options={[{ value: "All", label: "All types" }, "Item-Rate", "Lump Sum"]} />} rows={rows} onRow={(w) => setOpen(w.id)} columns={[
         { key: "id", label: "WO", className: "mono text-[12px] text-ink-soft" },
         { key: "title", label: "Title", className: "font-medium" },
         { key: "v", label: "Contractor", filterOptions: FO.contractors, filter: (x) => vendorName(st, x.vendorId), render: (w) => vendorName(st, w.vendorId) },
@@ -300,7 +300,7 @@ function MeasurementBookPage() {
       {tab === "ncr" && <NcrTable rows={(st.ncrs || []).filter((n) => wo === "All" || n.woId === wo)} />}
       {ncrFor && <NcrModal woId={ncrFor.woId} mb={ncrFor} onClose={() => setNcrFor(null)} />}
       {tab === "mb" && <>
-        <DataTable noun="measurements" filters={<><FilterSelect label="Work order" value={wo} onChange={setWo} options={woOpts} /><FilterSelect label="JMS" value={jms} onChange={setJms} options={[{ value: "All", label: "All JMS status" }, "Pending", "Signed", "Disputed"]} /></>} rows={rows} onRow={(m) => setOpenMb(m.id)} columns={[
+        <DataTable noun="measurements" extraColumns={LIST_EXTRA.mb(st)} filters={<><FilterSelect label="Work order" value={wo} onChange={setWo} options={woOpts} /><FilterSelect label="JMS" value={jms} onChange={setJms} options={[{ value: "All", label: "All JMS status" }, "Pending", "Signed", "Disputed"]} /></>} rows={rows} onRow={(m) => setOpenMb(m.id)} columns={[
           { key: "id", label: "MB no.", className: "mono text-[12px]" },
           { key: "date", label: "Date", render: (m) => fmtDate(m.date) },
           { key: "wo", label: "Work order", render: (m) => (byId(st.workOrders, m.woId) || {}).title || m.woId },

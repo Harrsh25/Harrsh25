@@ -644,7 +644,7 @@ function RequisitionsPage() {
   return (
     <Page title="Purchase Requisitions" subtitle="Material requests and labour requisitions from sites — approved requests become RFQs" icon={Icon.clipboardList}
       actions={<Btn variant="primary" icon={Icon.plus} onClick={() => setEdit({})}>New requisition</Btn>}>
-      <DataTable noun="requisitions" calendar={{ label: "Required-by dates", date: (r) => r.requiredBy, title: (r) => r.purpose }} rows={rows} onRow={(x) => setOpen(x.id)} empty={<EmptyState icon={Icon.clipboardList} title="No requisitions yet" text="Sites raise material or labour requisitions here; procurement turns approved ones into RFQs." />} columns={[
+      <DataTable noun="requisitions" extraColumns={LIST_EXTRA.requisitions(st)} calendar={{ label: "Required-by dates", date: (r) => r.requiredBy, title: (r) => r.purpose }} rows={rows} onRow={(x) => setOpen(x.id)} empty={<EmptyState icon={Icon.clipboardList} title="No requisitions yet" text="Sites raise material or labour requisitions here; procurement turns approved ones into RFQs." />} columns={[
         { key: "id", label: "ID", className: "mono text-[12px]" },
         { key: "purpose", label: "Purpose", filterOptions: REQ_PURPOSES, filter: true },
         { key: "what", label: "Requirement", render: (x) => <span className="text-[12.5px]">{itemsSummary(x.items)}</span> },

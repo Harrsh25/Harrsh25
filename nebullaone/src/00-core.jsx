@@ -685,7 +685,9 @@ function ColumnPicker({ extra, shown, onApply, onClose }) {
   const [draft, setDraft] = y.useState(shown);
   const on = (k) => draft.includes(k);
   const flip = (k) => setDraft((d) => (d.includes(k) ? d.filter((x) => x !== k) : [...d, k]));
-  const changed = draft.length !== shown.length || draft.some((k) => !shown.includes(k));
+  const sameAs = (list) => draft.length === list.length && draft.every((k) => list.includes(k));
+  const changed = !sameAs(shown);
+  const defaults = extra.filter((c) => c.default).map((c) => c.key);
   y.useEffect(() => { const esc = (e) => e.key === "Escape" && onClose(); document.addEventListener("keydown", esc); return () => document.removeEventListener("keydown", esc); }, []);
   return (
     <div className="fixed inset-0 z-[65]" onMouseDown={onClose}>
@@ -714,6 +716,8 @@ function ColumnPicker({ extra, shown, onApply, onClose }) {
           ))}
         </div>
         <div className="flex items-center justify-end gap-2 border-t border-line px-4 py-3">
+          {/* Reset puts back the list's default columns; Apply saves it */}
+          <button type="button" className="mr-auto flex items-center gap-1.5 rounded-md px-2 py-1 text-[13px] text-ink-soft hover:bg-gray-100 hover:text-ink disabled:opacity-40" disabled={sameAs(defaults)} onClick={() => setDraft(defaults)}>{h(Icon.refresh, { size: 14 })}Reset</button>
           <Btn onClick={onClose}>Cancel</Btn>
           <Btn variant="primary" disabled={!changed} onClick={() => { onApply(draft); onClose(); }}>Apply</Btn>
         </div>

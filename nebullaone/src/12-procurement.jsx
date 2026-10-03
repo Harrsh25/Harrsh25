@@ -373,7 +373,7 @@ function PurchaseOrdersPage() {
   return (
     <Page title="Purchase Orders" subtitle="PO generation, partial deliveries, goods receipt, returns & billing status" icon={Icon.package}
       actions={<Btn variant="primary" icon={Icon.plus} onClick={() => setCreate(true)}>New PO</Btn>}>
-      <DataTable noun="purchase orders" calendar={{ label: "Delivery dates", date: (p) => p.deliveryDate, title: (p) => vendorName(st, p.vendorId) }} rows={st.purchaseOrders} onRow={(p) => setOpen(p.id)} columns={[
+      <DataTable noun="purchase orders" extraColumns={LIST_EXTRA.po(st)} calendar={{ label: "Delivery dates", date: (p) => p.deliveryDate, title: (p) => vendorName(st, p.vendorId) }} rows={st.purchaseOrders} onRow={(p) => setOpen(p.id)} columns={[
         { key: "id", label: "PO no.", className: "mono text-[12px]" },
         { key: "v", label: "Vendor", filterOptions: FO.vendors, filter: (x) => vendorName(st, x.vendorId), render: (p) => <span className="font-medium">{vendorName(st, p.vendorId)}</span> },
         { key: "s", label: "Status", filterOptions: FO.poStatus, filter: (p) => poStatus(p), render: (p) => <Status>{poStatus(p)}</Status> },
@@ -415,7 +415,7 @@ function BlanketOrdersPage() {
   return (
     <Page title="Blanket Orders" subtitle="Long-term rate agreements — call-off POs draw down the agreed quantity at the agreed rate" icon={Icon.layers}
       actions={<Btn variant="primary" icon={Icon.plus} onClick={() => { setF(blank); setCreate(true); }}>New blanket order</Btn>}>
-      <DataTable noun="agreements" rows={st.blanketOrders} onRow={(b) => setOpen(b.id)} empty={<EmptyState icon={Icon.layers} title="No blanket orders" text="Create one for materials you buy repeatedly from the same vendor." />} columns={[
+      <DataTable noun="agreements" extraColumns={LIST_EXTRA.blanket(st)} rows={st.blanketOrders} onRow={(b) => setOpen(b.id)} empty={<EmptyState icon={Icon.layers} title="No blanket orders" text="Create one for materials you buy repeatedly from the same vendor." />} columns={[
         { key: "title", label: "Agreement", className: "font-medium" },
         { key: "v", label: "Vendor", filterOptions: FO.vendors, filter: (x) => vendorName(st, x.vendorId), render: (b) => vendorName(st, b.vendorId) },
         { key: "val", label: "Value", align: "right", num: true, render: (b) => inrShort(value(b)) },
@@ -886,7 +886,7 @@ function InvoicesPage() {
       </>}>
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "bills", label: "Bills", icon: Icon.receipt }, { id: "accruals", label: "Accruals", icon: Icon.book }]} />
       {tab === "accruals" && <AccrualsTab />}
-      {tab === "bills" && <DataTable noun="bills" calendar={{ label: "Due dates", date: (i) => i.due, title: (i) => vendorName(st, i.vendorId) }} summary={(r) => [{ value: inrShort(sum(r, (i) => invoiceTotals(i).balance)), label: "outstanding" }, { value: inrShort(sum(st.vendorAdvances, (a) => a.amount - sum(a.allocated, (x) => x.amount))), label: "unadjusted advances" }]} filters={<><FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Awaiting Review", "Unpaid", "Partially Paid", "Overdue", "On Hold", "Paid", "Rejected"]} /></>} rows={rows} onRow={(i) => setOpen(i.id)} columns={[
+      {tab === "bills" && <DataTable noun="bills" extraColumns={LIST_EXTRA.bills(st)} calendar={{ label: "Due dates", date: (i) => i.due, title: (i) => vendorName(st, i.vendorId) }} summary={(r) => [{ value: inrShort(sum(r, (i) => invoiceTotals(i).balance)), label: "outstanding" }, { value: inrShort(sum(st.vendorAdvances, (a) => a.amount - sum(a.allocated, (x) => x.amount))), label: "unadjusted advances" }]} filters={<><FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Awaiting Review", "Unpaid", "Partially Paid", "Overdue", "On Hold", "Paid", "Rejected"]} /></>} rows={rows} onRow={(i) => setOpen(i.id)} columns={[
         { key: "sel", label: "", render: (i) => invoiceStatus(i) !== "Paid" && <input type="checkbox" className="h-4 w-4 accent-[#0b5ed7]" checked={sel.includes(i.id)} onClick={(e) => e.stopPropagation()} onChange={(e) => setSel(e.target.checked ? [...sel, i.id] : sel.filter((x) => x !== i.id))} /> },
         { key: "id", label: "Bill no.", className: "mono text-[12px]" },
         { key: "v", label: "Vendor", filterOptions: FO.vendors, filter: (x) => vendorName(st, x.vendorId), render: (i) => <span className="font-medium">{vendorName(st, i.vendorId)}</span> },
