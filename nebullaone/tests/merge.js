@@ -120,9 +120,9 @@ require('./lib')('merge', async ({ p, go, dlg, S, mut, T, pick, toastText }) => 
   // ---------------------------------------------------------------- remaining forms
   await mut(`(s) => { s.vendors.find((y) => y.id === 'VEN-011').status = 'Active'; }`);
   await T('F-01', 'Hold: short reason and past release date are refused', async () => {
-    // hold is placed from the status badge (approved vendors' tabs are read-only)
-    await go('vendor-management/registry?open=VEN-011'); await p.waitForTimeout(300); await p.locator('[data-drawer] button[aria-label^="Change status of"]').first().click(); await p.waitForTimeout(150);
-    await p.locator('[role=menu] [role=menuitem]').filter({ hasText: 'On Hold' }).click(); await p.waitForTimeout(200);
+    // hold is placed from the Status & flags tab (the header status is view only)
+    await go('vendor-management/registry?open=VEN-011'); await p.waitForTimeout(300); await dlg().locator('[role=tab]:has-text("Status & flags")').click(); await p.waitForTimeout(150);
+    await pick(p.locator('[data-drawer] [role=combobox][aria-label="On hold"]'), 'Yes'); await p.waitForTimeout(200);
     const d = dlg(); await d.locator('label:has-text("Reason") input').first().fill('abc'); await p.waitForTimeout(80);
     const dis1 = await d.locator('button:has-text("Place hold")').isDisabled();
     await d.locator('label:has-text("Reason") input').first().fill('Pending reconciliation'); await d.locator('label:has-text("Release date") input').fill('2020-01-01'); await p.waitForTimeout(80);

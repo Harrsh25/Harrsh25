@@ -404,7 +404,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
   ];
   return (
     <Drawer open related={relatedFor(st, "vendor", v)} comments={tab === "overview" ? undefined : v.id} onClose={onClose} width={880} title={v.name}
-      subtitle={<><span className="mono text-ink-mute">{v.id}</span>{APPROVAL_STATES.includes(v.status) ? <VendorStatusMenu v={v} approval caret /> : <VendorStatusMenu v={v} caret />}</>}
+      subtitle={<><span className="mono text-ink-mute">{v.id}</span>{/* view only — status is changed from the Status & flags tab */}<Status>{APPROVAL_STATES.includes(v.status) ? approvalStatus(v) : v.status}</Status></>}
       actions={<><span className="inline-flex h-8 items-center"><PreferredStar v={v} size={18} always /></span>{canEdit && <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>}</>}
       tabs={{ tabs, active: tab, onChange: setTab }}>
       {/* tables show as label → value lists, except Documents, Bank and Equipment which keep their tables */}
@@ -412,7 +412,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
       <div className="space-y-4 px-6 py-5">
         {locked && !["approval", "flags"].includes(tab) && (v.status === "Pending Approval"
           ? <Note tone="amber" icon={Icon.lock}>Submitted for approval — details are locked until the approvers decide. If it is rejected or sent back, you can edit and resubmit.</Note>
-          : <Note icon={Icon.lock}>Approved vendor — registration details are locked. Status (hold, inactive, blacklist) is changed from the status badge at the top.</Note>)}
+          : <Note icon={Icon.lock}>Approved vendor — registration details are locked. Status (hold, inactive, blacklist) is changed from the Status &amp; flags tab.</Note>)}
         {tab === "overview" && <VendorOverview v={v} comp={comp} />}
         {/* Classification is editable only while the registration is editable; flags stay editable in every status */}
         {tab === "flags" && <VendorFlagsView v={v} canEdit={canEdit} canEditFlags={mode === "registry"} />}
