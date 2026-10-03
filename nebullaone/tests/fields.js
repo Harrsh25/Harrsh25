@@ -76,9 +76,10 @@ require('./lib')('fields', async ({ p, go, dlg, S, T, pick }) => {
     const t = await p.locator('[data-drawer]').innerText(); const hits = ['27MAPCK1234B1Z9', 'MAPCK1234B', 'Meera', 'ops@mapping.in', 'Hardware'].filter((x) => t.includes(x));
     return [`${hits.length}/5 values shown`, hits.length === 5];
   });
-  await T('F-14', 'Quick form: only the essentials; "Fill all details now" opens the full form', async () => {
+  await T('F-14', 'Register vendor opens the full form directly; no quick form or send-to-vendor (vendors self-register only via Invite)', async () => {
     await go('vendor-management/registry'); await p.locator('main button:has-text("Register vendor")').first().click(); await p.waitForTimeout(200); const d = dlg();
-    const q = await d.locator('input,[role=combobox],[role=checkbox]').count(); await d.locator('button:has-text("Fill all details now")').click(); await p.waitForTimeout(150);
-    const f = await d.locator('input,[role=combobox],[role=checkbox]').count(); await p.keyboard.press('Escape'); return [`quick ${q} fields → full ${f}`, q < f && q <= 14];
+    const n = await d.locator('input,[role=combobox],[role=checkbox]').count(); const extra = await d.locator('button').filter({ hasText: /Fill all details|send to vendor/i }).count();
+    const bank = await d.locator('label:has-text("IFSC")').count(); await p.keyboard.press('Escape');
+    return [`${n} fields; bank section ${bank ? 'shown' : 'missing'}; quick / send buttons ${extra}`, n > 30 && bank > 0 && extra === 0];
   });
 });

@@ -31,18 +31,6 @@ function InviteVendorModal({ onClose }) {
   );
 }
 
-// Invite linked to a draft vendor: the vendor completes the registration your team started
-function sendCompletionInvite(vid) {
-  const st = getState(), v = byId(st.vendors, vid);
-  const old = st.invites.find((i) => i.vendorId === vid && i.status === "Invited");
-  if (old) { remindInvite(old); return old; }
-  const id = nextId("INVT", st.invites);
-  const inv = { id, name: v.name, email: v.contact.email.toLowerCase(), contact: v.contact.name, category: v.categories[0] || "", sentOn: todayISO(), status: "Invited", vendorId: vid, complete: true, by: currentUser(),
-    message: "We've started your registration. Please add your bank details, documents and the remaining company details, then submit." };
-  setState((s) => s.invites.unshift(inv), { entity: "Invite", id, action: `Sent to ${inv.email} to complete ${vid}` });
-  toast(`Link sent to ${inv.email}`);
-  return inv;
-}
 
 // Invitation links stay valid for 30 days from the last (re)send
 const INVITE_VALID_DAYS = 30;

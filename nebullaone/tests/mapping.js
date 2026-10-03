@@ -33,7 +33,7 @@ require('./lib')('mapping', async ({ p, go, dlg, S, T }) => {
     return [`${v.id}: data ${bad.length ? 'mismatch ' + bad.join(', ') : 'OK'}; vendor record shows ${shown.length ? 'missing ' + shown.join(', ') : 'all fields'}`, !bad.length && !shown.length];
   });
   await T('P2P-02', 'Vendor master → RFQ: vendor invited, RFQ shows the vendor', async () => {
-    const t = await drawerText('vendor-management/rfq?open=' + rfq.id);
+    await drawerText('vendor-management/rfq?open=' + rfq.id); await p.locator('[data-drawer] [role=tab]').filter({ hasText: 'Vendors' }).first().click(); await p.waitForTimeout(150); const t = await dlg().innerText();
     return [`${rfq.id} invites ${rfq.vendorIds.join(', ')}; screen lists ${v.name}: ${t.includes(v.name)}`, rfq.vendorIds.includes(v.id) && t.includes(v.name)];
   });
   const q = rfq.quotes.find((x) => x.vendorId === v.id);

@@ -163,7 +163,7 @@ function FormSection({ n, title, desc, done, right, children }) {
   );
 }
 
-function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank, quick }) {
+function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
   const formRoot = y.useRef(null);
   const upd = (k, val) => set({ ...f, [k]: val });
   const updC = (k, val) => set({ ...f, contact: { ...f.contact, [k]: val } });
@@ -224,19 +224,6 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank, quic
         </div>
       </FormSection>
 
-      {quick ? (
-        <FormSection n={++n} title="Tax & contact" desc="The rest — bank, documents, addresses, MSME, contractor details — is added later by your team or by the vendor" done={gstOk && panOk && !!f.contact.name && EMAIL_RE.test(f.contact.email)}>
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="GSTIN" required><TextInput value={f.gstin} onChange={setGstin} placeholder="27AAKCS4412M1Z3" maxLength={15} className={cls(inputCls, "mono")} />{err("gstin") || dupNote(dup.gstin, "Already registered:") || ok(gstOk, `Valid · ${GST_STATES[f.gstin.slice(0, 2)] || "state " + f.gstin.slice(0, 2)}`)}</Field>
-            <Field label="PAN" required hint="Filled from the GSTIN"><TextInput value={f.pan} onChange={(v) => upd("pan", v.toUpperCase())} placeholder="AAKCS4412M" maxLength={10} className={cls(inputCls, "mono")} />{err("pan")}</Field>
-            <Field label="GST treatment"><Select value={f.gstTreatment || "Registered — regular"} onChange={(v) => upd("gstTreatment", v)} options={GST_TREATMENTS} /></Field>
-            <Field label="Contact person" required><TextInput value={f.contact.name} onChange={(v) => updC("name", v)} />{err("contactName")}</Field>
-            <Field label="Email" required hint="Becomes the vendor's portal login"><TextInput type="email" value={f.contact.email} onChange={(v) => updC("email", v)} />{err("email")}</Field>
-            <Field label="Phone"><TextInput value={f.contact.phone} onChange={(v) => updC("phone", v)} placeholder="+91 98xxx xxxxx" />{err("phone")}</Field>
-            <Field label="Payment terms"><Select value={f.paymentTerms} onChange={(v) => upd("paymentTerms", v)} options={PAYMENT_TERMS} /></Field>
-          </div>
-        </FormSection>
-      ) : (<>
       <FormSection n={++n} title="Tax & payment" desc={foreign ? "Foreign vendor — GSTIN and PAN are not required" : "GSTIN fills the PAN and state automatically"} done={foreign ? !!f.taxId : gstOk && panOk}>
         <div className="grid grid-cols-3 gap-3">
           <Field label="Country" required><Select value={f.country || "India"} onChange={(v) => set({ ...f, country: v, currency: COUNTRY_CURRENCY[v] || f.currency, tds: v === "India" ? autoTds(vTypes(f), f.supplierType) : "NONE" })} options={COUNTRIES} /></Field>
@@ -317,7 +304,6 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank, quic
           </div>
         </FormSection>
       )}
-      </>)}
     </div>
   );
 }
@@ -359,22 +345,12 @@ function DocUploadList({ docs, uploads, onChange }) {
 }
 
 function RegisterVendorModal({ open, onClose, onCreated, contractorMode }) {
+  // Your team fills the whole registration here; a vendor registers themselves only through an Invite link
   const [f, setF] = y.useState(emptyVendor);
   const [errors, setErrors] = y.useState({});
-  // Quick register (≈10 fields, like ERPNext / Odoo / Zoho); "Fill all details" opens the full form
-  const [full, setFull] = y.useState(false), [shared, setShared] = y.useState(null);
   y.useEffect(() => {
-    if (open) { setF(contractorMode ? { ...emptyVendor(), type: "Labor", types: ["Labor"], isContractor: true, tds: "194C-2" } : emptyVendor()); setErrors({}); setFull(false); setShared(null); }
+    if (open) { setF(contractorMode ? { ...emptyVendor(), type: "Labor", types: ["Labor"], isContractor: true, tds: "194C-2" } : emptyVendor()); setErrors({}); }
   }, [open]);
-  // Save as a draft and e-mail the vendor a link to fill in the rest (bank, documents, addresses…)
-  const saveAndSend = () => {
-    const e = validateVendor(f); setErrors(e); if (Object.keys(e).length) return;
-    const id = createVendor(f, false);
-    setShared({ id, inv: sendCompletionInvite(id) });
-    onCreated && onCreated(id);
-  };
-  if (open && shared) return <ShareLinkModal title={`${shared.id} saved — link sent to ${shared.inv.email}`} url={appUrl(`/vendor-register?invite=${shared.inv.id}`)} onClose={onClose}
-    text={`The vendor opens this link, sees what you entered, adds bank details, documents and the remaining company details, and submits. ${shared.id} then goes to Pending Approval. Until then it stays a draft you can also edit yourself.`} />;
   const save = (submit) => {
     const e = validateVendor(f);
     setErrors(e);
@@ -392,13 +368,11 @@ function RegisterVendorModal({ open, onClose, onCreated, contractorMode }) {
   return (
     <Modal open={open} onClose={onClose} width={820}
       title={contractorMode ? "Onboard contractor" : "Register vendor"}
-      subtitle={full ? "All details. Saving creates a draft; submitting routes it through Procurement → Legal → Finance." : "Just the basics — save a draft, or send it to the vendor to fill in the rest."}
-      footer={<>{!full && <button type="button" className="mr-auto text-[13px] font-medium text-brand hover:underline" onClick={() => setFull(true)}>Fill all details now</button>}
-        <Btn onClick={onClose}>Cancel</Btn><Btn onClick={() => save(false)}>Save draft</Btn>
-        {!full && <Btn icon={Icon.mail} onClick={saveAndSend}>Save & send to vendor</Btn>}
+      subtitle="All details. Saving creates a draft; submitting routes it through Procurement → Legal → Finance. To let the vendor fill it in, use Invite vendor instead."
+      footer={<><Btn onClick={onClose}>Cancel</Btn><Btn onClick={() => save(false)}>Save draft</Btn>
         <Btn variant="primary" icon={Icon.send} onClick={() => save(true)}>Submit for approval</Btn></>}>
       {errors.docs && <div className="mb-3"><Note tone="red">{errors.docs}</Note></div>}
-      <VendorForm f={f} set={setF} errors={errors} contractorMode={contractorMode} quick={!full} />
+      <VendorForm f={f} set={setF} errors={errors} contractorMode={contractorMode} />
     </Modal>
   );
 }
@@ -409,7 +383,6 @@ function RegisterVendorModal({ open, onClose, onCreated, contractorMode }) {
 // mode "approval": opened from Vendor Approvals / Approval Management — decisions allowed.
 const EDITABLE_STATUSES = ["Draft", "Rejected", "Changes Requested"];
 function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "registry" }) {
-  const [share, setShare] = y.useState(null);
   const st = useStore();
   const v = byId(st.vendors, vendorId);
   // Contacts & addresses live on Overview, the activity trail on Approvals
@@ -434,7 +407,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
   return (
     <Drawer open related={relatedFor(st, "vendor", v)} comments={v.id} onClose={onClose} width={880} title={<span className="flex items-center gap-2">{v.name}<PreferredStar v={v} size={16} always /></span>}
       subtitle={<><span className="mono text-[12px] text-ink-mute">{v.id}</span><span className="text-ink-faint">·</span><VendorTypeTag v={v} /><GroupCoTag v={v} /><VendorStatusMenu v={v} /><Status>{v.regTier}</Status><Status>{comp.status}</Status></>}
-      actions={<>{v.status === "Draft" && v.contact?.email && <Btn icon={Icon.mail} onClick={() => setShare(sendCompletionInvite(v.id))}>Send to vendor to complete</Btn>}{canEdit && <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>}</>}
+      actions={<>{canEdit && <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>}</>}
       tabs={{ tabs, active: tab, onChange: setTab }}>
       <div className="space-y-4 px-6 py-5">
         {locked && tab !== "approval" && <Note tone="amber" icon={Icon.lock}>Submitted for approval — details are locked until the approvers decide. {v.status === "Pending Approval" ? "If it is rejected or sent back, you can edit and resubmit." : ""}</Note>}
@@ -450,7 +423,6 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
         {tab === "approval" && <><VendorApproval v={v} mode={mode} /><VendorActivity v={v} /></>}
       </div>
       {edit && <EditRegistrationModal v={v} owner onClose={() => setEdit(false)} />}
-      {share && <ShareLinkModal title={`Link sent to ${share.email}`} url={appUrl(`/vendor-register?invite=${share.id}`)} onClose={() => setShare(null)} text="The vendor fills in the rest of the registration and submits; the record then goes to Pending Approval." />}
     </Drawer>
   );
 }
