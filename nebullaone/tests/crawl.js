@@ -24,7 +24,7 @@ const ROUTES = [...fs.readFileSync(path.resolve(__dirname, '../src/90-nav.jsx'),
       customize: !!t.querySelector('[aria-label="Customize columns"]'),
     }));
     const fields = [...R.querySelectorAll('input,select,textarea,button[aria-haspopup=listbox],[role=checkbox],[role=switch]')].filter(vis).filter((e) => !e.closest('thead,[data-quick-filter],[data-searchbar]')).map((e) => {
-      const lab = e.closest('label')?.querySelector('span')?.innerText.replace(/\s*\*$/, '').trim() || e.getAttribute('aria-label') || e.placeholder || txt(e);
+      const L = e.closest('label'); const lab = L?.querySelector('span')?.innerText.replace(/\s*\*$/, '').trim() || e.getAttribute('aria-label') || (e.labels && e.labels[0] && e.labels[0].innerText.trim()) || (L && L.innerText.trim().split('\n')[0]) || e.placeholder || txt(e);
       return { label: (lab || '').slice(0, 60), name: e.name || '', id: e.id || '', type: e.tagName === 'BUTTON' ? (e.getAttribute('role') || 'select') : (e.type || e.tagName.toLowerCase()),
         required: !!(e.required || e.closest('label')?.querySelector('.text-red-500')), value: (e.value ?? e.innerText ?? '').toString().slice(0, 40), disabled: !!e.disabled };
     });

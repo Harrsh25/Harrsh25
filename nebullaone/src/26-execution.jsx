@@ -130,6 +130,8 @@ function WoResources({ wo }) {
   const v = byId(st.vendors, wo.vendorId);
   const [eq, setEq] = y.useState(""), [mi, setMi] = y.useState(null), [dpr, setDpr] = y.useState(null), [ncr, setNcr] = y.useState(false);
   const open = ["Issued", "In Progress", "Suspended"].includes(wo.status);
+  // while suspended, equipment can be released and hindrances reported, but nothing new is deployed or issued
+  const active = ["Issued", "In Progress"].includes(wo.status);
   const dep = wo.equipment || [];
   const reg = v.equipment || [];
   const onSite = dep.filter((d) => !d.to).map((d) => ({ ...d, e: reg.find((x) => x.id === d.eqId) })).filter((d) => d.e);
@@ -157,7 +159,7 @@ function WoResources({ wo }) {
               </li>
             ))}
           </ul>
-          {open && (
+          {active && (
             <div className="grid gap-2 border-t border-line p-3" style={{ gridTemplateColumns: "minmax(0,1fr) auto" }}>
               <Select value={eq} placeholder={reg.length ? "Deploy from contractor's register…" : "Contractor has no equipment registered"} disabled={!free.length} onChange={setEq} options={free.map((e) => ({ value: e.id, label: `${e.name} · ${e.regNo}` }))} />
               <Btn disabled={!eq} onClick={deploy}>Deploy</Btn>
@@ -168,7 +170,7 @@ function WoResources({ wo }) {
           <KV cols={2} items={[["Workers registered on this WO", workers.length || "—"], ["Latest daily manpower", dprs[0] ? `${dprs[0].manpower} (${fmtDate(dprs[0].date)})` : "—"], ["Skilled / unskilled", workers.length ? `${workers.filter((w) => w.skill !== "Unskilled").length} / ${workers.filter((w) => w.skill === "Unskilled").length}` : "—"], ["Attendance", workers.length ? <RefLink to={`${CL_BASE}/attendance`}>Labour Attendance →</RefLink> : "Not tracked worker-wise"]]} />
         </Section>
       </div>
-      <Section title="Material issued to the contractor (recovered through RA bills)" icon={Icon.package} actions={open && <Btn size="sm" icon={Icon.plus} onClick={() => setMi({ material: "", unit: "bag", qty: "", rate: "", date: todayISO() })}>Issue material</Btn>}>
+      <Section title="Material issued to the contractor (recovered through RA bills)" icon={Icon.package} actions={active && <Btn size="sm" icon={Icon.plus} onClick={() => setMi({ material: "", unit: "bag", qty: "", rate: "", date: todayISO() })}>Issue material</Btn>}>
         <DataTable dense rows={issues} empty={<p className="p-4 text-[13px] text-ink-mute">No free-issue material.</p>} columns={[
           { key: "id", label: "Issue", className: "mono text-[12px]" }, { key: "date", label: "Date", render: (m) => fmtDate(m.date) }, { key: "material", label: "Material" },
           { key: "q", label: "Qty", align: "right", num: true, render: (m) => `${num(m.qty)} ${m.unit}` }, { key: "r", label: "Recovery rate", align: "right", num: true, render: (m) => inr(m.rate) },

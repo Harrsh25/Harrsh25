@@ -1238,6 +1238,39 @@ function RefLink({ to, children }) {
   );
 }
 
+// ---------------------------------------------------------------- accessible names for unlabeled inputs
+// Inputs in line-item grids (unit, qty, rate…) and inline filters have no label of their own: name them after their
+// column header (table or grid header row), else their placeholder or the text just before them, so screen readers
+// and keyboard users know what they are typing into.
+(function nameInputs() {
+  if (typeof document === "undefined" || window.__nxGridNames) return;
+  window.__nxGridNames = true;
+  const txt = (e) => (e && (e.innerText || e.textContent) || "").replace(/\s+/g, " ").trim();
+  const nameOf = (el) => {
+    const td = el.closest("td");
+    if (td) {
+      const tr = td.parentElement, table = tr.closest("table"), th = table && table.querySelectorAll("thead th")[[...tr.children].indexOf(td)];
+      if (th && txt(th)) return `${txt(th)}${tr.parentElement.children.length > 1 ? ` (row ${[...tr.parentElement.children].indexOf(tr) + 1})` : ""}`;
+    }
+    // div grid: header row (first sibling) has one text cell per column
+    for (let cell = el, row = el.parentElement; row && row.parentElement && cell !== document.body; cell = row, row = row.parentElement) {
+      if (getComputedStyle(row).display !== "grid") continue;
+      const head = row.parentElement.firstElementChild, k = [...row.children].indexOf(cell);
+      if (head && head !== row && head.children.length === row.children.length && txt(head.children[k])) return `${txt(head.children[k])} (row ${[...row.parentElement.children].indexOf(row)})`;
+      break;
+    }
+    if (el.placeholder) return el.placeholder;
+    let w = el; while (w && !w.previousSibling && w.parentElement) w = w.parentElement;
+    const prev = w && w.previousSibling; return prev ? (prev.textContent || "").trim().slice(0, 40) : "";
+  };
+  const name = (root) => root.querySelectorAll && root.querySelectorAll("input:not([aria-label]):not([type=hidden]):not([type=file]), textarea:not([aria-label]), select:not([aria-label])").forEach((el) => {
+    if (el.closest("label") || (el.labels && el.labels.length)) return;
+    const n = nameOf(el); if (n) el.setAttribute("aria-label", n); else el.setAttribute("aria-label", el.type === "checkbox" ? "Select" : "Value");
+  });
+  let queued = false;
+  new MutationObserver(() => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; name(document.body); }); }).observe(document.documentElement, { childList: true, subtree: true });
+})();
+
 // ---------------------------------------------------------------- global tooltip
 // Hovering any text that is cut off (ellipsis / overflow hidden / long input value) shows the full
 // content; elements with data-tip (e.g. "+2" chips) list the hidden items. Works across the whole app.

@@ -231,7 +231,7 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank, quic
             <Field label="PAN" required hint="Filled from the GSTIN"><TextInput value={f.pan} onChange={(v) => upd("pan", v.toUpperCase())} placeholder="AAKCS4412M" maxLength={10} className={cls(inputCls, "mono")} />{err("pan")}</Field>
             <Field label="GST treatment"><Select value={f.gstTreatment || "Registered — regular"} onChange={(v) => upd("gstTreatment", v)} options={GST_TREATMENTS} /></Field>
             <Field label="Contact person" required><TextInput value={f.contact.name} onChange={(v) => updC("name", v)} />{err("contactName")}</Field>
-            <Field label="E-mail" required hint="Becomes the vendor's portal login"><TextInput type="email" value={f.contact.email} onChange={(v) => updC("email", v)} />{err("email")}</Field>
+            <Field label="Email" required hint="Becomes the vendor's portal login"><TextInput type="email" value={f.contact.email} onChange={(v) => updC("email", v)} />{err("email")}</Field>
             <Field label="Phone"><TextInput value={f.contact.phone} onChange={(v) => updC("phone", v)} placeholder="+91 98xxx xxxxx" />{err("phone")}</Field>
             <Field label="Payment terms"><Select value={f.paymentTerms} onChange={(v) => upd("paymentTerms", v)} options={PAYMENT_TERMS} /></Field>
           </div>

@@ -734,7 +734,7 @@ function InvoiceDrawer({ id, onClose }) {
       {ask && ask.kind === "reverse" && <ReasonModal title={`Reverse payment ${ask.p.id}`} text={`${inr(ask.p.amount)}${ask.p.tds ? ` + TDS ${inr(ask.p.tds)}` : ""} goes back on the bill's balance (bounced cheque, wrong account…).`} action="Reverse payment"
         onClose={() => setAsk(null)} onDone={(r) => mut((x) => { const p = x.payments.find((q) => q.id === ask.p.id); p.reversed = { at: new Date().toISOString(), by: currentUser(), reason: r }; }, `Payment ${ask.p.id} reversed — ${r}`)} />}
       <div className="space-y-4 px-6 py-5">
-        {inv.review && <VendorInvoiceReview inv={inv} />}
+        {inv.review && !(inv.cancelled && inv.review === "Pending") && <VendorInvoiceReview inv={inv} />}
         <div className="grid grid-cols-4 gap-3">
           <StatTile tone="blue" label="Bill amount" value={inr(t.gross)} sub={inv.source === "RA Bill" ? "net of deductions" : `incl. GST ${inv.gstPct}%`} icon={Icon.receipt} />
           <StatTile tone="purple" label="Credit / debit notes" value={inr(t.notes)} icon={Icon.file} />
@@ -765,7 +765,7 @@ function InvoiceDrawer({ id, onClose }) {
           </Section>
         )}
         <DocDetailsView kind="bill" value={inv.details} vendor={byId(st.vendors, inv.vendorId)} />
-        <Section title="Payment schedule" icon={Icon.calendar} actions={t.paid === 0 && <Btn size="sm" onClick={() => setSched((inv.schedule && inv.schedule.length ? inv.schedule : [{ due: inv.due, pct: 100 }]).map((x) => ({ ...x })))}>Split into instalments</Btn>}>
+        <Section title="Payment schedule" icon={Icon.calendar} actions={t.paid === 0 && !inv.cancelled && <Btn size="sm" onClick={() => setSched((inv.schedule && inv.schedule.length ? inv.schedule : [{ due: inv.due, pct: 100 }]).map((x) => ({ ...x })))}>Split into instalments</Btn>}>
           <DataTable dense rows={instalments(inv)} rowKey={(r) => r.n} columns={[
             { key: "n", label: "#" }, { key: "due", label: "Due", render: (r) => fmtDate(r.due) }, { key: "pct", label: "Share", align: "right", render: (r) => `${r.pct}%` },
             { key: "amount", label: "Amount", align: "right", num: true, render: (r) => inr(r.amount) }, { key: "paid", label: "Settled", align: "right", num: true, render: (r) => inr(r.paid) },
@@ -773,7 +773,8 @@ function InvoiceDrawer({ id, onClose }) {
           ]} />
         </Section>
         {status === "Paid" && <Note tone="green" icon={Icon.check}>Paid in full — nothing left to hold or pay.</Note>}
-        {status !== "Paid" && <Section title="Hold" icon={Icon.lock}>
+        {inv.cancelled && <Note tone="red" icon={Icon.x}>Cancelled on {fmtDate(inv.cancelled.at)} by {inv.cancelled.by} — {inv.cancelled.reason}. Nothing is payable on this bill.</Note>}
+        {status !== "Paid" && !inv.cancelled && <Section title="Hold" icon={Icon.lock}>
           {holdActive ? (
             <div className="flex items-center justify-between gap-3 p-4">
               <span className="text-[13px]"><Status tone="amber">{inv.hold.reason}</Status> <span className="ml-2 text-ink-soft">{inv.hold.note}{inv.hold.until ? ` · auto-releases ${fmtDate(inv.hold.until)}` : ""}</span></span>
@@ -794,7 +795,7 @@ function InvoiceDrawer({ id, onClose }) {
             { key: "amount", label: "Amount", align: "right", num: true, render: (n) => inr(n.amount) },
           ]} />
         </Section>
-        <Section title="Payments & adjustments" icon={Icon.rupee} actions={t.balance > 0.5 && <span className="flex gap-1">
+        <Section title="Payments & adjustments" icon={Icon.rupee} actions={t.balance > 0.5 && !inv.cancelled && <span className="flex gap-1">
           {advances.length > 0 && <Btn size="sm" onClick={() => setAdv({ advId: advances[0].id, amount: Math.min(advances[0].left, t.balance) })}>Adjust advance ({inrShort(sum(advances, (a) => a.left))})</Btn>}
           {t.balance <= 1000 && <Btn size="sm" onClick={() => setWo({ reason: "Round-off / small balance" })}>Write off {inr(t.balance)}</Btn>}
         </span>}>
