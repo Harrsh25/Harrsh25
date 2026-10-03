@@ -345,8 +345,8 @@ function Select({ value, onChange, options, placeholder, disabled, className, la
     const off = (e) => { if (!btn.current?.contains(e.target) && !menu.current?.contains(e.target)) setOpen(false); };
     const scr = (e) => { if (!menu.current?.contains(e.target)) setOpen(false); };
     const close = () => setOpen(false);
-    document.addEventListener("mousedown", off); document.addEventListener("scroll", scr, true); window.addEventListener("resize", close);
-    return () => { document.removeEventListener("mousedown", off); document.removeEventListener("scroll", scr, true); window.removeEventListener("resize", close); };
+    document.addEventListener("mousedown", off, true); document.addEventListener("scroll", scr, true); window.addEventListener("resize", close);
+    return () => { document.removeEventListener("mousedown", off, true); document.removeEventListener("scroll", scr, true); window.removeEventListener("resize", close); };
   }, [open]);
   const pick = (o) => { onChange(String(o.value)); setOpen(false); btn.current?.focus(); };
   const key = (e) => {
@@ -422,8 +422,8 @@ function TradePicker({ options, value = [], onChange, placeholder = "Select trad
     if (!open) { setQ(""); return; }
     const off = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
     const esc = (e) => { if (e.key === "Escape") { e.stopPropagation(); setOpen(false); } };
-    document.addEventListener("mousedown", off); document.addEventListener("keydown", esc, true);
-    return () => { document.removeEventListener("mousedown", off); document.removeEventListener("keydown", esc, true); };
+    document.addEventListener("mousedown", off, true); document.addEventListener("keydown", esc, true);
+    return () => { document.removeEventListener("mousedown", off, true); document.removeEventListener("keydown", esc, true); };
   }, [open]);
   const known = new Set(TRADE_GROUPS.flatMap((g) => g.items));
   const rest = options.filter((o) => !known.has(o));
@@ -459,7 +459,7 @@ function TradePicker({ options, value = [], onChange, placeholder = "Select trad
           </div>
           <div className="flex items-center justify-between border-t border-line px-3 py-1.5 text-[12px] text-ink-mute">
             <span><b className="text-ink">{value.length}</b> selected</span>
-            <span className="flex gap-3">{value.length > 0 && <button type="button" className="text-brand hover:underline" onClick={() => onChange([])}>Clear</button>}<button type="button" className="font-medium text-brand" onClick={() => setOpen(false)}>Done</button></span>
+            {value.length > 0 && <button type="button" className="text-brand hover:underline" onClick={() => onChange([])}>Clear</button>}
           </div>
         </div>)}
     </div>
@@ -558,8 +558,8 @@ function FilterSelectMenu({ value, onChange, options, label }) {
     if (!open) return;
     const off = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
     const esc = (e) => e.key === "Escape" && setOpen(false);
-    document.addEventListener("mousedown", off); document.addEventListener("keydown", esc);
-    return () => { document.removeEventListener("mousedown", off); document.removeEventListener("keydown", esc); };
+    document.addEventListener("mousedown", off, true); document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", off, true); document.removeEventListener("keydown", esc); };
   }, [open]);
   const menu = y.useRef(null);
   const [flip, setFlip] = y.useState(false);
@@ -610,8 +610,8 @@ function QuickColFilter({ def, value, onChange }) {
     if (!open) return;
     const off = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
     const esc = (e) => e.key === "Escape" && setOpen(false);
-    document.addEventListener("mousedown", off); document.addEventListener("keydown", esc);
-    return () => { document.removeEventListener("mousedown", off); document.removeEventListener("keydown", esc); };
+    document.addEventListener("mousedown", off, true); document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", off, true); document.removeEventListener("keydown", esc); };
   }, [open]);
   const sel = value || [];
   const toggle = (v) => onChange(sel.includes(v) ? sel.filter((x) => x !== v) : [...sel, v]);

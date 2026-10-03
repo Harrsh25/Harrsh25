@@ -257,17 +257,6 @@ function VendorMoreFields({ f, set, errors, publicMode, foreign }) {
   const sub = (t) => <p className="col-span-3 mt-2 text-[11px] font-semibold uppercase tracking-wide text-ink-mute first:mt-0">{t}</p>;
   return (
     <div className="grid grid-cols-3 gap-3">
-      {sub("Contact person details")}
-      <Field label="Salutation"><Select value={f.contact.salutation || ""} placeholder="—" onChange={(x) => updC("salutation", x)} options={SALUTATIONS} /></Field>
-      <Field label="Designation / job position"><TextInput value={f.contact.designation || ""} onChange={(x) => updC("designation", x)} placeholder="e.g. Sales manager" /></Field>
-      <Field label="Department"><TextInput value={f.contact.department || ""} onChange={(x) => updC("department", x)} placeholder="e.g. Sales" /></Field>
-      <Field label="Mobile"><TextInput value={f.contact.mobile || ""} onChange={(x) => updC("mobile", x)} placeholder="98xxxxxxxx" />{err("mobile")}</Field>
-      <Field label="Fax"><TextInput value={f.contact.fax || ""} onChange={(x) => updC("fax", x)} /></Field>
-      <Field label="Gender"><Select value={f.contact.gender || ""} placeholder="—" onChange={(x) => updC("gender", x)} options={["Female", "Male", "Other", "Prefer not to say"]} /></Field>
-      {sub("Address")}
-      <Field label="Address line 2"><TextInput value={f.addressLine2 || ""} onChange={(x) => upd("addressLine2", x)} placeholder="Landmark, area" /></Field>
-      <Field label="District / county"><TextInput value={f.district || ""} onChange={(x) => upd("district", x)} /></Field>
-      <Field label="Place of supply" hint={!foreign ? "Defaults to the GSTIN state" : ""}><Select value={f.placeOfSupply || (foreign ? "" : f.state)} placeholder="—" onChange={(x) => upd("placeOfSupply", x)} options={withCurrent(STATES, f.placeOfSupply)} /></Field>
       {!publicMode && <>
         {sub("Purchasing & payment defaults")}
         <Field label="Payment method"><Select value={f.paymentMethod || ""} onChange={(x) => upd("paymentMethod", x)} options={PAY_METHODS} /></Field>

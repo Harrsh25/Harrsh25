@@ -53,7 +53,7 @@ const autoTds = (type, st) => ([].concat(type).every((t) => t === "Goods") ? "19
 const emptyVendor = () => ({
   supplierType: "Company", allowBillWithoutPO: false, allowBillWithoutReceipt: false, portalUsers: [], changeRequest: null,
   uploads: {}, name: "", legalName: "", type: "Goods", types: ["Goods"], isContractor: false, categories: [], tier: "Approved", regTier: "Spend Authorized",
-  gstin: "", pan: "", contact: { name: "", email: "", phone: "" }, address: "", city: "", state: "Maharashtra", country: "India", pin: "", website: "", taxId: "", currency: "INR",
+  gstin: "", pan: "", contact: { name: "", email: "", phone: "" }, address: "", city: "", state: "", country: "India", pin: "", website: "", taxId: "", currency: "INR",
   paymentTerms: "Net 30", tds: "194Q", group: currentSettings().defaultSupplierGroup || "", parentCompany: "", bank: { holder: "", bank: "", account: "", accountConfirm: "", ifsc: "", swift: "", iban: "", accountType: "Current", currency: "", branch: "" },
   ...vendorExtraDefaults(),
   contractor: { labourLicence: "", licenceExpiry: "", pfCode: "", esiCode: "", workforce: "", experienceYrs: "", pastProjects: "" },
@@ -207,7 +207,7 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank, quic
           <Field label="Company / trade name" required><TextInput value={f.name} onChange={(v) => upd("name", v)} placeholder="e.g. Shree Balaji Infra" />{err("name")}</Field>
           <Field label="Registered legal name" hint="As on the GST certificate — leave empty if same"><TextInput value={f.legalName} onChange={(v) => upd("legalName", v)} placeholder={f.name || "Legal name"} /></Field>
         </div>
-        <p className="mb-1.5 mt-3 text-[12px] font-medium text-ink-soft">What they supply <span className="text-red-500">*</span> <span className="font-normal text-ink-mute">— tick all that apply</span></p>
+        <p className="mb-1.5 mt-3 text-[12px] font-medium text-ink-soft">What they supply <span className="text-red-500">*</span> <span className="font-normal text-ink-mute">- tick all that apply</span></p>
         <div className="flex flex-wrap gap-2">
           {VENDOR_TYPES.map((t) => {
             const on = hasType(f, t), I = TYPE_INFO[t];
@@ -258,15 +258,24 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank, quic
           <Field label="Registered address" span={2}><TextInput value={f.address} onChange={(v) => upd("address", v)} placeholder="Building, street, area" /></Field>
           <Field label="Website"><TextInput value={f.website || ""} onChange={(v) => upd("website", v)} placeholder="www.example.com" />{err("website")}</Field>
           <Field label="City"><TextInput value={f.city} onChange={(v) => upd("city", v)} /></Field>
-          {!foreign ? <Field label="State" hint={GST_STATES[(f.gstin || "").slice(0, 2)] ? "From GSTIN" : ""}><Select value={f.state} onChange={(v) => upd("state", v)} options={withCurrent(STATES, f.state)} /></Field>
+          {!foreign ? <Field label="State" hint={GST_STATES[(f.gstin || "").slice(0, 2)] ? "From GSTIN" : ""}><Select value={f.state || ""} placeholder="Select state" onChange={(v) => upd("state", v)} options={withCurrent(STATES, f.state)} /></Field>
             : <Field label="State / province"><TextInput value={f.state === "Maharashtra" ? "" : f.state} onChange={(v) => upd("state", v)} /></Field>}
           <Field label={foreign ? "Postal code" : "PIN code"}><TextInput value={f.pin || ""} onChange={(v) => upd("pin", v)} placeholder={foreign ? "" : "411026"} maxLength={10} />{err("pin")}</Field>
+          <Field label="Salutation"><Select value={f.contact.salutation || ""} placeholder="Select" onChange={(x) => updC("salutation", x)} options={SALUTATIONS} /></Field>
+          <Field label="Designation / job position"><TextInput value={f.contact.designation || ""} onChange={(x) => updC("designation", x)} placeholder="e.g. Sales manager" /></Field>
+          <Field label="Department"><TextInput value={f.contact.department || ""} onChange={(x) => updC("department", x)} placeholder="e.g. Sales" /></Field>
+          <Field label="Mobile"><TextInput value={f.contact.mobile || ""} onChange={(x) => updC("mobile", x)} placeholder="98xxxxxxxx" />{err("mobile")}</Field>
+          <Field label="Fax"><TextInput value={f.contact.fax || ""} onChange={(x) => updC("fax", x)} /></Field>
+          <Field label="Gender"><Select value={f.contact.gender || ""} placeholder="Select" onChange={(x) => updC("gender", x)} options={["Female", "Male", "Other", "Prefer not to say"]} /></Field>
+          <Field label="Address line 2"><TextInput value={f.addressLine2 || ""} onChange={(x) => upd("addressLine2", x)} placeholder="Landmark, area" /></Field>
+          <Field label="District / county"><TextInput value={f.district || ""} onChange={(x) => upd("district", x)} /></Field>
+          <Field label="Place of supply" hint={!foreign ? "Defaults to the GSTIN state" : ""}><Select value={f.placeOfSupply || (foreign ? "" : f.state)} placeholder="Select" onChange={(x) => upd("placeOfSupply", x)} options={withCurrent(STATES, f.placeOfSupply)} /></Field>
         </div>
       </FormSection>
 
-      <FormSection n={++n} title="More details" desc="Contact details, tax & statutory, purchasing defaults, tags, notes" done>
+      {!publicMode && <FormSection n={++n} title="More details" desc="Purchasing & payment defaults" done>
         <VendorMoreFields f={f} set={set} errors={errors} publicMode={publicMode} foreign={foreign} />
-      </FormSection>
+      </FormSection>}
 
       {showContractor && (
         <FormSection n={++n} title="Contractor statutory details" desc="Required before a contractor can be mobilised to site" done={!!f.contractor.labourLicence}>
@@ -877,8 +886,8 @@ function VendorStatusMenu({ v }) {
     const off = (e) => { if (!btn.current?.contains(e.target) && !menu.current?.contains(e.target)) setOpen(false); };
     const esc = (e) => e.key === "Escape" && setOpen(false);
     const scr = (e) => { if (!menu.current?.contains(e.target)) setOpen(false); };
-    document.addEventListener("mousedown", off); document.addEventListener("keydown", esc); document.addEventListener("scroll", scr, true);
-    return () => { document.removeEventListener("mousedown", off); document.removeEventListener("keydown", esc); document.removeEventListener("scroll", scr, true); };
+    document.addEventListener("mousedown", off, true); document.addEventListener("keydown", esc); document.addEventListener("scroll", scr, true);
+    return () => { document.removeEventListener("mousedown", off, true); document.removeEventListener("keydown", esc); document.removeEventListener("scroll", scr, true); };
   }, [open]);
   const pick = (o) => { setOpen(false); if (o === "On Hold") setAsk("hold"); else if (o === "Blacklisted") setAsk("black"); else setVendorStatus(v, o); };
   return (
