@@ -858,7 +858,7 @@ function VendorStatusMenu({ v, approval }) {
   const pick = (o) => { setOpen(false); if (o === "On Hold") setAsk("hold"); else if (o === "Blacklisted") setAsk("black"); else setVendorStatus(v, o); };
   return (
     <span onClick={(e) => e.stopPropagation()} className="inline-flex">
-      <button ref={btn} type="button" aria-label={`Change status of ${v.name}`} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}
+      <button ref={btn} type="button" aria-label={approval ? `Approval status of ${v.name}` : `Change status of ${v.name}`} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}
         className={cls("group/st inline-flex items-center gap-1 rounded-md px-1 py-0.5 -mx-1 hover:bg-gray-100", open && "bg-gray-100")}>
         {approval ? <Status>{approvalStatus(v)}</Status> : lifeStatus(v) ? <Status>{v.status}</Status> : <span className="text-ink-faint" data-tip="Not active until the registration is approved">—</span>}{h(Icon.chevronDown, { size: 12, className: "text-ink-faint opacity-0 group-hover/st:opacity-100" })}
       </button>

@@ -20,7 +20,7 @@ run('ui', async ({ p, go, T, pick, S, mut }) => {
     await go('vendor-management/registry'); const row = p.locator('main tbody tr').filter({ hasText: 'Shree Balaji' });
     await row.locator('button[aria-label^="Change status of"]').nth(0).click(); await p.waitForTimeout(150);
     const st = await p.locator('[role=menu] [role=menuitem]').allInnerTexts(); await p.keyboard.press('Escape'); await p.waitForTimeout(100);
-    await row.locator('button[aria-label^="Change status of"]').nth(1).click(); await p.waitForTimeout(150);
+    await row.locator('button[aria-label^="Approval status of"]').first().click(); await p.waitForTimeout(150);
     const ap = await p.locator('[role=menu] [role=menuitem]').allInnerTexts(); const apOn = await p.locator('[role=menu] [role=menuitem]:not(:disabled)').count(); await p.keyboard.press('Escape');
     return [`status: ${st.join(', ')} · approval: ${ap.join(', ')} (${apOn} pickable)`, st.join() === 'Active,Inactive,On Hold,Blacklisted' && ap.length === 5 && apOn === 0];
   });

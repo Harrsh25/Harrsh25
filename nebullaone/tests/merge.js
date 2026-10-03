@@ -14,6 +14,8 @@ require('./lib')('merge', async ({ p, go, dlg, S, mut, T, pick, toastText }) => 
   });
 
   // ---------------------------------------------------------------- vendor master
+  // approved vendors are read-only: edit tests run on a Draft vendor
+  await mut(`(s) => { s.vendors.find((y) => y.id === 'VEN-011').status = 'Draft'; }`);
   await T('M-01', 'Bank account added from the Bank tab starts Unverified; Verify stamps who and when', async () => {
     await go('vendor-management/registry?open=VEN-011'); await p.waitForTimeout(300); await dlg().locator('[role=tab]:has-text("Bank")').click(); await p.waitForTimeout(150);
     const d = dlg(); await d.locator('label:has-text("Account holder name") input').fill((await S()).vendors.find((x) => x.id === 'VEN-011').legalName); await d.locator('label:has-text("Bank") input').nth(1).fill('Axis Bank');
@@ -39,6 +41,7 @@ require('./lib')('merge', async ({ p, go, dlg, S, mut, T, pick, toastText }) => 
   });
 
   // ---------------------------------------------------------------- bills & payments
+  await mut(`(s) => { s.vendors.find((y) => y.id === 'VEN-011').status = 'Active'; }`);
   await T('B-01', 'Duplicate bill number blocked ignoring case and spaces', async () => {
     const s = await S(); const inv = s.invoices.find((i) => i.source === 'Purchase Order');
     await go('vendor-management/invoices'); await p.locator('button:has-text("Enter vendor bill"), button:has-text("New bill"), button:has-text("Enter bill")').first().click(); await p.waitForTimeout(200);
@@ -115,14 +118,18 @@ require('./lib')('merge', async ({ p, go, dlg, S, mut, T, pick, toastText }) => 
   });
 
   // ---------------------------------------------------------------- remaining forms
+  await mut(`(s) => { s.vendors.find((y) => y.id === 'VEN-011').status = 'Active'; }`);
   await T('F-01', 'Hold: short reason and past release date are refused', async () => {
-    await go('vendor-management/registry?open=VEN-011'); await p.waitForTimeout(300); await dlg().locator('[role=tab]:has-text("Status & flags")').click(); await p.waitForTimeout(150);
+    // hold is placed from the status badge (approved vendors' tabs are read-only)
+    await go('vendor-management/registry?open=VEN-011'); await p.waitForTimeout(300); await p.locator('[data-drawer] button[aria-label^="Change status of"]').first().click(); await p.waitForTimeout(150);
+    await p.locator('[role=menu] [role=menuitem]').filter({ hasText: 'On Hold' }).click(); await p.waitForTimeout(200);
     const d = dlg(); await d.locator('label:has-text("Reason") input').first().fill('abc'); await p.waitForTimeout(80);
     const dis1 = await d.locator('button:has-text("Place hold")').isDisabled();
     await d.locator('label:has-text("Reason") input').first().fill('Pending reconciliation'); await d.locator('label:has-text("Release date") input').fill('2020-01-01'); await p.waitForTimeout(80);
     const dis2 = await d.locator('button:has-text("Place hold")').isDisabled(); const t = await d.textContent(); await esc();
     return [`short reason disabled=${dis1}; past date disabled=${dis2} (${/must be in the future/.test(t)})`, dis1 && dis2 && /must be in the future/.test(t)];
   });
+  await mut(`(s) => { s.vendors.find((y) => y.id === 'VEN-001').status = 'Draft'; }`);
   await T('F-02', 'Insurance: an already-expired policy is refused', async () => {
     await go('vendor-management/registry?open=VEN-001'); await p.waitForTimeout(300); await dlg().locator('[role=tab]:has-text("Documents")').click(); await p.waitForTimeout(150);
     await btn('Add policy').first().click(); await p.waitForTimeout(150); const m = dlg();
@@ -131,6 +138,7 @@ require('./lib')('merge', async ({ p, go, dlg, S, mut, T, pick, toastText }) => 
     const dis = await m.locator('button:has-text("Save policy")').isDisabled(); const t = await m.textContent(); await esc();
     return [`save disabled=${dis}; ${(t.match(/Policy has already expired[^—]*/) || ['no msg'])[0]}`, dis && /already expired/.test(t)];
   });
+  await mut(`(s) => { s.vendors.find((y) => y.id === 'VEN-001').status = 'Active'; }`);
   await T('F-03', 'Performance rating of 2 or below needs remarks', async () => {
     await go('vendor-management/scorecard'); await p.waitForTimeout(300); await p.locator('button:has-text("Rate performance"), button:has-text("Rate contractor"), button:has-text("Add rating")').first().click(); await p.waitForTimeout(200); const d = dlg();
     await pick(d.locator('label:has-text("Contractor / vendor") [role=combobox]'), 'Shree Balaji'); await d.locator('label:has-text("Period") input').fill('Test 2026');
