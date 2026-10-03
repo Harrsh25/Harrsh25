@@ -24,7 +24,7 @@ const VENDOR_EXTRA_COLUMNS = (st) => [
   { key: "xGstin", label: "GSTIN", desc: "GST registration number", render: (v) => muted(v.gstin) },
   { key: "xPan", label: "PAN", desc: "Permanent account number", render: (v) => muted(v.pan) },
   { key: "xSupType", label: "Supplier type", desc: "Company, LLP, individual — decides TDS rate", sort: (v) => v.supplierType || "Company", render: (v) => v.supplierType || "Company" },
-  { key: "xGroup", label: "Vendor group", desc: "Group used for filters and spend reports", sort: (v) => v.group, render: (v) => muted(v.group) },
+  { key: "xGroup", label: "Vendor group", desc: "Group used to filter the vendor list", sort: (v) => v.group, render: (v) => muted(v.group) },
   { key: "xParent", label: "Internal parent company", desc: "Set only for our own group companies", render: (v) => muted(v.parentCompany) },
   { key: "xStanding", label: "Scorecard standing", desc: "Excellent / Good / Average / Poor", filterLabel: "Standing", filterOptions: FO.standings, filter: (v) => standingOf(st, v.id)?.name, render: (v) => { const b = standingOf(st, v.id); return b ? <Status tone={b.color === "blue" ? "blue" : b.color}>{b.name}</Status> : muted(null); } },
   { key: "xRegOn", label: "Registered on", desc: "Date the vendor record was created", render: (v) => fmtDate(v.createdAt) },
@@ -312,7 +312,7 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank, quic
           <div className="grid grid-cols-2 gap-3">
             <Field label="Supplier tier"><Select value={f.tier} onChange={(v) => upd("tier", v)} options={TIERS} /></Field>
             <Field label="Registration tier" hint="Prospective vendors can quote but can't receive POs"><Select value={f.regTier} onChange={(v) => upd("regTier", v)} options={["Spend Authorized", "Prospective"]} /></Field>
-            <Field label="Vendor group" hint="Used for filters and spend-by-group reports"><Select value={f.group} placeholder="Not grouped" onChange={(v) => upd("group", v)} options={withCurrent(settingsOf(getState()).vendorGroups, f.group)} /></Field>
+            <Field label="Vendor group" hint="Used to filter the vendor list"><Select value={f.group} placeholder="Not grouped" onChange={(v) => upd("group", v)} options={withCurrent(settingsOf(getState()).vendorGroups, f.group)} /></Field>
             <Field label="Internal parent company" hint="Only if this vendor is one of our group companies"><Select value={f.parentCompany} placeholder="External vendor" onChange={(v) => upd("parentCompany", v)} options={withCurrent(settingsOf(getState()).groupCompanies, f.parentCompany)} /></Field>
           </div>
         </FormSection>
@@ -530,7 +530,7 @@ function VendorFlags({ v }) {
               {v.regTier === "Spend Authorized" && <button className="text-[12px] font-medium text-brand" onClick={() => tryAct("Procurement Head", [], "downgrading a vendor") && edit("regTier", "Prospective", "Registration tier → Prospective (downgraded)")}>Downgrade</button>}
             </span>
           </Field>
-          <Field label="Vendor group" hint="Filters & spend-by-group report"><Select value={v.group || ""} placeholder="Not grouped" onChange={(g) => edit("group", g, g ? `Vendor group → ${g}` : "Removed from vendor group")} options={withCurrent(settingsOf(getState()).vendorGroups, v.group)} /></Field>
+          <Field label="Vendor group" hint="Used to filter the vendor list"><Select value={v.group || ""} placeholder="Not grouped" onChange={(g) => edit("group", g, g ? `Vendor group → ${g}` : "Removed from vendor group")} options={withCurrent(settingsOf(getState()).vendorGroups, v.group)} /></Field>
           <Field label="Internal parent company" hint="Only if this vendor is one of our group companies" span={2}><Select value={v.parentCompany || ""} placeholder="External vendor" onChange={(g) => edit("parentCompany", g, g ? `Marked as group company of ${g}` : "Marked as external vendor")} options={withCurrent(settingsOf(getState()).groupCompanies, v.parentCompany)} /></Field>
           <Field label="Trades / categories (multi-trade)" span={3}>
             <TradePicker options={TRADES} value={v.categories} onChange={(c) => edit("categories", c, "Categories updated")} />
