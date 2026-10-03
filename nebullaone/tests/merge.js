@@ -102,19 +102,18 @@ require('./lib')('merge', async ({ p, go, dlg, S, mut, T, pick, toastText }) => 
     await mut((s) => { delete s.vendors.find((v) => v.id === 'VEN-001').qualification.valueLimit; });
     return [(t.match(/Over the (aggregate qualification|single-project) limit[^.]*/) || ['no warning'])[0].slice(0, 110), /Over the (aggregate qualification|single-project) limit/.test(t)];
   });
-  await T('Q-03', 'Background check not clear → work order cannot be issued (mobilisation blocked)', async () => {
+  await T('Q-03', 'Background checks no longer block a work order (they are not recorded in the vendor record any more)', async () => {
     await mut((s) => { s.vendors.find((v) => v.id === 'VEN-001').background.litigation = 'Pending case'; });
     await go('contract-labor/work-orders'); await p.click('text=Create work order'); await p.waitForTimeout(200); const d = dlg();
     await pick(d.locator('[role=combobox]').first(), 'CTR-001'); await p.waitForTimeout(150);
     const t = await d.textContent(); const dis = await d.locator('button:has-text("Issue work order")').isDisabled(); await esc();
     await mut((s) => { s.vendors.find((v) => v.id === 'VEN-001').background.litigation = 'Clear'; });
-    return [`note: ${/mobilisation blocked/.test(t)}; issue disabled=${dis}`, /litigation pending case — mobilisation blocked/.test(t) && dis];
+    return [`background block shown: ${/Background check/i.test(t)}`, !/Background check/i.test(t)];
   });
-  await T('Q-04', 'Recording an adverse background check needs a finding', async () => {
-    await go('vendor-management/approvals?open=VEN-010'); await p.waitForTimeout(300); await btn('Record check').click(); await p.waitForTimeout(150); const d = dlg();
-    await pick(d.locator('label:has-text("Watchlist") [role=combobox]'), 'Match found'); await p.waitForTimeout(100);
-    const dis = await d.locator('button:has-text("Save")').isDisabled(); const t = await d.textContent(); await esc();
-    return [`save disabled=${dis}; message ${/Describe the finding/.test(t)}`, dis && /Describe the finding/.test(t)];
+  await T('Q-04', 'Background & financial checks card is no longer in the vendor record', async () => {
+    await go('vendor-management/approvals?open=VEN-010'); await p.waitForTimeout(300); await dlg().locator('[role=tab]:has-text("Approvals")').click(); await p.waitForTimeout(150);
+    const n = await dlg().getByText('Background & financial checks').count() + await btn('Record check').count();
+    return [`card / button found: ${n}`, n === 0];
   });
 
   // ---------------------------------------------------------------- remaining forms

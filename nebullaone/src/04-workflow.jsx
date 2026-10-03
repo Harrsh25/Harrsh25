@@ -138,8 +138,11 @@ function qualLimitWarn(st, v, value, exceptWoId) {
   if (q.single && (Number(value) || 0) > q.single) return `Over the single-project limit — this work order ${inrShort(Number(value) || 0)} against ${inrShort(q.single)} (${q.status})`;
   return total > q.limit ? `Over the aggregate qualification limit — open work ${inrShort(open)} + this ${inrShort(Number(value) || 0)} = ${inrShort(total)} against ${inrShort(q.limit)} (${q.status})` : "";
 }
-// Background check must be clear (litigation and watchlist) and done within the last 12 months
+// Background checks are no longer recorded in the vendor record, so they don't block mobilisation.
+// The earlier rule (clear litigation and watchlist, checked within 12 months) is kept below, switched off.
+const BACKGROUND_GATE = false;
 function backgroundIssue(v) {
+  if (!BACKGROUND_GATE) return "";
   const b = v?.background;
   if (!b || !b.checkedAt) return "Background check not done";
   if (b.litigation !== "Clear") return `Background check: litigation ${String(b.litigation).toLowerCase()}`;

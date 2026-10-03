@@ -36,7 +36,7 @@ require('./lib')('fix1', async ({ p, go, dlg, S, mut, as, T, pick, toastText }) 
   await T('G-01', 'Final approval blocked by open checklist (no WC insurance)', async () => {
     await as('Rohit Shah'); await go('vendor-management/approvals?open=VEN-007'); await p.waitForTimeout(250);
     const btn = p.locator('button:has-text("Approve as Finance")'); const dis = await btn.isDisabled(); const t = await dlg().textContent();
-    return [`Approve disabled=${dis}; checklist: ${(t.match(/Open before final approval:[^.]*/) || [''])[0].slice(0, 90)}`, dis && /Workmen Compensation/.test(t)];
+    return [`Approve disabled=${dis}; checklist: ${(t.match(/\d+ of \d+ required done[^A-Z]*/) || [''])[0].slice(0, 90)}`, dis && /Workmen Compensation insurance/.test(t) && /approve is blocked/.test(t)];
   });
   await T('G-01b', 'Finance Controller approves with override + reason (logged)', async () => {
     await dlg().locator('textarea:not([aria-label="Write a comment"])').fill('WC policy renewal in progress — cover note seen'); await p.locator('button:has-text("Approve with override")').click(); await p.waitForTimeout(250);

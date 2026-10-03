@@ -216,6 +216,49 @@ function resubmit(v) {
   return true;
 }
 
+// Every check behind the final approval, one row each (same rules as approvalBlockers)
+function approvalChecks(v) {
+  const rows = [];
+  for (const i of complianceItems(v)) {
+    const ok = i.kind === "Document" ? !!(i.doc && i.doc.status === "Verified" && i.level < 2) : i.level < 2;
+    rows.push({ group: i.kind === "Document" ? "Documents" : "Insurance", label: i.kind === "Insurance" ? `${i.name} (min ${inrShort(i.rule.min)})` : i.name, ok, note: i.note, required: !!i.rule.blocks });
+  }
+  const q = v.qualification;
+  rows.push({ group: "Qualification", label: "Questionnaire completed", ok: !!q, note: q ? `Scored ${fmtDate(q.at || q.date) || ""}`.replace(/ $/, "") : "Not done yet", required: true });
+  rows.push({ group: "Qualification", label: `Score at least ${QUAL_PASS}/100`, ok: !!q && q.score >= QUAL_PASS, note: q ? `${q.score}/100` : "—", required: true });
+  const crit = (settingsOf(getState()).questionLibrary || []).filter((x) => x.status === "Active" && x.critical && x.responseType === "Yes / No");
+  for (const c of crit) { const a = q?.libAnswers?.[c.id]; rows.push({ group: "Qualification", label: c.question, ok: a !== "No" && !!a, note: a || "Not answered", required: a === "No" }); }
+  if (v.regTier === "Spend Authorized") rows.push({ group: "Bank", label: "Bank account on file", ok: (v.bankAccounts || []).length > 0, note: (v.bankAccounts || []).length ? `${v.bankAccounts.length} account${v.bankAccounts.length > 1 ? "s" : ""}` : "None added", required: true });
+  return rows;
+}
+function ApprovalChecklist({ v, last }) {
+  const rows = approvalChecks(v), req = rows.filter((r) => r.required), done = req.filter((r) => r.ok).length;
+  const groups = [...new Set(rows.map((r) => r.group))];
+  return (
+    <div className="border-t border-line p-4">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <p className="text-[12px] font-semibold uppercase tracking-wide text-ink-mute">Approval checklist</p>
+        <span className={cls("text-[12px] font-medium", done === req.length ? "text-green-700" : last ? "text-red-600" : "text-amber-700")}>{done} of {req.length} required done{done === req.length ? " — ready for final approval" : last ? " — approve is blocked" : " — checked at the final approval"}</span>
+      </div>
+      <div className="divide-y divide-line rounded-lg border border-line">
+        {groups.map((g) => (
+          <div key={g} className="px-3 py-2">
+            <p className="pb-1 text-[11px] font-semibold uppercase tracking-wider text-ink-faint">{g}</p>
+            {rows.filter((r) => r.group === g).map((r) => (
+              <div key={r.label} className="flex items-start gap-2.5 py-1 text-[13px]">
+                <span className={cls("mt-[2px] grid h-4 w-4 shrink-0 place-items-center rounded border", r.ok ? "border-green-600 bg-green-600 text-white" : r.required ? "border-red-300 bg-red-50 text-red-600" : "border-gray-300 bg-white text-ink-faint")}>
+                  {r.ok ? <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2.5 6.2 5 8.6 9.5 3.6" /></svg>
+                    : r.required ? <svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M2 2l6 6M8 2 2 8" /></svg> : null}
+                </span>
+                <span className={cls("flex-1", r.ok ? "text-ink" : r.required ? "text-ink" : "text-ink-mute")}>{r.label}{!r.required && !r.ok && <span className="ml-1.5 text-[11px] text-ink-faint">(optional)</span>}</span>
+                <span className={cls("shrink-0 text-[12px]", r.ok ? "text-ink-mute" : r.required ? "text-red-600" : "text-ink-mute")}>{r.note}</span>
+              </div>))}
+          </div>))}
+      </div>
+    </div>
+  );
+}
+
 function VendorApproval({ v, mode = "approval" }) {
   const decide = mode === "approval";
   const [remark, setRemark] = y.useState("");
@@ -240,23 +283,13 @@ function VendorApproval({ v, mode = "approval" }) {
             <span className="shrink-0 whitespace-nowrap text-[13px]"><RefLink to={`${VM_BASE}/approvals?open=${v.id}`}>Open in Vendor Approvals →</RefLink></span>
           </div>
         )}
-        {pending && v.status === "Pending Approval" && (() => {
-          const blockers = approvalBlockers(v), last = pending === stages[stages.length - 1];
-          return (
-            <div className="border-t border-line p-4">
-              <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-mute">Approval checklist {last ? "(checked at the final approval)" : ""}</p>
-              {blockers.length === 0 ? <Note tone="green" icon={Icon.check}>Documents verified, qualification passed{v.regTier === "Spend Authorized" ? ", bank account on file" : ""} — ready for final approval.</Note>
-                : <Note tone={last ? "red" : "amber"}>Open before final approval: {blockers.join(" · ")}.</Note>}
-            </div>
-          );
-        })()}
+        {pending && v.status === "Pending Approval" && <ApprovalChecklist v={v} last={pending === stages[stages.length - 1]} />}
         {pending && decide && v.status === "Pending Approval" && (() => {
           const blockers = approvalBlockers(v), last = pending === stages[stages.length - 1];
           const canOverride = last && blockers.length > 0 && hasRole("Finance Controller");
           return (
           <div className="space-y-3 border-t border-line p-4">
             <ActNote roles={DEPT_ROLE[pending.dept]} involved={vendorApprovers(v)} what={`the ${pending.dept} decision`} />
-            {comp.status === "Non-Compliant" && !last && <Note tone="amber">Compliance gaps: {comp.issues.join(" · ")}. These must close (or be overridden) before the Finance approval.</Note>}
             <Field label={`${pending.dept} decision remark`}><TextArea rows={2} value={remark} onChange={setRemark} placeholder={canOverride ? "Required when rejecting or approving with override" : "Required when rejecting"} /></Field>
             <div className="flex justify-end gap-2">
               <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>
