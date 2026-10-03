@@ -790,7 +790,21 @@ function ColumnPicker({ extra, shown, onApply, onClose }) {
 }
 const readCols = (id) => { try { const v = JSON.parse(localStorage.getItem("nxv-cols2:" + id)); return Array.isArray(v) ? v : null; } catch { return null; } };
 
-function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0, onClearFilters, exportName, rows, onRow, rowKey = (r) => r.id, empty, footer, dense, plain, filters, actions, noun = "records", summary, searchText = rowSearchText, placeholder = "Search…", calendar, defaultCols }) {
+function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0, onClearFilters, exportName, rows, onRow, rowKey = (r) => r.id, empty, footer, dense, plain, filters, actions, noun = "records", summary, searchText = rowSearchText, placeholder = "Search…", calendar, defaultCols, asList }) {
+  // asList: each row as a block of label → value lines (record panels), action column top-right
+  if (asList) return (
+    <div className="divide-y divide-line">
+      {rows.length === 0 ? empty || <p className="p-4 text-[13px] text-ink-mute">None.</p> : rows.map((r, i) => {
+        const acts = allColumns.filter((c) => !c.label).map((c) => <span key={c.key}>{c.render ? c.render(r, i) : r[c.key]}</span>);
+        return (
+          <div key={rowKey(r, i)} className="relative" onClick={onRow ? () => onRow(r) : undefined}>
+            {acts.length > 0 && <div className="absolute right-4 top-2 z-[1] flex gap-1">{acts}</div>}
+            <KV items={allColumns.filter((c) => c.label).map((c) => [c.label, c.render ? c.render(r, i) : r[c.key]])} />
+          </div>
+        );
+      })}
+    </div>
+  );
   const list = !dense && !plain;
   // Columns marked opt start hidden; they can be switched on in Customize Columns
   // List pages show names, not codes: a record's own ID / code column (key id / seq, or labelled ID / Code) is left out — it shows in the record panel

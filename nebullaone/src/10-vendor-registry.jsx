@@ -412,7 +412,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
           ? <Note tone="amber" icon={Icon.lock}>Submitted for approval — details are locked until the approvers decide. If it is rejected or sent back, you can edit and resubmit.</Note>
           : <Note icon={Icon.lock}>Approved vendor — registration details are locked. Status (hold, inactive, blacklist) is changed from the status badge at the top.</Note>)}
         {tab === "overview" && <VendorOverview v={v} comp={comp} />}
-        <fieldset disabled={locked} className="contents">
+        <fieldset disabled={locked} className="m-0 min-w-0 space-y-4 border-0 p-0">
           {tab === "overview" && <VendorContactsAddresses v={v} locked={locked} />}
           {tab === "flags" && <VendorFlags v={v} />}
           {tab === "docs" && <><VendorDocs v={v} mode={mode} locked={locked} /><InsurancePolicies v={v} mode={mode} locked={locked} /></>}
@@ -460,7 +460,7 @@ function VendorOverview({ v, comp }) {
       )}
       {v.insurance.length > 0 && (
         <Section title="Insurance" icon={Icon.shield}>
-          <DataTable dense rows={v.insurance} rowKey={(r) => r.policy} columns={[
+          <DataTable asList rows={v.insurance} rowKey={(r) => r.policy} columns={[
             { key: "type", label: "Coverage" }, { key: "policy", label: "Policy no.", className: "mono text-[12px]" }, { key: "insurer", label: "Insurer" },
             { key: "cover", label: "Sum insured", align: "right", num: true, render: (r) => inrShort(r.cover) },
             { key: "expiry", label: "Expiry", render: (r) => <ExpiryCell iso={r.expiry} /> },

@@ -147,7 +147,7 @@ function RecordComments({ id }) {
     setText(""); setMen(null); toast(who.length ? `Comment posted — ${who.join(", ")} notified` : "Comment posted");
   };
   return (
-    <div data-comments className="border-t border-line px-6 py-4">
+    <div data-comments className="px-6 py-4">
       <p className="mb-2 flex items-center gap-1.5 text-[13px] font-semibold">{h(Icon.message, { size: 15 })}Comments <span className="font-normal text-ink-mute">{list.length || ""}</span></p>
       {list.length > 0 && (
         <ul className="mb-3 space-y-2">
