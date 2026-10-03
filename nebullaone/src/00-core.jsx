@@ -304,7 +304,7 @@ function Field({ label, hint, required, span = 1, children }) {
         {required && <span className="text-red-500"> *</span>}
       </span>
       {children}
-      {hint && <span className="mt-1 block text-[11px] text-ink-mute">{hint}</span>}
+      {hint && <span className="mt-0.5 block text-[10.5px] leading-tight text-ink-faint">{hint}</span>}
     </label>
   ));
 }
