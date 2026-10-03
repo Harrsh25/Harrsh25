@@ -220,7 +220,7 @@ function ContractDrawer({ id, onClose }) {
                 {c.awardNote && <Note>Award recommendation: {c.awardNote}</Note>}
                 <div className="grid grid-cols-[1fr_auto_auto] items-end gap-2">
                   <Field label={`${pendingStage.role} remark`}><TextInput value={remark} onChange={setRemark} placeholder="Required to reject" /></Field>
-                  <Btn variant="danger" disabled={!remark.trim()} onClick={() => decideContract(c, false, remark.trim()) && setRemark("")}>Reject</Btn>
+                  <Btn variant="danger" disabled={!remark.trim()} title={remark.trim() ? "" : "Write a remark first"} onClick={() => decideContract(c, false, remark.trim()) && setRemark("")}>Reject</Btn>
                   <Btn variant="success" icon={Icon.check} onClick={() => decideContract(c, true, remark.trim()) && setRemark("")}>Approve as {pendingStage.role}</Btn>
                 </div>
               </div>

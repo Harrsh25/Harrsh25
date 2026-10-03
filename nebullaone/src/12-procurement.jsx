@@ -1072,7 +1072,7 @@ function VendorInvoiceReview({ inv }) {
         <ActNote roles={["Accounts", "Finance Controller"]} involved={[]} what="reviewing vendor invoices" />
         <div className="grid grid-cols-[1fr_auto_auto] items-end gap-2">
           <Field label="AP remark"><TextInput value={remark} onChange={setRemark} placeholder="Required to reject" /></Field>
-          <Btn variant="danger" disabled={!remark.trim()} onClick={() => reviewVendorInvoice(inv, false, remark.trim())}>Reject</Btn>
+          <Btn variant="danger" disabled={!remark.trim()} title={remark.trim() ? "" : "Write a remark first"} onClick={() => reviewVendorInvoice(inv, false, remark.trim())}>Reject</Btn>
           <Btn variant="success" icon={Icon.check} onClick={() => reviewVendorInvoice(inv, true, remark.trim())}>Accept invoice</Btn>
         </div>
       </div>

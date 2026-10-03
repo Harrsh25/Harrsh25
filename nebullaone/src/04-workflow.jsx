@@ -89,7 +89,7 @@ function SpendAuthPanel({ v }) {
       <ActNote roles="Finance Controller" involved={[req.by]} what="spend authorization" />
       <div className="grid grid-cols-[1fr_auto_auto] items-end gap-2">
         <Field label="Finance remark"><TextInput value={remark} onChange={setRemark} placeholder="Required to reject" /></Field>
-        <Btn variant="danger" disabled={!remark.trim()} onClick={() => decideSpendAuth(v, false, remark.trim())}>Reject</Btn>
+        <Btn variant="danger" disabled={!remark.trim()} title={remark.trim() ? "" : "Write a remark first"} onClick={() => decideSpendAuth(v, false, remark.trim())}>Reject</Btn>
         <Btn variant="success" icon={Icon.check} disabled={b.length > 0} onClick={() => decideSpendAuth(v, true, remark.trim())}>Approve spend authorization</Btn>
       </div>
     </div>

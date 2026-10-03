@@ -261,8 +261,8 @@ function VendorApproval({ v, mode = "approval" }) {
             <div className="flex justify-end gap-2">
               <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>
               <Btn onClick={() => setRc(true)}>Request changes</Btn>
-              <Btn variant="danger" disabled={!remark.trim()} onClick={() => { if (approvalAction(v, "Rejected", remark.trim())) { setRemark(""); toast("Registration rejected", "red"); } }}>Reject</Btn>
-              {canOverride && <Btn disabled={!remark.trim()} onClick={() => { if (approvalAction(v, "Approved", remark.trim(), { override: true })) { setRemark(""); toast("Approved with override — logged"); } }}>Approve with override</Btn>}
+              <Btn variant="danger" disabled={!remark.trim()} title={remark.trim() ? "" : "Write a remark first"} onClick={() => { if (approvalAction(v, "Rejected", remark.trim())) { setRemark(""); toast("Registration rejected", "red"); } }}>Reject</Btn>
+              {canOverride && <Btn disabled={!remark.trim()} title={remark.trim() ? "" : "Write a remark first"} onClick={() => { if (approvalAction(v, "Approved", remark.trim(), { override: true })) { setRemark(""); toast("Approved with override — logged"); } }}>Approve with override</Btn>}
               <Btn variant="success" icon={Icon.check} disabled={last && blockers.length > 0} title={last && blockers.length ? "Close the checklist items first" : ""} onClick={() => { if (approvalAction(v, "Approved", remark.trim())) { setRemark(""); toast(`${pending.dept} approved`); } }}>Approve as {pending.dept}</Btn>
             </div>
           </div>

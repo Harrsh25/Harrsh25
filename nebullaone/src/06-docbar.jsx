@@ -30,7 +30,7 @@ function ReasonModal({ title, text, action = "Confirm", tone = "danger", onClose
   const bad = VX.reason(r);
   return (
     <Modal open onClose={onClose} width={480} title={title}
-      footer={<><Btn onClick={onClose}>Back</Btn><Btn variant={tone} disabled={!!bad} onClick={() => { onDone(r.trim()); onClose(); }}>{action}</Btn></>}>
+      footer={<><Btn onClick={onClose}>Back</Btn><Btn variant={tone} disabled={!!bad} title={bad && typeof bad === "string" ? bad : bad ? "Give a reason first" : ""} onClick={() => { onDone(r.trim()); onClose(); }}>{action}</Btn></>}>
       {text && <p className="mb-3 text-[13px] text-ink-soft">{text}</p>}
       <Field label="Reason" required><TextArea rows={2} value={r} onChange={setR} placeholder="Why — kept in the audit log" /></Field>
     </Modal>
@@ -168,7 +168,7 @@ function RecordComments({ id }) {
           <ul role="listbox" aria-label="Mention" className="absolute bottom-full left-0 z-10 mb-1 w-[240px] rounded-md border border-line bg-white py-1 shadow-lg">
             {sugg.map((p) => <li key={p} role="option" aria-selected="false" onMouseDown={(e) => { e.preventDefault(); choose(p); }} className="cursor-pointer px-3 py-1.5 text-[13px] hover:bg-gray-50">@{p}</li>)}
           </ul>)}
-        <div className="mt-1.5 flex justify-end"><Btn size="sm" variant="primary" icon={Icon.send} disabled={!text.trim()} onClick={post}>Comment</Btn></div>
+        <div className="mt-1.5 flex justify-end"><Btn size="sm" variant="primary" icon={Icon.send} disabled={!text.trim()} title={text.trim() ? "" : "Write a comment first"} onClick={post}>Comment</Btn></div>
       </div>
     </div>
   );

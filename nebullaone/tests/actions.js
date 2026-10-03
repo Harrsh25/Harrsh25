@@ -19,23 +19,25 @@ const ROUTES = [...fs.readFileSync(path.resolve(__dirname, '../src/90-nav.jsx'),
   const R = [];
   const audit = async (where, hash, scope, opener) => {
     await fresh(hash); if (opener) await opener();
-    const btns = await p.locator(scope).locator('button:visible').evaluateAll((bs) => bs.filter((x) => !x.closest('tbody,[role=tablist],nav,aside[aria-label]') ).map((x, i) => ({ i, name: (x.getAttribute('aria-label') || x.innerText || x.title || x.getAttribute('data-tip') || '').replace(/\s+/g, ' ').trim().slice(0, 50), disabled: x.disabled, why: x.title || x.getAttribute('data-tip') || '' })));
+    const NAME = (x) => (x.getAttribute('aria-label') || x.innerText || x.title || x.getAttribute('data-tip') || '').replace(/\s+/g, ' ').trim().slice(0, 50);
+    const btns = await p.locator(scope).locator('button:visible').evaluateAll((bs, nm) => { const NAME = new Function('x', 'return (' + nm + ')(x)'); return bs.map((x, i) => ({ i, skip: !!x.closest('tbody,[role=tablist],nav,aside[aria-label]'), name: NAME(x), disabled: x.disabled, on: x.getAttribute('aria-pressed') === 'true' || x.getAttribute('aria-selected') === 'true' || x.getAttribute('aria-current') === 'true', why: x.title || x.getAttribute('data-tip') || '' })).filter((x) => !x.skip); }, NAME.toString());
     const seen = new Set();
     for (const bt of btns) {
       if (!bt.name || seen.has(bt.name) || /^Close$|^Remove /.test(bt.name)) continue; seen.add(bt.name);
       if (bt.disabled) { R.push({ where, button: bt.name, result: 'DISABLED', effect: bt.why ? 'disabled — ' + bt.why : 'disabled (no reason shown)' }); continue; }
       await fresh(hash); if (opener) await opener();
-      const loc = p.locator(scope).locator('button:visible').filter({ hasText: bt.name.length > 2 ? bt.name : undefined }).first();
-      const target = (await p.locator(scope).locator(`button[aria-label="${bt.name.replace(/"/g, '\\"')}"]:visible`).count()) ? p.locator(scope).locator(`button[aria-label="${bt.name.replace(/"/g, '\\"')}"]:visible`).first() : loc;
+      const target = p.locator(scope).locator('button:visible').nth(bt.i);
+      const nm = await target.evaluate((x, nm) => new Function('x', 'return (' + nm + ')(x)')(x), NAME.toString()).catch(() => '');
+      if (nm !== bt.name) { R.push({ where, button: bt.name, result: 'ERROR', effect: 'button moved after reload (found "' + nm + '")' }); continue; }
       const s0 = await state(); pops = 0; let dl = false; const dlw = p.waitForEvent('download', { timeout: 700 }).then(() => (dl = true)).catch(() => {});
       errs = [];
       try { await target.click({ timeout: 1500 }); } catch (e) { R.push({ where, button: bt.name, result: 'ERROR', effect: 'could not click: ' + e.message.split('\n')[0] }); continue; }
       await p.waitForTimeout(350); await dlw; const s1 = await state();
       const fx = [s1.url !== s0.url && 'navigates to ' + s1.url.split('/').slice(-1)[0], s1.dlg > s0.dlg && 'opens a panel / dialog', s1.dlg < s0.dlg && 'closes the panel', s1.store !== s0.store && 'saves data', s1.toast && s1.toast !== s0.toast && 'message: ' + s1.toast.slice(0, 60), dl && 'downloads a file', pops && 'opens a print / new window', !(s1.url !== s0.url || s1.dlg !== s0.dlg || s1.store !== s0.store) && s1.html !== s0.html && 'updates the screen'].filter(Boolean);
-      R.push({ where, button: bt.name, result: errs.length ? 'ERROR' : fx.length ? 'WORKS' : 'NO EFFECT', effect: errs.length ? errs.join(' | ') : fx.join('; ') || 'nothing happened' });
+      R.push({ where, button: bt.name, result: errs.length ? 'ERROR' : fx.length ? 'WORKS' : bt.on ? 'N/A' : 'NO EFFECT', effect: errs.length ? errs.join(' | ') : fx.join('; ') || (bt.on ? 'already the selected option' : 'nothing happened') });
     }
   };
-  for (const r of ROUTES) {
+  for (const r of ROUTES.filter((x) => !process.env.ONLY || x.label === process.env.ONLY)) {
     await audit(r.label, r.hash, 'main');
     await fresh(r.hash);
     if (await p.locator('main table tbody tr.cursor-pointer').count()) {
