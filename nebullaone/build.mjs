@@ -149,6 +149,7 @@ const RAW_CSS = "[role=dialog] .mono{white-space:nowrap}[role=dialog] p.flex.ite
   ".nx-list td{border-right-width:0;padding:8px 12px;border-color:#eef0f3}.nx-list th{border-color:#e5e7eb}" +
   ".nx-list tbody tr:hover{background:#f9fafb}" +
   ".nx-kv dd .flex-col{align-items:flex-start}" +
+  ".nx-kv>div:has(>dd [role=combobox]){align-items:center}" +
   /* a table that ends a card follows the card's rounded bottom corners instead of covering them */
   ".nx-section>.overflow-x-auto:last-child,.nx-section>div:last-child>.overflow-x-auto:last-child{border-bottom-left-radius:11px;border-bottom-right-radius:11px}" +
   ".nx-eq td,.nx-eq th{overflow:hidden;text-overflow:ellipsis}.nx-eq td>span,.nx-eq td>div{max-width:100%}" +

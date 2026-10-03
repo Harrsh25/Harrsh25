@@ -32,7 +32,7 @@ const VENDOR_EXTRA_COLUMNS = (st) => [
 
 function VendorTypeTag({ v }) {
   const c = { Goods: "bg-sky-50 text-sky-700 border-sky-200", Services: "bg-violet-50 text-violet-700 border-violet-200", Labor: "bg-orange-50 text-orange-700 border-orange-200" }[vTypes(v)[0]];
-  return <span className={cls("rounded border px-1.5 py-[1px] text-[11px] font-medium", c)}>{typeLabel(v)}{v.isContractor ? " · Contractor" : ""}</span>;
+  return <span className={cls("rounded border px-1.5 py-[1px] text-[11px] font-medium", c)}>{typeLabel(v)}</span>;
 }
 function CategoryChips({ list, max = 2, wrap }) {
   return (
@@ -405,18 +405,19 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
   return (
     <Drawer open related={relatedFor(st, "vendor", v)} comments={tab === "overview" ? undefined : v.id} onClose={onClose} width={880} title={v.name}
       subtitle={<><span className="mono text-ink-mute">{v.id}</span>{APPROVAL_STATES.includes(v.status) ? <VendorStatusMenu v={v} approval /> : <VendorStatusMenu v={v} />}</>}
-      actions={<><span className="inline-flex h-[32px] items-center"><PreferredStar v={v} size={18} always /></span>{canEdit && <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>}</>}
+      actions={<><span className="inline-flex h-8 items-center"><PreferredStar v={v} size={18} always /></span>{canEdit && <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>}</>}
       tabs={{ tabs, active: tab, onChange: setTab }}>
       {/* tables show as label → value lists, except Documents, Bank and Equipment which keep their tables */}
       <ListMode.Provider value={!["docs", "bank", "equip"].includes(tab)}>
       <div className="space-y-4 px-6 py-5">
-        {locked && tab !== "approval" && (v.status === "Pending Approval"
+        {locked && !["approval", "flags"].includes(tab) && (v.status === "Pending Approval"
           ? <Note tone="amber" icon={Icon.lock}>Submitted for approval — details are locked until the approvers decide. If it is rejected or sent back, you can edit and resubmit.</Note>
           : <Note icon={Icon.lock}>Approved vendor — registration details are locked. Status (hold, inactive, blacklist) is changed from the status badge at the top.</Note>)}
         {tab === "overview" && <VendorOverview v={v} comp={comp} />}
+        {/* Status & flags stay editable in every status */}
+        {tab === "flags" && <VendorFlagsView v={v} canEdit={mode === "registry"} />}
         <fieldset disabled={locked} className="m-0 min-w-0 space-y-4 border-0 p-0">
           {tab === "overview" && <VendorContactsAddresses v={v} locked={locked} />}
-          {tab === "flags" && <VendorFlagsView v={v} canEdit={canEdit} />}
           {tab === "docs" && <><VendorDocs v={v} mode={mode} locked={locked} /><InsurancePolicies v={v} mode={mode} locked={locked} /></>}
           {tab === "bank" && <VendorBanks v={v} locked={locked} />}
           {tab === "qual" && <Questionnaire v={v} />}
@@ -627,9 +628,8 @@ function VendorBanks({ v, locked }) {
           { key: "ifsc", label: foreign ? "SWIFT" : "IFSC", className: "mono text-[12px]", render: (a) => a.ifsc || a.swift || "—" },
           { key: "ty", label: "Type · currency", render: (a) => <span className="flex flex-col text-[12px]"><span>{a.accountType || "Current"} · {a.currency || v.currency || "INR"}</span>{a.iban && <span className="mono text-ink-mute">IBAN {a.iban}</span>}{a.branch && <span className="text-ink-mute">{a.branch}</span>}</span> },
           { key: "fl", label: "Settings", render: (a) => <span className="flex flex-wrap gap-1">{a.disabled ? <Status tone="gray">Disabled</Status> : a.paymentsEnabled === false ? <Status tone="amber">Payments off</Status> : <Status tone="green">Payments on</Status>}{a.allowIntl && <Status tone="blue">International</Status>}</span> },
-          { key: "st", label: "Verification", render: (a) => <span className="flex flex-col"><Status tone={{ Verified: "green", Rejected: "red" }[bankStatus(a)] || "amber"}>{bankStatus(a)}</Status>
-            {a.verifiedAt && <span className="text-[11px] text-ink-mute">{a.verifiedBy} · {fmtDate(a.verifiedAt)}{a.method ? ` · ${a.method}` : ""}</span>}
-            {a.remark && <span className="max-w-[220px] whitespace-normal text-[11px] text-red-600">{a.remark}</span>}</span> },
+          { key: "st", label: "Verification", render: (a) => <span title={a.remark || undefined}><Status tone={{ Verified: "green", Rejected: "red" }[bankStatus(a)] || "amber"}>{bankStatus(a)}</Status></span> },
+          { key: "von", label: "Verified on", render: (a) => (a.verifiedAt ? <span title={[a.verifiedBy, a.method].filter(Boolean).join(" · ") || undefined}>{fmtDate(a.verifiedAt)}</span> : <span className="text-ink-mute">—</span>) },
           { key: "d", label: "", align: "right", render: (a) => !locked && (
             <span className="flex justify-end gap-1">
               {bankStatus(a) !== "Verified" && <Btn size="sm" variant="success" onClick={() => verify(a)}>Verify</Btn>}

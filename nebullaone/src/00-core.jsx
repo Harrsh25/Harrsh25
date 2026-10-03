@@ -346,7 +346,7 @@ function Drawer({ open, title, badge, subtitle, onClose, actions, width = 760, t
         <div className={cls("shrink-0", !tabs && "border-b border-line")}>
           {/* Title keeps the full width; when the action buttons don't fit beside it they move to their own row */}
           <div className={cls("nx-dhead relative flex flex-wrap items-start gap-x-4 gap-y-3 pl-6 pr-14 pt-5", tabs ? "pb-5" : "pb-4")}>
-            <span className="absolute right-4 top-4"><IconBtn icon={Icon.x} title="Close" onClick={onClose} /></span>
+            <span className="absolute right-4 top-[18px]"><IconBtn icon={Icon.x} title="Close" onClick={onClose} /></span>
             <div className="min-w-0" style={{ flex: "1 1 auto", minWidth: 240 }}>
               <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
                 <h2 className="min-w-0 text-[17px] font-semibold leading-tight tracking-tight" style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "anywhere" }}>{title}</h2>
@@ -354,7 +354,7 @@ function Drawer({ open, title, badge, subtitle, onClose, actions, width = 760, t
               </div>
               {subtitle && <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-ink-soft">{subtitle}</div>}
             </div>
-            {actions && <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2" style={{ flex: "0 1 auto" }}>{actions}</div>}
+            {actions && <div className="-mt-1 ml-auto flex max-w-full flex-wrap items-center justify-end gap-2" style={{ flex: "0 1 auto" }}>{actions}</div>}
           </div>
           {tabs && <DetailTabs {...tabs} />}
         </div>
