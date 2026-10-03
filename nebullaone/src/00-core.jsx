@@ -414,8 +414,17 @@ const TRADE_GROUPS = [
   { label: "Materials", items: ["Steel", "Cement & Aggregates", "Hardware"] },
   { label: "Equipment & manpower", items: ["Equipment Hire", "Manpower Supply"] },
 ];
-function TradePicker({ options, value = [], onChange }) {
-  const [q, setQ] = y.useState("");
+// Compact multi-select: picked trades show as chips in one field; the grouped, searchable list opens on click
+function TradePicker({ options, value = [], onChange, placeholder = "Select trades…" }) {
+  const [open, setOpen] = y.useState(false), [q, setQ] = y.useState("");
+  const ref = y.useRef(null);
+  y.useEffect(() => {
+    if (!open) { setQ(""); return; }
+    const off = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const esc = (e) => { if (e.key === "Escape") { e.stopPropagation(); setOpen(false); } };
+    document.addEventListener("mousedown", off); document.addEventListener("keydown", esc, true);
+    return () => { document.removeEventListener("mousedown", off); document.removeEventListener("keydown", esc, true); };
+  }, [open]);
   const known = new Set(TRADE_GROUPS.flatMap((g) => g.items));
   const rest = options.filter((o) => !known.has(o));
   const groups = [...TRADE_GROUPS.map((g) => ({ ...g, items: g.items.filter((o) => options.includes(o)) })), ...(rest.length ? [{ label: "Other", items: rest }] : [])];
@@ -423,41 +432,36 @@ function TradePicker({ options, value = [], onChange }) {
   const shown = groups.map((g) => ({ ...g, items: g.items.filter((o) => !ql || o.toLowerCase().includes(ql)) })).filter((g) => g.items.length);
   const toggle = (o) => onChange(value.includes(o) ? value.filter((x) => x !== o) : [...value, o]);
   return (
-    <div className="overflow-hidden rounded-lg border border-line bg-white">
-      <div className="flex flex-wrap items-center gap-2 border-b border-line bg-gray-50/70 px-3 py-2">
-        <label className="flex h-[28px] w-[200px] items-center gap-2 rounded-md border border-line bg-white px-2 text-[13px] text-ink-mute">
-          {h(Icon.search, { size: 13 })}
-          <input className="w-full bg-transparent text-ink outline-none placeholder:text-ink-mute" placeholder="Find a trade…" value={q} onChange={(e) => setQ(e.target.value)} />
-        </label>
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
-          {value.length ? value.map((o) => (
-            <span key={o} className="inline-flex items-center gap-1 rounded-md bg-brand-soft py-[2px] pl-2 pr-1 text-[12px] font-medium text-brand">
-              {o}<button type="button" aria-label={"Remove " + o} className="rounded p-[1px] hover:bg-white/70" onClick={() => toggle(o)}>{h(Icon.x, { size: 11 })}</button>
-            </span>)) : <span className="text-[12px] text-ink-faint">No trades selected yet</span>}
-        </div>
-        <span className="ml-auto flex items-center gap-2 whitespace-nowrap text-[12px] text-ink-mute">
-          <b className="text-ink">{value.length}</b> selected
-          {value.length > 0 && <button type="button" className="text-brand hover:underline" onClick={() => onChange([])}>Clear</button>}
-        </span>
+    <div ref={ref} className="relative">
+      <div role="combobox" aria-expanded={open} aria-haspopup="listbox" tabIndex={0} onClick={() => setOpen(true)} onKeyDown={(e) => (e.key === "Enter" || e.key === "ArrowDown") && setOpen(true)}
+        className={cls(inputCls, "flex h-auto min-h-[32px] cursor-pointer flex-wrap items-center gap-1 py-1", open && "border-brand ring-2 ring-brand/15")}>
+        {value.length ? value.map((o) => (
+          <span key={o} className="inline-flex items-center gap-1 rounded bg-brand-soft py-[1px] pl-1.5 pr-0.5 text-[12px] font-medium text-brand">
+            {o}<button type="button" aria-label={"Remove " + o} className="rounded p-[1px] hover:bg-white/70" onClick={(e) => { e.stopPropagation(); toggle(o); }}>{h(Icon.x, { size: 11 })}</button>
+          </span>)) : <span className="text-ink-mute">{placeholder}</span>}
+        {h(Icon.chevronDown, { size: 14, className: cls("ml-auto shrink-0 text-ink-mute transition-transform", open && "rotate-180") })}
       </div>
-      <div className="divide-y divide-line">
-        {shown.length ? shown.map((g) => (
-          <div key={g.label} className="flex flex-col gap-1.5 px-3 py-2.5 sm:flex-row sm:items-start">
-            <div className="w-[170px] shrink-0 pt-[5px] text-[11px] font-semibold uppercase tracking-wide text-ink-mute">{g.label}</div>
-            <div className="flex flex-1 flex-wrap gap-1.5">
-              {g.items.map((o) => {
-                const on = value.includes(o);
-                return (
-                  <button key={o} type="button" aria-pressed={on} onClick={() => toggle(o)}
-                    className={cls("inline-flex items-center gap-1 rounded-md border px-2.5 py-[4px] text-[12.5px] transition-colors",
-                      on ? "border-brand bg-brand-soft font-medium text-brand" : "border-line bg-white text-ink-soft hover:border-gray-300 hover:bg-gray-50")}>
-                    {on ? h(Icon.check, { size: 12 }) : <span className="text-[13px] leading-none text-ink-faint">+</span>}{o}
-                  </button>
-                );
-              })}
-            </div>
-          </div>)) : <div className="px-3 py-4 text-center text-[12.5px] text-ink-mute">No trade matches “{q}”</div>}
-      </div>
+      {open && (
+        <div role="listbox" aria-multiselectable="true" className="absolute left-0 right-0 z-40 mt-1 flex max-h-[300px] flex-col overflow-hidden rounded-lg border border-line bg-white shadow-lg">
+          <div className="border-b border-line p-2">
+            <input autoFocus className="h-[28px] w-full rounded-md border border-line px-2 text-[12.5px] outline-none focus:border-brand" placeholder="Find a trade…" value={q} onChange={(e) => setQ(e.target.value)} />
+          </div>
+          <div className="min-h-0 overflow-y-auto py-1">
+            {shown.length ? shown.map((g) => (
+              <div key={g.label}>
+                <p className="px-3 pb-0.5 pt-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-ink-faint">{g.label}</p>
+                {g.items.map((o) => { const on = value.includes(o); return (
+                  <button key={o} type="button" role="option" aria-selected={on} aria-pressed={on} onClick={() => toggle(o)}
+                    className={cls("flex w-full items-center gap-2 px-3 py-1.5 text-left text-[13px]", on ? "bg-brand-soft/60 text-brand" : "text-ink hover:bg-gray-50")}>
+                    <span className={cls("grid h-4 w-4 place-items-center rounded border", on ? "border-brand bg-brand text-white" : "border-gray-300")}>{on && h(Icon.check, { size: 11 })}</span>{o}
+                  </button>); })}
+              </div>)) : <p className="px-3 py-3 text-center text-[12.5px] text-ink-mute">No trade matches “{q}”</p>}
+          </div>
+          <div className="flex items-center justify-between border-t border-line px-3 py-1.5 text-[12px] text-ink-mute">
+            <span><b className="text-ink">{value.length}</b> selected</span>
+            <span className="flex gap-3">{value.length > 0 && <button type="button" className="text-brand hover:underline" onClick={() => onChange([])}>Clear</button>}<button type="button" className="font-medium text-brand" onClick={() => setOpen(false)}>Done</button></span>
+          </div>
+        </div>)}
     </div>
   );
 }

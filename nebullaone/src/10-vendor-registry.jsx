@@ -207,14 +207,14 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank, quic
           <Field label="Company / trade name" required><TextInput value={f.name} onChange={(v) => upd("name", v)} placeholder="e.g. Shree Balaji Infra" />{err("name")}</Field>
           <Field label="Registered legal name" hint="As on the GST certificate — leave empty if same"><TextInput value={f.legalName} onChange={(v) => upd("legalName", v)} placeholder={f.name || "Legal name"} /></Field>
         </div>
-        <p className="mb-2 mt-4 text-[12.5px] font-medium text-ink">What they supply <span className="text-red-500">*</span> <span className="font-normal text-ink-mute">— tick all that apply</span></p>
-        <div className="grid grid-cols-3 gap-3">
+        <p className="mb-1.5 mt-3 text-[12px] font-medium text-ink-soft">What they supply <span className="text-red-500">*</span> <span className="font-normal text-ink-mute">— tick all that apply</span></p>
+        <div className="flex flex-wrap gap-2">
           {VENDOR_TYPES.map((t) => {
             const on = hasType(f, t), I = TYPE_INFO[t];
             return (
-              <button key={t} type="button" role="checkbox" aria-checked={on} onClick={() => setType(t)} className={cls("flex items-start gap-3 rounded-lg border p-3 text-left transition-colors", on ? "border-brand bg-brand-soft/60 ring-1 ring-brand" : "border-line hover:border-gray-300 hover:bg-gray-50")}>
-                <span className={cls("grid h-8 w-8 shrink-0 place-items-center rounded-md", on ? "bg-brand text-white" : "bg-gray-100 text-ink-soft")}>{h(I.icon, { size: 16 })}</span>
-                <span><span className={cls("block text-[13.5px] font-semibold", on ? "text-brand" : "text-ink")}>{t === "Labor" ? "Labour" : t}</span><span className="block text-[11.5px] leading-snug text-ink-mute">{I.text}</span></span>
+              <button key={t} type="button" role="checkbox" aria-checked={on} data-tip={I.text} onClick={() => setType(t)}
+                className={cls("flex h-8 items-center gap-1.5 rounded-md border px-3 text-[13px] transition-colors", on ? "border-brand bg-brand-soft font-medium text-brand" : "border-line text-ink-soft hover:bg-gray-50")}>
+                {on ? h(Icon.check, { size: 14 }) : h(I.icon, { size: 14 })}{t === "Labor" ? "Labour" : t}
               </button>
             );
           })}
