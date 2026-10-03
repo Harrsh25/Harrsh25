@@ -219,7 +219,7 @@ function resubmit(v) {
 function VendorApproval({ v, mode = "approval" }) {
   const decide = mode === "approval";
   const [remark, setRemark] = y.useState("");
-  const [rc, setRc] = y.useState(false), [edit, setEdit] = y.useState(false); const [bg, setBg] = y.useState(false);
+  const [rc, setRc] = y.useState(false), [edit, setEdit] = y.useState(false);
   const stages = v.approval.stages;
   const pending = stages.find((s) => s.status === "Pending");
   const comp = complianceOf(v);
@@ -281,13 +281,6 @@ function VendorApproval({ v, mode = "approval" }) {
         )}
         {v.status === "Active" && v.regTier === "Prospective" && <SpendAuthPanel v={v} />}
       </Section>
-      <Section title="Background & financial checks" icon={Icon.shieldCheck}
-        actions={<Btn size="sm" icon={Icon.refresh} onClick={() => setBg(true)}>Record check</Btn>}>
-        {v.background ? <KV cols={4} items={[["Credit rating", v.background.credit], ["Litigation", v.background.litigation], ["Watchlist / sanctions", v.background.watchlist], ["Checked on", fmtDate(v.background.checkedAt)]]} />
-          : <p className="p-4 text-[13px] text-ink-mute">Not run yet.</p>}
-        {v.isContractor && backgroundIssue(v) && <div className="border-t border-line p-3"><Note tone="red" icon={Icon.lock}>{backgroundIssue(v)} — work orders (mobilisation) are blocked until it is clear.</Note></div>}
-      </Section>
-      {bg && <BackgroundModal v={v} onClose={() => setBg(false)} />}
     </>
   );
 }
