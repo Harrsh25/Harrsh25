@@ -310,27 +310,13 @@ function DetailTabs({ tabs, active, onChange, max = 7 }) {
 
 // Record information card: label / value rows in two columns (first half left, second half right)
 function InfoCard({ title = "Information", icon, rows, actions }) {
-  const list = rows.filter(Boolean), half = Math.ceil(list.length / 2);
-  const col = (items) => (
-    <dl className="space-y-2.5">
-      {items.map(([k, v]) => (
-        <div key={k} className="grid grid-cols-[150px_minmax(0,1fr)] gap-3 text-[13px]">
-          <dt className="text-ink-mute">{k}</dt>
-          <dd className="break-words text-ink">{v === undefined || v === null || v === "" ? <span className="text-ink-faint">-</span> : v}</dd>
-        </div>
-      ))}
-    </dl>
-  );
   return (
     <div className="rounded-xl border border-line bg-white">
       <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
         <h3 className="flex items-center gap-2 text-[14.5px] font-semibold">{icon && h(icon, { size: 15, className: "text-ink-mute" })}{title}</h3>
         {actions}
       </div>
-      <div className="grid gap-x-8 gap-y-2.5 p-4" style={{ gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)" }}>
-        {col(list.slice(0, half))}
-        <div className="border-l border-line pl-8">{col(list.slice(half))}</div>
-      </div>
+      <KV items={rows} />
     </div>
   );
 }
@@ -1152,13 +1138,14 @@ function Section({ title, icon, actions, children, className }) {
   );
 }
 
-function KV({ items, cols = 3 }) {
+// Details as a one-column list: label on the left, value on the right, one row per field
+function KV({ items }) {
   return (
-    <dl className={cls("grid gap-x-6 gap-y-3 p-4", cols === 2 ? "grid-cols-2" : cols === 4 ? "grid-cols-4" : "grid-cols-3")}>
+    <dl className="divide-y divide-line px-4 py-1">
       {items.filter(Boolean).map(([k, v]) => (
-        <div key={k} className="min-w-0">
-          <dt className="text-[11.5px] font-medium text-ink-mute">{k}</dt>
-          <dd className="mt-0.5 break-words text-[13px] leading-snug text-ink">{v ?? "—"}</dd>
+        <div key={k} className="grid grid-cols-[180px_minmax(0,1fr)] items-start gap-4 py-2.5 text-[13px]">
+          <dt className="text-ink-mute">{k}</dt>
+          <dd className="min-w-0 break-words leading-snug text-ink">{v === undefined || v === null || v === "" ? <span className="text-ink-faint">-</span> : v}</dd>
         </div>
       ))}
     </dl>

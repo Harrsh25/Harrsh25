@@ -17,7 +17,12 @@ require('./lib')('bench', async ({ p, go, dlg, S, mut, T, pick, toastText }) => 
     // MSME / entity type / credit limit were removed from the form on request — registration saves trades, GSTIN and PAN
     return [`saved ${v?.id} ${v?.status}; trades ${(v?.categories || []).join(', ')}; GSTIN ${v?.gstin}; PAN ${v?.pan}`, !!v && v.status === 'Draft' && (v.categories || []).includes('Cement & Aggregates') && v.pan === 'BNCHM4411K'];
   });
-  await T('BF-02', 'Contacts & addresses (Overview tab): add a primary contact and a supplier site', async () => {
+  await T('BF-02a', 'Approved vendor: contacts & addresses are locked (no Add contact)', async () => {
+    await go('vendor-management/registry?open=VEN-009'); await p.waitForTimeout(300); const n = await p.locator('[data-drawer] button:has-text("Add contact"):not(:disabled)').count();
+    return [`enabled Add contact buttons: ${n}`, n === 0];
+  });
+  await T('BF-02', 'Contacts & addresses (Overview tab, Draft vendor): add a primary contact and a supplier site', async () => {
+    await mut(`(s) => { s.vendors.find((y) => y.id === 'VEN-009').status = 'Draft'; }`);
     await go('vendor-management/registry?open=VEN-009'); await p.waitForTimeout(300); await dlg().locator('[role=tab]:has-text("Overview")').click(); await p.waitForTimeout(150); await btn('Add contact').scrollIntoViewIfNeeded();
     await btn('Add contact').click(); await p.waitForTimeout(150); let m = dlg();
     await m.locator('label:has-text("First name") input').fill('Vikas'); await m.locator('label:has-text("Last name") input').fill('Shetty'); await m.locator('label:has-text("Designation") input').fill('Sales head');
@@ -28,6 +33,7 @@ require('./lib')('bench', async ({ p, go, dlg, S, mut, T, pick, toastText }) => 
     const v = await V('VEN-009');
     return [`contacts ${v.contacts?.length}, primary → ${v.contact.name}; addresses ${v.addresses?.length} (${v.addresses?.[0]?.purposes?.join('/')})`, v.contacts?.length === 1 && v.contact.name === 'Vikas Shetty' && v.addresses?.length === 1];
   });
+  await mut(`(s) => { s.vendors.find((y) => y.id === 'VEN-009').status = 'Active'; }`);
   await T('BF-03', 'Bank account switched to "payments off" stops payment', async () => {
     await mut((s) => { const v = s.vendors.find((x) => x.id === 'VEN-003'); v.bankAccounts.find((b) => b.isDefault).paymentsEnabled = false; });
     const s = await S(); const inv = s.invoices.find((i) => i.vendorId === 'VEN-003' && i.payments.length === 0);
