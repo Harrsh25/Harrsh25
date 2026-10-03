@@ -85,10 +85,10 @@ const PAGES = [
     for (let i = 0; i < ns; i++) { const e0 = errs.length; await sorts.nth(i).click().catch(() => {}); await wait(60); await sorts.nth(i).click().catch(() => {}); await wait(60); await sorts.nth(i).click().catch(() => {}); if (errs.length > e0 || (await rowsLoc.count()) !== n) sortErr += `${await sorts.nth(i).innerText()}; `; }
     if (ns) rec('List', `${where}: sort on all ${ns} columns`, sortErr ? 'FAIL' : 'PASS', sortErr);
     // search
-    const sb = p.locator('main button[aria-label="Search"]');
+    const sb = p.locator('main input[placeholder^="Search"]');
     if (await sb.count() && n && !empty) {
       const word = ((await rowsLoc.first().locator('td').nth(1).innerText().catch(() => '')) || (await rowsLoc.first().innerText())).trim().split(/\s+/).find((w) => w.length > 3) || '';
-      await sb.first().click(); await wait(80); const box = p.locator('main input[placeholder^="Search"]').first();
+      const box = sb.first(); if (!(await box.isVisible())) rec('List', `${where}: search box visible`, 'FAIL', 'hidden');
       if (word) { await box.fill(word); await wait(150); const hit = await rowsLoc.count(); rec('List', `${where}: search "${word}" finds rows`, hit >= 1 && !/No matches/.test(await p.locator('main').innerText()) ? 'PASS' : 'FAIL', `${hit} rows`); }
       await box.fill('zzqxqzz'); await wait(150); rec('List', `${where}: search with no match shows "No matches"`, /No matches/.test(await p.locator('main').innerText()) ? 'PASS' : 'FAIL', '');
       await box.fill(''); await wait(120); await p.locator('main h1').click().catch(() => {});

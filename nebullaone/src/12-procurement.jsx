@@ -332,16 +332,16 @@ function PurchaseOrdersPage() {
   return (
     <Page title="Purchase Orders" subtitle="PO generation, partial deliveries, goods receipt, returns & billing status" icon={Icon.package}
       actions={<Btn variant="primary" icon={Icon.plus} onClick={() => setCreate(true)}>New PO</Btn>}>
-      <DataTable noun="purchase orders" rows={st.purchaseOrders} onRow={(p) => setOpen(p.id)} columns={[
+      <DataTable noun="purchase orders" calendar={{ label: "Delivery dates", date: (p) => p.deliveryDate, title: (p) => `${p.id} · ${vendorName(st, p.vendorId)}` }} rows={st.purchaseOrders} onRow={(p) => setOpen(p.id)} columns={[
         { key: "id", label: "PO no.", className: "mono text-[12px]" },
+        { key: "s", label: "Status", filterOptions: FO.poStatus, filter: (p) => poStatus(p), render: (p) => <Status>{poStatus(p)}</Status> },
         { key: "v", label: "Vendor", filterOptions: FO.vendors, filter: (x) => vendorName(st, x.vendorId), render: (p) => <span className="font-medium">{vendorName(st, p.vendorId)}</span> },
         { key: "items", label: "Items · project", filterOptions: FO.projects, filter: (p) => p.project, filterLabel: "Project", render: (p) => <TwoLine a={itemsSummary(p.lines)} b={p.project} /> },
-        { key: "src", label: "Source", filterOptions: FO.poSource, filter: (p) => poSourceText(st, p)[0], render: (p) => { const [a, b] = poSourceText(st, p); return <TwoLine a={a} b={b} />; } },
+        { key: "src", label: "Source", opt: true, filterOptions: FO.poSource, filter: (p) => poSourceText(st, p)[0], render: (p) => { const [a, b] = poSourceText(st, p); return <TwoLine a={a} b={b} />; } },
         { key: "val", label: "Value", align: "right", num: true, render: (p) => inrShort(poValue(p)) },
         { key: "rec", label: "Received", render: (p) => { const r = poReceived(p); return <Progress value={Math.round(pct(sum(r, (x) => x.received), sum(r, (x) => x.qty)))} />; } },
         { key: "dd", label: "Delivery by", render: (p) => <span className={cls(poStatus(p) !== "Received" && daysUntil(p.deliveryDate) < 0 && "text-red-600")}>{fmtDate(p.deliveryDate)}</span> },
         { key: "b", label: "Billing", filterOptions: FO.poBilling, filter: (p) => poBillingStatus(st, p), render: (p) => <Status>{poBillingStatus(st, p)}</Status> },
-        { key: "s", label: "Status", filterOptions: FO.poStatus, filter: (p) => poStatus(p), render: (p) => <Status>{poStatus(p)}</Status> },
       ]} />
       <NewPoModal open={create} onClose={() => setCreate(false)} onCreated={setOpen} />
       {open && <PoDrawer id={open} onClose={() => setOpen(null)} />}
@@ -683,7 +683,7 @@ function InvoiceDrawer({ id, onClose }) {
   const schedErr = (sc) => sc.map((z, i) => !z.due ? `#${i + 1}: due date required` : z.due < inv.date ? `#${i + 1}: due before the bill date (${fmtDate(inv.date)})` : i > 0 && sc[i - 1].due && z.due <= sc[i - 1].due ? `#${i + 1}: must fall after instalment #${i}` : !(Number(z.pct) > 0) ? `#${i + 1}: share must be greater than 0` : "");
   return (
     <Drawer open onClose={onClose} width={920} title={`${inv.id} · ${vendorName(st, inv.vendorId)}`}
-      subtitle={<><Status>{status}</Status><span>{inv.source}{inv.poId ? <> <RefLink to={`${VM_BASE}/purchase-orders?open=${inv.poId}`}>{inv.poId}</RefLink></> : inv.raBillId ? <> <RefLink to={`${CL_BASE}/ra-bills?open=${inv.raBillId}`}>{inv.raBillId}</RefLink></> : ""}</span><span>· vendor ref {inv.number}</span><span>· due {fmtDate(inv.due)}</span><span>· should be paid: <b className={cls(sbp === "No" ? "text-red-600" : sbp === "Exception" ? "text-amber-700" : "text-green-700")}>{sbp}</b></span></>}
+      subtitle={<><Status>{status}</Status><span>{inv.source}{inv.poId ? <> <RefLink to={`${VM_BASE}/purchase-orders?open=${inv.poId}`}>{inv.poId}</RefLink></> : inv.raBillId ? <> <RefLink to={`${CL_BASE}/ra-bills?open=${inv.raBillId}`}>{inv.raBillId}</RefLink></> : ""}</span><span>· vendor ref {inv.number}</span><span>· due {fmtDate(inv.due)}</span>{status !== "Paid" && <span>· should be paid: <b className={cls(sbp === "No" ? "text-red-600" : sbp === "Exception" ? "text-amber-700" : "text-green-700")}>{sbp}</b></span>}</>}
       actions={<>{inv.posted === false && <Btn variant="primary" onClick={() => mut((x) => { x.posted = true; x.postedBy = currentUser(); x.postedAt = new Date().toISOString(); }, "Bill posted — now payable")}>Post bill</Btn>}
         {inv.posted !== false && t.balance > 0.5 && inv.review !== "Pending" && <Btn variant="primary" icon={Icon.rupee} onClick={() => setPay(true)}>Record payment</Btn>}</>}>
       <div className="space-y-4 px-6 py-5">
@@ -725,7 +725,8 @@ function InvoiceDrawer({ id, onClose }) {
             { key: "s", label: "Status", render: (r) => <Status>{r.status}</Status> },
           ]} />
         </Section>
-        <Section title="Hold" icon={Icon.lock}>
+        {status === "Paid" && <Note tone="green" icon={Icon.check}>Paid in full — nothing left to hold or pay.</Note>}
+        {status !== "Paid" && <Section title="Hold" icon={Icon.lock}>
           {holdActive ? (
             <div className="flex items-center justify-between gap-3 p-4">
               <span className="text-[13px]"><Status tone="amber">{inv.hold.reason}</Status> <span className="ml-2 text-ink-soft">{inv.hold.note}{inv.hold.until ? ` · auto-releases ${fmtDate(inv.hold.until)}` : ""}</span></span>
@@ -739,7 +740,7 @@ function InvoiceDrawer({ id, onClose }) {
               <Btn disabled={!hold.until || hold.until <= todayISO()} title={!hold.until || hold.until <= todayISO() ? "Release date must be in the future" : ""} onClick={() => mut((x) => (x.hold = { ...hold, at: new Date().toISOString() }), `Put on hold — ${hold.reason} until ${fmtDate(hold.until)}`)}>Put on hold</Btn>
             </div>
           )}
-        </Section>
+        </Section>}
         <Section title="Credit / debit notes" icon={Icon.file} actions={<Btn size="sm" icon={Icon.plus} onClick={() => setNote({ type: "Debit Note", amount: "", reason: "" })}>Add note</Btn>}>
           <DataTable dense rows={inv.notes} empty={<p className="p-4 text-[13px] text-ink-mute">None.</p>} columns={[
             { key: "id", label: "No.", className: "mono text-[12px]" }, { key: "type", label: "Type", render: (n) => <span>{n.type}{n.auto && <span className="ml-1 text-[11px] text-ink-mute">(auto from return)</span>}</span> }, { key: "reason", label: "Reason", className: "whitespace-normal" },
@@ -837,7 +838,7 @@ function InvoicesPage() {
       </>}>
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "bills", label: "Bills", icon: Icon.receipt }, { id: "accruals", label: "Accruals", icon: Icon.book }]} />
       {tab === "accruals" && <AccrualsTab />}
-      {tab === "bills" && <DataTable noun="bills" summary={(r) => [{ value: inrShort(sum(r, (i) => invoiceTotals(i).balance)), label: "outstanding" }, { value: inrShort(sum(st.vendorAdvances, (a) => a.amount - sum(a.allocated, (x) => x.amount))), label: "unadjusted advances" }]} filters={<><FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Awaiting Review", "Unpaid", "Partially Paid", "Overdue", "On Hold", "Paid", "Rejected"]} /></>} rows={rows} onRow={(i) => setOpen(i.id)} columns={[
+      {tab === "bills" && <DataTable noun="bills" calendar={{ label: "Due dates", date: (i) => i.due, title: (i) => `${i.id} · ${vendorName(st, i.vendorId)}` }} summary={(r) => [{ value: inrShort(sum(r, (i) => invoiceTotals(i).balance)), label: "outstanding" }, { value: inrShort(sum(st.vendorAdvances, (a) => a.amount - sum(a.allocated, (x) => x.amount))), label: "unadjusted advances" }]} filters={<><FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Awaiting Review", "Unpaid", "Partially Paid", "Overdue", "On Hold", "Paid", "Rejected"]} /></>} rows={rows} onRow={(i) => setOpen(i.id)} columns={[
         { key: "sel", label: "", render: (i) => invoiceStatus(i) !== "Paid" && <input type="checkbox" className="h-4 w-4 accent-[#0b5ed7]" checked={sel.includes(i.id)} onClick={(e) => e.stopPropagation()} onChange={(e) => setSel(e.target.checked ? [...sel, i.id] : sel.filter((x) => x !== i.id))} /> },
         { key: "id", label: "Bill no.", className: "mono text-[12px]" },
         { key: "v", label: "Vendor", filterOptions: FO.vendors, filter: (x) => vendorName(st, x.vendorId), render: (i) => <span className="font-medium">{vendorName(st, i.vendorId)}</span> },
