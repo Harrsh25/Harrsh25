@@ -910,6 +910,28 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
   const applyPanel = () => { Object.values(draft.page).forEach((x) => x.onChange(x.value)); setCf(draft.cols); setFiltersOpen(false); };
   const resetPanel = () => { Object.values(regs.current).forEach((x) => x.onChange(x.first)); setCf({}); setQ(""); onClearFilters && onClearFilters(); setDraft({ cols: {}, page: {} }); setFiltersOpen(false); };
   y.useEffect(() => { if (!filtersOpen) return; const k = (e) => e.key === "Escape" && setFiltersOpen(false); document.addEventListener("keydown", k); return () => document.removeEventListener("keydown", k); }, [filtersOpen]);
+  // Column widths: each column as wide as its content (measured in a hidden copy of the table, kept between 96 and 360px),
+  // then any leftover width is shared out equally — so the gap after the text is the same in every column
+  const [colPx, setColPx] = y.useState(null);
+  const [boxW, setBoxW] = y.useState(0);
+  y.useEffect(() => { if (!list) return; const on = () => setBoxW(tableRef.current?.parentElement?.clientWidth || 0); on(); window.addEventListener("resize", on); return () => window.removeEventListener("resize", on); }, []);
+  y.useLayoutEffect(() => {
+    const t = tableRef.current; if (!list || !t || view !== "list") return;
+    const clone = t.cloneNode(true);
+    clone.style.cssText = "position:absolute;visibility:hidden;left:-99999px;top:0;width:max-content;min-width:0;table-layout:auto";
+    clone.querySelectorAll("col").forEach((c) => (c.style.width = ""));
+    [...clone.querySelectorAll("tbody tr")].slice(40).forEach((r) => r.remove());
+    clone.querySelectorAll("td,th").forEach((c) => { c.style.maxWidth = "none"; });
+    document.body.appendChild(clone);
+    const nat = [...clone.querySelectorAll("thead th")].map((th) => Math.ceil(th.getBoundingClientRect().width));
+    clone.remove();
+    const fixedW = (c, i) => (c.key === "__cols" ? 48 : c.key === "sel" ? 44 : isAct(c) ? Math.min(nat[i] || 96, 320) : null);
+    const w = columns.map((c, i) => fixedW(c, i) ?? Math.max(96, Math.min(360, nat[i] || 120)));
+    const avail = t.parentElement?.clientWidth || 0, total = w.reduce((a, b) => a + b, 0);
+    const dataIdx = columns.map((c, i) => (fixedW(c, i) == null ? i : -1)).filter((i) => i >= 0);
+    if (avail > total && dataIdx.length) { const extra = Math.floor((avail - total) / dataIdx.length); dataIdx.forEach((i) => (w[i] += extra)); }
+    if (JSON.stringify(w) !== JSON.stringify(colPx)) setColPx(w);
+  });
   const rowEl = (r, i) => (
     <tr key={rowKey(r, i)} onClick={onRow ? () => onRow(r) : undefined} className={cls("group hover:bg-gray-50", onRow && "cursor-pointer")}>
       {columns.map((c, ci) => (
@@ -980,11 +1002,9 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
     ? (rows.length || onClearFilters ? <div className="pb-8"><EmptyState icon={Icon.search} title="No matches" text={q.trim() ? `Nothing matches “${q}”. Try another word or clear the search.` : "No records match these filters."} /><div className="-mt-2 flex justify-center"><Btn icon={Icon.x} onClick={clearAll}>Clear search &amp; filters</Btn></div></div> : empty || <EmptyState icon={Icon.folder} title="Nothing here yet" text="Records you add will appear in this list." />)
     : (
       <div className={cls("overflow-x-auto", list && "nx-fill")}>
-        {/* Lists: every data column gets the same width (also after Customize Columns); checkbox / action / "+" columns stay narrow.
-            Too many columns to fit → each keeps 260px and the list scrolls sideways */}
-        <table ref={tableRef} className={cls("w-full", !dense && "nx-list", list && "nx-eq")}
-          style={list ? { tableLayout: "fixed", minWidth: columns.reduce((a, c) => a + (isAct(c) || c.key === "__cols" ? Number(c.width) || (c.key === "sel" ? 44 : 96) : 260), 0) } : undefined}>
-          {list && <colgroup>{columns.map((c) => <col key={c.key} style={{ width: c.key === "__cols" ? 48 : isAct(c) ? (Number(c.width) || (c.key === "sel" ? 44 : undefined)) : undefined }} />)}</colgroup>}
+        <table ref={tableRef} className={cls(!list && "w-full", !dense && "nx-list", list && "nx-eq")}
+          style={list ? { tableLayout: "fixed", width: colPx && colPx.length === columns.length ? colPx.reduce((a, b) => a + b, 0) : "100%" } : undefined}>
+          {list && <colgroup>{columns.map((c, i) => <col key={c.key} style={{ width: colPx && colPx.length === columns.length ? colPx[i] : c.key === "__cols" ? 48 : c.key === "sel" ? 44 : undefined }} />)}</colgroup>}
           <thead>
             <tr>
               {columns.map((c, ci) => (
