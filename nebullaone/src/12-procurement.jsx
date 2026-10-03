@@ -883,7 +883,7 @@ function InvoicesPage() {
         <Btn icon={Icon.wallet} onClick={() => setAdv({ vendorId: "", amount: "", ref: "", note: "", date: todayISO() })}>Record advance</Btn>
         <Btn icon={Icon.plus} onClick={() => setBill(true)}>Enter vendor bill</Btn>
         <Btn icon={Icon.check} onClick={() => { if (sel.length) return setSel([]); const ids = payable.map((i) => i.id); setSel(ids); setTab("bills"); toast(ids.length ? `${ids.length} bill(s) due within 7 days and clear of payment checks selected` : "No bills are due and clear to pay", ids.length ? "green" : "amber"); }}>{sel.length ? "Clear selection" : "Select payable"}</Btn>
-        <Btn variant="primary" icon={Icon.rupee} disabled={!sel.length} onClick={() => setRun(true)}>Payment run{sel.length ? ` (${sel.length})` : ""}</Btn>
+        <Btn variant="primary" icon={Icon.rupee} disabled={!sel.length} title={sel.length ? "" : "Tick the bills to pay first (or use Select payable)"} onClick={() => setRun(true)}>Payment run{sel.length ? ` (${sel.length})` : ""}</Btn>
       </>}>
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "bills", label: "Bills", icon: Icon.receipt }, { id: "accruals", label: "Accruals", icon: Icon.book }]} />
       {tab === "accruals" && <AccrualsTab />}

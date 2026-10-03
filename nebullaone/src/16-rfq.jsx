@@ -642,7 +642,7 @@ function RfqDrawer({ id, onClose, compose }) {
             <div className="grid grid-cols-[200px_1fr_auto] gap-2 border-t border-line p-3">
               <Select value={msg.vendorId} placeholder="Vendor…" onChange={(x) => setMsg({ ...msg, vendorId: x })} options={rfq.vendorIds.map((v) => ({ value: v, label: vendorName(st, v) }))} />
               <TextInput value={msg.text} onChange={(x) => setMsg({ ...msg, text: x })} placeholder="Offer / counter-offer / clarification" />
-              <Btn variant="primary" disabled={!msg.vendorId || !msg.text} onClick={() => { setState((s) => byId(s.rfqs, id).negotiation.push({ at: new Date().toISOString(), by: currentUser(), vendorId: msg.vendorId, text: msg.text }), { entity: "RFQ", id, action: "Negotiation note added" }); setMsg({ vendorId: "", text: "" }); }}>Log</Btn>
+              <Btn variant="primary" disabled={!msg.vendorId || !msg.text} title={!msg.vendorId ? "Pick the vendor first" : !msg.text ? "Write the message first" : ""} onClick={() => { setState((s) => byId(s.rfqs, id).negotiation.push({ at: new Date().toISOString(), by: currentUser(), vendorId: msg.vendorId, text: msg.text }), { entity: "RFQ", id, action: "Negotiation note added" }); setMsg({ vendorId: "", text: "" }); }}>Log</Btn>
             </div>
           )}
         </Section>

@@ -162,7 +162,7 @@ function WoResources({ wo }) {
           {active && (
             <div className="grid gap-2 border-t border-line p-3" style={{ gridTemplateColumns: "minmax(0,1fr) auto" }}>
               <Select value={eq} placeholder={reg.length ? "Deploy from contractor's register…" : "Contractor has no equipment registered"} disabled={!free.length} onChange={setEq} options={free.map((e) => ({ value: e.id, label: `${e.name} · ${e.regNo}` }))} />
-              <Btn disabled={!eq} onClick={deploy}>Deploy</Btn>
+              <Btn disabled={!eq} title={eq ? "" : "Pick equipment from the contractor's register first"} onClick={deploy}>Deploy</Btn>
             </div>
           )}
         </Section>

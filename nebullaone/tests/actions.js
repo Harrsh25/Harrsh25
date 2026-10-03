@@ -9,13 +9,15 @@ const ROUTES = [...fs.readFileSync(path.resolve(__dirname, '../src/90-nav.jsx'),
   const b = await chromium.launch({ executablePath: fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined });
   const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, acceptDownloads: true }); const p = await ctx.newPage(); p.setDefaultTimeout(2500);
   let errs = []; p.on('pageerror', (e) => errs.push(e.message));
-  let pops = 0; p.on('popup', () => pops++); ctx.on('page', () => pops++);
+  let pops = 0; ctx.on('page', (pg) => { if (pg !== p) { pops++; pg.close().catch(() => {}); } });
+  // print dialogs would block the page for the rest of the run: record them instead
+  await ctx.addInitScript(() => { window.print = () => { window.__printed = (window.__printed || 0) + 1; }; });
   await p.goto(FILE + '#/productivity/'); await p.evaluate(() => { localStorage.clear(); localStorage.setItem('wfm-demo-user', JSON.stringify({ name: 'demo', email: 'demo@x' })); });
   await p.goto(FILE + '#/productivity/vendor-management/registry'); await p.waitForTimeout(500);
   const star = p.locator('tr:has-text("Konkan Steel") button[title*="preferred" i]'); await star.click(); await p.waitForTimeout(80); await star.click(); await p.waitForTimeout(80);
   const SNAP = await p.evaluate(() => localStorage.getItem('nxv-store-v1'));
   const fresh = async (hash) => { await p.goto('about:blank'); await p.goto(FILE + '#/productivity/'); await p.evaluate((s) => { localStorage.clear(); localStorage.setItem('wfm-demo-user', JSON.stringify({ name: 'demo', email: 'demo@x' })); localStorage.setItem('nxv-store-v1', s); }, SNAP); await p.goto('about:blank'); await p.goto(FILE + hash); await p.waitForTimeout(350); };
-  const state = () => p.evaluate(() => ({ url: location.hash, store: localStorage.getItem('nxv-store-v1'), dlg: document.querySelectorAll('[role=dialog],[data-drawer],[data-filter-panel],[data-searchbar],[role=listbox],[role=menu]').length, html: document.body.innerHTML.length + ':' + document.body.innerText.length, toast: (document.querySelector('.pointer-events-none.fixed') || {}).innerText || '' }));
+  const state = () => p.evaluate(() => ({ url: location.hash, store: localStorage.getItem('nxv-store-v1'), dlg: document.querySelectorAll('[role=dialog],[data-drawer],[data-filter-panel],[data-searchbar],[role=listbox],[role=menu]').length, html: document.body.innerHTML.length + ':' + document.body.innerText.length, toast: (document.querySelector('.pointer-events-none.fixed') || {}).innerText || '', printed: window.__printed || 0 }));
   const R = [];
   const audit = async (where, hash, scope, opener) => {
     await fresh(hash); if (opener) await opener();
@@ -31,9 +33,9 @@ const ROUTES = [...fs.readFileSync(path.resolve(__dirname, '../src/90-nav.jsx'),
       if (nm !== bt.name) { R.push({ where, button: bt.name, result: 'ERROR', effect: 'button moved after reload (found "' + nm + '")' }); continue; }
       const s0 = await state(); pops = 0; let dl = false; const dlw = p.waitForEvent('download', { timeout: 700 }).then(() => (dl = true)).catch(() => {});
       errs = [];
-      try { await target.click({ timeout: 1500 }); } catch (e) { R.push({ where, button: bt.name, result: 'ERROR', effect: 'could not click: ' + e.message.split('\n')[0] }); continue; }
+      try { await target.click({ timeout: 1500 }); } catch (e) { if (process.env.ONLY) await p.screenshot({ path: __dirname + '/out/act-err.png' }); R.push({ where, button: bt.name, result: 'ERROR', effect: 'could not click: ' + e.message.split('\n')[0] }); continue; }
       await p.waitForTimeout(350); await dlw; const s1 = await state();
-      const fx = [s1.url !== s0.url && 'navigates to ' + s1.url.split('/').slice(-1)[0], s1.dlg > s0.dlg && 'opens a panel / dialog', s1.dlg < s0.dlg && 'closes the panel', s1.store !== s0.store && 'saves data', s1.toast && s1.toast !== s0.toast && 'message: ' + s1.toast.slice(0, 60), dl && 'downloads a file', pops && 'opens a print / new window', !(s1.url !== s0.url || s1.dlg !== s0.dlg || s1.store !== s0.store) && s1.html !== s0.html && 'updates the screen'].filter(Boolean);
+      const fx = [s1.url !== s0.url && 'navigates to ' + s1.url.split('/').slice(-1)[0], s1.dlg > s0.dlg && 'opens a panel / dialog', s1.dlg < s0.dlg && 'closes the panel', s1.store !== s0.store && 'saves data', s1.toast && s1.toast !== s0.toast && 'message: ' + s1.toast.slice(0, 60), dl && 'downloads a file', (pops || s1.printed > s0.printed) && 'opens a print / new window', !(s1.url !== s0.url || s1.dlg !== s0.dlg || s1.store !== s0.store) && s1.html !== s0.html && 'updates the screen'].filter(Boolean);
       R.push({ where, button: bt.name, result: errs.length ? 'ERROR' : fx.length ? 'WORKS' : bt.on ? 'N/A' : 'NO EFFECT', effect: errs.length ? errs.join(' | ') : fx.join('; ') || (bt.on ? 'already the selected option' : 'nothing happened') });
     }
   };

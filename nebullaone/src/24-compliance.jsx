@@ -130,7 +130,7 @@ function ComplianceDrawer({ vendorId, onClose }) {
     <Drawer open onClose={onClose} width={980} title={v.name}
       subtitle={<><span className="mono">{v.id}</span><VendorTypeTag v={v} /><Status>{c.status}</Status>
         {c.blocking.length ? <Status tone={gate === "Stop" ? "red" : "amber"}>{gate === "Stop" ? "Payments blocked" : gate === "Warn" ? "Payments flagged" : "Gate off"}</Status> : <Status tone="green">Payments open</Status>}</>}
-      actions={<Btn icon={Icon.mail} disabled={!c.items.some((i) => i.level > 0)} onClick={() => sendReminders(c.items.filter((i) => i.level > 0).map((item) => ({ v, item })))}>Send reminder{due.length ? ` (${due.length} due)` : ""}</Btn>}
+      actions={<Btn icon={Icon.mail} disabled={!c.items.some((i) => i.level > 0)} title={c.items.some((i) => i.level > 0) ? "" : "Nothing is expired or expiring — no reminder needed"} onClick={() => sendReminders(c.items.filter((i) => i.level > 0).map((item) => ({ v, item })))}>Send reminder{due.length ? ` (${due.length} due)` : ""}</Btn>}
       tabs={{ tabs: [{ id: "check", label: "Checklist" }, { id: "docs", label: "Documents" }, { id: "ins", label: "Insurance" }, { id: "hist", label: "Reminders & history", count: hist.length || null }], active: tab, onChange: setTab }}>
       <div className="space-y-4 px-6 py-5">
         {c.blocking.length > 0 && <Note tone="red" icon={Icon.lock}><b>Blocking payments:</b> {c.blocking.join(" · ")}</Note>}

@@ -774,7 +774,7 @@ function VendorActivity({ v }) {
       <Section title="Notes & communication" icon={Icon.message}>
         <div className="flex gap-2 border-b border-line p-3">
           <TextInput value={note} onChange={setNote} placeholder="Add a note for the team (logged against this vendor)" />
-          <Btn variant="primary" disabled={!note.trim()} onClick={() => { setState((s) => byId(s.vendors, v.id).notes.unshift({ at: new Date().toISOString(), by: currentUser(), text: note.trim() }), { entity: "Vendor", id: v.id, action: "Note added" }); setNote(""); }}>Post</Btn>
+          <Btn variant="primary" disabled={!note.trim()} title={note.trim() ? "" : "Write a note first"} onClick={() => { setState((s) => byId(s.vendors, v.id).notes.unshift({ at: new Date().toISOString(), by: currentUser(), text: note.trim() }), { entity: "Vendor", id: v.id, action: "Note added" }); setNote(""); }}>Post</Btn>
         </div>
         <ul className="divide-y divide-line">
           {v.notes.length === 0 && <li className="p-3 text-[13px] text-ink-mute">No notes yet.</li>}
