@@ -407,8 +407,8 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
       badge={APPROVAL_STATES.includes(v.status) ? <VendorStatusMenu v={v} approval /> : <VendorStatusMenu v={v} />}
       actions={<>{canEdit && <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>}</>}
       tabs={{ tabs, active: tab, onChange: setTab }}>
-      {/* every tab shows its tables as label → value lists */}
-      <ListMode.Provider value={true}>
+      {/* tables show as label → value lists, except Documents, Bank and Equipment which keep their tables */}
+      <ListMode.Provider value={!["docs", "bank", "equip"].includes(tab)}>
       <div className="space-y-4 px-6 py-5">
         {locked && tab !== "approval" && (v.status === "Pending Approval"
           ? <Note tone="amber" icon={Icon.lock}>Submitted for approval — details are locked until the approvers decide. If it is rejected or sent back, you can edit and resubmit.</Note>
@@ -416,7 +416,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
         {tab === "overview" && <VendorOverview v={v} comp={comp} />}
         <fieldset disabled={locked} className="m-0 min-w-0 space-y-4 border-0 p-0">
           {tab === "overview" && <VendorContactsAddresses v={v} locked={locked} />}
-          {tab === "flags" && <VendorFlags v={v} />}
+          {tab === "flags" && (locked ? <VendorFlagsView v={v} /> : <VendorFlags v={v} />)}
           {tab === "docs" && <><VendorDocs v={v} mode={mode} locked={locked} /><InsurancePolicies v={v} mode={mode} locked={locked} /></>}
           {tab === "bank" && <VendorBanks v={v} locked={locked} />}
           {tab === "qual" && <Questionnaire v={v} />}
@@ -482,6 +482,40 @@ function ExpiryCell({ iso }) {
       {fmtDate(iso)}
       {d < 0 ? <Status tone="red">Expired</Status> : d <= 30 ? <Status tone="amber">{`${d}d left`}</Status> : d <= 90 ? <span className="text-[11px] text-ink-mute">{d}d</span> : null}
     </span>
+  );
+}
+
+// Status & flags as label → value (approved / pending vendors are read-only)
+function VendorFlagsView({ v }) {
+  const yes = (b) => (b ? "Yes" : "No");
+  const hold = v.status === "On Hold" && v.hold;
+  return (
+    <>
+      <InfoCard title="Classification" icon={Icon.shapes} rows={[
+        ["Supplies", vTypes(v).map((t) => (t === "Labor" ? "Labour" : t)).join(", ")],
+        ["Supplier type", v.supplierType || "Company"],
+        ["Withholding tax (TDS)", tdsLabel(v.tds)],
+        ["Supplier tier", v.tier],
+        ["Registration tier", v.regTier && <span className="flex flex-wrap items-center gap-2"><Status>{v.regTier}</Status>{v.tierRequest?.status === "Pending" && <Status tone="amber">Upgrade requested</Status>}</span>],
+        ["Vendor group", v.group || "Not grouped"],
+        ["Internal parent company", v.parentCompany || "External vendor"],
+        ["Trades / categories", (v.categories || []).join(", ")],
+      ]} />
+      <InfoCard title="Flags" icon={Icon.flag} rows={[
+        ["Preferred supplier", yes(v.preferred)],
+        ["Enabled for new transactions", yes(!["Inactive", "Blacklisted"].includes(v.status) && !APPROVAL_STATES.includes(v.status))],
+        ["Allow bills without PO", yes(v.allowBillWithoutPO)],
+        ["Allow bills before goods receipt", yes(v.allowBillWithoutReceipt)],
+        ["Frozen (no new transactions)", yes(v.frozen)],
+      ]} />
+      <InfoCard title="Status" icon={Icon.lock} rows={[
+        ["Status", <Status>{v.status}</Status>],
+        ["On hold", hold ? `Blocking ${v.hold.scope.toLowerCase()}` : "No"],
+        hold && ["Hold until", v.hold.until ? fmtDate(v.hold.until) : "Indefinitely"],
+        hold && ["Hold reason", `${v.hold.reason}${v.hold.auto ? " (auto-hold from scorecard)" : ""}`],
+        ["Blacklisted", yes(v.status === "Blacklisted")],
+      ]} />
+    </>
   );
 }
 
