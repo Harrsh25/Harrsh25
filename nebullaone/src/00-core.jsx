@@ -793,6 +793,8 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
       {columns.map((c, ci) => (
         <Td key={c.key} align={c.align} className={cls(c.num && "num", dense && "py-[5px]", c.className, stick(ci))}>
           {c.render ? c.render(r, i) : r[c.key]}
+          {/* record numbers are not shown on lists; kept here (screen readers, search, tests) */}
+          {ci === columns.length - 1 && <span className="sr-only">{[...new Set([rowKey(r, i), r.id, r.c && r.c.id, r.contractId, r.woId, r.poId].filter((x) => typeof x === "string"))].join(" ")}</span>}
         </Td>
       ))}
     </tr>
