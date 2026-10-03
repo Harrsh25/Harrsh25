@@ -67,6 +67,10 @@ GAPS = [
  ('QA-18', 'Measurement Book', 'Inspection (Pass / Fail actions) hidden by the 5-column default', 'Functional', 'Medium', 'Defaults: work order, item, qty, JMS, inspection', '21-workorders-mb.jsx', 'fix4 G-12b'),
  ('QA-19', 'Purchase Requisitions', '% ordered / received hidden by the 5-column default', 'Table', 'Low', 'Defaults include % ordered', '29-benchmark-fields.jsx', 'flow.js W-02'),
  ('QA-20', 'Measurement Book', 'Links (?open=MB-…) did not open the entry — every other list does', 'Data continuity', 'Medium', 'Measurement Book honours ?open=', '21-workorders-mb.jsx', 'status.js ST-MB-1, exceptions.js EX-07'),
+ ('QA-21', 'Many record panels and pages', 'Disabled buttons gave no reason (Payment run, Deploy, Send reminder, Reject, Comment, Close contract, Issue handover certificate…)', 'UI', 'Low', 'Each disabled button now says what is needed first', '04, 06, 10, 11, 12, 16, 20a, 24, 26, 28, 33', 'actions.js: 38 disabled, all with a reason'),
+ ('QA-22', 'Overview pills, settings toggles', 'Selected toggle / pill did not report its state to assistive tech', 'Code audit', 'Low', 'aria-pressed on segmented toggles and pills', '12-procurement.jsx, 25-overview.jsx', 'actions.js'),
+ ('QA-23', 'All lists (pager)', 'Previous / next page looked disabled but were still focusable buttons', 'Code audit', 'Low', 'Real disabled state on the pager buttons', '00-core.jsx', 'actions.js'),
+ ('QA-24', 'Procurement Settings', 'Yes / No settings never saved showed neither option selected (behaved as No)', 'UI', 'Medium', 'Unset value shows No', '12-procurement.jsx', 'actions.js'),
 ]
 for a in acts:
     if a['result'] in ('NO EFFECT', 'ERROR'):
@@ -77,6 +81,7 @@ rows24 = J('actual_rows.json', [])
 REMOVED_REQ = {'Custom / additional fields': 'PARTIAL', }
 def classify(i, r):
     if r['now'] == 'Not applicable': return 'NOT APPLICABLE', r['note'] or 'Inventory / manufacturing / ledger feature outside this construction vendor app'
+    if r.get('found') and re.search(r'Auto-repeat|Subscription', r['field']): return 'NOT APPLICABLE', 'Auto-repeat "More details" field was stored but never used — removed by decision (commit 0411584); only the generic word "every" matched'
     if r.get('found'):
         ev = ', '.join(r.get('hits', [])[:2]); return ('PARTIAL' if r['now'] == 'Partially' else 'MATCH'), f"In source: {ev}" + (f" ({r.get('evfile')})" if r.get('evfile') else '') + (f" · {r['where']}" if r['where'] else '')
     if r['field'].startswith('Custom / additional'): return 'PARTIAL', 'Defined in Procurement Settings → Custom fields; removed from the vendor form at your request'
