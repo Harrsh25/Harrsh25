@@ -99,7 +99,7 @@ function WorkOrderModal({ open, onClose, onCreated, contractId: presetContract }
 function WorkOrderDrawer({ id, onClose }) {
   const st = useStore();
   const wo = byId(st.workOrders, id);
-  const [mb, setMb] = y.useState(null), [act, setAct] = y.useState(null), [res, setRes] = y.useState(null);
+  const [mb, setMb] = y.useState(null), [act, setAct] = y.useState(null), [res, setRes] = y.useState(null), [cancelAsk, setCancelAsk] = y.useState(false);
   if (!wo) return null;
   const pos = woPosition(st, wo), pr = woProgress(st, wo);
   const bills = st.raBills.filter((b) => b.woId === id);
@@ -119,6 +119,7 @@ function WorkOrderDrawer({ id, onClose }) {
   return (
     <Drawer open related={relatedFor(st, "wo", wo)} comments={wo.id} onClose={onClose} width={960} title={wo.title} subtitle={<><span className="mono">{wo.id}</span><Status>{wo.status}</Status><span>{wo.type}</span><span>· {vendorName(st, wo.vendorId)}</span><span>· {wo.contractId}</span><span>· {wo.location}</span></>}
       actions={<>
+        {["Draft", "Issued"].includes(wo.status) && !st.measurements.some((m) => m.woId === wo.id) && <Btn variant="danger" onClick={() => setCancelAsk(true)}>Cancel WO</Btn>}
         {wo.status === "Draft" && <Btn variant="primary" onClick={() => mut("Issued")}>Issue</Btn>}
         {wo.status === "Issued" && wo.acceptance?.status !== "Accepted" && <Btn onClick={() => setState((s) => (byId(s.workOrders, id).acceptance = { status: "Accepted", by: `${currentUser()} (on contractor's signed copy)`, at: new Date().toISOString() }), { entity: "Work Order", id, action: "Acceptance recorded on contractor's behalf" })}>Record acceptance</Btn>}
         {["Issued", "In Progress"].includes(wo.status) && <Btn variant="primary" icon={Icon.ruler} disabled={!woAccepted(wo)} title={woAccepted(wo) ? "" : "Contractor must accept the work order first"} onClick={() => setMb({ woId: id })}>Record measurement</Btn>}
@@ -128,6 +129,8 @@ function WorkOrderDrawer({ id, onClose }) {
         {["Issued", "In Progress", "Suspended"].includes(wo.status) && hasWork && <Btn onClick={() => setAct({ status: "Short-closed", reason: "" })}>Short-close</Btn>}
         {["Draft", "Issued"].includes(wo.status) && !hasWork && <Btn variant="danger" onClick={() => setAct({ status: "Cancelled", reason: "" })}>Cancel</Btn>}
       </>}>
+      {cancelAsk && <ReasonModal title={`Cancel ${wo.id}`} text="No work has been measured. The contractor is told the work order is withdrawn and its BOQ quantity is free again." action="Cancel WO" onClose={() => setCancelAsk(false)}
+        onDone={(r) => { setState((s) => { const x = byId(s.workOrders, id); x.status = "Cancelled"; x.cancelled = { at: new Date().toISOString(), by: currentUser(), reason: r }; }, { entity: "Work order", id, action: `Cancelled — ${r}` }); toast(`${wo.id} cancelled`, "red"); }} />}
       <div className="space-y-4 px-6 py-5">
         {wo.status === "Draft" && woIssueBlockers(st, wo.contractId).length > 0 && <Note tone="red" icon={Icon.lock}>Can't be issued yet: {woIssueBlockers(st, wo.contractId).join(" · ")}.</Note>}
         {wo.status === "Draft" && qualLimitWarn(st, byId(st.vendors, wo.vendorId), woValue(wo), wo.id) && <Note tone="amber" icon={Icon.alert}>{qualLimitWarn(st, byId(st.vendors, wo.vendorId), woValue(wo), wo.id)}.</Note>}
@@ -272,6 +275,7 @@ function MeasurementModal({ preset = {}, onClose }) {
 function MeasurementBookPage() {
   const st = useStore();
   const [wo, setWo] = y.useState("All"), [jms, setJms] = y.useState("All"), [tab, setTab] = y.useState("mb");
+  const [withdraw, setWithdraw] = y.useState(null);
   const [add, setAdd] = y.useState(false), [sign, setSign] = y.useState(null), [sel, setSel] = y.useState([]), [openMb, setOpenMb] = y.useState(null), [ncrFor, setNcrFor] = y.useState(null);
   const lineName = (m) => {
     const w = byId(st.workOrders, m.woId);
@@ -350,8 +354,11 @@ function MeasurementBookPage() {
           <Drawer open onClose={() => setOpenMb(null)} width={720} title={lineName(m)}
             subtitle={<><span className="mono">{m.id}</span><Status>{m.jms.status}</Status><span>{w.title}</span><span>· {vendorName(st, w.vendorId)}</span></>}
             actions={m.jms.status !== "Signed" && <>
+              {!m.billedIn && <Btn onClick={() => setWithdraw(m)}>Withdraw</Btn>}
               {m.jms.status === "Pending" && <Btn variant="danger" onClick={() => setSign({ ids: [m.id], dispute: true, remark: "" })}>Dispute</Btn>}
               <Btn variant="success" icon={Icon.check} onClick={() => setSign({ ids: [m.id], rep: "", eng: currentUser(), qty: m.jms.status === "Disputed" ? (m.pct ?? m.qty) : undefined, disputed: m.jms.status === "Disputed", isPct: m.pct !== null && m.pct !== undefined })}>Sign JMS</Btn></>}>
+            {withdraw && <ReasonModal title={`Withdraw ${withdraw.id}`} text="The entry is taken out of the measurement book (kept in the audit log). Signed entries can't be billed once withdrawn." action="Withdraw" onClose={() => setWithdraw(null)}
+              onDone={(r) => { setState((s) => { const x = byId(s.measurements, withdraw.id); s.withdrawnMeasurements = [...(s.withdrawnMeasurements || []), { ...x, withdrawn: { at: new Date().toISOString(), by: currentUser(), reason: r } }]; s.measurements = s.measurements.filter((y) => y.id !== withdraw.id); }, { entity: "Measurement", id: withdraw.id, action: `Withdrawn — ${r}` }); setOpenMb(null); toast(`${withdraw.id} withdrawn`); }} />}
             <div className="space-y-4 px-6 py-5">
               {m.jms.status === "Disputed" && <Note tone="red">Disputed: {m.jms.remark}</Note>}
               <Section title="Measurement" icon={Icon.ruler}>
