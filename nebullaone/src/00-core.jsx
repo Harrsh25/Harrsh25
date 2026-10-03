@@ -414,7 +414,8 @@ function Select({ value, onChange, options, placeholder, disabled, className, la
   y.useEffect(() => {
     if (!open) return;
     const off = (e) => { if (!btn.current?.contains(e.target) && !menu.current?.contains(e.target)) setOpen(false); };
-    const scr = (e) => { if (!menu.current?.contains(e.target)) setOpen(false); };
+    // a scroll moves the menu with its field; it closes only once the field has scrolled out of view
+    const scr = (e) => { if (menu.current?.contains(e.target) || !btn.current) return; const r = btn.current.getBoundingClientRect(); if (r.bottom < 0 || r.top > window.innerHeight) setOpen(false); else place(); };
     const close = () => setOpen(false);
     document.addEventListener("mousedown", off, true); document.addEventListener("scroll", scr, true); window.addEventListener("resize", close);
     return () => { document.removeEventListener("mousedown", off, true); document.removeEventListener("scroll", scr, true); window.removeEventListener("resize", close); };

@@ -403,9 +403,9 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
     { id: "approval", label: "Approvals" },
   ];
   return (
-    <Drawer open related={relatedFor(st, "vendor", v)} comments={v.id} onClose={onClose} width={880} title={<span className="flex items-center gap-2">{v.name}<PreferredStar v={v} size={16} always /></span>}
-      badge={APPROVAL_STATES.includes(v.status) ? <VendorStatusMenu v={v} approval /> : <VendorStatusMenu v={v} />}
-      actions={<>{canEdit && <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>}</>}
+    <Drawer open related={relatedFor(st, "vendor", v)} comments={v.id} onClose={onClose} width={880} title={v.name}
+      subtitle={<><span className="mono text-ink-mute">{v.id}</span>{APPROVAL_STATES.includes(v.status) ? <VendorStatusMenu v={v} approval /> : <VendorStatusMenu v={v} />}</>}
+      actions={<><span className="inline-flex h-[32px] w-[32px] items-center justify-center rounded-md border border-line"><PreferredStar v={v} size={16} always /></span>{canEdit && <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>}</>}
       tabs={{ tabs, active: tab, onChange: setTab }}>
       {/* tables show as label → value lists, except Documents, Bank and Equipment which keep their tables */}
       <ListMode.Provider value={!["docs", "bank", "equip"].includes(tab)}>
@@ -416,7 +416,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
         {tab === "overview" && <VendorOverview v={v} comp={comp} />}
         <fieldset disabled={locked} className="m-0 min-w-0 space-y-4 border-0 p-0">
           {tab === "overview" && <VendorContactsAddresses v={v} locked={locked} />}
-          {tab === "flags" && (locked ? <VendorFlagsView v={v} /> : <VendorFlags v={v} />)}
+          {tab === "flags" && <VendorFlagsView v={v} canEdit={canEdit} />}
           {tab === "docs" && <><VendorDocs v={v} mode={mode} locked={locked} /><InsurancePolicies v={v} mode={mode} locked={locked} /></>}
           {tab === "bank" && <VendorBanks v={v} locked={locked} />}
           {tab === "qual" && <Questionnaire v={v} />}
@@ -447,10 +447,6 @@ function VendorOverview({ v, comp }) {
         ["Payment terms", v.paymentTerms], ["TDS", tdsLabel(v.tds)], ["Open orders", openOrdersText(v)],
         ["Outstanding", inrShort(sum(getState().invoices.filter((i) => i.vendorId === v.id), (i) => invoiceTotals(i).balance))], ["Registered", fmtDate(v.createdAt)], ["Categories", <CategoryChips list={v.categories} max={99} wrap />],
       ]} />
-      <Section title="Contact" icon={Icon.user}>
-        <KV items={[["Contact person", [v.contact.salutation, v.contact.name].filter(Boolean).join(" ") + (v.contact.designation ? ` (${v.contact.designation})` : "")], ["Email", v.contact.email], ["Phone", [v.contact.phone, v.contact.mobile].filter(Boolean).join(" · ")],
-          ["Address", [v.address, v.addressLine2, v.city, v.district, v.state, v.pin, v.country].filter(Boolean).join(", ")], ["Other contacts", (v.contacts || []).length || null], ["Other addresses / sites", (v.addresses || []).length || null]]} />
-      </Section>
       <VendorMoreView v={v} />
       {v.contractor && (
         <Section title="Contractor profile" icon={Icon.hardHat}>
@@ -485,13 +481,16 @@ function ExpiryCell({ iso }) {
   );
 }
 
-// Status & flags as label → value (approved / pending vendors are read-only)
-function VendorFlagsView({ v }) {
+// Status & flags as label → value; editable vendors (Draft, Changes Requested, Rejected) get an Edit button that opens the form
+function VendorFlagsView({ v, canEdit }) {
+  const [editing, setEditing] = y.useState(false);
+  if (editing && canEdit) return <VendorFlags v={v} onDone={() => setEditing(false)} />;
+  const editBtn = canEdit && <Btn size="sm" icon={Icon.pencil} onClick={() => setEditing(true)}>Edit</Btn>;
   const yes = (b) => (b ? "Yes" : "No");
   const hold = v.status === "On Hold" && v.hold;
   return (
     <>
-      <InfoCard title="Classification" icon={Icon.shapes} rows={[
+      <InfoCard title="Classification" icon={Icon.shapes} actions={editBtn} rows={[
         ["Supplies", vTypes(v).map((t) => (t === "Labor" ? "Labour" : t)).join(", ")],
         ["Supplier type", v.supplierType || "Company"],
         ["Withholding tax (TDS)", tdsLabel(v.tds)],
@@ -501,7 +500,7 @@ function VendorFlagsView({ v }) {
         ["Internal parent company", v.parentCompany || "External vendor"],
         ["Trades / categories", (v.categories || []).join(", ")],
       ]} />
-      <InfoCard title="Flags" icon={Icon.flag} rows={[
+      <InfoCard title="Flags" icon={Icon.flag} actions={editBtn} rows={[
         ["Preferred supplier", yes(v.preferred)],
         ["Enabled for new transactions", yes(!["Inactive", "Blacklisted"].includes(v.status) && !APPROVAL_STATES.includes(v.status))],
         ["Allow bills without PO", yes(v.allowBillWithoutPO)],
@@ -519,19 +518,17 @@ function VendorFlagsView({ v }) {
   );
 }
 
-function VendorFlags({ v }) {
-  const [hold, setHold] = y.useState({ scope: "Payments", until: shiftDays(30), reason: "" });
-  const [reason, setReason] = y.useState("");
+function VendorFlags({ v, onDone }) {
   const mut = (fn, action) => setState((s) => fn(byId(s.vendors, v.id)), { entity: "Vendor", id: v.id, action });
   const edit = (k, val, label) => mut((x) => (x[k] = val), `${label}`);
   return (
     <>
-      <Section title="Classification" icon={Icon.shapes}>
+      <Section title="Classification" icon={Icon.shapes} actions={onDone && <Btn size="sm" variant="primary" onClick={onDone}>Done</Btn>}>
         <div className="grid grid-cols-3 gap-4 p-4">
           <Field label="Supplies"><span className="flex flex-wrap gap-1.5">{VENDOR_TYPES.map((t) => { const on = hasType(v, t); return (
             <button key={t} type="button" role="checkbox" aria-checked={on} onClick={() => { const ts = VENDOR_TYPES.filter((x) => (x === t ? !on : hasType(v, x))); if (!ts.length) return; mut((x) => { x.types = ts; x.type = ts[0]; x.isContractor = ts.includes("Labor") || ts.includes("Services"); x.tds = autoTds(ts, x.supplierType); }, `Supplies changed to ${ts.map((z) => (z === "Labor" ? "Labour" : z)).join(" + ")}`); }}
               className={cls("rounded-full border px-2.5 py-1 text-[12.5px]", on ? "border-brand bg-brand-soft font-medium text-brand" : "border-line text-ink-soft hover:bg-gray-50")}>{on && "✓ "}{t === "Labor" ? "Labour" : t}</button>); })}</span></Field>
-          <Field label="Supplier type" hint={`TDS ${tdsLabel(v.tds) || ""}`}><Select value={v.supplierType || "Company"} onChange={(t) => mut((x) => { x.supplierType = t; x.tds = autoTds(vTypes(x), t); }, `Supplier type → ${t}`)} options={SUPPLIER_TYPES} /></Field>
+          <Field label="Supplier type" hint={`TDS ${tdsLabel(v.tds) || ""}`}><Select value={v.supplierType || "Company"} onChange={(t) => mut((x) => { x.supplierType = t; x.tds = autoTds(vTypes(x), t); }, `Supplier type → ${t}`)} options={withCurrent(SUPPLIER_TYPES, v.supplierType)} /></Field>
           <Field label="Supplier tier"><Select value={v.tier} onChange={(t) => edit("tier", t, `Tier changed to ${t}`)} options={TIERS} /></Field>
           <Field label="Registration tier" hint={v.regTier === "Prospective" ? "Upgrade needs Finance approval (Approval tab)" : "Downgrade is immediate"}>
             <span className="flex h-[32px] items-center gap-2 text-[13px]"><Status>{v.regTier}</Status>
@@ -555,39 +552,6 @@ function VendorFlags({ v }) {
           <Check checked={!!v.frozen} onChange={(b) => edit("frozen", b, b ? "Vendor frozen — no new RFQs, POs or bills" : "Vendor unfrozen")} label="Freeze vendor (no new transactions)" />
         </div>
       </Section>
-      <Section title="Hold / block" icon={Icon.lock}>
-        <div className="space-y-3 p-4">
-          {v.status === "On Hold" && v.hold ? (
-            <div className="flex items-center justify-between gap-3">
-              <Note tone="amber" icon={Icon.lock}>Blocking <b>{v.hold.scope.toLowerCase()}</b> {v.hold.until ? `until ${fmtDate(v.hold.until)}` : "indefinitely"} — {v.hold.reason}{v.hold.auto ? " (auto-hold from scorecard)" : ""}</Note>
-              <Btn variant="success" onClick={() => mut((x) => { x.status = "Active"; x.hold = null; }, "Hold released")}>Release hold</Btn>
-            </div>
-          ) : (
-            <div className="grid grid-cols-[160px_160px_1fr_auto] items-end gap-3">
-              <Field label="Block"><Select value={hold.scope} onChange={(s) => setHold({ ...hold, scope: s })} options={["Invoices", "Payments", "All"]} /></Field>
-              <Field label="Release date"><DateInput value={hold.until} onChange={(s) => setHold({ ...hold, until: s })} /></Field>
-              <Field label="Reason"><TextInput value={hold.reason} onChange={(s) => setHold({ ...hold, reason: s })} placeholder="e.g. Pending reconciliation" /></Field>
-              <Btn variant="primary" disabled={!!holdErr(hold) || v.status === "Blacklisted"} onClick={() => mut((x) => { x.status = "On Hold"; x.hold = { ...hold, reason: hold.reason.trim(), until: hold.until || null, placedAt: todayISO() }; }, `Placed on hold (${hold.scope}) — ${hold.reason.trim()}`)}>Place hold</Btn>
-              {(hold.reason || hold.until !== shiftDays(30)) && holdErr(hold) && <div className="col-span-full"><FieldErr m={holdErr(hold)} /></div>}
-            </div>
-          )}
-        </div>
-      </Section>
-      <Section title="Blacklist" icon={Icon.ban}>
-        <div className="flex items-end gap-3 p-4">
-          {v.status === "Blacklisted" ? (
-            <>
-              <Note tone="red">Blacklisted — history is kept but the vendor can't be used on new RFQs, POs or contracts.</Note>
-              <Btn onClick={() => tryAct("Procurement Head", [], "removing a vendor from the blacklist") && mut((x) => (x.status = "Active"), "Removed from blacklist")}>Remove from blacklist</Btn>
-            </>
-          ) : (
-            <>
-              <div className="flex-1"><Field label="Reason (audit logged)"><TextInput value={reason} onChange={setReason} placeholder="e.g. Duplicate invoicing found in audit" /></Field></div>
-              <Btn variant="danger" icon={Icon.ban} disabled={reason.trim().length < 5} onClick={() => { mut((x) => { x.status = "Blacklisted"; x.hold = null; x.notes.unshift({ at: todayISO(), by: currentUser(), text: `Blacklisted — ${reason}` }); }, `Blacklisted: ${reason}`); setReason(""); }}>Blacklist vendor</Btn>
-            </>
-          )}
-        </div>
-      </Section>
     </>
   );
 }
@@ -609,10 +573,9 @@ function VendorDocs({ v, mode = "registry", locked }) {
       <DataTable dense rows={extra.length ? [...docs, ...extra] : docs} rowKey={(d) => d.name} columns={[
         { key: "name", label: "Document", className: "font-medium" },
         { key: "file", label: "File", render: (d) => (d.file ? <FileLink name={d.file} dataUrl={d.dataUrl} /> : <span className="text-ink-mute">—</span>) },
+        { key: "status", label: "Status", render: (d) => <span title={d.status === "Rejected" && d.remark ? `Rejected: ${d.remark}` : undefined}><Status>{docState(d)}</Status></span> },
         { key: "expiry", label: "Valid till", render: (d) => <ExpiryCell iso={d.expiry} /> },
-        { key: "status", label: "Status", render: (d) => <span className="flex flex-col"><Status>{docState(d)}</Status>
-          {d.verifiedAt && d.status !== "Pending" && <span className="text-[11px] text-ink-mute">{d.status === "Rejected" ? "Rejected" : "Verified"} by {d.verifiedBy} · {fmtDate(d.verifiedAt)}</span>}
-          {d.status === "Rejected" && d.remark && <span className="max-w-[220px] whitespace-normal text-[11px] text-red-600">{d.remark}</span>}</span> },
+        { key: "verified", label: "Verified on", render: (d) => (d.verifiedAt && d.status === "Verified" ? fmtDate(d.verifiedAt) : d.verifiedAt && d.status === "Rejected" ? <span className="text-red-600" title={d.remark || undefined}>Rejected {fmtDate(d.verifiedAt)}</span> : <span className="text-ink-mute">—</span>) },
         { key: "ver", label: "Versions", render: (d) => ((d.versions || []).length ? <button className="text-[12px] font-medium text-brand hover:underline" onClick={() => setHist(d)}>v{(d.versions || []).length + 1} · history</button> : d.file ? <span className="text-[12px] text-ink-mute">v1</span> : "—") },
         { key: "a", label: "", align: "right", render: (d) => (
           <span className="flex justify-end gap-1">
