@@ -922,7 +922,7 @@ function VendorRegistryPage() {
       </>}
         rows={rows} onRow={(v) => setOpen(v.id)} columns={[
         { key: "sel", label: "", render: (v) => <input type="checkbox" aria-label={`Select ${v.name}`} className="h-4 w-4 accent-[#0b5ed7]" checked={sel.includes(v.id)} onClick={(e) => e.stopPropagation()} onChange={(e) => setSel(e.target.checked ? [...sel, v.id] : sel.filter((x) => x !== v.id))} /> },
-        { key: "name", label: "Vendor", filterOptions: FO.preferred, filterLabel: "Preferred", filterAll: "All vendors", filter: (v) => (v.preferred ? "Preferred" : "Not preferred"), render: (v) => <span className="flex items-center justify-between gap-3 font-medium"><span className="truncate">{v.name}</span><PreferredStar v={v} size={14} /></span> },
+        { key: "name", label: "Vendor", filterOptions: FO.preferred, filterLabel: "Preferred", filterAll: "All vendors", filter: (v) => (v.preferred ? "Preferred" : "Not preferred"), render: (v) => <span className="flex items-center justify-between gap-2 font-medium"><span className="truncate">{v.name}</span><PreferredStar v={v} size={14} /></span> },
         { key: "status", label: "Status", sort: (v) => v.status, render: (v) => <VendorStatusMenu v={v} /> },
         { key: "type", label: "Supplies", filterOptions: ["Goods", "Services", "Labour"], filter: (v) => vTypes(v).map((t) => (t === "Labor" ? "Labour" : t)), render: (v) => <span className="flex flex-wrap items-center gap-1.5 text-ink-soft">{typeLabel(v)}<GroupCoTag v={v} /></span> },
         { key: "cat", label: "Trades", filterOptions: TRADES, filter: (v) => v.categories, filterLabel: "Trade", sort: (v) => v.categories[0] || "", render: (v) => <CategoryChips list={v.categories} /> },

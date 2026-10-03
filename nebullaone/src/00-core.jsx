@@ -981,9 +981,9 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
     : (
       <div className={cls("overflow-x-auto", list && "nx-fill")}>
         {/* Lists: every data column gets the same width (also after Customize Columns); checkbox / action / "+" columns stay narrow.
-            Too many columns to fit → each keeps 150px and the list scrolls sideways */}
+            Too many columns to fit → each keeps 260px and the list scrolls sideways */}
         <table ref={tableRef} className={cls("w-full", !dense && "nx-list", list && "nx-eq")}
-          style={list ? { tableLayout: "fixed", minWidth: columns.reduce((a, c) => a + (isAct(c) || c.key === "__cols" ? Number(c.width) || (c.key === "sel" ? 44 : 96) : 150), 0) } : undefined}>
+          style={list ? { tableLayout: "fixed", minWidth: columns.reduce((a, c) => a + (isAct(c) || c.key === "__cols" ? Number(c.width) || (c.key === "sel" ? 44 : 96) : 260), 0) } : undefined}>
           {list && <colgroup>{columns.map((c) => <col key={c.key} style={{ width: c.key === "__cols" ? 48 : isAct(c) ? (Number(c.width) || (c.key === "sel" ? 44 : undefined)) : undefined }} />)}</colgroup>}
           <thead>
             <tr>
