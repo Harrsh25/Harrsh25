@@ -300,15 +300,14 @@ function Drawer({ open, title, subtitle, onClose, actions, width = 760, tabs, re
         className="nx-drawer pointer-events-auto absolute flex flex-col rounded-xl border border-line bg-white shadow-[-8px_0_28px_rgba(16,24,40,0.14)]"
         style={{ ...box, width: `min(${width}px, max(560px, 46vw))`, maxWidth: "calc(100% - 16px)", overflow: "clip" }}>
         <div className={cls("shrink-0", !tabs && "border-b border-line")}>
-          <div className={cls("nx-dhead flex items-start justify-between gap-4 px-6 pt-5", tabs ? "pb-5" : "pb-4")}>
-            <div className="min-w-0">
+          {/* Title keeps the full width; when the action buttons don't fit beside it they move to their own row */}
+          <div className={cls("nx-dhead relative flex flex-wrap items-start gap-x-4 gap-y-3 pl-6 pr-14 pt-5", tabs ? "pb-5" : "pb-4")}>
+            <span className="absolute right-4 top-4"><IconBtn icon={Icon.x} title="Close" onClick={onClose} /></span>
+            <div className="min-w-0 flex-1" style={{ flexBasis: 320 }}>
               <h2 className="truncate text-[17px] font-semibold leading-tight tracking-tight">{title}</h2>
               {subtitle && <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-ink-soft">{subtitle}</div>}
             </div>
-            <div className="flex shrink-0 items-center gap-2">
-              {actions}
-              <IconBtn icon={Icon.x} title="Close" onClick={onClose} />
-            </div>
+            {actions && <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">{actions}</div>}
           </div>
           {related && related.length > 0 && <DocBar related={related} />}
           {tabs && <DetailTabs {...tabs} />}
