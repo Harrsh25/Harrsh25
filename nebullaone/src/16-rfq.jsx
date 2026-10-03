@@ -547,7 +547,7 @@ function RfqDrawer({ id, onClose, compose }) {
   const review = (vid, status, reason) => setState((s) => { const q = byId(s.rfqs, id).quotes.find((x) => x.vendorId === vid); q.review = status; q.returnReason = reason || ""; },
     { entity: "RFQ", id, action: `Quotation from ${vendorName(st, vid)} ${status === "Accepted" ? "accepted for evaluation" : `returned — ${reason}`}` });
   return (
-    <Drawer open stages={{ steps: STAGES.rfq, current: rfqStage(rfq) }} related={relatedFor(st, "rfq", rfq)} comments={rfq.id} onClose={onClose} width={1040} title={rfq.title}
+    <Drawer open related={relatedFor(st, "rfq", rfq)} comments={rfq.id} onClose={onClose} width={1040} title={rfq.title}
       subtitle={<><span className="mono">{rfq.id}</span><Status>{rfq.status}</Status><span>{modeLabel(rfq.mode)}</span><span>· {rfq.project}</span><span>· due {fmtDate(rfq.dueDate)}</span>{rfq.sourceRef && <span>· {rfq.sourceRef}</span>}</>}
       actions={<>
         <Btn icon={Icon.download} onClick={() => printRfq(rfq)}>Print / PDF</Btn>

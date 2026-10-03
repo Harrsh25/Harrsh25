@@ -34,10 +34,6 @@ run('ui', async ({ p, go, T, pick, S, mut }) => {
     return [`pager ${pager}, ${rows} rows on page 1`, pager > 0 && rows <= 50];
   });
   await go('vendor-management/purchase-orders?open=PO-001');
-  await T('UI-07', 'Status bar on the PO shows its stages with the current one marked', async () => {
-    const cur = await p.locator('[role=dialog] [data-statusbar] [aria-current=step]').innerText(); const n = await p.locator('[role=dialog] [data-statusbar] li').count();
-    return [`${n} stages, current "${cur.trim()}"`, n >= 5 && /Received|Billed/.test(cur)];
-  });
   await T('UI-08', 'Related-document buttons show counts and open the filtered list', async () => {
     const bills = p.locator('[role=dialog] [data-related] a:has-text("Bills")'); const c = await bills.getAttribute('data-count');
     await bills.click(); await p.waitForTimeout(400);

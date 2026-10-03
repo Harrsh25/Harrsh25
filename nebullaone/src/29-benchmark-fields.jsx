@@ -695,7 +695,7 @@ function RequisitionsPage() {
         { key: "s", label: "Status", filterOptions: ["Draft", "Submitted", "Approved", "RFQ raised", "Partially ordered", "Ordered", "Partially received", "Received", "Stopped", "Cancelled"], filter: (x) => reqStatus(st, x), render: (x) => <Status>{reqStatus(st, x)}</Status> },
       ]} />
       {r && (
-        <Drawer open stages={{ steps: STAGES.req, current: reqStage(st, r) }} related={relatedFor(st, "req", r)} comments={r.id} onClose={() => setOpen(null)} width={760} title={`${r.id} — ${r.purpose}`} subtitle={<><Status>{reqStatus(st, r)}</Status><span className="text-ink-mute">{r.project}</span></>}
+        <Drawer open related={relatedFor(st, "req", r)} comments={r.id} onClose={() => setOpen(null)} width={760} title={`${r.id} — ${r.purpose}`} subtitle={<><Status>{reqStatus(st, r)}</Status><span className="text-ink-mute">{r.project}</span></>}
           actions={<>
             {["Draft", "Submitted"].includes(r.status) && <Btn icon={Icon.pencil} onClick={() => setEdit(r)}>Edit</Btn>}
             {r.status === "Submitted" && <><Btn variant="danger" onClick={() => act(r, "Cancelled", "Rejected")}>Reject</Btn><Btn variant="success" onClick={() => act(r, "Approved", "Approved")}>Approve</Btn></>}

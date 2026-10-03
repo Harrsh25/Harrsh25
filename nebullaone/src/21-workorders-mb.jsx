@@ -117,7 +117,7 @@ function WorkOrderDrawer({ id, onClose }) {
   };
   const lastLog = (wo.log || []).slice(-1)[0];
   return (
-    <Drawer open stages={{ steps: STAGES.wo, current: wo.status }} related={relatedFor(st, "wo", wo)} comments={wo.id} onClose={onClose} width={960} title={wo.title} subtitle={<><span className="mono">{wo.id}</span><Status>{wo.status}</Status><span>{wo.type}</span><span>· {vendorName(st, wo.vendorId)}</span><span>· {wo.contractId}</span><span>· {wo.location}</span></>}
+    <Drawer open related={relatedFor(st, "wo", wo)} comments={wo.id} onClose={onClose} width={960} title={wo.title} subtitle={<><span className="mono">{wo.id}</span><Status>{wo.status}</Status><span>{wo.type}</span><span>· {vendorName(st, wo.vendorId)}</span><span>· {wo.contractId}</span><span>· {wo.location}</span></>}
       actions={<>
         {wo.status === "Draft" && <Btn variant="primary" onClick={() => mut("Issued")}>Issue</Btn>}
         {wo.status === "Issued" && wo.acceptance?.status !== "Accepted" && <Btn onClick={() => setState((s) => (byId(s.workOrders, id).acceptance = { status: "Accepted", by: `${currentUser()} (on contractor's signed copy)`, at: new Date().toISOString() }), { entity: "Work Order", id, action: "Acceptance recorded on contractor's behalf" })}>Record acceptance</Btn>}

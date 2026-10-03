@@ -197,7 +197,7 @@ function ContractDrawer({ id, onClose }) {
   const checklist = live || c.status === "Terminated" ? closureChecklist(st, c) : [];
   const boq = contractBoq(st, c);
   return (
-    <Drawer open stages={{ steps: STAGES.contract, current: contractStage(c) }} related={relatedFor(st, "contract", c)} comments={c.id} onClose={onClose} width={960} title={c.title} subtitle={<><span className="mono">{c.id}</span><Status tone={status === "Expiring" ? "amber" : undefined}>{status}</Status><span>{v.name}</span><span>· {c.project}</span><span>· {c.type}</span>{c.rfqId && <span>· from {c.rfqId}</span>}</>}
+    <Drawer open related={relatedFor(st, "contract", c)} comments={c.id} onClose={onClose} width={960} title={c.title} subtitle={<><span className="mono">{c.id}</span><Status tone={status === "Expiring" ? "amber" : undefined}>{status}</Status><span>{v.name}</span><span>· {c.project}</span><span>· {c.type}</span>{c.rfqId && <span>· from {c.rfqId}</span>}</>}
       actions={<>
         {["Draft", "Rejected"].includes(c.status) && <><Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit</Btn><Btn variant="primary" icon={Icon.send} onClick={() => submitContract(c)}>Submit for approval</Btn></>}
         {c.status === "Approved" && <Btn variant="primary" icon={Icon.check} onClick={() => activateContract(c)}>Sign & activate</Btn>}

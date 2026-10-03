@@ -264,7 +264,7 @@ function DetailTabs({ tabs, active, onChange }) {
   );
 }
 
-function Drawer({ open, title, subtitle, onClose, actions, width = 760, tabs, stages, related, comments, children }) {
+function Drawer({ open, title, subtitle, onClose, actions, width = 760, tabs, related, comments, children }) {
   useEscape(open, onClose);
   if (!open) return null;
   return (
@@ -284,7 +284,7 @@ function Drawer({ open, title, subtitle, onClose, actions, width = 760, tabs, st
               <IconBtn icon={Icon.x} title="Close" onClick={onClose} />
             </div>
           </div>
-          {(stages || (related && related.length > 0)) && <DocBar stages={stages} related={related} onGo={onClose} />}
+          {related && related.length > 0 && <DocBar related={related} />}
           {tabs && <DetailTabs {...tabs} />}
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">{children}{comments && <RecordComments id={comments} />}</div>

@@ -1,22 +1,4 @@
 // ---------------------------------------------------------------- document header: status bar, related documents, comments
-// Status bar (Odoo statusbar / SAP Fiori object header): the record's stages left to right, the current one highlighted.
-// A state outside the normal path (Cancelled, On Hold, Suspended…) is shown as a red / amber pill after the path.
-const OFF_PATH_TONE = { Cancelled: "red", Rejected: "red", Terminated: "red", Blacklisted: "red", Stopped: "red", Expired: "red", "On Hold": "amber", Suspended: "amber", Overdue: "red", Disputed: "red", "Changes Requested": "amber", "Short-closed": "amber" };
-function StatusBar({ steps, current }) {
-  const at = steps.indexOf(current), off = at < 0 && current;
-  const reached = off ? -1 : at;
-  return (
-    <ol data-statusbar aria-label="Status" className="flex min-w-0 flex-wrap items-center gap-y-1">
-      {steps.map((s, i) => (
-        <li key={s} aria-current={i === at ? "step" : undefined}
-          className={cls("relative -ml-px flex h-[26px] items-center border px-3 text-[11.5px] font-medium first:ml-0 first:rounded-l-full last:rounded-r-full",
-            i === at ? "z-[1] border-brand bg-brand text-white" : i < reached ? "border-line bg-brand-soft text-brand" : "border-line bg-white text-ink-mute")}>
-          {i < reached && h(Icon.check, { size: 11, className: "mr-1" })}{s}
-        </li>))}
-      {off && <li aria-current="step" className="ml-2"><Status tone={OFF_PATH_TONE[off] || "amber"}>{off}</Status></li>}
-    </ol>
-  );
-}
 // Related-document buttons with counts (Odoo smart buttons / ERPNext connections): open the linked list, filtered
 function RelatedButtons({ items }) {
   return (
@@ -38,37 +20,9 @@ function RelatedButtons({ items }) {
     </div>
   );
 }
-function DocBar({ stages, related }) {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-6 pb-3">
-      {related && related.length > 0 ? <RelatedButtons items={related} /> : <span />}
-      {stages && <StatusBar steps={stages.steps} current={stages.current} />}
-    </div>
-  );
+function DocBar({ related }) {
+  return <div className="px-6 pb-3"><RelatedButtons items={related} /></div>;
 }
-
-// ---- stage paths per document
-const STAGES = {
-  po: ["Draft", "Issued", "Partially Received", "Received", "Billed", "Closed"],
-  bill: ["Awaiting Review", "Unpaid", "Partially Paid", "Paid"],
-  rfq: ["Draft", "Sent", "Quotes Received", "Awarded", "Closed"],
-  req: ["Draft", "Submitted", "Approved", "RFQ raised", "Ordered", "Received"],
-  blanket: ["Draft", "Active", "Fully Consumed", "Closed"],
-  contract: ["Draft", "Pending Approval", "Approved", "Active", "In DLP", "Completed", "Closed"],
-  wo: ["Draft", "Issued", "In Progress", "Completed", "Closed"],
-  ra: () => RA_FLOW.map((f) => f.status),
-  vendor: ["Draft", "Pending Approval", "Active"],
-};
-const poStage = (st, po) => {
-  const s = poStatus(po);
-  if (s === "Received" && poBillingStatus(st, po) === "Fully Billed") return "Billed";
-  return s;
-};
-const billStage = (inv) => { const s = invoiceStatus(inv); return s === "Overdue" ? (invoiceTotals(inv).paid > 0 ? "Partially Paid" : "Unpaid") : s; };
-const reqStage = (st, r) => ({ "Partially ordered": "RFQ raised", "Partially received": "Ordered" })[reqStatus(st, r)] || reqStatus(st, r);
-const contractStage = (c) => ({ Expiring: "Active", "Handed Over": "In DLP" })[contractStatus(c)] || contractStatus(c);
-const rfqStage = (r) => (r.status === "Partially Awarded" ? "Quotes Received" : r.status);
-const vendorStage = (v) => (["Changes Requested"].includes(v.status) ? "Changes Requested" : ["On Hold", "Inactive"].includes(v.status) ? v.status : v.status);
 
 // ---- related documents per record: { label, count, to, icon, value? }
 const q_ = (x) => encodeURIComponent(x);
