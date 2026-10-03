@@ -257,19 +257,14 @@ function VendorMoreFields({ f, set, errors, publicMode, foreign }) {
   const sub = (t) => <p className="col-span-3 mt-2 text-[11px] font-semibold uppercase tracking-wide text-ink-mute first:mt-0">{t}</p>;
   return (
     <div className="grid grid-cols-3 gap-3">
-      {!publicMode && <>
-        {sub("Purchasing & payment defaults")}
-        <Field label="Payment method"><Select value={f.paymentMethod || ""} onChange={(x) => upd("paymentMethod", x)} options={PAY_METHODS} /></Field>
-        <Field label="Price list"><Select value={f.priceList || ""} placeholder="Company default" onChange={(x) => upd("priceList", x)} options={settingsOf(st).priceLists} /></Field>
-        <Field label="Credit limit (₹)" hint="Outstanding above this shows a warning on new POs"><NumInput value={f.creditLimit ?? ""} onChange={(x) => upd("creditLimit", x)} />{err("creditLimit")}</Field>
-        <Field label="Bill delivery"><Select value={f.billDelivery || ""} onChange={(x) => upd("billDelivery", x)} options={BILL_DELIVERY} /></Field>
-        <Field label="Default buyer"><TextInput value={f.defaultBuyer || ""} onChange={(x) => upd("defaultBuyer", x)} placeholder="Name of the buyer" /></Field>
-        <Field label="Receipt reminder (days before delivery)"><NumInput value={f.receiptReminderDays ?? ""} onChange={(x) => upd("receiptReminderDays", x)} placeholder={String(settingsOf(st).receiptReminderDays)} />{err("receiptReminderDays")}</Field>
-        <div className="flex flex-col justify-end gap-1.5 pb-1">
-          <Check checked={!!f.autoPostBills} onChange={(b) => upd("autoPostBills", b)} label="Auto-post bills from this vendor" />
-          <Check checked={!!f.isTransporter} onChange={(b) => upd("isTransporter", b)} label="Also a transporter" />
-        </div>
-      </>}
+      <Field label="Payment method"><Select value={f.paymentMethod || ""} onChange={(x) => upd("paymentMethod", x)} options={PAY_METHODS} /></Field>
+      <Field label="Price list"><Select value={f.priceList || ""} placeholder="Company default" onChange={(x) => upd("priceList", x)} options={settingsOf(st).priceLists} /></Field>
+      <Field label="Credit limit (₹)"><NumInput value={f.creditLimit ?? ""} onChange={(x) => upd("creditLimit", x)} placeholder="Warn on POs above this" />{err("creditLimit")}</Field>
+      <Field label="Bill delivery"><Select value={f.billDelivery || ""} onChange={(x) => upd("billDelivery", x)} options={BILL_DELIVERY} /></Field>
+      <Field label="Default buyer"><TextInput value={f.defaultBuyer || ""} onChange={(x) => upd("defaultBuyer", x)} placeholder="Name of the buyer" /></Field>
+      <Field label="Receipt reminder (days)"><NumInput value={f.receiptReminderDays ?? ""} onChange={(x) => upd("receiptReminderDays", x)} placeholder={`${settingsOf(st).receiptReminderDays} days before delivery`} />{err("receiptReminderDays")}</Field>
+      <Check checked={!!f.autoPostBills} onChange={(b) => upd("autoPostBills", b)} label="Auto-post bills" />
+      <Check checked={!!f.isTransporter} onChange={(b) => upd("isTransporter", b)} label="Also a transporter" />
     </div>
   );
 }

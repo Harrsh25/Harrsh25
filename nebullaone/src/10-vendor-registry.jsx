@@ -243,37 +243,30 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank, quic
           {foreign && <Field label="Tax / VAT registration no." required span={2}><TextInput value={f.taxId || ""} onChange={(v) => upd("taxId", v.toUpperCase())} placeholder="e.g. TRN 100234567800003" className={cls(inputCls, "mono")} />{err("taxId")}</Field>}
           {!foreign && <Field label="GSTIN" required><TextInput value={f.gstin} onChange={setGstin} placeholder="27AAKCS4412M1Z3" maxLength={15} className={cls(inputCls, "mono")} />{err("gstin") || dupNote(dup.gstin, "Already registered:") || ok(gstOk, `Valid · ${GST_STATES[f.gstin.slice(0, 2)] || "state code " + f.gstin.slice(0, 2)}`)}</Field>}
           {!foreign && <Field label="PAN" required><TextInput value={f.pan} onChange={(v) => upd("pan", v.toUpperCase())} placeholder="AAKCS4412M" maxLength={10} className={cls(inputCls, "mono")} />{err("pan") || (dup.pan && <span className="mt-1 block text-[11px] text-amber-700">Same PAN as <b>{dup.pan.name}</b> ({dup.pan.id}) — another branch of the same company?</span>) || ok(panOk && gstOk && f.gstin.slice(2, 12) === f.pan, "Matches GSTIN")}</Field>}
-          <Field label="Supplier type" hint="Individual / HUF: 1% TDS, others 2%"><Select value={f.supplierType || "Company"} onChange={(v) => set({ ...f, supplierType: v, tds: autoTds(vTypes(f), v) })} options={SUPPLIER_TYPES} /></Field>
+          <Field label="Supplier type"><Select value={f.supplierType || "Company"} onChange={(v) => set({ ...f, supplierType: v, tds: autoTds(vTypes(f), v) })} options={SUPPLIER_TYPES} /></Field>
           <Field label={publicMode ? "Preferred payment terms" : "Payment terms"}><Select value={f.paymentTerms} onChange={(v) => upd("paymentTerms", v)} options={PAYMENT_TERMS} /></Field>
           <Field label="Currency"><Select value={f.currency} onChange={(v) => upd("currency", v)} options={withCurrent(CURRENCIES, f.currency)} /></Field>
-          {!publicMode && <Field label="Withholding tax (TDS)" hint="Set automatically from vendor & supplier type"><Select value={f.tds} onChange={(v) => upd("tds", v)} options={TDS_SECTIONS} /></Field>}
+          {!publicMode && <Field label="Withholding tax (TDS)"><Select value={f.tds} onChange={(v) => upd("tds", v)} options={TDS_SECTIONS} /></Field>}
         </div>
       </FormSection>
 
       <FormSection n={++n} title="Contact & address" desc={publicMode ? "We send RFQs, POs and payment advice here" : "The contact also becomes the vendor's portal admin"} done={!!(f.contact.name && EMAIL_RE.test(f.contact.email))}>
-        <div className="grid grid-cols-3 gap-3">
-          <Field label="Contact person" required><TextInput value={f.contact.name} onChange={(v) => updC("name", v)} />{err("contactName")}</Field>
+        {/* 3 × 3, every field the same width; place of supply follows the state */}
+        <div className="grid grid-cols-3 gap-x-3 gap-y-3">
+          <Field label="Contact person" required><TextInput value={f.contact.name} onChange={(v) => updC("name", v)} placeholder="Full name" />{err("contactName")}</Field>
+          <Field label="Designation"><TextInput value={f.contact.designation || ""} onChange={(v) => updC("designation", v)} placeholder="e.g. Sales manager" /></Field>
           <Field label="Email" required><TextInput type="email" value={f.contact.email} onChange={(v) => updC("email", v)} placeholder="name@company.com" />{err("email")}</Field>
-          <Field label="Phone"><TextInput value={f.contact.phone} onChange={(v) => updC("phone", v)} placeholder="+91 98xxx xxxxx" />{err("phone")}</Field>
-          <Field label="Registered address" span={2}><TextInput value={f.address} onChange={(v) => upd("address", v)} placeholder="Building, street, area" /></Field>
+          <Field label="Phone / mobile"><TextInput value={f.contact.phone} onChange={(v) => updC("phone", v)} placeholder="+91 98xxx xxxxx" />{err("phone")}</Field>
           <Field label="Website"><TextInput value={f.website || ""} onChange={(v) => upd("website", v)} placeholder="www.example.com" />{err("website")}</Field>
-          <Field label="City"><TextInput value={f.city} onChange={(v) => upd("city", v)} /></Field>
-          {!foreign ? <Field label="State" hint={GST_STATES[(f.gstin || "").slice(0, 2)] ? "From GSTIN" : ""}><Select value={f.state || ""} placeholder="Select state" onChange={(v) => upd("state", v)} options={withCurrent(STATES, f.state)} /></Field>
-            : <Field label="State / province"><TextInput value={f.state === "Maharashtra" ? "" : f.state} onChange={(v) => upd("state", v)} /></Field>}
+          <Field label="Address"><TextInput value={f.address} onChange={(v) => upd("address", v)} placeholder="Building, street, area" /></Field>
+          <Field label="City"><TextInput value={f.city} onChange={(v) => upd("city", v)} placeholder="City" /></Field>
+          {!foreign ? <Field label="State"><Select value={f.state || ""} placeholder="Select state" onChange={(v) => set({ ...f, state: v, placeOfSupply: v })} options={withCurrent(STATES, f.state)} /></Field>
+            : <Field label="State / province"><TextInput value={f.state || ""} onChange={(v) => upd("state", v)} /></Field>}
           <Field label={foreign ? "Postal code" : "PIN code"}><TextInput value={f.pin || ""} onChange={(v) => upd("pin", v)} placeholder={foreign ? "" : "411026"} maxLength={10} />{err("pin")}</Field>
-          <Field label="Salutation"><Select value={f.contact.salutation || ""} placeholder="Select" onChange={(x) => updC("salutation", x)} options={SALUTATIONS} /></Field>
-          <Field label="Designation / job position"><TextInput value={f.contact.designation || ""} onChange={(x) => updC("designation", x)} placeholder="e.g. Sales manager" /></Field>
-          <Field label="Department"><TextInput value={f.contact.department || ""} onChange={(x) => updC("department", x)} placeholder="e.g. Sales" /></Field>
-          <Field label="Mobile"><TextInput value={f.contact.mobile || ""} onChange={(x) => updC("mobile", x)} placeholder="98xxxxxxxx" />{err("mobile")}</Field>
-          <Field label="Fax"><TextInput value={f.contact.fax || ""} onChange={(x) => updC("fax", x)} /></Field>
-          <Field label="Gender"><Select value={f.contact.gender || ""} placeholder="Select" onChange={(x) => updC("gender", x)} options={["Female", "Male", "Other", "Prefer not to say"]} /></Field>
-          <Field label="Address line 2"><TextInput value={f.addressLine2 || ""} onChange={(x) => upd("addressLine2", x)} placeholder="Landmark, area" /></Field>
-          <Field label="District / county"><TextInput value={f.district || ""} onChange={(x) => upd("district", x)} /></Field>
-          <Field label="Place of supply" hint={!foreign ? "Defaults to the GSTIN state" : ""}><Select value={f.placeOfSupply || (foreign ? "" : f.state)} placeholder="Select" onChange={(x) => upd("placeOfSupply", x)} options={withCurrent(STATES, f.placeOfSupply)} /></Field>
         </div>
       </FormSection>
 
-      {!publicMode && <FormSection n={++n} title="More details" desc="Purchasing & payment defaults" done>
+      {!publicMode && <FormSection n={++n} title="Purchasing & payment" desc="Defaults used on this vendor's POs and bills - only your team sees these" done>
         <VendorMoreFields f={f} set={set} errors={errors} publicMode={publicMode} foreign={foreign} />
       </FormSection>}
 
