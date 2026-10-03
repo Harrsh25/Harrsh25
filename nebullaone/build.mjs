@@ -71,11 +71,13 @@ const HOST_PATCHES = [
    'function ue(p){return NxVendor.StatTile(p)}function ue_orig({label:e,value:t,sub:n,icon:r,tone:s}){return l.jsxs("div",{className:R("flex items-start justify-between rounded-xl border px-4 py-3",$x[s]),children:['],
   // Product chooser: no descriptions, smaller cards
   ['l.jsx("p",{className:"mt-1.5 text-[13px] leading-5 text-ink-soft",children:r.desc}),', ''],
-  ['className:"mt-10 grid w-full max-w-[900px] gap-5 sm:grid-cols-3"', 'className:"mt-8 grid w-full max-w-[680px] gap-4 sm:grid-cols-3"'],
-  ['className:"group rounded-2xl border border-white bg-white/90 p-6 text-left shadow-[0_8px_30px_rgba(99,102,241,0.08)]', 'className:"group rounded-xl border border-white bg-white/90 px-4 py-4 text-left shadow-[0_8px_30px_rgba(99,102,241,0.08)]'],
-  ['l.jsx("span",{className:`grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br ${r.grad} text-white`,children:l.jsx(r.icon,{size:20})}),l.jsx("h2",{className:"mt-4 text-[16px] font-semibold",children:r.name}),',
-   'l.jsx("span",{className:`grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br ${r.grad} text-white`,children:l.jsx(r.icon,{size:17})}),l.jsx("h2",{className:"mt-3 text-[15px] font-semibold",children:r.name}),'],
-  ['l.jsxs("span",{className:"mt-4 inline-flex items-center gap-1 text-[13px] font-medium text-brand",children:["Open ",l.jsx(Mp,', 'l.jsxs("span",{className:"mt-2 inline-flex items-center gap-1 text-[13px] font-medium text-brand",children:["Open ",l.jsx(Mp,'],
+  ['className:"mt-6 grid w-full max-w-[600px] gap-3 sm:grid-cols-3"', 'className:"mt-6 grid w-full gap-3 sm:grid-cols-3",style:{maxWidth:600}'],
+  ['className:"mt-10 grid w-full max-w-[900px] gap-5 sm:grid-cols-3"', 'className:"mt-6 grid w-full gap-3 sm:grid-cols-3",style:{maxWidth:600}'],
+  // compact cards: icon left, name + Open on the right
+  ['className:"group rounded-2xl border border-white bg-white/90 p-6 text-left shadow-[0_8px_30px_rgba(99,102,241,0.08)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_36px_rgba(99,102,241,0.16)]"',
+   'className:"group flex items-center gap-2.5 rounded-lg border border-white bg-white/90 px-3 py-2.5 text-left shadow-[0_4px_16px_rgba(99,102,241,0.08)] transition hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(99,102,241,0.16)]"'],
+  ['l.jsx("span",{className:`grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br ${r.grad} text-white`,children:l.jsx(r.icon,{size:20})}),l.jsx("h2",{className:"mt-4 text-[16px] font-semibold",children:r.name}),l.jsxs("span",{className:"mt-4 inline-flex items-center gap-1 text-[13px] font-medium text-brand",children:["Open ",l.jsx(Mp,{size:14,className:"transition group-hover:translate-x-0.5"})]})]',
+   'l.jsx("span",{className:`grid h-7 w-7 shrink-0 place-items-center rounded-md bg-gradient-to-br ${r.grad} text-white`,children:l.jsx(r.icon,{size:14})}),l.jsxs("span",{className:"min-w-0 flex-1",children:[l.jsx("h2",{className:"truncate text-[13.5px] font-semibold leading-tight",children:r.name}),l.jsxs("span",{className:"inline-flex items-center gap-0.5 text-[12px] font-medium text-brand",children:["Open ",l.jsx(Mp,{size:12,className:"transition group-hover:translate-x-0.5"})]})]})]'],
   // Sidebar groups start collapsed when the orbit opens on its landing page (Project Center); later navigation still expands the right group
   ['r=e.items.some(a=>n.startsWith(a.to)),[s,i]=y.useState(r);return y.useEffect(()=>{r&&i(!0)},[r]),',
    'r=e.items.some(a=>n.startsWith(a.to)),nxL=/\\/project-planning\\/project\\/?$/.test(n),[s,i]=y.useState(r&&!nxL);return y.useEffect(()=>{r&&!nxL&&i(!0)},[r,nxL]),'],
