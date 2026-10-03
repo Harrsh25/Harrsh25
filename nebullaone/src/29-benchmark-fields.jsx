@@ -302,11 +302,10 @@ function VendorContactsAddresses({ v, locked }) {
     <>
       <Section title="Contacts" icon={Icon.users} actions={!locked && <Btn size="sm" icon={Icon.plus} onClick={() => setC(blankC())}>Add contact</Btn>}>
         <DataTable plain rows={contacts} rowKey={(r) => r.id} columns={[
-          { key: "n", label: "Name", className: "font-medium", render: (r) => <span className="flex items-center gap-2">{[r.salutation, r.firstName, r.middleName, r.lastName].filter(Boolean).join(" ")}{r.primary && <Status tone="blue">Primary</Status>}</span> },
+          { key: "n", label: "Name", className: "font-medium", render: (r) => <span className="flex items-center gap-2">{[r.salutation, r.firstName, r.middleName, r.lastName].filter(Boolean).join(" ")}</span> },
           { key: "d", label: "Designation · department", render: (r) => [r.designation, r.department].filter(Boolean).join(" · ") || "—" },
           { key: "e", label: "E-mail", render: (r) => r.email || "—" }, { key: "p", label: "Phone / mobile", render: (r) => [r.phone, r.mobile].filter(Boolean).join(" · ") || "—" },
           { key: "s", label: "Status", render: (r) => <Status tone={r.status === "Unsubscribed" ? "gray" : "green"}>{r.status || "Active"}</Status> },
-          { key: "u", label: "Portal user", render: (r) => (r.main || (v.portalUsers || []).some((u) => u.email === (r.email || "").toLowerCase()) ? "Yes" : "—") },
           { key: "a", label: "", align: "right", render: (r) => !locked && !r.main && <Btn size="sm" icon={Icon.pencil} onClick={() => setC({ ...r })}>Edit</Btn> },
         ]} />
       </Section>
@@ -314,7 +313,7 @@ function VendorContactsAddresses({ v, locked }) {
         <DataTable plain rows={[...(v.address ? [{ id: "REG", title: "Registered office", type: "Registered", line1: v.address, line2: v.addressLine2, city: v.city, district: v.district, state: v.state, pin: v.pin, country: v.country, purposes: ["Purchasing", "Pay"], reg: true }] : []), ...(v.addresses || [])]} rowKey={(r) => r.id} empty={<p className="p-4 text-[13px] text-ink-mute">No addresses yet.</p>} columns={[
           { key: "t", label: "Title", className: "font-medium", render: (r) => <span className="flex items-center gap-2">{r.title}{r.preferredBilling && <Status tone="blue">Billing</Status>}{r.preferredShipping && <Status tone="purple">Shipping</Status>}{r.disabled && <Status tone="gray">Disabled</Status>}</span> },
           { key: "ty", label: "Type", render: (r) => r.type },
-          { key: "ad", label: "Address", render: (r) => <span className="text-[12.5px]">{[r.line1, r.line2, r.city, r.district, r.state, r.pin, r.country].filter(Boolean).join(", ")}</span> },
+          { key: "ad", label: "Address", render: (r) => <span className="block w-[200px] whitespace-normal text-[12.5px]">{[r.line1, r.line2, r.city, r.district, r.state, r.pin, r.country].filter(Boolean).join(", ")}</span> },
           { key: "pu", label: "Site purposes", render: (r) => (r.purposes || []).join(", ") || "—" }, { key: "bu", label: "Business unit", render: (r) => r.bu || "—" },
           { key: "a", label: "", align: "right", render: (r) => !locked && !r.reg && <Btn size="sm" icon={Icon.pencil} onClick={() => setA({ ...r })}>Edit</Btn> },
         ]} />
