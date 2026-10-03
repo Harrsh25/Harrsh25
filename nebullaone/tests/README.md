@@ -28,3 +28,8 @@ Results are written to `out/res-<suite>.json` (screenshots of failures to `out/`
 
 - `uat.js` — walks every page of both modules, the supplier portal (contractor and goods supplier) and the public pages: page loads without script errors; no undefined / NaN / Invalid Date on screen; no sideways scroll (also at 1280 px); sidebar label = page title; every page tab; every list (sort on every column, search hit and no-match state, Filters panel apply / reset, CSV export row count, Customize columns, footer count); every header button and form (Save state on an untouched form, Esc closes); the first record of every list (drawer, every drawer tab, every drawer button and the forms they open). Writes `out/res-uat.json`.
 - `uat_report.py [fixed.json]` — builds `docs/UAT_Report_NebullaOne.xlsx` (Summary, Issues, All checks, End-to-end suites).
+
+## Workflow mapping and platform comparison
+
+- `mapping.js` — run after `final.js` (which saves `out/final-store.json` and `out/final-chain.json`). Checks every field carried step to step, in the data and on screen: P2P-01…08 (registration → vendor master → RFQ → quote → PO → goods receipt → bill 3-way → payment, record links), C2C-01…09 (registration → tender → contract BOQ → work order → change order → measurement → RA bill amounts and deductions → payable → payment → retention → close-out), INV-01…07 (data-wide invariants, document numbers on every list, audit trail).
+- `comparison_report.py` — builds `docs/Workflow_UAT_and_Platform_Comparison.xlsx`: workflow UAT, field mapping, a 28-step comparison with ERPNext, Odoo, Zoho, Oracle Fusion and SAP S/4HANA + Ariba (with source links), gaps and recommendations.

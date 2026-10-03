@@ -244,4 +244,5 @@ require('./lib')('final', async ({ p, go, dlg, S, mut, as, T, pick, toastText })
     return [`vendor ${chain.vendor.id} → ${chain.vendor.rfq} → ${chain.vendor.po} → ${chain.vendor.invoice} → paid | contractor ${chain.contractor.id} → ${chain.contractor.rfq} → ${ct.id} → ${ct.project} › ${w.wbs} → BOQ ${ct.scope[0].id} → ${w.id} → ${bills.map((b) => b.id).join(', ')} → ${invs.map((i) => i.id).join(', ')} → paid → ${ct.status}`, vOk && cOk];
   });
   require('fs').writeFileSync(__dirname + '/out/final-chain.json', JSON.stringify(chain, null, 1));
+  require('fs').writeFileSync(__dirname + '/out/final-store.json', JSON.stringify(await S()));
 });

@@ -241,7 +241,7 @@ function PoDrawer({ id, onClose }) {
     return am.lines.some((l) => { const it = rfq.items.find((x) => x.desc === l.desc); return it && Number(l.qty) > it.qty * allow + 1e-6; });
   };
   return (
-    <Drawer open onClose={onClose} width={940} title={`${po.id} · ${v.name}`} subtitle={<><Status>{status}</Status><Status tone="blue">{bstatus}</Status><span>{po.project}</span><span>· delivery by {fmtDate(po.deliveryDate)}</span>{po.rfqId && <span>· from {po.rfqId}</span>}{po.blanketId && <span>· call-off {po.blanketId}</span>}{po.quoteNo && <span>· vendor quote {po.quoteNo}</span>}</>}
+    <Drawer open onClose={onClose} width={940} title={`${po.id} · ${v.name}`} subtitle={<><Status>{status}</Status><Status tone="blue">{bstatus}</Status><span>{po.project}</span><span>· delivery by {fmtDate(po.deliveryDate)}</span>{po.rfqId && <span>· from <RefLink to={`${VM_BASE}/rfq?open=${po.rfqId}`}>{po.rfqId}</RefLink></span>}{po.blanketId && <span>· call-off {po.blanketId}</span>}{po.quoteNo && <span>· vendor quote {po.quoteNo}</span>}</>}
       actions={<>
         {po.status === "Draft" && <Btn variant="primary" onClick={() => decidePo(po, true)}>Approve & issue</Btn>}
         {!["Draft", "Closed", "Cancelled"].includes(po.status) && status !== "Received" && <Btn variant="primary" icon={Icon.truck} disabled={isBlockedFor(v, "All")} onClick={() => setGrn(true)}>Receive goods</Btn>}
@@ -333,6 +333,7 @@ function PurchaseOrdersPage() {
     <Page title="Purchase Orders" subtitle="PO generation, partial deliveries, goods receipt, returns & billing status" icon={Icon.package}
       actions={<Btn variant="primary" icon={Icon.plus} onClick={() => setCreate(true)}>New PO</Btn>}>
       <DataTable noun="purchase orders" rows={st.purchaseOrders} onRow={(p) => setOpen(p.id)} columns={[
+        { key: "id", label: "PO no.", className: "mono text-[12px]" },
         { key: "v", label: "Vendor", filterOptions: FO.vendors, filter: (x) => vendorName(st, x.vendorId), render: (p) => <span className="font-medium">{vendorName(st, p.vendorId)}</span> },
         { key: "items", label: "Items · project", filterOptions: FO.projects, filter: (p) => p.project, filterLabel: "Project", render: (p) => <TwoLine a={itemsSummary(p.lines)} b={p.project} /> },
         { key: "src", label: "Source", filterOptions: FO.poSource, filter: (p) => poSourceText(st, p)[0], render: (p) => { const [a, b] = poSourceText(st, p); return <TwoLine a={a} b={b} />; } },
@@ -682,7 +683,7 @@ function InvoiceDrawer({ id, onClose }) {
   const schedErr = (sc) => sc.map((z, i) => !z.due ? `#${i + 1}: due date required` : z.due < inv.date ? `#${i + 1}: due before the bill date (${fmtDate(inv.date)})` : i > 0 && sc[i - 1].due && z.due <= sc[i - 1].due ? `#${i + 1}: must fall after instalment #${i}` : !(Number(z.pct) > 0) ? `#${i + 1}: share must be greater than 0` : "");
   return (
     <Drawer open onClose={onClose} width={920} title={`${inv.id} · ${vendorName(st, inv.vendorId)}`}
-      subtitle={<><Status>{status}</Status><span>{inv.source}{inv.poId ? ` ${inv.poId}` : inv.raBillId ? ` ${inv.raBillId}` : ""}</span><span>· vendor ref {inv.number}</span><span>· due {fmtDate(inv.due)}</span><span>· should be paid: <b className={cls(sbp === "No" ? "text-red-600" : sbp === "Exception" ? "text-amber-700" : "text-green-700")}>{sbp}</b></span></>}
+      subtitle={<><Status>{status}</Status><span>{inv.source}{inv.poId ? <> <RefLink to={`${VM_BASE}/purchase-orders?open=${inv.poId}`}>{inv.poId}</RefLink></> : inv.raBillId ? <> <RefLink to={`${CL_BASE}/ra-bills?open=${inv.raBillId}`}>{inv.raBillId}</RefLink></> : ""}</span><span>· vendor ref {inv.number}</span><span>· due {fmtDate(inv.due)}</span><span>· should be paid: <b className={cls(sbp === "No" ? "text-red-600" : sbp === "Exception" ? "text-amber-700" : "text-green-700")}>{sbp}</b></span></>}
       actions={<>{inv.posted === false && <Btn variant="primary" onClick={() => mut((x) => { x.posted = true; x.postedBy = currentUser(); x.postedAt = new Date().toISOString(); }, "Bill posted — now payable")}>Post bill</Btn>}
         {inv.posted !== false && t.balance > 0.5 && inv.review !== "Pending" && <Btn variant="primary" icon={Icon.rupee} onClick={() => setPay(true)}>Record payment</Btn>}</>}>
       <div className="space-y-4 px-6 py-5">
@@ -838,6 +839,7 @@ function InvoicesPage() {
       {tab === "accruals" && <AccrualsTab />}
       {tab === "bills" && <DataTable noun="bills" summary={(r) => [{ value: inrShort(sum(r, (i) => invoiceTotals(i).balance)), label: "outstanding" }, { value: inrShort(sum(st.vendorAdvances, (a) => a.amount - sum(a.allocated, (x) => x.amount))), label: "unadjusted advances" }]} filters={<><FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Awaiting Review", "Unpaid", "Partially Paid", "Overdue", "On Hold", "Paid", "Rejected"]} /></>} rows={rows} onRow={(i) => setOpen(i.id)} columns={[
         { key: "sel", label: "", render: (i) => invoiceStatus(i) !== "Paid" && <input type="checkbox" className="h-4 w-4 accent-[#0b5ed7]" checked={sel.includes(i.id)} onClick={(e) => e.stopPropagation()} onChange={(e) => setSel(e.target.checked ? [...sel, i.id] : sel.filter((x) => x !== i.id))} /> },
+        { key: "id", label: "Bill no.", className: "mono text-[12px]" },
         { key: "v", label: "Vendor", filterOptions: FO.vendors, filter: (x) => vendorName(st, x.vendorId), render: (i) => <span className="font-medium">{vendorName(st, i.vendorId)}</span> },
         { key: "src", label: "Against", opt: true, filterOptions: FO.billType, filterLabel: "Bill type", filter: (i) => (i.source === "RA Bill" ? "RA bill" : i.source === "Direct" ? "Direct bill" : "Purchase order"), render: (i) => { const [a, b] = billAgainst(st, i); return <TwoLine a={a} b={b} />; } },
         { key: "number", label: "Vendor bill no.", className: "text-[12px]", render: (i) => (i.source === "RA Bill" ? <span className="text-ink-mute">Auto (from RA bill)</span> : i.number || <span className="text-ink-faint">—</span>) },
