@@ -414,8 +414,8 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
           ? <Note tone="amber" icon={Icon.lock}>Submitted for approval — details are locked until the approvers decide. If it is rejected or sent back, you can edit and resubmit.</Note>
           : <Note icon={Icon.lock}>Approved vendor — registration details are locked. Status (hold, inactive, blacklist) is changed from the status badge at the top.</Note>)}
         {tab === "overview" && <VendorOverview v={v} comp={comp} />}
-        {/* Status & flags stay editable in every status */}
-        {tab === "flags" && <VendorFlagsView v={v} canEdit={mode === "registry"} />}
+        {/* Classification is editable only while the registration is editable; flags stay editable in every status */}
+        {tab === "flags" && <VendorFlagsView v={v} canEdit={canEdit} canEditFlags={mode === "registry"} />}
         <fieldset disabled={locked} className="m-0 min-w-0 space-y-4 border-0 p-0">
           {tab === "overview" && <VendorContactsAddresses v={v} locked={locked} />}
           {tab === "docs" && <><VendorDocs v={v} mode={mode} locked={locked} /><InsurancePolicies v={v} mode={mode} locked={locked} /></>}
@@ -484,12 +484,12 @@ function ExpiryCell({ iso }) {
 
 // Status & flags as label → value. For editable vendors (Draft, Changes Requested, Rejected) the editable values are
 // dropdowns in place — the layout stays the same.
-function VendorFlagsView({ v, canEdit }) {
+function VendorFlagsView({ v, canEdit, canEditFlags }) {
   const mut = (fn, action) => setState((s) => fn(byId(s.vendors, v.id)), { entity: "Vendor", id: v.id, action });
   const edit = (k, val, label) => mut((x) => (x[k] = val), label);
   const yes = (b) => (b ? "Yes" : "No");
   const box = (el) => <div className="max-w-[340px]">{el}</div>;
-  const yn = (k, on, off) => (canEdit ? box(<Select value={v[k] ? "Yes" : "No"} onChange={(x) => edit(k, x === "Yes", x === "Yes" ? on : off)} options={["Yes", "No"]} />) : yes(v[k]));
+  const yn = (k, on, off) => (canEditFlags ? box(<Select value={v[k] ? "Yes" : "No"} onChange={(x) => edit(k, x === "Yes", x === "Yes" ? on : off)} options={["Yes", "No"]} />) : yes(v[k]));
   const label = (t) => (t === "Labor" ? "Labour" : t);
   const setTypes = (ts) => { if (!ts.length) return toast("Pick at least one of Goods, Services or Labour", "red"); mut((x) => { x.types = ts; x.type = ts[0]; x.isContractor = ts.includes("Labor") || ts.includes("Services"); x.tds = autoTds(ts, x.supplierType); }, `Supplies changed to ${ts.map(label).join(" + ")}`); };
   const hold = v.status === "On Hold" && v.hold;
