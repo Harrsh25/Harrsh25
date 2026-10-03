@@ -56,7 +56,7 @@ require('./lib')('fix5', async ({ p, go, dlg, S, mut, as, T, pick, toastText }) 
   });
   await T('G-10c', 'Failed final inspection → snags to punch list; pass → handover certificate', async () => {
     await btn('Record final inspection').click(); await p.waitForTimeout(150); let d = dlg();
-    await d.getByRole('button', { name: 'Failed', exact: true }).click(); await d.locator('label:has-text("Remarks") input').fill('Walk-through with client'); await d.locator('textarea').fill('Drain outlet at C-7 blocked'); await d.locator('button:has-text("Save")').click(); await p.waitForTimeout(200);
+    await d.getByRole('button', { name: 'Failed', exact: true }).click(); await d.locator('label:has-text("Remarks") input').fill('Walk-through with client'); await d.locator('textarea:not([aria-label="Write a comment"])').fill('Drain outlet at C-7 blocked'); await d.locator('button:has-text("Save")').click(); await p.waitForTimeout(200);
     const open1 = (await S()).punchItems.filter((x) => x.contractId === 'CTR-004' && x.status === 'Open').length;
     await p.locator('tr:has-text("Drain outlet") button:has-text("Mark rectified")').click(); await p.waitForTimeout(100); await p.locator('tr:has-text("Drain outlet") button:has-text("Verify & close")').click(); await p.waitForTimeout(150);
     await btn('Record final inspection').click(); await p.waitForTimeout(150); d = dlg(); await d.locator('label:has-text("Remarks") input').fill('All clear'); await d.locator('button:has-text("Save")').click(); await p.waitForTimeout(150);

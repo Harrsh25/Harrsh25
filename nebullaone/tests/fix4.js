@@ -21,7 +21,7 @@ require('./lib')('fix4', async ({ p, go, dlg, S, mut, as, T, pick, toastText }) 
   await T('G-12b', 'Inspection fails → NCR → QS certification of WO-001 blocked', async () => {
     await as('Rohan Singh'); await go('contract-labor/measurement-book'); await p.waitForTimeout(200);
     await p.locator('tr:has-text("MB-016") button:has-text("Fail")').click(); await p.waitForTimeout(150);
-    await dlg().locator('textarea').fill('Honeycombing at slab L3 soffit, grid A4–A6'); await dlg().locator('button:has-text("Raise NCR")').click(); await p.waitForTimeout(200);
+    await dlg().locator('textarea:not([aria-label="Write a comment"])').fill('Honeycombing at slab L3 soffit, grid A4–A6'); await dlg().locator('button:has-text("Raise NCR")').click(); await p.waitForTimeout(200);
     const n = (await S()).ncrs.find((x) => x.mbId === 'MB-016');
     await as('Karan Desai'); await go('contract-labor/ra-bills?open=RA-003'); await p.waitForTimeout(300); const t = await dlg().textContent();
     return [`${n?.id} ${n?.status}; RA-003 note: ${(t.match(/Open NCR on WO-001[^.]*/) || ['none'])[0]}`, n && n.status === 'Open' && /Open NCR on WO-001/.test(t)];
@@ -31,7 +31,7 @@ require('./lib')('fix4', async ({ p, go, dlg, S, mut, as, T, pick, toastText }) 
     await go('vendor-management/portal'); await pick(p.locator('label:has-text("Viewing as") [role=combobox]'), 'Shree Balaji'); await p.waitForTimeout(200);
     await p.getByText('Work orders', { exact: true }).click(); await p.locator('tr:has-text("WO-001")').first().click(); await p.waitForTimeout(250);
     await dlg().locator('button:has-text("NCRs")').first().click(); await p.waitForTimeout(150); await dlg().locator(`tr:has-text("${n.id}") button:has-text("Rework done")`).click(); await p.waitForTimeout(100);
-    await p.locator('[role=dialog]').last().locator('textarea').fill('Patch repaired with micro-concrete'); await p.locator('[role=dialog]').last().locator('button:has-text("Save")').click(); await p.waitForTimeout(150);
+    await p.locator('[role=dialog]').last().locator('textarea:not([aria-label="Write a comment"])').fill('Patch repaired with micro-concrete'); await p.locator('[role=dialog]').last().locator('button:has-text("Save")').click(); await p.waitForTimeout(150);
     const s1 = (await S()).ncrs.find((x) => x.id === n.id).status;
     await as('Rohan Singh'); await go('contract-labor/measurement-book'); await p.getByText('Inspections & NCRs').click(); await p.waitForTimeout(150);
     await p.locator(`tr:has-text("${n.id}") button:has-text("Re-inspect: pass")`).click(); await p.waitForTimeout(100); await dlg().locator('button:has-text("Save")').click(); await p.waitForTimeout(150);

@@ -70,7 +70,7 @@ require('./lib')('fix23', async ({ p, go, dlg, S, mut, as, T, pick, toastText })
   });
   await T('G-21', 'Suspend and resume a work order', async () => {
     await as('Vikram Rao'); await go('contract-labor/work-orders?open=WO-002'); await p.waitForTimeout(300); await btn('Suspend').click(); await p.waitForTimeout(100);
-    await dlg().locator('textarea').fill('Client stop-work — design revision'); await dlg().locator('button:has-text("Confirm")').click(); await p.waitForTimeout(200);
+    await dlg().locator('textarea:not([aria-label="Write a comment"])').fill('Client stop-work — design revision'); await dlg().locator('button:has-text("Confirm")').click(); await p.waitForTimeout(200);
     const s1 = (await S()).workOrders.find((x) => x.id === 'WO-002').status; const mbBtn = await btn('Record measurement').count();
     await btn('Resume').click(); await p.waitForTimeout(200); const s2 = (await S()).workOrders.find((x) => x.id === 'WO-002').status;
     return [`suspend → ${s1} (measure button ${mbBtn}); resume → ${s2}`, s1 === 'Suspended' && mbBtn === 0 && s2 === 'In Progress'];

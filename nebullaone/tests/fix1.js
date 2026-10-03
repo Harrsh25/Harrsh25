@@ -37,7 +37,7 @@ require('./lib')('fix1', async ({ p, go, dlg, S, mut, as, T, pick, toastText }) 
     return [`Approve disabled=${dis}; checklist: ${(t.match(/Open before final approval:[^.]*/) || [''])[0].slice(0, 90)}`, dis && /Workmen Compensation/.test(t)];
   });
   await T('G-01b', 'Finance Controller approves with override + reason (logged)', async () => {
-    await dlg().locator('textarea').fill('WC policy renewal in progress — cover note seen'); await p.locator('button:has-text("Approve with override")').click(); await p.waitForTimeout(250);
+    await dlg().locator('textarea:not([aria-label="Write a comment"])').fill('WC policy renewal in progress — cover note seen'); await p.locator('button:has-text("Approve with override")').click(); await p.waitForTimeout(250);
     const v = (await S()).vendors.find((x) => x.id === 'VEN-007');
     return [`status ${v.status}; override recorded: ${JSON.stringify(v.approval.stages[2].override || null).slice(0, 80)}`, v.status === 'Active' && (v.approval.stages[2].override || []).length > 0];
   });
