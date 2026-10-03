@@ -774,11 +774,9 @@ function AuditList({ items }) {
   );
 }
 
-// Calm list colours: normal states are plain text with a small dot; only exceptions get a coloured badge
-const CALM = { Active: "bg-green-500", "Spend Authorized": "bg-green-500", Compliant: "bg-green-500" };
+// Every status uses the same badge (box) style
 function CalmStatus({ children }) {
-  const d = CALM[children];
-  return d ? <span className="inline-flex items-center gap-1.5 text-ink-soft"><span className={cls("h-1.5 w-1.5 rounded-full", d)} />{children}</span> : <Status>{children}</Status>;
+  return <Status>{children}</Status>;
 }
 // Bulk actions for ticked vendors
 function BulkBar({ sel, onClear, onHold }) {
