@@ -159,24 +159,6 @@ function FormSection({ n, title, desc, done, right, children }) {
   );
 }
 
-// Sticky jump bar for the long vendor form: one chip per section, ticked when that section is complete
-function FormJumpBar({ root }) {
-  const [secs, setSecs] = y.useState([]);
-  y.useLayoutEffect(() => {
-    const el = root.current; if (!el) return;
-    const next = [...el.querySelectorAll("section[data-vf]")].map((x, i) => ({ i, title: x.dataset.vf, done: !!x.dataset.done }));
-    if (JSON.stringify(next) !== JSON.stringify(secs)) setSecs(next);
-  });
-  const go = (i) => root.current?.querySelectorAll("section[data-vf]")[i]?.scrollIntoView({ behavior: "smooth", block: "start" });
-  return (
-    <nav aria-label="Form sections" style={{ top: -40 }} className="sticky z-10 -mx-5 -mt-4 mb-1 flex flex-wrap gap-1.5 border-b border-line bg-white px-5 py-2 shadow-[0_1px_0_#e5e7eb]">
-      {secs.map((x) => (
-        <button key={x.title} type="button" onClick={() => go(x.i)} className={cls("flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px]", x.done ? "border-green-200 bg-green-50 text-green-700" : "border-line text-ink-soft hover:bg-gray-50")}>
-          <span className={cls("grid h-4 w-4 place-items-center rounded-full text-[10px] font-semibold", x.done ? "bg-green-600 text-white" : "bg-gray-100 text-ink-mute")}>{x.done ? h(Icon.check, { size: 10 }) : x.i + 1}</span>{x.title}
-        </button>))}
-    </nav>
-  );
-}
 function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
   const formRoot = y.useRef(null);
   const upd = (k, val) => set({ ...f, [k]: val });
@@ -207,7 +189,6 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
   let n = 0;
   return (
     <div ref={formRoot} className="space-y-4">
-      {!publicMode && <FormJumpBar root={formRoot} />}
       {errCount > 0 && <Note tone="red">Please fix {errCount} field{errCount > 1 ? "s" : ""} marked in red below.</Note>}
 
       <FormSection n={++n} title="Company & what they supply" desc={publicMode ? "Your company and the work you do" : "Who the vendor is and what they do for you"} done={!!(f.name && f.categories.length)}>
