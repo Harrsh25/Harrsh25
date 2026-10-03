@@ -17,7 +17,7 @@ require('./lib')('flow', async ({ p, go, dlg, S, mut, T, pick, toastText }) => {
     await mut((s) => { const r = s.rfqs.find((x) => x.id === s.rfqs.find((y) => y.requisitionId === 'MR-001').id); r.status = 'Quotes Received'; r.sentOn = new Date().toISOString().slice(0, 10);
       r.quotes = [{ vendorId: 'VEN-011', rates: [395, 56900], currency: 'INR', fx: 1, gstPct: 18, deliveryDays: 7, leadDays: [7, 7], noBid: [false, false], discounts: [0, 0], validUntil: '2027-01-31', submittedOn: new Date().toISOString().slice(0, 10), review: 'Accepted', note: '' },
         { vendorId: 'VEN-003', rates: [399, 56500], currency: 'INR', fx: 1, gstPct: 18, deliveryDays: 9, leadDays: [9, 9], noBid: [false, false], discounts: [0, 0], validUntil: '2027-01-31', submittedOn: new Date().toISOString().slice(0, 10), review: 'Accepted', note: '' }]; });
-    await go('vendor-management/rfq?open=' + rfqId); await p.waitForTimeout(300); await btn('Award by line').click(); await p.waitForTimeout(250);
+    await go('vendor-management/rfq?open=' + rfqId); await p.waitForTimeout(300); await p.locator('[data-drawer] [role=tab]').filter({ hasText: 'Comparison' }).first().click(); await p.waitForTimeout(150); await btn('Award by line').click(); await p.waitForTimeout(250);
     await dlg().locator('label:has-text("Award recommendation") input').fill('L1 per line from requisition'); await dlg().locator('button:has-text("Award & create")').click(); await p.waitForTimeout(400);
     const s = await S(); const pos = s.purchaseOrders.filter((x) => x.rfqId === rfqId); poId = pos[0]?.id;
     await go('vendor-management/requisitions'); await p.waitForTimeout(300); const t = await p.locator('tr:has-text("MR-001")').textContent();

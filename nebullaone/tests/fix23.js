@@ -96,7 +96,7 @@ require('./lib')('fix23', async ({ p, go, dlg, S, mut, as, T, pick, toastText })
       items: [{ desc: 'Excavation in ordinary soil', unit: 'cum', qty: 5000, requiredBy: '2026-10-20' }, { desc: 'Backfilling', unit: 'cum', qty: 2000, requiredBy: '2026-10-20' }], vendorIds: ['VEN-010', 'VEN-001'],
       quotes: ['VEN-010', 'VEN-001'].map((v, k) => ({ vendorId: v, rates: k ? [200, 150] : [182, 140], deliveryDays: 10, validUntil: '2026-12-01', submittedOn: '2026-09-25', via: 'Portal', review: 'Accepted', quoteNo: 'Q' + k, noBid: [false, false], leadDays: [10, 10], discounts: [0, 0], lineFiles: [null, null], gstPct: 18 })),
       negotiation: [], awards: [], emails: [], responses: { 'VEN-010': { status: 'Accepted' }, 'VEN-001': { status: 'Accepted' } }, awardedTo: null }); });
-    await as('Priya Nair'); await go('vendor-management/rfq?open=RFQ-009'); await p.waitForTimeout(300); await btn('Award by line').click(); await p.waitForTimeout(200); const d = dlg();
+    await as('Priya Nair'); await go('vendor-management/rfq?open=RFQ-009'); await p.waitForTimeout(300); await p.locator('[data-drawer] [role=tab]').filter({ hasText: 'Comparison' }).first().click(); await p.waitForTimeout(150); await btn('Award by line').click(); await p.waitForTimeout(200); const d = dlg();
     const dis0 = await d.locator('button:has-text("Award & create")').isDisabled();
     await d.getByRole('button', { name: 'Contract', exact: true }).click(); await d.locator('label:has-text("Award recommendation") input').fill('L1 on both lines; excavator fleet on site'); await d.locator('button:has-text("Award & create")').click(); await p.waitForTimeout(250);
     const s = await S(); const c = s.contracts.find((x) => x.rfqId === 'RFQ-009');

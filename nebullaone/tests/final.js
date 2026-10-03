@@ -59,7 +59,7 @@ require('./lib')('final', async ({ p, go, dlg, S, mut, as, T, pick, toastText })
   });
   await T('V07', 'Evaluation + award with recommendation → draft PO', async () => {
     await as('Priya Nair'); await go('vendor-management/rfq?open=' + chain.vendor.rfq); await p.waitForTimeout(300);
-    await p.locator(`tr:has-text("${VN.name}") button:has-text("Accept")`).click(); await p.waitForTimeout(200); await btn('Award by line').click(); await p.waitForTimeout(200);
+    await p.locator('[data-drawer] [role=tab]').filter({ hasText: 'Vendors' }).first().click(); await p.waitForTimeout(150); await p.locator(`tr:has-text("${VN.name}") button:has-text("Accept")`).click(); await p.waitForTimeout(200); await p.locator('[data-drawer] [role=tab]').filter({ hasText: 'Comparison' }).first().click(); await p.waitForTimeout(150); await btn('Award by line').click(); await p.waitForTimeout(200);
     await dlg().locator('label:has-text("Award recommendation") input').fill('Only compliant quote, L1'); await dlg().locator('button:has-text("Award & create")').click(); await p.waitForTimeout(300); await as(null);
     const po = (await S()).purchaseOrders.find((x) => x.rfqId === chain.vendor.rfq); chain.vendor.po = po?.id; return [`${po?.id} ${po?.status} for ${po?.vendorId}, award note "${po?.awardNote}"`, po && po.vendorId === v.id && po.status === 'Draft'];
   });
@@ -122,8 +122,8 @@ require('./lib')('final', async ({ p, go, dlg, S, mut, as, T, pick, toastText })
     const q = (await S()).rfqs.find((x) => x.id === r.id).quotes.find((x) => x.vendorId === c.id); return [`${r.id}: rate ${q?.rates?.[0] ?? '?'} submitted`, !!q];
   });
   await T('C06', 'Technical + commercial evaluation → award as contract (BOQ carried over)', async () => {
-    await as('Priya Nair'); await go('vendor-management/rfq?open=' + chain.contractor.rfq); await p.waitForTimeout(300); await p.locator(`tr:has-text("${CN.name}") button:has-text("Accept")`).click(); await p.waitForTimeout(150);
-    await btn('Award by line').click(); await p.waitForTimeout(200); const d = dlg(); await d.getByRole('button', { name: 'Contract', exact: true }).click();
+    await as('Priya Nair'); await go('vendor-management/rfq?open=' + chain.contractor.rfq); await p.waitForTimeout(300); await p.locator('[data-drawer] [role=tab]').filter({ hasText: 'Vendors' }).first().click(); await p.waitForTimeout(150); await p.locator(`tr:has-text("${CN.name}") button:has-text("Accept")`).click(); await p.waitForTimeout(150);
+    await p.locator('[data-drawer] [role=tab]').filter({ hasText: 'Comparison' }).first().click(); await p.waitForTimeout(150); await btn('Award by line').click(); await p.waitForTimeout(200); const d = dlg(); await d.getByRole('button', { name: 'Contract', exact: true }).click();
     await d.locator('label:has-text("Award recommendation") input').fill('Only technically qualified bid; rate within estimate'); await d.locator('button:has-text("Award & create")').click(); await p.waitForTimeout(300); await as(null);
     const ct = (await S()).contracts.find((x) => x.rfqId === chain.contractor.rfq); chain.contractor.contract = ct?.id; return [`${ct?.id} ${ct?.status}, BOQ ${ct?.scope.map((l) => `${l.qty} ${l.unit} @ ${l.rate}`).join('; ')}`, ct && ct.vendorId === c.id && ct.scope.length === 1];
   });
