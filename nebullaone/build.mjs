@@ -148,6 +148,7 @@ const RAW_CSS = "[role=dialog] .mono{white-space:nowrap}[role=dialog] p.flex.ite
   ".nx-list th{background:#f9fafb;border-right-width:0;font-size:12.5px;font-weight:600;color:#4b5563;letter-spacing:0;padding:8px 12px}" +
   ".nx-list td{border-right-width:0;padding:8px 12px;border-color:#eef0f3}.nx-list th{border-color:#e5e7eb}" +
   ".nx-list tbody tr:hover{background:#f9fafb}" +
+  ".nx-eq td,.nx-eq th{overflow:hidden;text-overflow:ellipsis}.nx-eq td>span,.nx-eq td>div{max-width:100%}" +
   ".nx-list td span.rounded-md.border.text-\\[11\\.5px\\]{font-size:12px;padding:1px 6px;gap:4px}" +
   ".nx-list td.font-semibold,.nx-list td .font-semibold,.nx-list td.font-medium,.nx-list td .font-medium{font-weight:500}" +
   // Project Center style: row actions are quiet text links, not bordered buttons

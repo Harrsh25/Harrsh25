@@ -980,8 +980,11 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
     ? (rows.length || onClearFilters ? <div className="pb-8"><EmptyState icon={Icon.search} title="No matches" text={q.trim() ? `Nothing matches “${q}”. Try another word or clear the search.` : "No records match these filters."} /><div className="-mt-2 flex justify-center"><Btn icon={Icon.x} onClick={clearAll}>Clear search &amp; filters</Btn></div></div> : empty || <EmptyState icon={Icon.folder} title="Nothing here yet" text="Records you add will appear in this list." />)
     : (
       <div className={cls("overflow-x-auto", list && "nx-fill")}>
-        <table ref={tableRef} className={cls("w-full", !dense && "nx-list")}>
-          {list && <colgroup>{columns.map((c) => <col key={c.key} style={{ width: c.width || (c.label ? `${(100 / Math.max(1, columns.filter((x) => x.label).length)).toFixed(2)}%` : c.key === "sel" ? 44 : undefined) }} />)}</colgroup>}
+        {/* Lists: every data column gets the same width (also after Customize Columns); checkbox / action / "+" columns stay narrow.
+            Too many columns to fit → each keeps 150px and the list scrolls sideways */}
+        <table ref={tableRef} className={cls("w-full", !dense && "nx-list", list && "nx-eq")}
+          style={list ? { tableLayout: "fixed", minWidth: columns.reduce((a, c) => a + (isAct(c) || c.key === "__cols" ? Number(c.width) || (c.key === "sel" ? 44 : 96) : 150), 0) } : undefined}>
+          {list && <colgroup>{columns.map((c) => <col key={c.key} style={{ width: c.key === "__cols" ? 48 : isAct(c) ? (Number(c.width) || (c.key === "sel" ? 44 : undefined)) : undefined }} />)}</colgroup>}
           <thead>
             <tr>
               {columns.map((c, ci) => (
