@@ -403,16 +403,13 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
     { id: "approval", label: "Approvals" },
   ];
   return (
-    <Drawer open related={relatedFor(st, "vendor", v)} comments={tab === "overview" ? undefined : v.id} onClose={onClose} width={880} title={v.name}
+    <Drawer open related={relatedFor(st, "vendor", v)} onClose={onClose} width={880} title={v.name}
       subtitle={<><span className="mono text-ink-mute">{v.id}</span>{/* view only — status is changed from the Status & flags tab */}<Status>{APPROVAL_STATES.includes(v.status) ? approvalStatus(v) : v.status}</Status></>}
       actions={<><span className="inline-flex h-8 items-center"><PreferredStar v={v} size={18} always /></span>{canEdit && <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>}</>}
       tabs={{ tabs, active: tab, onChange: setTab }}>
       {/* tables show as label → value lists, except Documents, Bank and Equipment which keep their tables */}
       <ListMode.Provider value={!["docs", "bank", "equip"].includes(tab)}>
       <div className="space-y-4 px-6 py-5">
-        {locked && !["approval", "flags"].includes(tab) && (v.status === "Pending Approval"
-          ? <Note tone="amber" icon={Icon.lock}>Submitted for approval — details are locked until the approvers decide. If it is rejected or sent back, you can edit and resubmit.</Note>
-          : <Note icon={Icon.lock}>Approved vendor — registration details are locked. Status (hold, inactive, blacklist) is changed from the Status &amp; flags tab.</Note>)}
         {tab === "overview" && <VendorOverview v={v} comp={comp} />}
         {/* Classification is editable only while the registration is editable; flags stay editable in every status */}
         {tab === "flags" && <VendorFlagsView v={v} canEdit={canEdit} canEditFlags={mode === "registry"} />}
@@ -715,17 +712,9 @@ function VendorBanks({ v, locked }) {
 function VendorActivity({ v }) {
   const st = useStore();
   const [note, setNote] = y.useState("");
-  const contracts = st.contracts.filter((c) => c.vendorId === v.id);
-  const pos = st.purchaseOrders.filter((p) => p.vendorId === v.id);
-  const invs = st.invoices.filter((i) => i.vendorId === v.id);
   const trail = st.audit.filter((a) => a.id === v.id || (a.entity !== "Vendor" && a.action.includes(v.id)));
   return (
     <>
-      <div className="grid grid-cols-3 gap-3">
-        <StatTile tone="blue" label="Contracts" value={contracts.length} sub={inrShort(sum(contracts, contractValue))} icon={Icon.file} />
-        <StatTile tone="purple" label="Purchase orders" value={pos.length} sub={inrShort(sum(pos, poValue))} icon={Icon.package} />
-        <StatTile tone="amber" label="Outstanding" value={inrShort(sum(invs, (i) => invoiceTotals(i).balance))} sub={`${invs.length} bills`} icon={Icon.rupee} />
-      </div>
       <Section title="Notes & communication" icon={Icon.message}>
         <div className="flex gap-2 border-b border-line p-3">
           <TextInput value={note} onChange={setNote} placeholder="Add a note for the team (logged against this vendor)" />
