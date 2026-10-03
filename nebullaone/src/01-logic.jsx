@@ -41,6 +41,7 @@ function requiredDocs(v) {
 // Compliance status engine: rolls every document + insurance check into one status
 // One engine for documents + insurance. Each item: level 0 ok, 1 attention (expiring / awaiting verification), 2 failing.
 // "blocking" = failing items whose requirement is set to block payments.
+const INSURANCE_CHECKS = false;
 function complianceItems(v) {
   const set = currentSettings(), warn = set.expiryWarnDays;
   const items = [];
@@ -56,7 +57,8 @@ function complianceItems(v) {
     else if (left !== null && left <= warn) { level = 1; note = `Expires in ${left} day${left === 1 ? "" : "s"}`; }
     items.push({ kind: "Document", key: "doc:" + r.name, name: r.name, level, note, blocks: r.blocks, expiry: d?.expiry || null, doc: d, rule: r });
   }
-  for (const r of set.complianceIns.filter((x) => appliesTo(x, v))) {
+  // insurance is no longer collected, so it is not a compliance or approval requirement
+  for (const r of INSURANCE_CHECKS ? set.complianceIns.filter((x) => appliesTo(x, v)) : []) {
     const ps = (v.insurance || []).filter((p) => p.type === r.type && p.status !== "Rejected").sort((a, b) => (b.expiry || "").localeCompare(a.expiry || ""));
     const p = ps[0], left = p ? daysUntil(p.expiry) : null;
     let level = 0, note = `${inrShort(p?.cover)} cover`;

@@ -415,7 +415,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
         {tab === "flags" && <VendorFlagsView v={v} canEdit={canEdit} canEditFlags={mode === "registry"} />}
         <fieldset disabled={locked} className="m-0 min-w-0 space-y-4 border-0 p-0">
           {tab === "overview" && <VendorContactsAddresses v={v} locked={locked} />}
-          {tab === "docs" && <><VendorDocs v={v} mode={mode} locked={locked} /><InsurancePolicies v={v} mode={mode} locked={locked} /></>}
+          {tab === "docs" && <VendorDocs v={v} mode={mode} locked={locked} />}
           {tab === "bank" && <VendorBanks v={v} locked={locked} />}
           {tab === "qual" && <Questionnaire v={v} />}
           {tab === "equip" && <EquipmentRegister v={v} />}
@@ -452,15 +452,6 @@ function VendorOverview({ v, comp }) {
             ["Labour licence (CLRA)", v.contractor.labourLicence || "—"], ["Licence valid till", fmtDate(v.contractor.licenceExpiry)], ["Workforce", v.contractor.workforce ? `${v.contractor.workforce} workers` : "—"],
             ["PF code", v.contractor.pfCode || "—"], ["ESI code", v.contractor.esiCode || "—"], ["Experience", v.contractor.experienceYrs ? `${v.contractor.experienceYrs} yrs` : "—"],
             ["Past projects", v.contractor.pastProjects || "—"],
-          ]} />
-        </Section>
-      )}
-      {v.insurance.length > 0 && (
-        <Section title="Insurance" icon={Icon.shield}>
-          <DataTable asList rows={v.insurance} rowKey={(r) => r.policy} columns={[
-            { key: "type", label: "Coverage" }, { key: "policy", label: "Policy no.", className: "mono text-[12px]" }, { key: "insurer", label: "Insurer" },
-            { key: "cover", label: "Sum insured", align: "right", num: true, render: (r) => inrShort(r.cover) },
-            { key: "expiry", label: "Expiry", render: (r) => <ExpiryCell iso={r.expiry} /> },
           ]} />
         </Section>
       )}
@@ -547,7 +538,7 @@ function VendorDocs({ v, mode = "registry", locked }) {
       fn(d);
     }, { entity: "Vendor", id: v.id, action });
   return (
-    <Section title="Document checklist" icon={Icon.folderCheck} actions={!locked && <Btn size="sm" variant="primary" icon={Icon.upload} onClick={() => setUp({ name: docs.find((d) => docState(d) !== "Verified")?.name || docs[0].name, expiry: "", file: "", pick: true })}>Upload document</Btn>}>
+    <Section title="Document checklist" icon={Icon.folderCheck} actions={!locked && mode !== "approval" && <Btn size="sm" variant="primary" icon={Icon.upload} onClick={() => setUp({ name: docs.find((d) => docState(d) !== "Verified")?.name || docs[0].name, expiry: "", file: "", pick: true })}>Upload document</Btn>}>
       <DataTable dense rows={extra.length ? [...docs, ...extra] : docs} rowKey={(d) => d.name} columns={[
         { key: "name", label: "Document", className: "font-medium" },
         { key: "file", label: "File", render: (d) => (d.file ? <FileLink name={d.file} dataUrl={d.dataUrl} /> : <span className="text-ink-mute">—</span>) },
@@ -557,9 +548,10 @@ function VendorDocs({ v, mode = "registry", locked }) {
         { key: "ver", label: "Versions", render: (d) => ((d.versions || []).length ? <button className="text-[12px] font-medium text-brand hover:underline" onClick={() => setHist(d)}>v{(d.versions || []).length + 1} · history</button> : d.file ? <span className="text-[12px] text-ink-mute">v1</span> : "—") },
         { key: "a", label: "", align: "right", render: (d) => (
           <span className="flex justify-end gap-1">
-            {!locked && <Btn size="sm" icon={Icon.upload} onClick={() => setUp({ name: d.name, expiry: d.expiry || "", file: "" })}>{d.status === "Missing" ? "Upload" : "Replace"}</Btn>}
-            {!locked && d.status === "Pending" && d.file && <Btn size="sm" onClick={() => setDel({ d, withdraw: true })}>Withdraw</Btn>}
-            {!locked && !requiredDocs(v).includes(d.name) && <Btn size="sm" onClick={() => setDel({ d })}>Delete</Btn>}
+            {/* the approver only verifies or rejects; uploads and replacements are done from the vendor record */}
+            {!locked && mode !== "approval" && <Btn size="sm" icon={Icon.upload} onClick={() => setUp({ name: d.name, expiry: d.expiry || "", file: "" })}>{d.status === "Missing" ? "Upload" : "Replace"}</Btn>}
+            {!locked && mode !== "approval" && d.status === "Pending" && d.file && <Btn size="sm" onClick={() => setDel({ d, withdraw: true })}>Withdraw</Btn>}
+            {!locked && mode !== "approval" && !requiredDocs(v).includes(d.name) && <Btn size="sm" onClick={() => setDel({ d })}>Delete</Btn>}
             {mode === "approval" && d.status === "Pending" && <>
               <Btn size="sm" variant="success" onClick={() => mut(d.name, (x) => { Object.assign(x, { status: "Verified", remark: "", verifiedBy: currentUser(), verifiedAt: new Date().toISOString() }); }, `${d.name} verified`)}>Verify</Btn>
               <Btn size="sm" variant="danger" onClick={() => setRej(d.name)}>Reject</Btn>

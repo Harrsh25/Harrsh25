@@ -58,9 +58,11 @@ require('./lib')('bench', async ({ p, go, dlg, S, mut, T, pick, toastText }) => 
     return [`save disabled=${dis}; ${(t.match(/Single-project limit can't be above[^.]*/) || ['no msg'])[0]}`, dis && /can't be above the aggregate/.test(t)];
   });
   await T('BF-06', 'Critical library question answered "No" blocks final approval', async () => {
-    await mut((s) => { const v = s.vendors.find((x) => x.id === 'VEN-007'); v.qualification = { ...(v.qualification || { score: 80, ruleSet: 'x', answers: {} }), libAnswers: { 'QL-1': 'No' } }; });
-    await go('vendor-management/approvals?open=VEN-007'); await p.waitForTimeout(300); const t = await dlg().textContent();
-    const row = await dlg().locator('div.flex.items-start').filter({ hasText: /written HSE policy/i }).first().textContent().catch(() => ''); return [row ? row.replace(/\s+/g, ' ').trim().slice(0, 90) : 'not shown', /No$/.test(row.trim()) && !/optional/.test(row)];
+    await mut((s) => { const v = s.vendors.find((x) => x.id === 'VEN-007'); v.qualification = { ...(v.qualification || { score: 80, ruleSet: 'x', answers: {} }), libAnswers: { 'QL-1': 'No' } };
+      (v.approval?.stages || []).forEach((st, i, all) => { st.status = i < all.length - 1 ? 'Approved' : 'Pending'; }); });
+    await go('vendor-management/approvals?open=VEN-007'); await p.waitForTimeout(300);
+    const btn = p.locator('[data-drawer] button:has-text("Approve as")').first(); const dis = await btn.isDisabled().catch(() => false); const why = (await btn.getAttribute('title').catch(() => '')) || '';
+    return [`Approve disabled=${dis}; ${why.slice(0, 90)}`, dis && /Critical question failed/.test(why)];
   });
   await T('BF-07', 'Manpower requisition → approve → Create RFQ pre-fills lines and the contractor distribution list', async () => {
     await go('vendor-management/requisitions?open=MR-002'); await p.waitForTimeout(300); await btn('Approve').last().click(); await p.waitForTimeout(200);

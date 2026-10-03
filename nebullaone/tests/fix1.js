@@ -33,16 +33,18 @@ require('./lib')('fix1', async ({ p, go, dlg, S, mut, as, T, pick, toastText }) 
     const v = (await S()).vendors.find((x) => x.id === 'VEN-007');
     return [v.approval.stages.map((x) => `${x.dept} ${x.status}`).join(' → '), v.approval.stages[1].status === 'Approved' && v.approval.stages[2].status === 'Pending'];
   });
-  await T('G-01', 'Final approval blocked by open checklist (no WC insurance)', async () => {
+  await T('G-01', 'Final approval blocked while a required document is not verified', async () => {
+    await mut((s) => { const d = s.vendors.find((x) => x.id === 'VEN-007').docs.find((x) => x.name === 'PAN Card'); d.status = 'Pending'; });
     await as('Rohit Shah'); await go('vendor-management/approvals?open=VEN-007'); await p.waitForTimeout(250);
-    const btn = p.locator('button:has-text("Approve as Finance")'); const dis = await btn.isDisabled(); const t = await dlg().textContent();
-    return [`Approve disabled=${dis}; checklist: ${(t.match(/\d+ of \d+ required done[^A-Z]*/) || [''])[0].slice(0, 90)}`, dis && /Workmen Compensation insurance/.test(t) && /approve is blocked/.test(t)];
+    const btn = p.locator('button:has-text("Approve as Finance")'); const dis = await btn.isDisabled(); const why = (await btn.getAttribute('title')) || '';
+    return [`Approve disabled=${dis}; ${why.slice(0, 90)}`, dis && /PAN Card/.test(why)];
   });
   await T('G-01b', 'Finance Controller approves with override + reason (logged)', async () => {
     await dlg().locator('textarea:not([aria-label="Write a comment"])').fill('WC policy renewal in progress — cover note seen'); await p.locator('button:has-text("Approve with override")').click(); await p.waitForTimeout(250);
     const v = (await S()).vendors.find((x) => x.id === 'VEN-007');
     return [`status ${v.status}; override recorded: ${JSON.stringify(v.approval.stages[2].override || null).slice(0, 80)}`, v.status === 'Active' && (v.approval.stages[2].override || []).length > 0];
   });
+  await mut((s) => { const d = s.vendors.find((x) => x.id === 'VEN-007').docs.find((x) => x.name === 'PAN Card'); d.status = 'Verified'; });
   await T('G-02', 'Registration tier cannot be switched directly; request → Finance approval', async () => {
     await go('vendor-management/registry?open=VEN-007'); await p.waitForTimeout(300);
     await dlg().locator('[role=tab]:has-text("Status & flags")').click(); await p.waitForTimeout(150);

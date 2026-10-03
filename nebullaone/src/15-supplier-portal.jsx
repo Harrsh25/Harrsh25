@@ -250,7 +250,7 @@ function PortalBody({ vid, vendorMode }) {
           { key: "e", label: "Valid till", render: (d) => <ExpiryCell iso={d.expiry} /> },
           { key: "s", label: "Status", filterOptions: FO.docState, filter: (d) => docState(d), render: (d) => <span className="flex flex-col"><Status>{docState(d)}</Status>{d.status === "Rejected" && d.remark && <span className="max-w-[260px] whitespace-normal text-[11px] text-red-600">{d.remark}</span>}</span> },
           { key: "a", label: "", align: "right", render: (d) => ["Missing", "Expired", "Expiring", "Rejected"].includes(docState(d)) && <span onClick={stop}><Btn size="sm" icon={Icon.upload} onClick={() => setReup({ name: d.name, expiry: shiftDays(365), file: "", dataUrl: null })}>Upload</Btn></span> },
-        ]} /><div className="p-4"><InsurancePolicies v={v} portal locked={false} /></div></>}
+        ]} /></>}
         {tab === "help" && (
           <div className="grid grid-cols-[1fr_360px] gap-4 p-4">
             <Section title="My queries & disputes" icon={Icon.message}>

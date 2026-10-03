@@ -129,13 +129,11 @@ require('./lib')('merge', async ({ p, go, dlg, S, mut, T, pick, toastText }) => 
     return [`short reason disabled=${dis1}; past date disabled=${dis2} (${/must be in the future/.test(t)})`, dis1 && dis2 && /must be in the future/.test(t)];
   });
   await mut(`(s) => { s.vendors.find((y) => y.id === 'VEN-001').status = 'Draft'; }`);
-  await T('F-02', 'Insurance: an already-expired policy is refused', async () => {
-    await go('vendor-management/registry?open=VEN-001'); await p.waitForTimeout(300); await dlg().locator('[role=tab]:has-text("Documents")').click(); await p.waitForTimeout(150);
-    await btn('Add policy').first().click(); await p.waitForTimeout(150); const m = dlg();
-    await m.locator('label:has-text("Policy number") input').fill('WC/2020/1111'); await m.locator('label:has-text("Insurer") input').fill('ICICI Lombard'); await m.locator('label:has-text("Sum insured") input').fill('6000000');
-    await m.locator('label:has-text("Valid from") input').fill('2020-01-01'); await m.locator('label:has-text("Valid till") input').fill('2021-01-01'); await p.waitForTimeout(80);
-    const dis = await m.locator('button:has-text("Save policy")').isDisabled(); const t = await m.textContent(); await esc();
-    return [`save disabled=${dis}; ${(t.match(/Policy has already expired[^—]*/) || ['no msg'])[0]}`, dis && /already expired/.test(t)];
+  await T('F-02', 'Insurance is no longer collected: no Insurance card on the vendor record', async () => {
+    await go('vendor-management/registry?open=VEN-001'); await p.waitForTimeout(300); const t0 = await dlg().textContent();
+    await dlg().locator('[role=tab]:has-text("Documents")').click(); await p.waitForTimeout(150); const t1 = await dlg().textContent();
+    const n = (/Policy no\./.test(t0) ? 1 : 0) + await btn('Add policy').count() + (/Workmen Compensation insurance/.test(t1) ? 1 : 0);
+    return [`insurance items found: ${n}`, n === 0];
   });
   await mut(`(s) => { s.vendors.find((y) => y.id === 'VEN-001').status = 'Active'; }`);
   await T('F-03', 'Performance rating of 2 or below needs remarks', async () => {
