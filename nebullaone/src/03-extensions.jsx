@@ -25,6 +25,7 @@ const DEFAULT_SETTINGS = {
   // Configurable approval stages (Procurement Settings → Approval stages). Records already in
   // approval keep the stages they were submitted with; new submissions use these.
   // slaDays = days a stage has to decide; escalateTo = who is told when it is overdue
+  bankCoolingDays: 2,             // days payments wait after a bank account is changed on an approved vendor
   vendorFlow: [{ name: "Procurement", scope: "All", slaDays: 3, escalateTo: "Procurement Head" }, { name: "Legal", scope: "All", slaDays: 3, escalateTo: "Procurement Head" }, { name: "Finance", scope: "All", slaDays: 2, escalateTo: "Finance Controller" }],
   contractFlow: [{ name: "Legal Counsel", minValue: 0, slaDays: 3, escalateTo: "Procurement Head" }, { name: "Finance Controller", minValue: 0, slaDays: 2, escalateTo: "Finance Controller" }],
   // Vendor groups ("Parent › Child") for filtering and spend roll-up

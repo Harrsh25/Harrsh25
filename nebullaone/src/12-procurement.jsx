@@ -494,7 +494,8 @@ function paymentGate(st, inv) {
   const defB = v.bankAccounts.find((b) => b.isDefault);
   if (!defB) stops.push("No default bank account");
   else if (bankStatus(defB) === "Rejected") stops.push("Default bank account failed verification");
-  else if (bankStatus(defB) !== "Verified") warns.push("Default bank account not yet verified");
+  else if (bankStatus(defB) !== "Verified") stops.push("Default bank account not yet verified — verify it before paying");
+  else if (bankCooling(defB)) stops.push(`Bank account changed on ${fmtDate(defB.changedAt)} — payments held until ${fmtDate(defB.coolingUntil)} (cooling period)`);
   if (defB && defB.disabled) stops.push("Default bank account is disabled");
   else if (defB && defB.paymentsEnabled === false) stops.push("Payments are switched off for the default bank account");
   if (defB && isForeign(v) && !defB.allowIntl) warns.push("International payments not enabled on the default bank account");
@@ -567,7 +568,7 @@ function PayModal({ invIds, onClose }) {
           <Field label="Payment mode"><Select value={mode} onChange={setMode} options={PAY_MODES} /></Field>
           <Field label="Value date"><DateInput value={date} onChange={setDate} /><FieldErr m={dateErr} /></Field>
           <Field label="Company bank account (paid from)"><Select value={pd.paidFrom} onChange={(x) => setPd({ ...pd, paidFrom: x })} options={set0.companyBanks} /></Field>
-          <Field label="Vendor bank account (paid to)">{v0 ? <Select value={pd.vendorBank} placeholder="Default account" onChange={(x) => setPd({ ...pd, vendorBank: x })} options={vendorBankOptions(v0)} /> : <span className="flex h-[32px] items-center text-[12.5px] text-ink-mute">Each vendor's default account</span>}</Field>
+          <Field label="Vendor bank account (paid to)">{v0 ? <Select value={pd.vendorBank} placeholder="Default account" onChange={(x) => setPd({ ...pd, vendorBank: x })} options={vendorBankOptions(v0).filter((o) => bankPayable(v0.bankAccounts.find((a) => String(a.id) === o.value)))} /> : <span className="flex h-[32px] items-center text-[12.5px] text-ink-mute">Each vendor's default account</span>}</Field>
           <Field label={mode === "Cheque" ? "Cheque no." : "Reference / UTR no."} required={mode === "Cheque"}><TextInput value={pd.refNo} onChange={(x) => setPd({ ...pd, refNo: x })} placeholder={mode === "Cheque" ? "6-digit cheque no." : "Filled from the bank file if blank"} /></Field>
           <Field label={mode === "Cheque" ? "Cheque date" : "Reference date"} required={mode === "Cheque"}><DateInput value={pd.refDate} onChange={(x) => setPd({ ...pd, refDate: x })} /></Field>
           <Field label="Amount paid (₹)" hint={pd.received !== "" ? `Unallocated ${inr(unallocated)} — kept as an advance` : "Leave blank to pay exactly the bills"}><NumInput value={pd.received} onChange={(x) => setPd({ ...pd, received: x })} /></Field>
@@ -960,7 +961,8 @@ function ProcurementSettingsPage() {
         <Section title="Payment checks" icon={Icon.shieldCheck}>
           {mode("threeWayQty", "3-way match — quantity", "Billed quantity above accepted (GRN) quantity")}
           {mode("rateCheck", "Maintain same rate (PO → bill)", "Billed rate differs from PO rate")}
-          {mode("complianceGate", "Vendor compliance gate", "Expired insurance / missing statutory documents")}
+          {mode("complianceGate", "Vendor compliance gate", "Missing or expired statutory documents")}
+          <div className="grid grid-cols-[1fr_260px] items-center gap-4 border-b border-line px-4 py-3"><div><p className="text-[13px] font-medium">Bank change cooling period (days)</p><p className="text-[12px] text-ink-mute">After a bank account is verified or made default on an approved vendor, payments to it wait this long</p></div><NumInput value={f.bankCoolingDays} onChange={set("bankCoolingDays")} /></div>
           <div className="grid grid-cols-[1fr_260px] items-center gap-4 px-4 py-3"><div><p className="text-[13px] font-medium">Rate tolerance (%)</p><p className="text-[12px] text-ink-mute">Differences within this % count as a match</p></div><NumInput value={f.rateTolerancePct} onChange={set("rateTolerancePct")} /></div>
         </Section>
         <Section title="Ordering & vendor access" icon={Icon.package}>

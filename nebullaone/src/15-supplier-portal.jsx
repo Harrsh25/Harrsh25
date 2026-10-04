@@ -353,7 +353,7 @@ function applyForm(x, f, { lockBank } = {}) {
   if (x.contractor || f.isContractor || hasType(f, "Labor")) x.contractor = { ...f.contractor };
   if (!lockBank && f.bank.account) {
     const cur = x.bankAccounts.find((b) => b.account === f.bank.account);
-    if (!cur) { x.bankAccounts.forEach((b) => (b.isDefault = false)); x.bankAccounts.push({ id: Date.now(), ...f.bank, isDefault: true }); }
+    if (!cur) { x.bankAccounts.forEach((b) => (b.isDefault = false)); x.bankAccounts.push({ id: Date.now(), ...f.bank, accountConfirm: undefined, status: "Unverified", addedAt: todayISO(), isDefault: true }); }
   }
   for (const [name, u] of Object.entries(f.uploads || {})) if (u.file) {
     let d = x.docs.find((dd) => dd.name === name);

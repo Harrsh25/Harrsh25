@@ -25,6 +25,9 @@ require('./lib')('final', async ({ p, go, dlg, S, mut, as, T, pick, toastText })
       await m.locator('label:has-text("Policy number") input').fill('WC/2026/55120'); await m.locator('label:has-text("Insurer") input').fill('ICICI Lombard'); await m.locator('label:has-text("Sum insured") input').fill('6000000');
       await m.locator('button:has-text("Save policy")').click(); await p.waitForTimeout(150); }
     for (let i = 0; i < 20; i++) { const b = dlg().locator('button:has-text("Verify")').first(); if (!(await b.count())) break; await b.click(); await p.waitForTimeout(80); }
+    // …then the bank account (an unverified default account stops payment)
+    await dlg().locator('[role=tab]:has-text("Bank")').click(); await p.waitForTimeout(150);
+    for (let i = 0; i < 5; i++) { const b = dlg().locator('button:has-text("Verify")').first(); if (!(await b.count())) break; await b.click(); await p.waitForTimeout(80); }
   };
   const qualify = async (id, answers) => {
     await go('vendor-management/approvals?open=' + id); await p.waitForTimeout(300); await dlg().locator('[role=tab]:has-text("Qualification")').click(); await p.waitForTimeout(150);

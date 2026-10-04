@@ -441,10 +441,11 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
         <fieldset disabled={locked} className="m-0 min-w-0 space-y-4 border-0 p-0">
           {tab === "overview" && <VendorContactsAddresses v={v} locked={locked || approving} />}
           {tab === "docs" && <VendorDocs v={v} mode={mode} locked={locked} />}
-          {tab === "bank" && <VendorBanks v={v} locked={locked} approving={approving} />}
           {tab === "qual" && <Questionnaire v={v} />}
           {tab === "equip" && <EquipmentRegister v={v} locked={locked} approving={approving} />}
         </fieldset>
+        {/* bank details of an approved vendor are not edited — a change is requested, verified, then made default (cooling period applies) */}
+        {tab === "bank" && <div className="space-y-4"><VendorBanks v={v} locked={locked} approving={approving} control={locked && mode === "registry" && !!lifeStatus(v)} /><BankHistory v={v} /></div>}
         {tab === "approval" && <><VendorApproval v={v} mode={mode} /><VendorActivity v={v} /></>}
       </div>
       </ListMode.Provider>
@@ -629,7 +630,22 @@ function VendorDocs({ v, mode = "registry", locked }) {
   );
 }
 
-function VendorBanks({ v, locked, approving }) {
+// Every change to a vendor's bank details, from the audit log (added, verified, rejected, default changed, settings, removed)
+function BankHistory({ v }) {
+  const st = useStore();
+  const rows = (st.audit || []).filter((a) => a.entity === "Vendor" && a.id === v.id && /bank/i.test(a.action || "")).map((a, i) => ({ ...a, k: i }));
+  return (
+    <Section title="Bank change history" icon={Icon.clock}>
+      <DataTable dense plain rows={rows} rowKey={(r) => r.k} empty={<p className="p-4 text-[13px] text-ink-mute">No bank changes recorded yet.</p>} columns={[
+        { key: "at", label: "When", render: (r) => fmtDateTime(r.at) },
+        { key: "by", label: "By" },
+        { key: "action", label: "Change", render: (r) => <span className="text-[12.5px]">{r.action}</span> },
+      ]} />
+    </Section>
+  );
+}
+function VendorBanks({ v, locked: locked0, approving, control }) {
+  const locked = locked0 && !control;
   const blank = { holder: "", bank: "", account: "", accountConfirm: "", ifsc: "", swift: "", iban: "", accountType: "Current", currency: v.currency || "INR", branch: "", allowIntl: isForeign(v), paymentsEnabled: true, notes: "" };
   const [f, setF] = y.useState(blank), [tried, setTried] = y.useState(false), [rej, setRej] = y.useState(null), [del, setDel] = y.useState(null);
   const mut = (fn, action) => setState((s) => fn(byId(s.vendors, v.id)), { entity: "Vendor", id: v.id, action });
@@ -639,16 +655,19 @@ function VendorBanks({ v, locked, approving }) {
   { const k = acctKey(f), o = k.length > 6 && getState().vendors.find((z) => z.id !== v.id && (z.bankAccounts || []).some((b) => acctKey(b) === k)); if (o) er.account = `This bank account is already registered to ${o.name} (${o.id})`; }
   const [ed, setEd] = y.useState(null), [adding, setAdding] = y.useState(false);
   const tail = (a) => "••" + String(a.account).slice(-4);
+  const live = !!lifeStatus(v), notice = v.contact?.email ? ` — change confirmation sent to ${v.contact.email}` : "";
+  const cool = () => (live ? { changedAt: new Date().toISOString(), coolingUntil: coolingDate() } : {});
+  const makeDefault = (a) => mut((x) => x.bankAccounts.forEach((o) => { o.isDefault = o.id === a.id; if (o.id === a.id) Object.assign(o, cool()); }), `Default bank changed to ${a.bank} ${tail(a)}${live && coolingDate() ? ` — payments held until ${fmtDate(coolingDate())}${notice}` : ""}`);
   const verify = (a) => {
     const ok = nameMatch(a.holder || v.legalName, v);
     mut((x) => Object.assign(x.bankAccounts.find((o) => o.id === a.id), ok
-      ? { status: "Verified", remark: "", verifiedBy: currentUser(), verifiedAt: new Date().toISOString(), method: "Penny drop — name matched" }
+      ? { status: "Verified", remark: "", verifiedBy: currentUser(), verifiedAt: new Date().toISOString(), method: "Penny drop — name matched", ...(a.isDefault ? cool() : {}) }
       : { status: "Rejected", remark: `Penny drop: beneficiary name does not match “${v.legalName || v.name}”`, verifiedBy: currentUser(), verifiedAt: new Date().toISOString(), method: "Penny drop" }),
-      ok ? `Bank account ${tail(a)} verified (penny drop)` : `Bank account ${tail(a)} failed verification — name mismatch`);
+      ok ? `Bank account ${tail(a)} verified (penny drop)${a.isDefault && live && coolingDate() ? ` — payments held until ${fmtDate(coolingDate())}${notice}` : ""}` : `Bank account ${tail(a)} failed verification — name mismatch`);
     toast(ok ? "Bank account verified" : "Verification failed — holder name mismatch", ok ? "green" : "red");
   };
   return (
-    <Section title="Bank accounts" icon={Icon.wallet} actions={!locked && !approving && !adding && <Btn size="sm" variant="primary" icon={Icon.plus} onClick={() => setAdding(true)}>Add bank account</Btn>}>
+    <Section title="Bank accounts" icon={Icon.wallet} actions={!locked && !approving && !adding && <Btn size="sm" variant="primary" icon={Icon.plus} onClick={() => setAdding(true)}>{control ? "Request bank change" : "Add bank account"}</Btn>}>
       <DataTable dense rows={v.bankAccounts} empty={<p className="p-4 text-[13px] text-ink-mute">No bank account on file — payments are blocked until one is added.</p>}
         columns={[
           { key: "holder", label: "Account holder", render: (a) => a.holder || <span className="text-ink-mute">—</span> },
@@ -657,6 +676,7 @@ function VendorBanks({ v, locked, approving }) {
           { key: "ty", label: "Type · currency", render: (a) => <span className="flex flex-col text-[12px]"><span>{a.accountType || "Current"} · {a.currency || v.currency || "INR"}</span>{a.iban && <span className="mono text-ink-mute">IBAN {a.iban}</span>}{a.branch && <span className="text-ink-mute">{a.branch}</span>}</span> },
           { key: "fl", label: "Settings", render: (a) => <span className="flex flex-wrap gap-1">{a.disabled ? <Status tone="gray">Disabled</Status> : a.paymentsEnabled === false ? <Status tone="amber">Payments off</Status> : <Status tone="green">Payments on</Status>}{a.allowIntl && <Status tone="blue">International</Status>}</span> },
           { key: "st", label: "Verification", render: (a) => <span title={a.remark || undefined}><Status tone={{ Verified: "green", Rejected: "red" }[bankStatus(a)] || "amber"}>{bankStatus(a)}</Status></span> },
+          { key: "pay", label: "Payments", render: (a) => (bankCooling(a) ? <span title={`Changed ${fmtDate(a.changedAt)}`}><Status tone="amber">{`Held till ${fmtDate(a.coolingUntil)}`}</Status></span> : bankPayable(a) ? <Status tone="green">Can pay</Status> : <Status tone="gray">Blocked</Status>) },
           { key: "von", label: "Verified on", render: (a) => (a.verifiedAt ? <span title={[a.verifiedBy, a.method].filter(Boolean).join(" · ") || undefined}>{fmtDate(a.verifiedAt)}</span> : <span className="text-ink-mute">—</span>) },
           { key: "d", label: "", align: "right", render: (a) => !locked && (approving ? (
             <span className="flex justify-end gap-1">
@@ -666,12 +686,12 @@ function VendorBanks({ v, locked, approving }) {
             <span className="flex justify-end gap-1">
               {bankStatus(a) !== "Verified" && <Btn size="sm" variant="success" onClick={() => verify(a)}>Verify</Btn>}
               {bankStatus(a) === "Unverified" && <Btn size="sm" variant="danger" onClick={() => setRej({ a, reason: "" })}>Reject</Btn>}
-              {a.isDefault ? <Status tone="green">Default</Status> : <Btn size="sm" disabled={bankStatus(a) === "Rejected"} title={bankStatus(a) === "Rejected" ? "A rejected account can't be the default" : ""} onClick={() => mut((x) => x.bankAccounts.forEach((o) => (o.isDefault = o.id === a.id)), `Default bank set to ${a.bank} ${tail(a)}`)}>Make default</Btn>}
-              <Btn size="sm" icon={Icon.sliders} onClick={() => setEd({ ...a })}>Settings</Btn>
-              <Btn size="sm" onClick={() => setDel(a)}>Remove</Btn>
+              {a.isDefault ? <Status tone="green">Default</Status> : <Btn size="sm" disabled={bankStatus(a) !== "Verified" || a.disabled} title={bankStatus(a) !== "Verified" ? "Verify the account before making it the default" : a.disabled ? "Disabled account" : ""} onClick={() => makeDefault(a)}>Make default</Btn>}
+              {!control && <Btn size="sm" icon={Icon.sliders} onClick={() => setEd({ ...a })}>Settings</Btn>}
+              {!control && <Btn size="sm" onClick={() => setDel(a)}>Remove</Btn>}
             </span>) },
         ]} />
-      {v.bankAccounts.some((a) => a.isDefault && bankStatus(a) !== "Verified") && <div className="border-t border-line px-4 py-2"><Note tone="amber">The default account is not verified — payments show a warning until it is verified.</Note></div>}
+      {v.bankAccounts.some((a) => a.isDefault && bankStatus(a) !== "Verified") && <div className="border-t border-line px-4 py-2"><Note tone="amber">The default account is not verified — payments are blocked until it is verified.</Note></div>}
       {!locked && !approving && adding && <>
       <div className="grid grid-cols-[1.2fr_1fr_1fr_140px_auto] items-start gap-3 border-t border-line p-4">
         <Field label="Account holder name" hint="Exactly as in bank records"><TextInput value={f.holder} onChange={(x) => setF({ ...f, holder: x })} placeholder={v.legalName} />{tried && <FieldErr m={er.holder} />}</Field>
@@ -681,8 +701,8 @@ function VendorBanks({ v, locked, approving }) {
           : <Field label="IFSC"><TextInput value={f.ifsc} onChange={(x) => setF({ ...f, ifsc: x.toUpperCase() })} maxLength={11} />{(tried || f.ifsc) && <FieldErr m={er.ifsc} />}</Field>}
         <div className="pt-[22px]"><Btn variant="primary" icon={Icon.plus} onClick={() => {
           setTried(true); if (VX.any(er)) return;
-          mut((x) => x.bankAccounts.push({ id: Date.now(), ...f, account: f.account.replace(/\s/g, ""), status: "Unverified", addedAt: todayISO(), isDefault: x.bankAccounts.length === 0 }), `Bank account added (${f.bank} ••${f.account.slice(-4)}) — pending verification`);
-          toast("Bank account added — verify it before payments"); setF(blank); setTried(false); setAdding(false);
+          mut((x) => x.bankAccounts.push({ id: Date.now(), ...f, accountConfirm: undefined, account: f.account.replace(/\s/g, ""), status: "Unverified", addedAt: todayISO(), isDefault: x.bankAccounts.length === 0, ...(control ? { requestedBy: currentUser() } : {}) }), `${control ? "Bank change requested" : "Bank account added"} (${f.bank} ••${f.account.slice(-4)}) — pending verification`);
+          toast(control ? "Bank change requested — verify it, then make it the default" : "Bank account added — verify it before payments"); setF(blank); setTried(false); setAdding(false);
         }}>Add</Btn></div>
       </div>
       <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr] items-start gap-3 px-4 pb-4">

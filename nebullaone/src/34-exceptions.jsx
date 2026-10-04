@@ -9,6 +9,7 @@ function exceptionRows(st) {
     const c = complianceOf(v);
     if (c.status === "Non-Compliant") add("Compliance failing", c.blocking.length ? "High" : "Medium", "Vendor", v.id, v.name, c.issues.join(" · "), null, `${VM_BASE}/registry?open=${v.id}`);
     for (const b of v.bankAccounts || []) if (b.isDefault && bankStatus(b) !== "Verified") add("Default bank account not verified", "High", "Vendor", v.id, v.name, `${b.bank || "Bank"} ••${String(b.account).slice(-4)} — ${bankStatus(b)}`, b.addedAt, `${VM_BASE}/registry?open=${v.id}`);
+    for (const b of v.bankAccounts || []) if (b.isDefault && bankCooling(b)) add("Bank account changed — payments held", "Medium", "Vendor", v.id, v.name, `${b.bank || "Bank"} ••${String(b.account).slice(-4)} changed ${fmtDate(b.changedAt)} — cooling period until ${fmtDate(b.coolingUntil)}`, b.changedAt, `${VM_BASE}/registry?open=${v.id}`);
   }
   for (const v of st.vendors.filter((x) => x.status === "Pending Approval")) {
     const hints = duplicateHints(v); if (hints.length) add("Possible duplicate supplier", "High", "Vendor", v.id, v.name, hints.join(" · "), v.createdAt, `${VM_BASE}/approvals?open=${v.id}`);

@@ -52,6 +52,11 @@ const isForeign = (v) => (v.country || "India") !== "India";
 
 // ---------------------------------------------------------------- bank accounts
 const bankStatus = (a) => a.status || (a.verifiedAt ? "Verified" : "Unverified");
+// Bank-account change control: on an approved vendor, a newly verified or newly default account is held for a
+// cooling period (Procurement Settings) before money can go to it, and the vendor's contact is told of the change.
+const bankCooling = (a) => (a && a.coolingUntil && daysUntil(a.coolingUntil) > 0 ? a.coolingUntil : null);
+const bankPayable = (a) => !!a && !a.disabled && a.paymentsEnabled !== false && bankStatus(a) === "Verified" && !bankCooling(a);
+const coolingDate = (st) => { const n = Number(settingsOf(st || getState()).bankCoolingDays); return n > 0 ? new Date(Date.now() + n * DAY).toISOString().slice(0, 10) : null; };
 // Penny-drop simulation: the beneficiary name returned by the bank must match the vendor's legal / trade name
 const nameMatch = (holder, v) => {
   const n = (s) => String(s || "").toUpperCase().replace(/\b(PVT|PRIVATE|LTD|LIMITED|LLP|CO|COMPANY|THE|AND|&)\b/g, "").replace(/[^A-Z0-9]/g, "");
