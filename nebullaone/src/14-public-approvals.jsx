@@ -193,7 +193,7 @@ function approvalRows(st, module) {
   if (module === "Purchase Orders")
     return st.purchaseOrders.filter((p) => p.status === "Draft").map((p) => ({
       ref: p.id, title: `${vendorName(st, p.vendorId)} — ${p.lines.length} line(s)`, sub: `${p.project}${p.rfqId ? ` · from ${p.rfqId}` : ""}`, by: "Procurement", date: fmtDate(p.date),
-      level: "L1 / 1 · Procurement head", status: "Pending", extra: inrShort(poValue(p)),
+      level: (() => { const a = poApprovalState(p, st); return `L${a.i + 1} / ${a.levels.length} · ${a.next?.level || "Procurement Head"}`; })(), status: "Pending", extra: inrShort(poValue(p)),
       approve: (r) => decidePo(p, true, r), reject: (r) => decidePo(p, false, r), note: p.awardNote,
     }));
   if (module === "Spend Authorization")
@@ -257,7 +257,7 @@ function ApprovalManagementPage() {
       {!module ? <EmptyState icon={Icon.shieldCheck} title="Select a module" text="Approvals are grouped by the module they come from. Pick one from the selector above to load its queue." />
         : rows.length === 0 ? <EmptyState icon={Icon.folderCheck} title="Nothing to approve" text={`There are no ${module} items waiting in your queue.`} />
         : (
-          <DataTable noun="items" rows={rows} rowKey={(r) => r.ref} defaultCols={rows.some((r) => r.sla) ? ["ref", "title", "level", "sla", "status"] : undefined} onRow={(r) => r.open && setOpen(r.open)} columns={[
+          <DataTable noun="items" rows={rows} rowKey={(r) => r.ref} defaultCols={["ref", "title", "level", rows.some((r) => r.sla) ? "sla" : "date", "status"]} onRow={(r) => r.open && setOpen(r.open)} columns={[
             { key: "ref", label: "Reference", className: "mono text-[12px]" },
             { key: "title", label: "Title", render: (r) => <span className="flex flex-col"><span className="font-medium">{r.title}</span>{r.sub && <span className="text-[11.5px] text-ink-mute">{r.sub}</span>}</span> },
             ...(isNew ? [{ key: "extra", label: "Details", className: "text-[12px] text-ink-soft" }] : []),

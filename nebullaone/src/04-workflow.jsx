@@ -164,20 +164,35 @@ function sourcingGate(st, v, what) {
 }
 
 // ---------------------------------------------------------------- PO approval (one place for drawer + Approval Management)
+// Approval limits (delegation of authority): each level approves up to its limit; a PO above it also needs the next level
+const DEFAULT_PO_LIMITS = [{ level: "Procurement Head", upTo: 5000000 }, { level: "Finance Controller", upTo: 50000000 }, { level: "Managing Director", upTo: "" }];
+function poLevels(value, st) {
+  const L = (settingsOf(st || getState()).poApprovalLimits || DEFAULT_PO_LIMITS).filter((l) => l.level), out = [];
+  for (const l of L) { out.push(l); if (l.upTo === "" || l.upTo == null || value <= Number(l.upTo)) break; }
+  return out;
+}
+function poApprovalState(p, st) {
+  const levels = poLevels(poValue(p), st), done = p.approvals || [];
+  return { levels, done, next: levels[done.length] || null, i: done.length };
+}
 function decidePo(p, approve, remark) {
   if (p.status !== "Draft") return false;
-  if (!tryAct("Procurement Head", [p.revisions?.[0]?.by, p.awardBy], "PO approval")) return false;
+  const a = poApprovalState(p), lvl = a.next?.level || "Procurement Head";
+  if (!tryAct(lvl, [p.revisions?.[0]?.by, p.awardBy, ...a.done.map((d) => d.by)], "PO approval")) return false;
   if (!approve && !(remark || "").trim()) { toast("A reason is required to reject", "red"); return false; }
   if (approve) {
     const v = byId(getState().vendors, p.vendorId);
     if (!v || !eligibleForPo(v)) { toast(`${v ? v.name : p.vendorId} can't receive a PO (${v ? `${v.status}, ${v.regTier}` : "missing"})`, "red"); return false; }
   }
+  const last = a.i + 1 >= a.levels.length, val = poValue(p);
   setState((s) => {
     const x = byId(s.purchaseOrders, p.id);
-    x.status = approve ? "Issued" : "Cancelled";
-    x.approval = { by: currentUser(), at: new Date().toISOString(), decision: approve ? "Approved" : "Rejected", remark: remark || "" };
-  }, { entity: "PO", id: p.id, action: approve ? "Approved & issued" : `Rejected — ${remark}` });
-  toast(approve ? `${p.id} approved & issued` : `${p.id} rejected`, approve ? "green" : "red");
+    if (approve) x.approvals = [...(x.approvals || []), { level: lvl, by: currentUser(), at: new Date().toISOString(), remark: remark || "" }];
+    if (!approve) x.status = "Cancelled";
+    else if (last) x.status = "Issued";
+    if (!approve || last) x.approval = { by: currentUser(), at: new Date().toISOString(), decision: approve ? "Approved" : "Rejected", remark: remark || "", levels: a.levels.map((l) => l.level) };
+  }, { entity: "PO", id: p.id, action: !approve ? `Rejected by ${lvl} — ${remark}` : last ? `Approved by ${lvl} & issued${a.levels.length > 1 ? ` (${a.levels.length} levels for ${inrShort(val)})` : ""}` : `Approved by ${lvl} (limit ${inrShort(Number(a.next.upTo))}) — ${a.levels[a.i + 1].level} approves next (PO ${inrShort(val)})` });
+  toast(!approve ? `${p.id} rejected` : last ? `${p.id} approved & issued` : `${lvl} approved — above ${inrShort(Number(a.next.upTo))}, ${a.levels[a.i + 1].level} approves next`, approve ? "green" : "red");
   return true;
 }
 

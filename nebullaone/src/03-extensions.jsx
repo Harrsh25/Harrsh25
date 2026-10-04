@@ -26,7 +26,9 @@ const DEFAULT_SETTINGS = {
   // approval keep the stages they were submitted with; new submissions use these.
   // slaDays = days a stage has to decide; escalateTo = who is told when it is overdue
   bankCoolingDays: 2,
-  maxSubcontractPct: 40,          // a main contractor may sublet at most this % of the contract value             // days payments wait after a bank account is changed on an approved vendor
+  maxSubcontractPct: 40,
+  // PO approval limits by level (delegation of authority); blank = no limit
+  poApprovalLimits: [{ level: "Procurement Head", upTo: 5000000 }, { level: "Finance Controller", upTo: 50000000 }, { level: "Managing Director", upTo: "" }],          // a main contractor may sublet at most this % of the contract value             // days payments wait after a bank account is changed on an approved vendor
   vendorFlow: [{ name: "Procurement", scope: "All", slaDays: 3, escalateTo: "Procurement Head" }, { name: "Legal", scope: "All", slaDays: 3, escalateTo: "Procurement Head" }, { name: "Finance", scope: "All", slaDays: 2, escalateTo: "Finance Controller" }],
   contractFlow: [{ name: "Legal Counsel", minValue: 0, slaDays: 3, escalateTo: "Procurement Head" }, { name: "Finance Controller", minValue: 0, slaDays: 2, escalateTo: "Finance Controller" }],
   // Vendor groups ("Parent › Child") for filtering and spend roll-up

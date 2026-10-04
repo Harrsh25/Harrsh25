@@ -426,7 +426,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
     { id: "bank", label: "Bank" },
     { id: "qual", label: "Qualification" },
     ...(v.isContractor || hasType(v, "Labor") ? [{ id: "equip", label: "Equipment" }] : []),
-    ...(lifeStatus(v) ? [{ id: "risk", label: "Risk" }] : []),
+    ...(lifeStatus(v) ? [{ id: "v360", label: "Vendor 360" }, { id: "risk", label: "Risk" }] : []),
     { id: "approval", label: "Approvals" },
   ];
   return (
@@ -449,6 +449,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
         </fieldset>
         {/* bank details of an approved vendor are not edited — a change is requested, verified, approved by Finance, then switches after the cooling period */}
         {tab === "bank" && <div className="space-y-4"><VendorBanks v={v} locked={locked} approving={approving} control={locked && mode === "registry" && !!lifeStatus(v)} /><BankHistory v={v} /></div>}
+        {tab === "v360" && <Vendor360 v={v} />}
         {tab === "risk" && <VendorRiskTab v={v} canAct={mode === "registry"} />}
         {tab === "approval" && <><VendorApproval v={v} mode={mode} /><VendorActivity v={v} /></>}
       </div>

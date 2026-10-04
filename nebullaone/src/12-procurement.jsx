@@ -269,7 +269,7 @@ function PoDrawer({ id, onClose }) {
   return (
     <Drawer open related={relatedFor(st, "po", po)} comments={po.id} onClose={onClose} width={940} title={v.name} recordId={po.id} status={<Status>{status}</Status>} details={[["Billing", <Status tone="blue">{bstatus}</Status>], ["Project", po.project], ["Delivery by", fmtDate(po.deliveryDate)], po.rfqId && ["From RFQ", <RefLink to={`${VM_BASE}/rfq?open=${po.rfqId}`}>{po.rfqId}</RefLink>], po.blanketId && ["Call-off of", po.blanketId], po.quoteNo && ["Vendor quote", po.quoteNo]]}
       actions={<>
-        {po.status === "Draft" && <><Btn variant="danger" onClick={() => setAsk("reject")}>Reject</Btn><Btn variant="primary" onClick={() => decidePo(po, true)}>Approve & issue</Btn></>}
+        {po.status === "Draft" && <><Btn variant="danger" onClick={() => setAsk("reject")}>Reject</Btn><Btn variant="primary" onClick={() => decidePo(po, true)}>{poApprovalState(po, st).levels.length - poApprovalState(po, st).i > 1 ? `Approve as ${poApprovalState(po, st).next?.level}` : "Approve & issue"}</Btn></>}
         {/* Cancel while nothing is received or billed; close (short-close) once part is received and no more is expected */}
         {["Issued"].includes(status) && !st.invoices.some((i) => i.poId === po.id && !i.cancelled) && <Btn variant="danger" onClick={() => setAsk("cancel")}>Cancel PO</Btn>}
         {status === "Partially Received" && <Btn onClick={() => setAsk("close")}>Close (short-close)</Btn>}
@@ -285,6 +285,7 @@ function PoDrawer({ id, onClose }) {
       {ask === "close" && <ReasonModal title={`Close ${po.id}`} text="The quantity not yet received is no longer expected. What was received can still be billed." action="Close PO" tone="primary" onClose={() => setAsk(null)}
         onDone={(r) => { setState((s) => { const x = byId(s.purchaseOrders, po.id); x.status = "Closed"; x.closed = { at: new Date().toISOString(), by: currentUser(), reason: r }; }, { entity: "PO", id: po.id, action: `Closed (short-close) — ${r}` }); toast(`${po.id} closed`); }} />}
       <div className="space-y-4 px-6 py-5">
+        {po.status === "Draft" && (() => { const a = poApprovalState(po, st); return <Note icon={Icon.clipboardCheck}>Approval by value ({inrShort(poValue(po))}): {a.levels.map((l, i) => `${l.level}${a.done[i] ? ` ✓ ${a.done[i].by}` : i === a.i ? " — pending" : ""}`).join(" → ")}</Note>; })()}
         {(po.reminders || []).length > 0 && <Note icon={Icon.mail}>Receipt reminder sent to the vendor {fmtDateTime(po.reminders[po.reminders.length - 1].at)}{po.reminders[po.reminders.length - 1].auto ? ` (automatic, ${reminderDays(st, v)} days before delivery)` : ""}.</Note>}
         <div className="grid grid-cols-4 gap-3">
           <StatTile tone="blue" label="PO value" value={inrShort(poValue(po))} sub="excl. GST" icon={Icon.package} />
@@ -948,7 +949,7 @@ function ProcurementSettingsPage() {
   );
   return (
     <Page title="Procurement Settings" subtitle="Which checks stop a transaction, which only warn, and who may override — like ERPNext Buying Settings" icon={Icon.settings}
-      actions={<Btn variant="primary" icon={Icon.save} onClick={() => { const e = flowErr(f.vendorFlow, "Vendor") || flowErr(f.contractFlow, "Contract") || benchSettingsErr(f); if (e) return toast(e, "red"); setState((s) => (s.settings = { ...f }), { entity: "Settings", id: "PROCUREMENT", action: `Procurement settings updated — vendor stages ${f.vendorFlow.map((x) => x.name).join(" → ")}; contract stages ${f.contractFlow.map((x) => x.name).join(" → ")}` }); toast("Settings saved"); }}>Save settings</Btn>}>
+      actions={<Btn variant="primary" icon={Icon.save} onClick={() => { const e = flowErr(f.vendorFlow, "Vendor") || flowErr(f.contractFlow, "Contract") || poLimitsErr(f.poApprovalLimits || DEFAULT_PO_LIMITS) || benchSettingsErr(f); if (e) return toast(e, "red"); setState((s) => (s.settings = { ...f }), { entity: "Settings", id: "PROCUREMENT", action: `Procurement settings updated — vendor stages ${f.vendorFlow.map((x) => x.name).join(" → ")}; contract stages ${f.contractFlow.map((x) => x.name).join(" → ")}` }); toast("Settings saved"); }}>Save settings</Btn>}>
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "rules", label: "Rules", icon: Icon.sliders }, { id: "gates", label: "Gates & approvals", icon: Icon.clipboardCheck }, { id: "masters", label: "Masters", icon: Icon.layers }, { id: "templates", label: "Templates", icon: Icon.file }]} />
       <div className="grid grid-cols-2 gap-4 p-4">
         {tab === "rules" && <>
@@ -983,6 +984,7 @@ function ProcurementSettingsPage() {
           <div className="grid grid-cols-[1fr_260px] items-center gap-4 border-b border-line px-4 py-3"><div><p className="text-[13px] font-medium">Maximum sublet (% of contract value)</p><p className="text-[12px] text-ink-mute">A main contractor can't sublet more than this; every subcontractor needs approval</p></div><NumInput value={f.maxSubcontractPct} onChange={set("maxSubcontractPct")} /></div>
           {yesNo("qcBeforeBilling", "Quality inspection before RA billing", "Only measurements with a passed inspection can be billed")}
         </Section>
+        <PoLimitsEditor rows={f.poApprovalLimits || DEFAULT_PO_LIMITS} onChange={set("poApprovalLimits")} />
         <FlowEditor title="Vendor approval stages" hint="Each registration is routed through these stages in order. Records already in approval keep their stages."
           rows={f.vendorFlow} onChange={set("vendorFlow")} extra={{ key: "scope", label: "Applies to", options: ["All", "Contractors", "Non-contractors"], blank: "All" }} />
         <FlowEditor title="Contract approval stages" hint="A stage with a minimum value only applies to contracts at or above it. The last stage also checks the contractor gates."
@@ -1008,6 +1010,34 @@ function ProcurementSettingsPage() {
 }
 
 // Approval stage list: add, rename, reorder, remove — at least one stage, names unique
+function poLimitsErr(rows) {
+  if (!rows || !rows.length) return "PO approval limits need at least one level";
+  if (rows.some((r) => !(r.level || "").trim())) return "Every approval level needs a name";
+  const lim = rows.slice(0, -1).map((r) => Number(r.upTo));
+  if (lim.some((x) => !(x > 0))) return "Every level except the last needs a limit above zero";
+  if (lim.some((x, i) => i > 0 && x <= lim[i - 1])) return "Approval limits must go up level by level";
+  return "";
+}
+function PoLimitsEditor({ rows, onChange }) {
+  const upd = (i, patch) => onChange(rows.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+  const err = poLimitsErr(rows);
+  return (
+    <Section title="PO approval limits (delegation of authority)" icon={Icon.scale} actions={<Btn size="sm" icon={Icon.plus} onClick={() => onChange([...rows.slice(0, -1), { level: "", upTo: "" }, rows[rows.length - 1]])}>Add level</Btn>}>
+      <p className="border-b border-line px-4 py-2 text-[12px] text-ink-mute">Each level approves purchase orders up to its limit. A larger PO is approved level by level until it reaches a level whose limit covers it. Leave the last level's limit blank for no limit.</p>
+      <div className="divide-y divide-line">
+        {rows.map((r, i) => (
+          <div key={i} className="grid grid-cols-[28px_1fr_170px_auto] items-center gap-2 px-4 py-2">
+            <span className="num text-[12px] text-ink-mute">L{i + 1}</span>
+            <Select value={r.level} placeholder="Level" onChange={(x) => upd(i, { level: x })} options={[...new Set([...ROLES, "Managing Director", r.level].filter(Boolean))]} />
+            <NumInput value={r.upTo} onChange={(x) => upd(i, { upTo: x })} placeholder={i === rows.length - 1 ? "No limit" : "Up to (₹)"} aria-label="Approval limit" />
+            <Btn size="sm" variant="danger" disabled={rows.length <= 1} onClick={() => onChange(rows.filter((_, j) => j !== i))}>Remove</Btn>
+          </div>
+        ))}
+      </div>
+      <p className="border-t border-line px-4 py-2 text-[12px]">{err ? <span className="text-red-600">{err}</span> : <span className="text-ink-soft">{rows.map((r, i) => `${r.level} ${i === rows.length - 1 && (r.upTo === "" || r.upTo == null) ? "(no limit)" : `≤ ${inrShort(Number(r.upTo))}`}`).join(" → ")}</span>}</p>
+    </Section>
+  );
+}
 function flowErr(rows, what) {
   if (!rows || !rows.length) return `${what} approval needs at least one stage`;
   if (rows.some((r) => !(r.name || "").trim())) return `${what} approval: every stage needs a name`;
