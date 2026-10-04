@@ -14,7 +14,7 @@ require('./lib')('final', async ({ p, go, dlg, S, mut, as, T, pick, toastText })
     await d.locator('button:has-text("Fill all details now")').click().catch(() => {}); await p.waitForTimeout(150); await d.locator('input').nth(0).fill(f.name); await d.locator('[role=combobox][aria-haspopup=listbox]:has-text("Select trades")').first().click(); await p.locator('[role=option]').filter({ hasText: f.trade }).first().click(); await d.locator('h2,h3').first().click();
     await d.locator('input[placeholder="27AAKCS4412M1Z3"]').fill(f.gst); await d.locator('input[placeholder="AAKCS4412M"]').fill(f.pan);
     await d.locator('label:has-text("Contact person") input').fill(f.contact); await d.locator('input[type=email]').fill(f.email);
-    await d.locator('label:has-text("Account holder name") input').fill(f.name); await d.locator('input[placeholder="e.g. HDFC Bank"]').fill('HDFC Bank'); await d.locator('label:has-text("Account no.") input').first().fill('50200011223344'); await d.locator('label:has-text("IFSC") input').fill('HDFC0000123');
+    await d.locator('label:has-text("Account holder name") input').fill(f.name); await d.locator('input[placeholder="e.g. HDFC Bank"]').fill('HDFC Bank'); await d.locator('label:has-text("Account no.") input').first().fill('5020' + f.pan.replace(/\D/g, '') + String(f.name.length).padStart(4, '0') + '01'); /* each party its own account — one bank account can belong to one vendor only */ await d.locator('label:has-text("IFSC") input').fill('HDFC0000123');
     await upAll(d); await d.locator('button:has-text("Submit for approval")').click(); await p.waitForTimeout(350);
     return V(f.name);
   };
