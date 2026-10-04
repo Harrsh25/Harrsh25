@@ -445,7 +445,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
           {tab === "qual" && <Questionnaire v={v} />}
           {tab === "equip" && <EquipmentRegister v={v} locked={locked} approving={approving} />}
         </fieldset>
-        {/* bank details of an approved vendor are not edited — a change is requested, verified, then made default (cooling period applies) */}
+        {/* bank details of an approved vendor are not edited — a change is requested, verified, approved by Finance, then switches after the cooling period */}
         {tab === "bank" && <div className="space-y-4"><VendorBanks v={v} locked={locked} approving={approving} control={locked && mode === "registry" && !!lifeStatus(v)} /><BankHistory v={v} /></div>}
         {tab === "risk" && <VendorRiskTab v={v} canAct={mode === "registry"} />}
         {tab === "approval" && <><VendorApproval v={v} mode={mode} /><VendorActivity v={v} /></>}
@@ -658,14 +658,20 @@ function VendorBanks({ v, locked: locked0, approving, control }) {
   const [ed, setEd] = y.useState(null), [adding, setAdding] = y.useState(false);
   const tail = (a) => "••" + String(a.account).slice(-4);
   const live = !!lifeStatus(v), notice = v.contact?.email ? ` — change confirmation sent to ${v.contact.email}` : "";
-  const cool = () => (live ? { changedAt: new Date().toISOString(), coolingUntil: coolingDate() } : {});
-  const makeDefault = (a) => mut((x) => x.bankAccounts.forEach((o) => { o.isDefault = o.id === a.id; if (o.id === a.id) Object.assign(o, cool()); }), `Default bank changed to ${a.bank} ${tail(a)}${live && coolingDate() ? ` — payments held until ${fmtDate(coolingDate())}${notice}` : ""}`);
+  const makeDefault = (a) => mut((x) => x.bankAccounts.forEach((o) => { o.isDefault = o.id === a.id; }), `Default bank set to ${a.bank} ${tail(a)}`);
+  // Finance approves a verified change; the old account stays the default until the cooling period ends
+  const approveChange = (a) => {
+    const on = coolingDate() || todayISO();
+    mut((x) => { const o = x.bankAccounts.find((b) => b.id === a.id); o.change = { ...o.change, status: "Approved", approvedBy: currentUser(), approvedAt: new Date().toISOString(), switchOn: on }; },
+      `Bank change approved by Finance — ${a.bank} ${tail(a)} becomes the default on ${fmtDate(on)}; payments go to the current account until then${notice}`);
+    toast(`Approved — switches on ${fmtDate(on)}`);
+  };
   const verify = (a) => {
     const ok = nameMatch(a.holder || v.legalName, v);
     mut((x) => Object.assign(x.bankAccounts.find((o) => o.id === a.id), ok
-      ? { status: "Verified", remark: "", verifiedBy: currentUser(), verifiedAt: new Date().toISOString(), method: "Penny drop — name matched", ...(a.isDefault ? cool() : {}) }
+      ? { status: "Verified", remark: "", verifiedBy: currentUser(), verifiedAt: new Date().toISOString(), method: "Penny drop — name matched" }
       : { status: "Rejected", remark: `Penny drop: beneficiary name does not match “${v.legalName || v.name}”`, verifiedBy: currentUser(), verifiedAt: new Date().toISOString(), method: "Penny drop" }),
-      ok ? `Bank account ${tail(a)} verified (penny drop)${a.isDefault && live && coolingDate() ? ` — payments held until ${fmtDate(coolingDate())}${notice}` : ""}` : `Bank account ${tail(a)} failed verification — name mismatch`);
+      ok ? `Bank account ${tail(a)} verified (penny drop)${a.change ? " — waiting for Finance approval of the change" : ""}` : `Bank account ${tail(a)} failed verification — name mismatch`);
     toast(ok ? "Bank account verified" : "Verification failed — holder name mismatch", ok ? "green" : "red");
   };
   return (
@@ -678,7 +684,10 @@ function VendorBanks({ v, locked: locked0, approving, control }) {
           { key: "ty", label: "Type · currency", render: (a) => <span className="flex flex-col text-[12px]"><span>{a.accountType || "Current"} · {a.currency || v.currency || "INR"}</span>{a.iban && <span className="mono text-ink-mute">IBAN {a.iban}</span>}{a.branch && <span className="text-ink-mute">{a.branch}</span>}</span> },
           { key: "fl", label: "Settings", render: (a) => <span className="flex flex-wrap gap-1">{a.disabled ? <Status tone="gray">Disabled</Status> : a.paymentsEnabled === false ? <Status tone="amber">Payments off</Status> : <Status tone="green">Payments on</Status>}{a.allowIntl && <Status tone="blue">International</Status>}</span> },
           { key: "st", label: "Verification", render: (a) => <span title={a.remark || undefined}><Status tone={{ Verified: "green", Rejected: "red" }[bankStatus(a)] || "amber"}>{bankStatus(a)}</Status></span> },
-          { key: "pay", label: "Payments", render: (a) => (bankCooling(a) ? <span title={`Changed ${fmtDate(a.changedAt)}`}><Status tone="amber">{`Held till ${fmtDate(a.coolingUntil)}`}</Status></span> : bankPayable(a) ? <Status tone="green">Can pay</Status> : <Status tone="gray">Blocked</Status>) },
+          { key: "pay", label: "Payments", render: (a) => (a.change?.status === "Requested" ? <Status tone="amber">{bankStatus(a) === "Verified" ? "Change — Finance approval" : "Change — verify first"}</Status>
+            : bankCooling(a) ? <span title={`Approved by ${a.change.approvedBy} on ${fmtDate(a.change.approvedAt)}`}><Status tone="amber">{`Becomes default ${fmtDate(a.change.switchOn)}`}</Status></span>
+            : a.replacedOn ? <Status tone="gray">{`Replaced ${fmtDate(a.replacedOn)}`}</Status>
+            : a.id === defaultBank(v)?.id && bankPayable(a) ? <Status tone="green">Paid to</Status> : bankPayable(a) ? <Status tone="green">Can pay</Status> : <Status tone="gray">Blocked</Status>) },
           { key: "von", label: "Verified on", render: (a) => (a.verifiedAt ? <span title={[a.verifiedBy, a.method].filter(Boolean).join(" · ") || undefined}>{fmtDate(a.verifiedAt)}</span> : <span className="text-ink-mute">—</span>) },
           { key: "d", label: "", align: "right", render: (a) => !locked && (approving ? (
             <span className="flex justify-end gap-1">
@@ -688,11 +697,13 @@ function VendorBanks({ v, locked: locked0, approving, control }) {
             <span className="flex justify-end gap-1">
               {bankStatus(a) !== "Verified" && <Btn size="sm" variant="success" onClick={() => verify(a)}>Verify</Btn>}
               {bankStatus(a) === "Unverified" && <Btn size="sm" variant="danger" onClick={() => setRej({ a, reason: "" })}>Reject</Btn>}
-              {a.isDefault ? <Status tone="green">Default</Status> : <Btn size="sm" disabled={bankStatus(a) !== "Verified" || a.disabled} title={bankStatus(a) !== "Verified" ? "Verify the account before making it the default" : a.disabled ? "Disabled account" : ""} onClick={() => makeDefault(a)}>Make default</Btn>}
+              {a.change?.status === "Requested" && bankStatus(a) === "Verified" && <Btn size="sm" variant="primary" onClick={() => approveChange(a)}>Approve change (Finance)</Btn>}
+              {a.isDefault ? <Status tone="green">Default</Status> : !control && <Btn size="sm" disabled={bankStatus(a) !== "Verified" || a.disabled} title={bankStatus(a) !== "Verified" ? "Verify the account before making it the default" : a.disabled ? "Disabled account" : ""} onClick={() => makeDefault(a)}>Make default</Btn>}
               {!control && <Btn size="sm" icon={Icon.sliders} onClick={() => setEd({ ...a })}>Settings</Btn>}
               {!control && <Btn size="sm" onClick={() => setDel(a)}>Remove</Btn>}
             </span>) },
         ]} />
+      {control && <div className="border-t border-line px-4 py-2 text-[12px] text-ink-mute">Bank change: request → verify (penny drop) → Finance approval → cooling period ({settingsOf(getState()).bankCoolingDays || 0} days) while the current account keeps getting paid → new account becomes the default. Old accounts stay in the history.</div>}
       {v.bankAccounts.some((a) => a.isDefault && bankStatus(a) !== "Verified") && <div className="border-t border-line px-4 py-2"><Note tone="amber">The default account is not verified — payments are blocked until it is verified.</Note></div>}
       {!locked && !approving && adding && <>
       <div className="grid grid-cols-[1.2fr_1fr_1fr_140px_auto] items-start gap-3 border-t border-line p-4">
@@ -703,8 +714,8 @@ function VendorBanks({ v, locked: locked0, approving, control }) {
           : <Field label="IFSC"><TextInput value={f.ifsc} onChange={(x) => setF({ ...f, ifsc: x.toUpperCase() })} maxLength={11} />{(tried || f.ifsc) && <FieldErr m={er.ifsc} />}</Field>}
         <div className="pt-[22px]"><Btn variant="primary" icon={Icon.plus} onClick={() => {
           setTried(true); if (VX.any(er)) return;
-          mut((x) => x.bankAccounts.push({ id: Date.now(), ...f, accountConfirm: undefined, account: f.account.replace(/\s/g, ""), status: "Unverified", addedAt: todayISO(), isDefault: x.bankAccounts.length === 0, ...(control ? { requestedBy: currentUser() } : {}) }), `${control ? "Bank change requested" : "Bank account added"} (${f.bank} ••${f.account.slice(-4)}) — pending verification`);
-          toast(control ? "Bank change requested — verify it, then make it the default" : "Bank account added — verify it before payments"); setF(blank); setTried(false); setAdding(false);
+          mut((x) => x.bankAccounts.push({ id: Date.now(), ...f, accountConfirm: undefined, account: f.account.replace(/\s/g, ""), status: "Unverified", addedAt: todayISO(), isDefault: x.bankAccounts.length === 0, ...(control ? { change: { status: "Requested", requestedBy: currentUser(), requestedAt: new Date().toISOString() } } : {}) }), `${control ? "Bank change requested" : "Bank account added"} (${f.bank} ••${f.account.slice(-4)}) — pending verification`);
+          toast(control ? "Bank change requested — verify it, then Finance approves; the current account stays the default until the cooling period ends" : "Bank account added — verify it before payments"); setF(blank); setTried(false); setAdding(false);
         }}>Add</Btn></div>
       </div>
       <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr] items-start gap-3 px-4 pb-4">

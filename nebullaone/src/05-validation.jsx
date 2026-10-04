@@ -52,10 +52,25 @@ const isForeign = (v) => (v.country || "India") !== "India";
 
 // ---------------------------------------------------------------- bank accounts
 const bankStatus = (a) => a.status || (a.verifiedAt ? "Verified" : "Unverified");
-// Bank-account change control: on an approved vendor, a newly verified or newly default account is held for a
-// cooling period (Procurement Settings) before money can go to it, and the vendor's contact is told of the change.
-const bankCooling = (a) => (a && a.coolingUntil && daysUntil(a.coolingUntil) > 0 ? a.coolingUntil : null);
-const bankPayable = (a) => !!a && !a.disabled && a.paymentsEnabled !== false && bankStatus(a) === "Verified" && !bankCooling(a);
+// Bank-account change control on an approved vendor: change requested → penny-drop verification → Finance approval →
+// cooling period (Procurement Settings) while the OLD account stays the default and keeps getting paid → the new account
+// becomes the default on the switch date; the old one is kept (replaced) in the history. The vendor's contact is told.
+const bankCooling = (a) => (a && a.change && a.change.status === "Approved" && a.change.switchOn && a.change.switchOn > todayISO() ? a.change.switchOn : null);
+const bankChangePending = (a) => !!(a && a.change && ["Requested", "Approved"].includes(a.change.status));
+// The account payments go to today (an approved change takes over on its switch date)
+const defaultBank = (v) => { const acc = v?.bankAccounts || []; return acc.find((b) => b.change?.status === "Approved" && b.change.switchOn && b.change.switchOn <= todayISO()) || acc.find((b) => b.isDefault); };
+const bankPayable = (a) => !!a && !a.disabled && a.paymentsEnabled !== false && bankStatus(a) === "Verified" && !bankChangePending(a);
+// Make the switch permanent once its date has come (run when the store loads)
+function applyBankSwitches(s) {
+  let n = 0;
+  for (const v of s.vendors || []) for (const b of v.bankAccounts || []) if (b.change?.status === "Approved" && b.change.switchOn && b.change.switchOn <= todayISO()) {
+    v.bankAccounts.forEach((o) => { if (o.isDefault && o.id !== b.id) Object.assign(o, { isDefault: false, replacedOn: b.change.switchOn }); });
+    b.isDefault = true; b.change = { ...b.change, status: "Switched" };
+    (s.audit = s.audit || []).unshift({ at: new Date().toISOString(), by: "System", entity: "Vendor", id: v.id, action: `Bank change completed — ${b.bank} ••${String(b.account).slice(-4)} is now the default bank account (cooling period ended)` });
+    n++;
+  }
+  return n;
+}
 const coolingDate = (st) => { const n = Number(settingsOf(st || getState()).bankCoolingDays); return n > 0 ? new Date(Date.now() + n * DAY).toISOString().slice(0, 10) : null; };
 // Penny-drop simulation: the beneficiary name returned by the bank must match the vendor's legal / trade name
 const nameMatch = (holder, v) => {

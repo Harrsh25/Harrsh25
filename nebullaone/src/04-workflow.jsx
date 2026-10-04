@@ -429,7 +429,7 @@ const receiptReminderDue = (st, po) => {
   return d > 0 && ["Issued", "Partially Received"].includes(poStatus(po)) && daysUntil(po.deliveryDate) >= 0 && daysUntil(po.deliveryDate) <= d && !(po.reminders || []).some((r) => r.for === po.deliveryDate);
 };
 function sweepState(s) {
-  let changed = false;
+  let changed = applyBankSwitches(s) > 0;
   for (const po of s.purchaseOrders || []) {
     if (receiptReminderDue(s, po)) {
       po.reminders = [...(po.reminders || []), { at: new Date().toISOString(), for: po.deliveryDate, auto: true }];

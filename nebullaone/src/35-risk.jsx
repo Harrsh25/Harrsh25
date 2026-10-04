@@ -29,42 +29,58 @@ function vendorRisk(st, v) {
   const spend = (id) => sum(st.purchaseOrders.filter((p) => p.vendorId === id && poStatus(p) !== "Cancelled"), poValue) + sum(st.contracts.filter((k) => k.vendorId === id && !["Draft", "Rejected"].includes(k.status)), contractValue);
   const total = sum(st.vendors, (x) => spend(x.id)), share = total ? spend(v.id) / total : 0;
   if (share > 0.3) add("Dependency", 10, `${Math.round(share * 100)}% of all ordered and contracted spend`);
-  const defB = (v.bankAccounts || []).find((b) => b.isDefault);
+  const defB = defaultBank(v);
   if (lifeStatus(v) && (!defB || bankStatus(defB) !== "Verified")) add("Bank", 10, defB ? "Default bank account not verified" : "No default bank account");
-  else if (defB && bankCooling(defB)) add("Bank", 5, `Bank account changed ${fmtDate(defB.changedAt)}`);
+  else if ((v.bankAccounts || []).some(bankChangePending)) add("Bank", 5, "Bank account change in progress");
   // status
   if (v.status === "Blacklisted") add("Status", 40, "Blacklisted");
   else if (v.hold || v.status === "On Hold") add("Status", 15, `On hold${v.hold?.reason ? ` — ${v.hold.reason}` : ""}`);
   if (v.frozen) add("Status", 10, `Transactions frozen${v.freeze?.reason ? ` — ${v.freeze.reason}` : ""}`);
-  const dup = duplicateHints(v); if (dup.length) add("Identity", 10, `Possible duplicate: ${dup[0]}`);
+  const dup = duplicateHints(v); if (dup.length) add("Integrity", 10, `Possible duplicate: ${dup[0]}`);
+  // HSE — safety incidents and safety ratings
+  const rts = st.ratings.filter((x) => x.vendorId === v.id), inc = sum(rts, (x) => Number(x.incidents) || 0);
+  add("HSE", Math.min(15, inc * 5), `${inc} safety incident(s) reported`);
+  if (rts.length && sum(rts, (x) => x.safety) / rts.length < 3) add("HSE", 10, `Average safety rating ${(sum(rts, (x) => x.safety) / rts.length).toFixed(1)} / 5`);
+  // financial and legal — from the qualification answers and contract history
+  const ans = v.qualification?.answers || {};
+  if (ans.turnover != null && Number(ans.turnover) < 10) add("Financial", 10, `Annual turnover ₹${ans.turnover} Cr — thin for large work`);
+  if (/yes/i.test(String(ans.litigation || ""))) add("Legal", 10, "Pending litigation declared");
+  const term = st.contracts.filter((k) => k.vendorId === v.id && k.status === "Terminated").length;
+  add("Legal", Math.min(20, term * 15), `${term} contract(s) terminated`);
+  // geographic
+  if (isForeign(v)) add("Geographic", 5, `Foreign supplier (${v.country || "outside India"}) — currency and import risk`);
   const score = Math.min(100, sum(D, (d) => d.pts));
   const actions = v.riskActions || [];
   const open = actions.filter((a) => a.status !== "Done");
-  return { score, level: riskLevel(score), drivers: D.sort((a, b) => b.pts - a.pts), actions, open, overdue: open.filter((a) => a.due && a.due < today) };
+  // residual risk: a reason that has a risk action against it counts half (mitigation in place)
+  const covered = new Set(actions.map((a) => a.area).filter(Boolean));
+  const residual = Math.max(0, Math.round(score - sum(D.filter((d) => covered.has(d.area)), (d) => d.pts / 2)));
+  return { score, level: riskLevel(score), residual, residualLevel: riskLevel(residual), drivers: D.sort((a, b) => b.pts - a.pts), actions, open, overdue: open.filter((a) => a.due && a.due < today), history: v.riskHistory || [] };
 }
 const RiskBadge = ({ r }) => <span className="inline-flex items-center gap-1.5"><Status tone={r.level.tone}>{r.level.name}</Status><span className="num text-[12px] text-ink-mute">{r.score}</span></span>;
 
 // Risk tab in the vendor record
 function VendorRiskTab({ v, canAct }) {
   const st = useStore(), r = vendorRisk(st, v);
-  const blank = { title: "", owner: "", due: "" };
+  const blank = { title: "", owner: "", due: "", area: r.drivers[0]?.area || "" };
+  const snap = (x, note) => { const rr = vendorRisk(getState(), x); x.riskHistory = [{ at: new Date().toISOString(), by: currentUser(), score: rr.score, level: rr.level.name, residual: rr.residual, note }, ...(x.riskHistory || [])]; };
   const [f, setF] = y.useState(null), [tried, setTried] = y.useState(false);
   const er = f ? { title: f.title.trim().length < 4 ? "Describe the action" : "", owner: f.owner ? "" : "Pick an owner", due: !f.due ? "Pick a due date" : f.due < todayISO() ? "Due date can't be in the past" : "" } : {};
   const save = () => {
     setTried(true); if (Object.values(er).some(Boolean)) return;
-    setState((s) => { const x = byId(s.vendors, v.id); x.riskActions = [...(x.riskActions || []), { id: Date.now(), title: f.title.trim(), owner: f.owner, due: f.due, status: "Open", by: currentUser(), at: new Date().toISOString(), level: r.level.name, score: r.score }]; },
+    setState((s) => { const x = byId(s.vendors, v.id); x.riskActions = [...(x.riskActions || []), { id: Date.now(), title: f.title.trim(), area: f.area, owner: f.owner, due: f.due, status: "Open", by: currentUser(), at: new Date().toISOString(), level: r.level.name, score: r.score }]; snap(x, `Action added: ${f.title.trim()}`); },
       { entity: "Vendor", id: v.id, action: `Risk action added — ${f.title.trim()} (owner ${f.owner}, due ${fmtDate(f.due)}); risk ${r.level.name} ${r.score}` });
     toast("Risk action added"); setF(null); setTried(false);
   };
   const close = (a) => {
-    setState((s) => Object.assign(byId(s.vendors, v.id).riskActions.find((x) => x.id === a.id), { status: "Done", closedBy: currentUser(), closedAt: new Date().toISOString() }), { entity: "Vendor", id: v.id, action: `Risk action closed — ${a.title}` });
+    setState((s) => { const x = byId(s.vendors, v.id); Object.assign(x.riskActions.find((o) => o.id === a.id), { status: "Done", closedBy: currentUser(), closedAt: new Date().toISOString() }); snap(x, `Action closed: ${a.title}`); }, { entity: "Vendor", id: v.id, action: `Risk action closed — ${a.title}` });
     toast("Risk action closed");
   };
   return (
     <>
       <div className="grid grid-cols-4 gap-3">
         <StatTile tone={r.level.tone} label="Risk level" value={r.level.name} sub={`score ${r.score} / 100`} icon={Icon.alert} />
-        <StatTile tone="blue" label="Risk drivers" value={r.drivers.length} sub="reasons found" icon={Icon.listChecks} />
+        <StatTile tone={r.residualLevel.tone} label="Residual risk" value={r.residualLevel.name} sub={`score ${r.residual} after actions`} icon={Icon.shieldCheck} />
         <StatTile tone="amber" label="Open actions" value={r.open.length} sub={`${r.actions.length - r.open.length} done`} icon={Icon.clipboardList} />
         <StatTile tone={r.overdue.length ? "red" : "green"} label="Overdue actions" value={r.overdue.length} sub="past due date" icon={Icon.clock} />
       </div>
@@ -79,19 +95,29 @@ function VendorRiskTab({ v, canAct }) {
       <Section title="Risk actions" icon={Icon.clipboardList} actions={canAct && !f && <Btn size="sm" variant="primary" icon={Icon.plus} onClick={() => setF(blank)}>Add risk action</Btn>}>
         <DataTable dense plain rows={r.actions} empty={<p className="p-4 text-[13px] text-ink-mute">No risk actions yet.</p>} columns={[
           { key: "title", label: "Action", className: "font-medium" },
+          { key: "area", label: "Reduces", render: (a) => a.area || "—" },
           { key: "owner", label: "Owner" },
           { key: "due", label: "Due", render: (a) => (a.status !== "Done" && a.due < todayISO() ? <span className="text-red-600">{fmtDate(a.due)} · overdue</span> : fmtDate(a.due)) },
           { key: "status", label: "Status", render: (a) => <Status tone={a.status === "Done" ? "green" : a.due < todayISO() ? "red" : "amber"}>{a.status === "Done" ? `Done ${fmtDate(a.closedAt)}` : a.status}</Status> },
           { key: "act", label: "", align: "right", render: (a) => canAct && a.status !== "Done" && <Btn size="sm" variant="success" onClick={() => close(a)}>Mark done</Btn> },
         ]} />
         {f && (
-          <div className="grid grid-cols-[1.6fr_1fr_160px_auto] items-start gap-3 border-t border-line p-4">
+          <div className="grid grid-cols-[1.5fr_130px_1fr_150px_auto] items-start gap-3 border-t border-line p-4">
             <Field label="Action" required><TextInput value={f.title} onChange={(x) => setF({ ...f, title: x })} placeholder="e.g. Get the renewed labour licence" />{tried && <FieldErr m={er.title} />}</Field>
+            <Field label="Reduces"><Select value={f.area} onChange={(x) => setF({ ...f, area: x })} options={[...new Set([...r.drivers.map((d) => d.area), "Compliance", "Financial", "Legal", "HSE", "Quality", "Delivery", "Performance", "Dependency", "Geographic", "Integrity", "Bank"])]} /></Field>
             <Field label="Owner" required><Select value={f.owner} onChange={(x) => setF({ ...f, owner: x })} options={ROLES} placeholder="Select" />{tried && <FieldErr m={er.owner} />}</Field>
             <Field label="Due" required><DateInput value={f.due} onChange={(x) => setF({ ...f, due: x })} />{tried && <FieldErr m={er.due} />}</Field>
             <div className="flex gap-2 pt-[22px]"><Btn onClick={() => { setF(null); setTried(false); }}>Cancel</Btn><Btn variant="primary" onClick={save}>Add</Btn></div>
           </div>
         )}
+      </Section>
+      <Section title="Risk history" icon={Icon.clock} actions={canAct && <Btn size="sm" onClick={() => { setState((s) => snap(byId(s.vendors, v.id), "Periodic risk review"), { entity: "Vendor", id: v.id, action: `Risk reviewed — ${r.level.name} ${r.score}, residual ${r.residual}` }); toast("Risk review recorded"); }}>Record review</Btn>}>
+        <DataTable dense plain rows={r.history.map((h0, i) => ({ ...h0, id: i }))} empty={<p className="p-4 text-[13px] text-ink-mute">No reviews recorded yet — the score is shown live above.</p>} columns={[
+          { key: "at", label: "When", render: (h0) => fmtDateTime(h0.at) },
+          { key: "level", label: "Risk", render: (h0) => <span className="inline-flex items-center gap-1.5"><Status tone={riskLevel(h0.score).tone}>{h0.level}</Status><span className="num text-[12px] text-ink-mute">{h0.score}</span></span> },
+          { key: "residual", label: "Residual", render: (h0) => <span className="num">{h0.residual}</span> },
+          { key: "note", label: "Event" }, { key: "by", label: "By" },
+        ]} />
       </Section>
     </>
   );

@@ -9,7 +9,8 @@ function exceptionRows(st) {
     const c = complianceOf(v);
     if (c.status === "Non-Compliant") add("Compliance failing", c.blocking.length ? "High" : "Medium", "Vendor", v.id, v.name, c.issues.join(" · "), null, `${VM_BASE}/registry?open=${v.id}`);
     for (const b of v.bankAccounts || []) if (b.isDefault && bankStatus(b) !== "Verified") add("Default bank account not verified", "High", "Vendor", v.id, v.name, `${b.bank || "Bank"} ••${String(b.account).slice(-4)} — ${bankStatus(b)}`, b.addedAt, `${VM_BASE}/registry?open=${v.id}`);
-    for (const b of v.bankAccounts || []) if (b.isDefault && bankCooling(b)) add("Bank account changed — payments held", "Medium", "Vendor", v.id, v.name, `${b.bank || "Bank"} ••${String(b.account).slice(-4)} changed ${fmtDate(b.changedAt)} — cooling period until ${fmtDate(b.coolingUntil)}`, b.changedAt, `${VM_BASE}/registry?open=${v.id}`);
+    for (const b of v.bankAccounts || []) if (b.change?.status === "Requested") add("Bank change waiting", "Medium", "Vendor", v.id, v.name, `${b.bank || "Bank"} ••${String(b.account).slice(-4)} — ${bankStatus(b) === "Verified" ? "verified, waiting for Finance approval" : "waiting for penny-drop verification"}`, (b.change.requestedAt || "").slice(0, 10), `${VM_BASE}/registry?open=${v.id}&tab=bank`);
+      else if (bankCooling(b)) add("Bank change in cooling period", "Low", "Vendor", v.id, v.name, `${b.bank || "Bank"} ••${String(b.account).slice(-4)} becomes the default on ${fmtDate(b.change.switchOn)} — current account paid until then`, null, `${VM_BASE}/registry?open=${v.id}&tab=bank`);
   }
   for (const v of st.vendors) {
     if (!lifeStatus(v)) continue;

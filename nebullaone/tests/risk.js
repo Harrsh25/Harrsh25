@@ -43,4 +43,10 @@ require('./lib')('risk', async ({ p, go, dlg, S, mut, T, pick }) => {
     const sc = (t) => Number((t.match(/score (\d+)/) || [])[1]);
     return [`score ${sc(before)} → ${sc(after)}`, sc(after) < sc(before)];
   });
+  await T('RK-07', 'Residual risk shown; every action and review is kept in the risk history', async () => {
+    await go(`vendor-management/registry?open=${VID}&tab=risk`); await p.waitForTimeout(300);
+    await dlg().locator('button:has-text("Record review")').click(); await p.waitForTimeout(200);
+    const t = await dlg().innerText(); const h = (await S()).vendors.find((x) => x.id === VID).riskHistory || [];
+    return [`residual tile ${/Residual risk/.test(t)}; history ${h.map((x) => x.note).join(' | ')}`, /Residual risk/.test(t) && h.length >= 3 && /Periodic risk review/.test(h[0].note)];
+  });
 });
