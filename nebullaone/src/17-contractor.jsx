@@ -201,12 +201,13 @@ function AttendanceSheet({ vendorId, portal }) {
   const wos = st.workOrders.filter((w) => w.vendorId === vid && woAccepted(w) && ["Issued", "In Progress"].includes(w.status));
   const [woId, setWoId] = y.useState(wos[0]?.id || "");
   const [date, setDate] = y.useState(todayISO());
-  const workers = st.workers.filter((w) => w.vendorId === vid && w.active);
+  const workers = st.workers.filter((w) => w.vendorId === vid && w.active && !(w.exitOn && w.exitOn <= date));
+  const elig = (w) => workerIssues(w, date);
   const existing = st.attendance.filter((a) => a.date === date && a.woId === woId);
   const [rows, setRows] = y.useState({});
   y.useEffect(() => {
     const m = {};
-    for (const w of workers) { const e = existing.find((a) => a.workerId === w.id); m[w.id] = e ? { status: e.status, ot: e.ot, verified: e.verified } : { status: "P", ot: 0 }; }
+    for (const w of workers) { const e = existing.find((a) => a.workerId === w.id); m[w.id] = e ? { status: e.status, ot: e.ot, verified: e.verified } : { status: elig(w).eligible ? "P" : "A", ot: 0 }; }
     setRows(m);
   }, [vid, woId, date, st.attendance.length]);
   const [nw, setNw] = y.useState(null);
@@ -214,7 +215,7 @@ function AttendanceSheet({ vendorId, portal }) {
   const save = (verify) => {
     setState((s) => {
       s.attendance = s.attendance.filter((a) => !(a.date === date && a.woId === woId));
-      for (const w of workers) { const r = rows[w.id]; if (!r) continue; s.attendance.push({ date, woId, workerId: w.id, status: r.status, hours: r.status === "P" ? 8 : r.status === "H" ? 4 : 0, ot: Number(r.ot) || 0, rolledInto: null, source: portal ? "Contractor" : "Site", verified: verify || r.verified || false }); }
+      for (const w of workers) { const r0 = rows[w.id]; if (!r0) continue; const r = elig(w).eligible ? r0 : { ...r0, status: "A", ot: 0 }; s.attendance.push({ date, woId, workerId: w.id, status: r.status, hours: r.status === "P" ? 8 : r.status === "H" ? 4 : 0, ot: Number(r.ot) || 0, rolledInto: null, source: portal ? "Contractor" : "Site", verified: verify || r.verified || false }); }
     }, { entity: "Attendance", id: `${woId} ${date}`, action: `${portal ? "Submitted by contractor" : verify ? "Verified by site" : "Saved"} — ${Object.values(rows).filter((r) => r.status !== "A").length}/${workers.length} present` });
     toast(verify ? "Muster verified" : "Attendance saved");
   };
@@ -235,11 +236,11 @@ function AttendanceSheet({ vendorId, portal }) {
             <tbody>
               {workers.map((w) => (
                 <tr key={w.id}>
-                  <Td className="font-medium">{w.name}</Td><Td>{w.trade}</Td><Td className="mono text-[12px]">{w.gatePass}</Td>
+                  <Td className="font-medium">{w.name}{!elig(w).eligible && <span className="block text-[11px] font-normal text-red-600">Not allowed on site — {elig(w).block[0]}</span>}</Td><Td>{w.trade}</Td><Td className="mono text-[12px]">{w.gatePass}</Td>
                   <Td>
                     <span className="inline-flex gap-1">
                       {ATT_STATUS.map((o) => (
-                        <button key={o.v} disabled={locked} onClick={() => setRows({ ...rows, [w.id]: { ...rows[w.id], status: o.v } })}
+                        <button key={o.v} disabled={locked || (o.v !== "A" && !elig(w).eligible)} onClick={() => setRows({ ...rows, [w.id]: { ...rows[w.id], status: o.v } })}
                           className={cls("h-[26px] w-[34px] rounded-md border text-[12px] font-semibold", rows[w.id]?.status === o.v ? (o.v === "P" ? "border-green-600 bg-green-600 text-white" : o.v === "H" ? "border-amber-500 bg-amber-500 text-white" : "border-red-500 bg-red-500 text-white") : "border-line bg-white text-ink-soft")}
                           title={o.l}>{o.v}</button>
                       ))}

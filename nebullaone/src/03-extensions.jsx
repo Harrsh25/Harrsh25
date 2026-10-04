@@ -317,6 +317,7 @@ function extendSeed(s) {
   for (const [trade, skill, count] of trades) for (let i = 0; i < count; i++) {
     s.workers.push({ id: `WK-${String(++n).padStart(3, "0")}`, vendorId: "VEN-005", name: `${first[n % first.length]} ${last[n % last.length]}`, trade, skill, gatePass: `GP-${4200 + n}`, inductionOn: D(-100 + n), active: true, woId: "WO-005" });
   }
+  seedWorkerDetails(s);
   s.attendance = [];
   for (let d = -14; d <= -1; d++) {
     const date = D(d), dow = new Date(date).getDay();

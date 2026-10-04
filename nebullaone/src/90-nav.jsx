@@ -21,6 +21,7 @@ const NXV_PAGES = [
   { group: "Contract & Labor", base: CL_BASE, path: "onboarding", label: "Contractor Onboarding", icon: Icon.userPlus, el: OnboardingPage },
   { group: "Contract & Labor", base: CL_BASE, path: "contracts", label: "Contracts", icon: Icon.file, el: ContractsPage },
   { group: "Contract & Labor", base: CL_BASE, path: "work-orders", label: "Work Orders", icon: Icon.clipboardList, el: WorkOrdersPage },
+  { group: "Contract & Labor", base: CL_BASE, path: "workers", label: "Worker Master", icon: Icon.hardHat, el: WorkerMasterPage },
   { group: "Contract & Labor", base: CL_BASE, path: "attendance", label: "Labour Attendance", icon: Icon.users, el: LabourAttendancePage },
   { group: "Contract & Labor", base: CL_BASE, path: "measurement-book", label: "Measurement Book", icon: Icon.ruler, el: MeasurementBookPage },
   { group: "Contract & Labor", base: CL_BASE, path: "ra-bills", label: "RA Bills & Certification", icon: Icon.receipt, el: RaBillsPage },

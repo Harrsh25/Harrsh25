@@ -21,6 +21,15 @@ function exceptionRows(st) {
   for (const v of st.vendors.filter((x) => x.status === "Pending Approval")) {
     const hints = duplicateHints(v); if (hints.length) add("Possible duplicate supplier", "High", "Vendor", v.id, v.name, hints.join(" · "), v.createdAt, `${VM_BASE}/approvals?open=${v.id}`);
   }
+  // workers: not eligible for site, papers expiring, or marked present while not eligible
+  for (const w of st.workers || []) {
+    if (workerState(w) === "Exited" || w.active === false) continue;
+    const i = workerIssues(w), to = `${CL_BASE}/workers?open=${w.id}`;
+    if (i.block.length) add("Worker not eligible for site", "High", "Worker", w.id, `${w.name} · ${vendorName(st, w.vendorId)}`, i.block.join(" · "), null, to);
+    else if (i.warn.some((x) => /due/.test(x))) add("Worker papers expiring", "Low", "Worker", w.id, `${w.name} · ${vendorName(st, w.vendorId)}`, i.warn.filter((x) => /due/.test(x)).join(" · "), null, to);
+    const bad = st.attendance.filter((a) => a.workerId === w.id && a.status !== "A" && !workerIssues(w, a.date).eligible);
+    if (bad.length) add("Worker attended while not eligible", "Medium", "Worker", w.id, `${w.name} · ${vendorName(st, w.vendorId)}`, `${bad.length} day(s) present from ${fmtDate(bad.map((a) => a.date).sort()[0])} — ${workerIssues(w, bad[0].date).block[0]}`, bad.map((a) => a.date).sort()[0], to);
+  }
   for (const r of st.rfqs) if (r.status === "Sent" && r.dueDate && r.dueDate < today) add("RFQ quotes overdue", "Medium", "RFQ", r.id, r.title, `Quotes were due ${fmtDate(r.dueDate)} — none received`, r.dueDate, `${VM_BASE}/rfq?open=${r.id}`);
   for (const po of st.purchaseOrders) {
     const s = poStatus(po);
