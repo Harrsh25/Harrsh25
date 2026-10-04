@@ -980,6 +980,7 @@ function ProcurementSettingsPage() {
           {mode("requalGate", "Requalification after close-out", "A poor closing evaluation or a termination asks for requalification before the next RFQ, PO, contract or work order")}
           {yesNo("requireDocsOnSubmit", "Required documents before submitting a registration", "Approvers never receive an empty record")}
           {yesNo("mobilisationBeforeWo", "Mobilisation checklist before the first work order", "Contractor Onboarding → mobilisation checklist must be complete")}
+          <div className="grid grid-cols-[1fr_260px] items-center gap-4 border-b border-line px-4 py-3"><div><p className="text-[13px] font-medium">Maximum sublet (% of contract value)</p><p className="text-[12px] text-ink-mute">A main contractor can't sublet more than this; every subcontractor needs approval</p></div><NumInput value={f.maxSubcontractPct} onChange={set("maxSubcontractPct")} /></div>
           {yesNo("qcBeforeBilling", "Quality inspection before RA billing", "Only measurements with a passed inspection can be billed")}
         </Section>
         <FlowEditor title="Vendor approval stages" hint="Each registration is routed through these stages in order. Records already in approval keep their stages."

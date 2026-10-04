@@ -235,6 +235,7 @@ function ContractDrawer({ id, onClose }) {
           <StatTile tone="amber" label="Retention held" value={inrShort(led.retentionBalance)} sub={`adv. ${inrShort(led.advanceBalance)}`} icon={Icon.lock} />
         </div>
         <ContractExtrasView c={c} />
+        <SubcontractSection c={c} />
         <Section title="Terms" icon={Icon.scale}>
           <KV cols={4} items={[
             ["Start", fmtDate(c.start)], ["Completion", fmtDate(c.end)], ["Signed on", fmtDate(c.signedOn)], ["Owner", c.owner], ["Payment due", c.paymentDays !== undefined && c.paymentDays !== "" ? `${c.paymentDays} days after certification` : "—"], ["Termination notice", c.noticeDays !== undefined && c.noticeDays !== "" ? `${c.noticeDays} days` : "—"],

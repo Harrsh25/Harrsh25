@@ -20,6 +20,7 @@ const NXV_PAGES = [
   { group: "Contract & Labor", base: CL_BASE, path: "overview", label: "Overview", icon: Icon.grid, el: ContractOverviewPage },
   { group: "Contract & Labor", base: CL_BASE, path: "onboarding", label: "Contractor Onboarding", icon: Icon.userPlus, el: OnboardingPage },
   { group: "Contract & Labor", base: CL_BASE, path: "contracts", label: "Contracts", icon: Icon.file, el: ContractsPage },
+  { group: "Contract & Labor", base: CL_BASE, path: "subcontractors", label: "Subcontractors", icon: Icon.layers, el: SubcontractorsPage },
   { group: "Contract & Labor", base: CL_BASE, path: "work-orders", label: "Work Orders", icon: Icon.clipboardList, el: WorkOrdersPage },
   { group: "Contract & Labor", base: CL_BASE, path: "workers", label: "Worker Master", icon: Icon.hardHat, el: WorkerMasterPage },
   { group: "Contract & Labor", base: CL_BASE, path: "attendance", label: "Labour Attendance", icon: Icon.users, el: LabourAttendancePage },

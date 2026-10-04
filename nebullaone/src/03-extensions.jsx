@@ -25,7 +25,8 @@ const DEFAULT_SETTINGS = {
   // Configurable approval stages (Procurement Settings → Approval stages). Records already in
   // approval keep the stages they were submitted with; new submissions use these.
   // slaDays = days a stage has to decide; escalateTo = who is told when it is overdue
-  bankCoolingDays: 2,             // days payments wait after a bank account is changed on an approved vendor
+  bankCoolingDays: 2,
+  maxSubcontractPct: 40,          // a main contractor may sublet at most this % of the contract value             // days payments wait after a bank account is changed on an approved vendor
   vendorFlow: [{ name: "Procurement", scope: "All", slaDays: 3, escalateTo: "Procurement Head" }, { name: "Legal", scope: "All", slaDays: 3, escalateTo: "Procurement Head" }, { name: "Finance", scope: "All", slaDays: 2, escalateTo: "Finance Controller" }],
   contractFlow: [{ name: "Legal Counsel", minValue: 0, slaDays: 3, escalateTo: "Procurement Head" }, { name: "Finance Controller", minValue: 0, slaDays: 2, escalateTo: "Finance Controller" }],
   // Vendor groups ("Parent › Child") for filtering and spend roll-up
@@ -329,6 +330,12 @@ function extendSeed(s) {
   }
   // the old lump "September to date" muster entry is replaced by worker-wise attendance
   s.measurements = s.measurements.filter((m) => m.id !== "MB-031");
+  // Subcontracts: Shree Balaji has sublet excavation to Sai Earthmovers (approved) and proposed scaffolding to Rapid Scaffolding (on hold)
+  const c1 = s.contracts.find((c) => c.id === "CTR-001");
+  if (c1) c1.subcontracts = [
+    { id: "SUB-001", vendorId: "VEN-010", scope: "Excavation for footings F1–F40, Tower B", value: 4200000, start: c1.start, end: c1.end, status: "Approved", requestedBy: "Shree Balaji (portal)", requestedAt: ts(-40), decidedBy: "Rohan Kulkarni", decidedAt: ts(-38), remark: "" },
+    { id: "SUB-002", vendorId: "VEN-006", scope: "Scaffolding erection — Tower B façade", value: 1800000, start: c1.start, end: c1.end, status: "Proposed", requestedBy: "Shree Balaji (portal)", requestedAt: ts(-2) },
+  ];
   return s;
 }
 

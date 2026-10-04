@@ -20,6 +20,7 @@ function workerIssues(w, on = todayISO()) {
     if (c.validTill && c.validTill < on) block.push(`${c.name} expired ${fmtDate(c.validTill)}`);
     else if (c.validTill && daysUntil(c.validTill) <= 15) warn.push(`${c.name} due ${fmtDate(c.validTill)}`);
   }
+  if (w.subcontractId) { const sc = allSubs(getState()).find((x) => x.id === w.subcontractId); if (!sc || sc.status !== "Approved") block.push(`Subcontract ${w.subcontractId} is ${sc ? sc.status.toLowerCase() : "missing"}`); }
   if (!w.uan) warn.push("PF (UAN) not recorded");
   if (!w.esic) warn.push("ESI number not recorded");
   if (!w.idRef) warn.push("ID proof not recorded");
@@ -87,6 +88,8 @@ function WorkerForm({ w0, onClose }) {
         <Field label="Joining date"><DateInput value={f.joiningOn || ""} onChange={(x) => setF({ ...f, joiningOn: x })} /></Field>
         <Field label="Site / project"><TextInput value={f.site || ""} onChange={(x) => setF({ ...f, site: x })} placeholder="e.g. Skyline Towers — Phase 1" /></Field>
         <Field label="Work order"><Select value={f.woId || ""} placeholder="—" onChange={(x) => setF({ ...f, woId: x })} options={wos.map((x) => ({ value: x.id, label: `${x.id} — ${x.title}` }))} /></Field>
+        {(() => { const subs = st.contracts.filter((k) => k.vendorId === f.vendorId).flatMap(contractSubs).filter((x) => x.status === "Approved");
+          return <Field label="Employed by" hint="Subcontractor workers need an approved subcontract"><Select value={f.subcontractId || ""} onChange={(x) => setF({ ...f, subcontractId: x })} options={[{ value: "", label: "Main contractor" }, ...subs.map((x) => ({ value: x.id, label: `${vendorName(st, x.vendorId)} (${x.id})` }))]} /></Field>; })()}
         <Field label="Shift"><Select value={f.shift || "Day"} onChange={(x) => setF({ ...f, shift: x })} options={["Day", "Night", "General"]} /></Field>
       </div>
       <div className="mt-4 rounded-lg border border-line">
@@ -115,7 +118,7 @@ function WorkerDrawer({ id, onClose }) {
   const wo = byId(st.workOrders, w.woId);
   return (
     <Drawer open onClose={onClose} width={860} title={w.name} recordId={w.id} status={<Status tone={workerTone[state]}>{state}</Status>}
-      details={[["Contractor", vendorName(st, w.vendorId)], ["Trade", `${w.trade} · ${w.skill}`], ["Site / project", w.site || "—"], ["Work order", wo ? `${wo.id} — ${wo.title}` : "—"], ["Shift", w.shift || "—"], ["Gate pass", w.gatePass], ["Joining", fmtDate(w.joiningOn)], w.exitOn && ["Exit", `${fmtDate(w.exitOn)} — ${w.exitReason || ""}`]]}
+      details={[["Contractor", vendorName(st, w.vendorId)], w.subcontractId && ["Employed by", `${vendorName(st, allSubs(st).find((x) => x.id === w.subcontractId)?.vendorId)} (${w.subcontractId})`], ["Trade", `${w.trade} · ${w.skill}`], ["Site / project", w.site || "—"], ["Work order", wo ? `${wo.id} — ${wo.title}` : "—"], ["Shift", w.shift || "—"], ["Gate pass", w.gatePass], ["Joining", fmtDate(w.joiningOn)], w.exitOn && ["Exit", `${fmtDate(w.exitOn)} — ${w.exitReason || ""}`]]}
       actions={state !== "Exited" && <><Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit</Btn><Btn variant="danger" onClick={() => setExit({ on: todayISO(), reason: "" })}>Record exit</Btn></>}
       tabs={{ tabs: [{ id: "profile", label: "Profile" }, { id: "att", label: "Attendance" }], active: tab, onChange: setTab }}>
       <div className="space-y-4 px-6 py-4">

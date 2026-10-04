@@ -21,6 +21,12 @@ function exceptionRows(st) {
   for (const v of st.vendors.filter((x) => x.status === "Pending Approval")) {
     const hints = duplicateHints(v); if (hints.length) add("Possible duplicate supplier", "High", "Vendor", v.id, v.name, hints.join(" · "), v.createdAt, `${VM_BASE}/approvals?open=${v.id}`);
   }
+  // subcontracts waiting for approval, or approved but the subcontractor no longer passes the checks
+  for (const x of allSubs(st)) {
+    const to = `${CL_BASE}/contracts?open=${x.contract.id}`;
+    if (x.status === "Proposed") add("Subcontract waiting for approval", "Low", "Contract", x.contract.id, `${vendorName(st, x.vendorId)} under ${vendorName(st, x.contract.vendorId)}`, `${x.id} — ${x.scope} (${inrShort(x.value)})`, (x.requestedAt || "").slice(0, 10), to);
+    if (x.status === "Approved") { const b = subBlockers(st, x.contract, x); if (b.length) add("Subcontractor no longer eligible", "High", "Contract", x.contract.id, `${vendorName(st, x.vendorId)} under ${vendorName(st, x.contract.vendorId)}`, `${x.id} — ${b.join(" · ")}`, null, to); }
+  }
   // workers: not eligible for site, papers expiring, or marked present while not eligible
   for (const w of st.workers || []) {
     if (workerState(w) === "Exited" || w.active === false) continue;
