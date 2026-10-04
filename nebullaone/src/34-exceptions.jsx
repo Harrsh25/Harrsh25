@@ -32,6 +32,9 @@ function exceptionRows(st) {
   for (const w of st.workOrders) if (["Issued", "In Progress"].includes(w.status) && w.end && w.end < today) add("Work order overdue", "Medium", "Work Order", w.id, w.title, `Should have finished ${fmtDate(w.end)}`, w.end, `${CL_BASE}/work-orders?open=${w.id}`);
   for (const m of st.measurements) if (m.jms?.status === "Disputed") { const w = byId(st.workOrders, m.woId); add("Measurement disputed", "High", "Measurement", m.id, w ? w.title : m.woId, m.jms.remark || "Contractor and engineer don't agree on the quantity", m.date, `${CL_BASE}/measurement-book?open=${m.id}`); }
   for (const b of st.raBills) if (b.status === "Rejected") { const w = byId(st.workOrders, b.woId); add("RA bill rejected", "Medium", "RA Bill", b.id, w ? w.title : b.woId, b.rejection?.reason || b.remark || "Returned to the contractor", b.periodTo, `${CL_BASE}/ra-bills?open=${b.id}`); }
+  // approvals past their stage deadline (Procurement Settings → Approval stages)
+  for (const [kind, list, ent, to] of [["vendor", st.vendors, "Vendor", (x) => `${VM_BASE}/approvals?open=${x.id}`], ["contract", st.contracts, "Contract", (x) => `${CL_BASE}/contracts?open=${x.id}`]])
+    for (const x of list) { const c = approvalClock(x, kind, st); if (c && c.state === "Overdue") add("Approval overdue", c.escalated ? "High" : "Medium", ent, x.id, kind === "vendor" ? x.name : x.title, `${c.name} — decision was due ${fmtDate(c.due)} (${c.days}-day deadline)${c.escalated ? ` · escalated to ${c.escalated.to}` : ""}`, c.due, to(x)); }
   // Everything the Vendor and Contract & Labor overviews raise as an alert is an exception too (one place for all of it):
   // payment blocked, delayed / declined work orders, wage below minimum, joint measurements waiting > 7 days,
   // muster to verify, onboarding incomplete, retention due for release, approvals and documents waiting…
@@ -43,6 +46,7 @@ function exceptionRows(st) {
     const name = a.who || a.ref || "—";
     const twin = { "Delivery late": "PO delivery overdue", "Payment overdue": "Payment overdue", "Measurement disputed": "Measurement disputed", "RFQ past due — not awarded": "RFQ quotes overdue", "Compliance gap — payments held": "Compliance failing" }[a.title];
     if (twin && [...seen].some((k) => k.startsWith(twin + "|"))) continue;
+    if (/approval pending/i.test(a.title) && seen.has(`Approval overdue|${name}`)) continue;
     const key = `${a.title}|${name}|${a.detail}`; if (seen.has(key)) continue; seen.add(key);
     out.push({ key: `${key}|${out.length}`, type: a.title, sev: sevOf[a.sev] || "Low", entity: area(a.to), id: a.ref || name, name, detail: [a.detail, a.ref && a.ref !== name ? a.ref : ""].filter(Boolean).join(" · "), since: a.due && daysUntil(a.due) < 0 ? a.due : null, to: a.to });
   }

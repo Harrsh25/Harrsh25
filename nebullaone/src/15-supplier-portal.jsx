@@ -374,8 +374,8 @@ function RegistrationFix({ v }) {
       const x = byId(s.vendors, v.id);
       applyForm(x, f);
       const st2 = x.approval.stages.find((a) => a.status === "Changes Requested");
-      if (st2) Object.assign(st2, { status: "Pending", remark: "" });
-      else { const w = x.approval.stages.find((a) => a.status === "Waiting"); if (w) w.status = "Pending"; }
+      if (st2) Object.assign(st2, { status: "Pending", remark: "", since: new Date().toISOString(), escalated: null });
+      else { const w = x.approval.stages.find((a) => a.status === "Waiting"); if (w) Object.assign(w, { status: "Pending", since: new Date().toISOString() }); }
       x.changeRequest = cr ? { ...cr, resolvedAt: new Date().toISOString() } : null;
       x.status = "Pending Approval";
     }, { entity: "Vendor", id: v.id, action: "Vendor updated registration and resubmitted" });

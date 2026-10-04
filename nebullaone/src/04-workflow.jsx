@@ -237,7 +237,7 @@ function submitContract(c) {
   setState((s) => {
     const x = byId(s.contracts, c.id);
     x.status = "Pending Approval"; x.submittedBy = currentUser(); x.submittedAt = new Date().toISOString();
-    x.approval = { stages: flow.map((role, i) => ({ role, status: i === 0 ? "Pending" : "Waiting", by: null, at: null, remark: "" })) };
+    x.approval = { stages: flow.map((role, i) => ({ role, status: i === 0 ? "Pending" : "Waiting", by: null, at: null, remark: "", since: i === 0 ? x.submittedAt : null })) };
   }, { entity: "Contract", id: c.id, action: `Submitted for approval (${flow.join(" → ")})` });
   toast(`${c.id} submitted — ${flow[0]} approves next`);
   return true;
@@ -255,11 +255,62 @@ function decideContract(c, approve, remark) {
     const x = byId(s.contracts, c.id), sg = x.approval.stages[i];
     Object.assign(sg, { status: approve ? "Approved" : "Rejected", by: currentUser(), at: new Date().toISOString(), remark: remark || "" });
     if (!approve) x.status = "Rejected";
-    else if (i + 1 < x.approval.stages.length) x.approval.stages[i + 1].status = "Pending";
+    else if (i + 1 < x.approval.stages.length) Object.assign(x.approval.stages[i + 1], { status: "Pending", since: sg.at });
     else { x.status = "Approved"; x.approvedOn = todayISO(); }
   }, { entity: "Contract", id: c.id, action: `${approve ? "Approved" : "Rejected"} by ${stg.role}${remark ? ` — ${remark}` : ""}` });
   toast(approve ? (i + 1 < c.approval.stages.length ? `${stg.role} approved — ${c.approval.stages[i + 1].role} next` : `${c.id} approved — ready to sign`) : `${c.id} rejected — back to the owner`, approve ? "green" : "red");
   return true;
+}
+// ---------------------------------------------------------------- approval deadlines (SLA) and escalation
+// Each approval stage has a number of days to decide (Procurement Settings → Approval stages). The clock
+// starts when the stage becomes the pending one; past the deadline the record can be escalated.
+const SLA_DEFAULT = { vendor: 3, contract: 2 };
+const ESCALATE_DEFAULT = { vendor: "Procurement Head", contract: "Finance Controller" };
+function stageRule(kind, name, st) { return (settingsOf(st || getState())[kind === "vendor" ? "vendorFlow" : "contractFlow"] || []).find((x) => x.name === name) || {}; }
+function approvalClock(rec, kind, st) {
+  if (!rec || rec.status !== "Pending Approval") return null;
+  const stages = rec.approval?.stages || [], i = stages.findIndex((s) => s.status === "Pending");
+  if (i < 0) return null;
+  const s = stages[i], name = kind === "vendor" ? s.dept : s.role, rule = stageRule(kind, name, st);
+  const days = Number(rule.slaDays) > 0 ? Number(rule.slaDays) : SLA_DEFAULT[kind];
+  const since = s.since || (i > 0 && stages[i - 1].at) || rec.submittedAt || rec.createdAt;
+  const due = new Date(new Date(since).getTime() + days * DAY).toISOString().slice(0, 10);
+  const left = daysUntil(due);
+  return { i, stage: s, name, since, days, due, left, overdue: left < 0 ? -left : 0, state: left < 0 ? "Overdue" : left === 0 ? "Due today" : "On time", escalated: s.escalated || null, escalateTo: rule.escalateTo || ESCALATE_DEFAULT[kind] };
+}
+const slaTone = (c) => (!c ? undefined : c.state === "Overdue" ? "red" : c.state === "Due today" ? "amber" : "green");
+const slaText = (c) => (!c ? "—" : c.state === "Overdue" ? `Overdue ${c.overdue} day${c.overdue === 1 ? "" : "s"}` : c.state === "Due today" ? "Due today" : `Due in ${c.left} day${c.left === 1 ? "" : "s"}`);
+function escalateApproval(kind, rec, note) {
+  const c = approvalClock(rec, kind);
+  if (!c) return false;
+  setState((s) => {
+    const x = byId(kind === "vendor" ? s.vendors : s.contracts, rec.id);
+    x.approval.stages[c.i].escalated = { to: c.escalateTo, by: currentUser(), at: new Date().toISOString(), note: note || "" };
+  }, { entity: kind === "vendor" ? "Vendor" : "Contract", id: rec.id, action: `Approval escalated to ${c.escalateTo} — ${c.name} stage ${slaText(c).toLowerCase()} (deadline ${fmtDate(c.due)})${note ? ` — ${note}` : ""}` });
+  toast(`Escalated to ${c.escalateTo}`);
+  return true;
+}
+// Shown under the approval stepper: deadline, overdue state and the Escalate action
+function ApprovalDeadline({ rec, kind }) {
+  const st = useStore(), c = approvalClock(rec, kind, st);
+  const [open, setOpen] = y.useState(false), [note, setNote] = y.useState("");
+  if (!c) return null;
+  return (
+    <div className="flex items-center justify-between gap-3 border-t border-line px-4 py-2.5 text-[13px]" data-sla>
+      <span className="flex flex-wrap items-center gap-2">
+        <span className="text-ink-soft">{c.name} decision due <b className="font-medium text-ink">{fmtDate(c.due)}</b> ({c.days}-day deadline)</span>
+        <Status tone={slaTone(c)}>{slaText(c)}</Status>
+        {c.escalated && <span className="text-ink-soft">· Escalated to <b className="font-medium text-ink">{c.escalated.to}</b> by {c.escalated.by} on {fmtDate(c.escalated.at)}{c.escalated.note ? ` — ${c.escalated.note}` : ""}</span>}
+      </span>
+      {c.state === "Overdue" && !c.escalated && <Btn size="sm" icon={Icon.alert} onClick={() => setOpen(true)}>Escalate</Btn>}
+      {open && (
+        <Modal open width={480} title={`Escalate to ${c.escalateTo}`} onClose={() => setOpen(false)} footer={<><Btn onClick={() => setOpen(false)}>Cancel</Btn><Btn variant="primary" onClick={() => { if (escalateApproval(kind, rec, note.trim())) { setOpen(false); setNote(""); } }}>Escalate</Btn></>}>
+          <p className="mb-3 text-[13px] text-ink-soft">{c.name} has not decided on {rec.id} — {slaText(c).toLowerCase()} (deadline {fmtDate(c.due)}). {c.escalateTo} is told and the escalation is kept in the audit log.</p>
+          <Field label="Note (optional)"><TextArea rows={2} value={note} onChange={setNote} placeholder="e.g. Site mobilisation waits on this vendor" /></Field>
+        </Modal>
+      )}
+    </div>
+  );
 }
 // Guarantee status from its dates
 function bgStatus(g) {

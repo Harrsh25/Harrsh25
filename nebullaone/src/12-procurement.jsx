@@ -1011,6 +1011,7 @@ function flowErr(rows, what) {
   if (rows.some((r) => !(r.name || "").trim())) return `${what} approval: every stage needs a name`;
   const n = rows.map((r) => r.name.trim().toLowerCase());
   if (new Set(n).size !== n.length) return `${what} approval: stage names must be unique`;
+  if (rows.some((r) => r.slaDays != null && r.slaDays !== "" && !(Number(r.slaDays) >= 1))) return `${what} approval: a decision deadline must be at least 1 day`;
   if (rows.some((r) => r.minValue != null && r.minValue !== "" && !(Number(r.minValue) >= 0))) return `${what} approval: minimum value can't be negative`;
   if (what === "Vendor" && !rows.some((r) => (r.scope || "All") === "All") && !(rows.some((r) => r.scope === "Contractors") && rows.some((r) => r.scope === "Non-contractors"))) return "Vendor approval: every vendor must get at least one stage";
   if (what === "Contract" && !rows.some((r) => !(Number(r.minValue) > 0))) return "Contract approval: at least one stage must apply to every contract (minimum value 0)";
@@ -1019,17 +1020,22 @@ function flowErr(rows, what) {
 function FlowEditor({ title, hint, rows, onChange, extra }) {
   const upd = (i, patch) => onChange(rows.map((r, j) => (j === i ? { ...r, ...patch } : r)));
   const move = (i, d) => { const a = rows.slice(); const [x] = a.splice(i, 1); a.splice(i + d, 0, x); onChange(a); };
-  const err = flowErr(rows, title.startsWith("Vendor") ? "Vendor" : "Contract");
+  const err = flowErr(rows, title.startsWith("Vendor") ? "Vendor" : "Contract"), kind = title.startsWith("Vendor") ? "vendor" : "contract";
   return (
-    <Section title={title} icon={Icon.clipboardCheck} actions={<Btn size="sm" icon={Icon.plus} onClick={() => onChange([...rows, { name: "", [extra.key]: extra.blank }])}>Add stage</Btn>}>
-      <p className="border-b border-line px-4 py-2 text-[12px] text-ink-mute">{hint}</p>
+    <Section title={title} icon={Icon.clipboardCheck} actions={<Btn size="sm" icon={Icon.plus} onClick={() => onChange([...rows, { name: "", [extra.key]: extra.blank, slaDays: SLA_DEFAULT[kind] }])}>Add stage</Btn>}>
+      <p className="border-b border-line px-4 py-2 text-[12px] text-ink-mute">{hint} Each stage has a decision deadline in days; past it the record shows as overdue and can be escalated.</p>
+      <div className="grid grid-cols-[28px_1fr_150px_100px_170px_auto] gap-2 border-b border-line bg-gray-50 px-4 py-1.5 text-[11.5px] font-medium text-ink-mute">
+        <span /><span>Stage</span><span>{extra.label}</span><span>Deadline (days)</span><span>Escalate to</span><span />
+      </div>
       <div className="divide-y divide-line">
         {rows.map((r, i) => (
-          <div key={i} className="grid grid-cols-[28px_1fr_170px_auto] items-center gap-2 px-4 py-2">
+          <div key={i} className="grid grid-cols-[28px_1fr_150px_100px_170px_auto] items-center gap-2 px-4 py-2">
             <span className="num text-[12px] text-ink-mute">L{i + 1}</span>
             <TextInput value={r.name} onChange={(x) => upd(i, { name: x })} placeholder="Stage name (e.g. Legal)" />
             {extra.num ? <NumInput value={r[extra.key]} onChange={(x) => upd(i, { [extra.key]: x })} placeholder={extra.label} />
               : <Select value={r[extra.key] || extra.blank} onChange={(x) => upd(i, { [extra.key]: x })} options={extra.options} />}
+            <NumInput value={r.slaDays ?? SLA_DEFAULT[kind]} onChange={(x) => upd(i, { slaDays: x })} placeholder="Days" aria-label="Deadline (days)" />
+            <Select value={r.escalateTo || ESCALATE_DEFAULT[kind]} onChange={(x) => upd(i, { escalateTo: x })} options={ROLES} />
             <span className="flex gap-1">
               <Btn size="sm" disabled={i === 0} onClick={() => move(i, -1)} title="Move up">↑</Btn>
               <Btn size="sm" disabled={i === rows.length - 1} onClick={() => move(i, 1)} title="Move down">↓</Btn>

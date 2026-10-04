@@ -24,8 +24,9 @@ const DEFAULT_SETTINGS = {
   qcBeforeBilling: true,          // measurements need a passed quality inspection before an RA bill
   // Configurable approval stages (Procurement Settings → Approval stages). Records already in
   // approval keep the stages they were submitted with; new submissions use these.
-  vendorFlow: [{ name: "Procurement", scope: "All" }, { name: "Legal", scope: "All" }, { name: "Finance", scope: "All" }],
-  contractFlow: [{ name: "Legal Counsel", minValue: 0 }, { name: "Finance Controller", minValue: 0 }],
+  // slaDays = days a stage has to decide; escalateTo = who is told when it is overdue
+  vendorFlow: [{ name: "Procurement", scope: "All", slaDays: 3, escalateTo: "Procurement Head" }, { name: "Legal", scope: "All", slaDays: 3, escalateTo: "Procurement Head" }, { name: "Finance", scope: "All", slaDays: 2, escalateTo: "Finance Controller" }],
+  contractFlow: [{ name: "Legal Counsel", minValue: 0, slaDays: 3, escalateTo: "Procurement Head" }, { name: "Finance Controller", minValue: 0, slaDays: 2, escalateTo: "Finance Controller" }],
   // Vendor groups ("Parent › Child") for filtering and spend roll-up
   vendorGroups: [
     "Material Suppliers › Steel", "Material Suppliers › Cement", "Material Suppliers › Electrical", "Material Suppliers › General",

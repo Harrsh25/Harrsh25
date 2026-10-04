@@ -214,6 +214,7 @@ function ContractDrawer({ id, onClose }) {
         {c.approval && (
           <Section title="Approval routing" icon={Icon.clipboardCheck}>
             <div className="p-5"><Stepper steps={[{ label: "Submitted", status: "done", meta: c.submittedBy ? `${c.submittedBy} · ${fmtDateTime(c.submittedAt)}` : "" }, ...c.approval.stages.map((x) => ({ label: x.role, status: x.status === "Approved" ? "done" : x.status === "Rejected" ? "rejected" : x.status === "Pending" ? "current" : "todo", meta: x.by ? `${x.by} · ${fmtDateTime(x.at)}${x.remark ? ` — ${x.remark}` : ""}` : x.status === "Pending" ? "Awaiting decision" : "" })), { label: "Signed", status: c.signedOn ? "done" : "todo", meta: c.signedOn ? `${c.signedBy || ""} · ${fmtDate(c.signedOn)}` : "" }]} /></div>
+            <ApprovalDeadline rec={c} kind="contract" />
             {c.status === "Pending Approval" && pendingStage && (
               <div className="space-y-3 border-t border-line p-4">
                 <ActNote roles={pendingStage.role} involved={contractInvolved(c)} what={`the ${pendingStage.role} contract approval`} />

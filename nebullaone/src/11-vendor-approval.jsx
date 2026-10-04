@@ -194,7 +194,7 @@ function approvalAction(v, decision, remark, opts = {}) {
     const st0 = x.approval.stages[i];
     Object.assign(st0, { status: decision, by: currentUser(), at: new Date().toISOString(), remark, ...(ov && ov.length ? { override: ov } : {}) });
     if (decision === "Rejected") x.status = "Rejected";
-    else if (i + 1 < x.approval.stages.length) x.approval.stages[i + 1].status = "Pending";
+    else if (i + 1 < x.approval.stages.length) Object.assign(x.approval.stages[i + 1], { status: "Pending", since: st0.at });
     else { x.status = "Active"; x.approvedOn = todayISO(); }
   }, { entity: "Vendor", id: v.id, action: `${decision} at ${stg.dept}${ov && ov.length ? ` with override (${ov.join("; ")})` : ""}${remark ? ` — ${remark}` : ""}` });
   return true;
@@ -208,10 +208,10 @@ function resubmit(v) {
     if (x.status === "Draft" && !x.approval.stages.some((st) => st.status === "Approved")) x.approval = { stages: vendorFlowFor(x, s).map((dept) => ({ dept, status: "Waiting", by: null, at: null, remark: "" })) };
     // approvals already given are kept; routing resumes at the first stage not yet approved
     const i = Math.max(0, x.approval.stages.findIndex((st) => st.status !== "Approved"));
-    x.approval.stages.forEach((st, j) => { if (j >= i) Object.assign(st, { status: j === i ? "Pending" : "Waiting", by: null, at: null, remark: "" }); });
+    x.approval.stages.forEach((st, j) => { if (j >= i) Object.assign(st, { status: j === i ? "Pending" : "Waiting", by: null, at: null, remark: "", since: j === i ? new Date().toISOString() : null, escalated: null }); });
     if (x.changeRequest && !x.changeRequest.resolvedAt) x.changeRequest = { ...x.changeRequest, resolvedAt: new Date().toISOString() };
     x.status = "Pending Approval";
-    x.submittedBy = currentUser();
+    x.submittedBy = currentUser(); x.submittedAt = new Date().toISOString();
   }, { entity: "Vendor", id: v.id, action: v.status === "Draft" ? "Submitted for approval" : "Corrected and resubmitted" });
   return true;
 }
@@ -236,6 +236,7 @@ function VendorApproval({ v, mode = "approval" }) {
             meta: s.by ? `${s.by} · ${fmtDateTime(s.at)}${s.remark && s.remark !== "OK" ? ` — ${s.remark}` : ""}` : s.status === "Pending" ? "Awaiting decision" : "",
           }))} />
         </div>
+        <ApprovalDeadline rec={v} kind="vendor" />
         {pending && !decide && v.status === "Pending Approval" && (
           <div className="flex items-center justify-between gap-3 border-t border-line p-4">
             <span className="text-[13px] text-ink-soft">Waiting for <b>{pending.dept}</b>. Approvers record their decision in Vendor Approvals or Approval Management — this view is read-only.</span>
@@ -286,7 +287,7 @@ function VendorApprovalsPage() {
     <Page title="Vendor Approvals" subtitle="Multi-stage approval, qualification rule sets and requalification" icon={Icon.clipboardCheck}>
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "queue", label: "Approval queue", icon: Icon.clipboardList }, { id: "scores", label: "Qualification results", icon: Icon.listChecks }]} />
       {tab === "queue" && (
-        <DataTable noun="vendors" rows={queue} onRow={(v) => setOpen(v.id)} empty={<EmptyState icon={Icon.check} title="Approval queue is clear" text="New registrations will show up here." />} columns={[
+        <DataTable noun="vendors" rows={queue} defaultCols={["name", "type", "stage", "sla", "status"]} onRow={(v) => setOpen(v.id)} empty={<EmptyState icon={Icon.check} title="Approval queue is clear" text="New registrations will show up here." />} columns={[
           { key: "name", label: "Vendor", className: "font-medium" },
           { key: "type", label: "Supplies", filterOptions: VENDOR_TYPES, filter: (v) => vTypes(v), render: (v) => <span className="text-ink-soft">{typeLabel(v)}</span> },
           { key: "stage", label: "Routing", filterOptions: FO.stage, filter: (v) => (v.approval?.stages || []).find((s) => s.status === "Pending")?.dept || "—", filterLabel: "Stage", render: (v) => (
@@ -297,6 +298,7 @@ function VendorApprovalsPage() {
               ))}
             </span>) },
           { key: "since", label: "Registered", render: (v) => fmtDate(v.createdAt) },
+          { key: "sla", label: "Decision due", filterOptions: ["Overdue", "Due today", "On time"], filter: (v) => approvalClock(v, "vendor", st)?.state || "", sort: (v) => approvalClock(v, "vendor", st)?.due || "9999", render: (v) => { const c = approvalClock(v, "vendor", st); return c ? <span className="flex flex-col"><Status tone={slaTone(c)}>{slaText(c)}</Status><span className="text-[11px] text-ink-mute">{fmtDate(c.due)}{c.escalated ? " · escalated" : ""}</span></span> : "—"; } },
           { key: "status", label: "Status", filterOptions: FO.vendorStatus, filter: (v) => v.status, render: (v) => <Status>{v.status}</Status> },
         ]} />
       )}

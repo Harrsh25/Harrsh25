@@ -163,7 +163,7 @@ function approvalRows(st, module) {
         ref: v.id, title: v.name, sub: `${typeLabel(v)}${v.isContractor ? " · contractor" : ""} · ${v.source === "Self-registration" ? "self-registered" : "internal"}`,
         by: v.source === "Self-registration" ? v.contact.name : "Procurement", date: fmtDate(v.createdAt),
         level: `L${i + 1} / ${v.approval.stages.length} · ${stage?.dept || ""}`, status: v.status === "Rejected" ? "Rejected" : v.status === "Changes Requested" ? "Changes Requested" : "Pending", vendor: v,
-        extra: `${v.docs.filter((d) => d.status !== "Missing").length}/${requiredDocs(v).length} docs`,
+        extra: `${v.docs.filter((d) => d.status !== "Missing").length}/${requiredDocs(v).length} docs`, sla: approvalClock(v, "vendor", st),
         approve: (r) => { if (approvalAction(v, "Approved", r)) toast(`${v.name} — ${stage.dept} approved`); },
         reject: (r) => { if (approvalAction(v, "Rejected", r)) toast("Sent back to vendor", "red"); },
         open: { kind: "vendor", id: v.id },
@@ -213,7 +213,7 @@ function approvalRows(st, module) {
       const i = c.approval.stages.findIndex((x) => x.status === "Pending"), stg = c.approval.stages[i];
       return {
         ref: c.id, title: c.title, sub: `${vendorName(st, c.vendorId)} · ${c.project}${c.rfqId ? ` · from ${c.rfqId}` : ""}`, by: c.submittedBy || c.owner, date: fmtDate(c.submittedAt || c.start),
-        level: `L${i + 1} / ${c.approval.stages.length} · ${stg.role}`, status: "Pending", extra: inrShort(c.value),
+        level: `L${i + 1} / ${c.approval.stages.length} · ${stg.role}`, status: "Pending", extra: inrShort(c.value), sla: approvalClock(c, "contract", st),
         approve: (r) => decideContract(c, true, r), reject: (r) => decideContract(c, false, r), open: { kind: "contract", id: c.id },
       };
     });
@@ -257,13 +257,14 @@ function ApprovalManagementPage() {
       {!module ? <EmptyState icon={Icon.shieldCheck} title="Select a module" text="Approvals are grouped by the module they come from. Pick one from the selector above to load its queue." />
         : rows.length === 0 ? <EmptyState icon={Icon.folderCheck} title="Nothing to approve" text={`There are no ${module} items waiting in your queue.`} />
         : (
-          <DataTable noun="items" rows={rows} rowKey={(r) => r.ref} onRow={(r) => r.open && setOpen(r.open)} columns={[
+          <DataTable noun="items" rows={rows} rowKey={(r) => r.ref} defaultCols={rows.some((r) => r.sla) ? ["ref", "title", "level", "sla", "status"] : undefined} onRow={(r) => r.open && setOpen(r.open)} columns={[
             { key: "ref", label: "Reference", className: "mono text-[12px]" },
             { key: "title", label: "Title", render: (r) => <span className="flex flex-col"><span className="font-medium">{r.title}</span>{r.sub && <span className="text-[11.5px] text-ink-mute">{r.sub}</span>}</span> },
             ...(isNew ? [{ key: "extra", label: "Details", className: "text-[12px] text-ink-soft" }] : []),
             { key: "by", label: "Submitted By", filterAll: "Anyone", filter: true },
             { key: "date", label: "Date" },
             { key: "level", label: "Level", filter: true },
+            ...(rows.some((r) => r.sla) ? [{ key: "sla", label: "Decision due", filterOptions: ["Overdue", "Due today", "On time"], filter: (r) => r.sla?.state || "", sort: (r) => r.sla?.due || "9999", render: (r) => (r.sla ? <span className="flex flex-col"><Status tone={slaTone(r.sla)}>{slaText(r.sla)}</Status><span className="text-[11px] text-ink-mute">{fmtDate(r.sla.due)}{r.sla.escalated ? ` · escalated to ${r.sla.escalated.to}` : ""}</span></span> : "—") }] : []),
             { key: "status", label: "Status", filterOptions: FO.approvalStatus, filter: true, render: (r) => <Status>{r.status}</Status> },
             { key: "action", label: "Action", render: (r) => (r.status === "Pending" ? (
               <span className="flex gap-2" onClick={(e) => e.stopPropagation()}>
