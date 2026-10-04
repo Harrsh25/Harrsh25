@@ -8,16 +8,43 @@
 
 const Card = B, PageHeader = H, Toolbar = se, Th = S, Td = g;
 // Page tabs — same look as the host tab bar, plus tab roles so keyboards, screen readers and tests can find them
+// A row of tabs that never wraps or hides tabs: when they don't fit, the row scrolls sideways
+// (mouse wheel, drag on touch, or the ‹ › arrows that appear at the ends) and the open tab is scrolled into view
+function ScrollTabs({ className, gap = "gap-1", active, children }) {
+  const ref = y.useRef(null);
+  const [edge, setEdge] = y.useState({ l: false, r: false });
+  const upd = () => { const e = ref.current; if (!e) return; setEdge({ l: e.scrollLeft > 2, r: e.scrollLeft + e.clientWidth < e.scrollWidth - 2 }); };
+  y.useLayoutEffect(() => {
+    const e = ref.current; if (!e) return;
+    const cur = e.querySelector('[aria-selected="true"]');
+    if (cur) { const a = cur.offsetLeft, b = a + cur.offsetWidth; if (a < e.scrollLeft || b > e.scrollLeft + e.clientWidth) e.scrollLeft = Math.max(0, a - 40); }
+    upd(); const ro = new ResizeObserver(upd); ro.observe(e); return () => ro.disconnect();
+  }, [active]);
+  const wheel = (ev) => { const e = ref.current; if (e && e.scrollWidth > e.clientWidth && Math.abs(ev.deltaY) > Math.abs(ev.deltaX)) { e.scrollLeft += ev.deltaY; } };
+  const go = (d) => ref.current?.scrollBy({ left: d * Math.max(120, ref.current.clientWidth * 0.6), behavior: "smooth" });
+  const arrow = (d) => (
+    <button type="button" aria-label={d < 0 ? "Scroll tabs left" : "Scroll tabs right"} onClick={() => go(d)}
+      className={cls("absolute top-0 z-10 grid h-full w-7 place-items-center bg-white/95 text-ink-mute hover:text-ink", d < 0 ? "left-0 shadow-[6px_0_8px_-6px_rgba(16,24,40,0.25)]" : "right-0 shadow-[-6px_0_8px_-6px_rgba(16,24,40,0.25)]")}>
+      {h(Icon.chevronRight, { size: 15, className: d < 0 ? "rotate-180" : "" })}
+    </button>);
+  return (
+    <div className={cls("relative min-w-0", className)}>
+      {edge.l && arrow(-1)}
+      <div ref={ref} role="tablist" onScroll={upd} onWheel={wheel} className={cls("nx-noscroll flex min-w-0 overflow-x-auto", gap)}>{children}</div>
+      {edge.r && arrow(1)}
+    </div>
+  );
+}
 function TabBar({ tabs, active, onChange }) {
   return (
-    <div role="tablist" className="flex gap-1 border-b border-line px-3">
+    <ScrollTabs className="border-b border-line px-3" active={active}>
       {tabs.map((t) => (
         <button key={t.id} type="button" role="tab" aria-selected={t.id === active} onClick={() => onChange(t.id)}
-          className={cls("-mb-px flex h-[36px] items-center gap-1.5 border-b-2 px-3 text-[13px]", t.id === active ? "border-brand font-medium text-brand" : "border-transparent text-ink-soft hover:text-ink")}>
+          className={cls("-mb-px flex h-[36px] shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-3 text-[13px]", t.id === active ? "border-brand font-medium text-brand" : "border-transparent text-ink-soft hover:text-ink")}>
           {t.icon && h(t.icon, { size: 13 })}{t.label}
         </button>
       ))}
-    </div>
+    </ScrollTabs>
   );
 }
 const FooterBar = rt, StatusPill = le, Progress = Ws, EmptyState = Te, cls = R;
@@ -259,74 +286,24 @@ function Modal({ open, title, subtitle, onClose, footer, width = 640, children }
   );
 }
 
-// Detail-panel tabs (Project Center style): plain text, single line, blue when active
-function DetailTabs({ tabs, active, onChange, max: max0 = 7 }) {
-  // Tabs that do not fit the panel width (or beyond `max`) go into a "More" menu; the open tab always stays visible
-  const [more, setMore] = y.useState(false);
-  const ref = y.useRef(null), box = y.useRef(null), meas = y.useRef(null);
-  const [fit, setFit] = y.useState(99);
-  y.useLayoutEffect(() => {
-    const calc = () => {
-      if (!box.current || !meas.current) return;
-      const avail = box.current.clientWidth - 48, GAP = 20, MORE = 76;
-      const ws = [...meas.current.children].map((c) => c.getBoundingClientRect().width);
-      const total = ws.reduce((a, w, i) => a + w + (i ? GAP : 0), 0);
-      if (total <= avail) return setFit(99);
-      let used = 0, n = 0;
-      for (const w of ws) { if (used + w + (n ? GAP : 0) + MORE > avail) break; used += w + (n ? GAP : 0); n++; }
-      setFit(Math.max(1, n));
-    };
-    calc();
-    const ro = new ResizeObserver(calc); if (box.current) ro.observe(box.current);
-    return () => ro.disconnect();
-  }, [tabs.map((t) => t.label).join("|")]);
-  const max = Math.min(max0, fit === 99 ? 99 : fit + 1);
-  y.useEffect(() => {
-    if (!more) return;
-    const off = (e) => { if (ref.current && !ref.current.contains(e.target)) setMore(false); };
-    document.addEventListener("mousedown", off, true); return () => document.removeEventListener("mousedown", off, true);
-  }, [more]);
-  let shown = tabs, extra = [];
-  if (tabs.length > max) {
-    shown = tabs.slice(0, max - 1); extra = tabs.slice(max - 1);
-    const cur = extra.find((t) => t.id === active);
-    // the open tab takes the last visible slot so the row never grows past the width
-    if (cur && shown.length) { const out = shown[shown.length - 1]; shown = [...shown.slice(0, -1), cur]; extra = [out, ...extra.filter((t) => t !== cur)]; }
-  }
-  const tab = (t) => {
-    const on = t.id === active;
-    return (
-      <button key={t.id} type="button" role="tab" aria-selected={on} onClick={() => onChange(t.id)}
-        className={cls("-mb-px flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 pb-3 pt-1 text-[14px]",
-          on ? "border-brand font-medium text-brand" : "border-transparent text-ink hover:text-brand")}>
-        {t.label}
-        {t.count != null && <span className={cls("rounded-full px-1.5 text-[11px] font-medium", on ? "bg-brand-soft text-brand" : "bg-gray-100 text-ink-mute")}>{t.count}</span>}
-      </button>
-    );
-  };
+// Detail-panel tabs (Project Center style): plain text, single line, blue when active.
+// Every tab is always shown — when they don't fit the panel the row scrolls sideways (no "More" menu).
+function DetailTabs({ tabs, active, onChange }) {
   return (
-    <div ref={box} className="relative flex items-end border-b border-line px-6">
-      {/* hidden copy used to measure each tab's width */}
-      <div ref={meas} aria-hidden="true" className="pointer-events-none invisible absolute left-0 top-0 flex gap-5" style={{ height: 0, overflow: "hidden" }}>
-        {tabs.map((t) => <span key={t.id} className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-[14px] font-medium">{t.label}{t.count != null && <span className="rounded-full px-1.5 text-[11px]">{t.count}</span>}</span>)}
-      </div>
-      <div role="tablist" className="flex min-w-0 flex-1 gap-5 overflow-x-auto">{shown.map(tab)}</div>
-      {extra.length > 0 && (
-        <div ref={ref} className="relative ml-4 shrink-0">
-          <button type="button" aria-haspopup="menu" aria-expanded={more} onClick={() => setMore((m) => !m)}
-            className="-mb-px flex items-center gap-1 border-b-2 border-transparent pb-3 pt-1 text-[14px] text-ink hover:text-brand">More {h(Icon.chevronDown, { size: 14 })}</button>
-          {more && (
-            <div role="menu" className="absolute right-0 top-full z-30 mt-1 min-w-[180px] rounded-lg border border-line bg-white py-1 shadow-lg">
-              {extra.map((t) => (
-                <button key={t.id} type="button" role="menuitem" onClick={() => { onChange(t.id); setMore(false); }}
-                  className="flex w-full items-center justify-between gap-3 px-3 py-1.5 text-left text-[13px] hover:bg-gray-50">
-                  {t.label}{t.count != null && <span className="rounded-full bg-gray-100 px-1.5 text-[11px] text-ink-mute">{t.count}</span>}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+    <div className="border-b border-line px-6">
+      <ScrollTabs gap="gap-5" active={active}>
+        {tabs.map((t) => {
+          const on = t.id === active;
+          return (
+            <button key={t.id} type="button" role="tab" aria-selected={on} onClick={() => onChange(t.id)}
+              className={cls("-mb-px flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 pb-3 pt-1 text-[13.5px]",
+                on ? "border-brand font-medium text-brand" : "border-transparent text-ink-soft hover:text-brand")}>
+              {t.label}
+              {t.count != null && <span className={cls("rounded-full px-1.5 text-[11px] font-medium", on ? "bg-brand-soft text-brand" : "bg-gray-100 text-ink-mute")}>{t.count}</span>}
+            </button>
+          );
+        })}
+      </ScrollTabs>
     </div>
   );
 }

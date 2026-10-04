@@ -141,9 +141,9 @@ const extraCss = root.toString().replace(/\/\*[^]*?\*\//g, "").replace(/\s*\n\s*
 // keep stat values on one line and let the sub-label drop below instead.
 // List views (Project Center style): single-line 14px text, ~40px rows, no monospace codes in cells.
 const RAW_CSS = "[role=dialog] .mono{white-space:nowrap}[role=dialog] p.flex.items-baseline{flex-wrap:wrap;row-gap:0}" +
-  ".nx-list td{font-size:14px;padding-top:9px;padding-bottom:9px}:where(.nx-list) td{color:#111827}" +
-  ".nx-list td.mono,.nx-list td .mono{font-family:inherit;font-size:14px;letter-spacing:0}.nx-list td button{font-size:13px}" +
-  ".nx-list td.text-ink-soft,.nx-list td.text-\\[12px\\],.nx-list td .text-\\[12px\\]{font-size:14px}" +
+  ".nx-list td{font-size:13px;padding-top:9px;padding-bottom:9px}:where(.nx-list) td{color:#111827}" +
+  ".nx-list td.mono,.nx-list td .mono{font-family:inherit;font-size:13px;letter-spacing:0}.nx-list td button{font-size:13px}" +
+  ".nx-list td.text-ink-soft,.nx-list td.text-\\[12px\\],.nx-list td .text-\\[12px\\]{font-size:13px}" +
   // Clean list look (Project Center): white header, no column dividers, roomier rows, larger soft pills
   ".nx-list th{background:#f9fafb;border-right-width:0;font-size:12.5px;font-weight:600;color:#4b5563;letter-spacing:0;padding:8px 12px}" +
   ".nx-list td{border-right-width:0;padding:8px 12px;border-color:#eef0f3}.nx-list th{border-color:#e5e7eb}" +
@@ -189,7 +189,16 @@ const RAW_CSS = "[role=dialog] .mono{white-space:nowrap}[role=dialog] p.flex.ite
   ".grid-cols-2,.grid-cols-3,[role=dialog] .grid-cols-4{grid-template-columns:minmax(0,1fr)!important}" +
   ".nx-section{overflow-x:auto}.col-span-2,.col-span-3,.col-span-4{grid-column:1/-1}" +
   "}";
-html = html.slice(0, styleEnd) + C_BEGIN + extraCss + RAW_CSS + C_END + html.slice(styleEnd);
+// Typography (whole app): one step smaller text and lighter bold so headings and labels don't look heavy or too dark
+const TYPO_CSS =
+  ".font-semibold{font-weight:560}.font-bold{font-weight:620}.font-medium{font-weight:470}table th{font-weight:520!important}" +
+  "h1,h2,h3,h4{font-weight:560}" +
+  "body,.text-ink,:where(.nx-list) td{color:#1f2937}" +
+  "main h1{font-size:15px!important}[data-drawer] h2{font-size:16px!important}[role=dialog]:not([data-drawer]) h2{font-size:14.5px}h3.text-\\[14\\.5px\\],h3.text-\\[13\\.5px\\]{font-size:13.5px}" +
+  "td,dd{font-size:13px}dt{font-size:12.5px}" +
+  "nav a,aside a,aside button{font-size:13.5px!important}" +
+  ".nx-noscroll{scrollbar-width:none}.nx-noscroll::-webkit-scrollbar{display:none}";
+html = html.slice(0, styleEnd) + C_BEGIN + extraCss + RAW_CSS + TYPO_CSS + C_END + html.slice(styleEnd);
 
 writeFileSync(HTML, html);
 console.log(`built: ${files.length} files, js ${(block.length / 1024).toFixed(1)} KB, css +${(extraCss.length / 1024).toFixed(1)} KB`);

@@ -27,8 +27,8 @@ const probe = (scope) => {
   }
   // related-document tiles in one row
   for (const bar of root.querySelectorAll('[data-related]')) { const tops = new Set([...bar.children].map((c) => Math.round(c.getBoundingClientRect().top))); if (tops.size > 1) out.push(`related tiles wrap to ${tops.size} rows`); }
-  // tab bars and header action rows must not be cut off
-  for (const tl of root.querySelectorAll('[role=tablist]')) { if (tl.scrollWidth > tl.clientWidth + 2) out.push('tab bar cut off (' + [...tl.children].filter((c) => c.getBoundingClientRect().right > tl.getBoundingClientRect().right + 1).map((c) => c.innerText.trim()).join(', ') + ')'); }
+  // tab bars: may scroll sideways, but then the ‹ › arrows must be there so no tab is unreachable
+  for (const tl of root.querySelectorAll('[role=tablist]')) { const canScroll = tl.parentElement.querySelector('[aria-label^="Scroll tabs"]') || tl.scrollLeft > 0; if (tl.scrollWidth > tl.clientWidth + 2 && !canScroll) out.push('tab bar cut off (' + [...tl.children].filter((c) => c.getBoundingClientRect().right > tl.getBoundingClientRect().right + 1).map((c) => c.innerText.trim()).join(', ') + ')'); }
   for (const b of root.querySelectorAll('button:not([disabled])')) { const r = b.getBoundingClientRect(); if (r.width && (r.right > rb.right + 1 || r.left < rb.left - 1) && !inScroller(b)) { out.push(`button outside the ${scope ? 'panel' : 'page'}: "${(b.innerText || b.getAttribute('aria-label') || '').trim().slice(0, 30)}"`); break; } }
   // text that overlaps the next element in a heading row
   for (const h of root.querySelectorAll('h1,h2,h3')) { if (h.scrollWidth > h.clientWidth + 2 && !/ellipsis|clip/.test(getComputedStyle(h).textOverflow) && getComputedStyle(h).overflow === 'visible') out.push(`heading overflows: "${h.innerText.slice(0, 30)}"`); }
