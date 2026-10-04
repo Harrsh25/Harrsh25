@@ -1,4 +1,4 @@
-// Inventory crawler — runs the built HTML in Chromium and records every screen, tab, list, field and button,
+// Inventory crawler - runs the built HTML in Chromium and records every screen, tab, list, field and button,
 // plus console errors. Output: tests/out/inventory.json (read by tests/qa_workbook.py)
 const { chromium } = require('playwright'); const fs = require('fs'), path = require('path');
 const FILE = 'file://' + path.resolve(__dirname, '../../NebullaOne-WFM.html');
@@ -70,7 +70,7 @@ const ROUTES = [...fs.readFileSync(path.resolve(__dirname, '../src/90-nav.jsx'),
       if (await p.locator('[role=dialog]').count()) {
         const m = await scan('[role=dialog]');
         inv.modals.push({ screen: r.label, opener: label, title: await p.locator('[role=dialog] h2,[role=dialog] h3').first().innerText().catch(() => ''), ...m });
-      } else inv.modals.push({ screen: r.label, opener: label, title: '(no dialog — navigates or acts inline)', fields: [], buttons: [], tables: [], tabs: [] });
+      } else inv.modals.push({ screen: r.label, opener: label, title: '(no dialog - navigates or acts inline)', fields: [], buttons: [], tables: [], tabs: [] });
       take(`${r.label} / ${label} form`);
     }
     console.log(r.label, '✓');

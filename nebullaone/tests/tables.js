@@ -1,4 +1,4 @@
-// Table audit — on every list in the app: search (match + no-match empty state + Esc), sort, Filters panel
+// Table audit - on every list in the app: search (match + no-match empty state + Esc), sort, Filters panel
 // (apply + reset), Export (CSV headers = visible headers), layouts, paging; console errors. Runs in Chromium.
 const { chromium } = require('playwright'); const fs = require('fs'), path = require('path');
 const FILE = 'file://' + path.resolve(__dirname, '../../NebullaOne-WFM.html');

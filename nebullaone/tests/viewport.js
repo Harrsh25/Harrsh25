@@ -1,4 +1,4 @@
-// 100% viewport audit — every route at the common desktop sizes (1:1 pixel ratio = 100% browser zoom), plus the
+// 100% viewport audit - every route at the common desktop sizes (1:1 pixel ratio = 100% browser zoom), plus the
 // first record panel of each list and the vendor registration form. Measures what the eye would catch:
 // page-level sideways scroll, content poking out of its container, a header / tab bar / action row that does not fit,
 // related-document tiles not in one row, record panels or dialogs larger than the window.
@@ -59,7 +59,7 @@ const probe = (scope) => {
   fs.mkdirSync(path.join(__dirname, 'out'), { recursive: true });
   fs.writeFileSync(path.join(__dirname, 'out/res-viewport.json'), JSON.stringify(R, null, 1));
   const bad = R.filter((x) => x.issues.length);
-  console.log(`viewport: ${R.length} screen checks at ${SIZES.length} sizes — ${R.length - bad.length} pass, ${bad.length} fail`);
+  console.log(`viewport: ${R.length} screen checks at ${SIZES.length} sizes - ${R.length - bad.length} pass, ${bad.length} fail`);
   bad.forEach((x) => console.log('FAIL', x.size, '|', x.screen, '|', x.part, '|', x.issues.join(' ; ')));
   await b.close();
 })();

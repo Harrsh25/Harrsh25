@@ -67,7 +67,7 @@ function SupplierPortalPage() {
   const v = s && byId(getState().vendors, s.vendorId);
   y.useEffect(() => { if (!v) nav("/supplier/login", { replace: true }); }, [v]);
   if (!v) return null;
-  // Access ends when the vendor is blacklisted, made inactive or rejected, or the user is disabled — even mid-session
+  // Access ends when the vendor is blacklisted, made inactive or rejected, or the user is disabled - even mid-session
   const user = (v.portalUsers || []).find((p) => p.email.toLowerCase() === s.email);
   if (!PORTAL_STATUSES.includes(v.status) || (user && !user.active)) return (
     <PublicShell width={560} title="Portal access suspended" subtitle={v.name}>
@@ -115,7 +115,7 @@ function VendorQuotePage() {
     return shell(`Sign in to respond to ${rfq.id}`, <><p className="mb-4 text-center text-[13px] text-ink-soft">{rfq.title} · for <b>{v.name}</b></p><VendorLogin lockVendorId={vendorId} /></>, 620);
   const mine = rfq.quotes.find((q) => q.vendorId === vendorId);
   return (
-    <PublicShell width={1100} title={`Request for quotation — ${rfq.title}`} subtitle={<span>{rfq.id} · {v.name} · project {rfq.project} {s && <><span className="mx-1">·</span><a className="font-medium text-brand" href={appUrl("/supplier")}>Go to portal</a></>}</span>}>
+    <PublicShell width={1100} title={`Request for quotation - ${rfq.title}`} subtitle={<span>{rfq.id} · {v.name} · project {rfq.project} {s && <><span className="mx-1">·</span><a className="font-medium text-brand" href={appUrl("/supplier")}>Go to portal</a></>}</span>}>
       <div className="space-y-4 p-6">
         <div className="grid grid-cols-4 gap-3">
           <StatTile tone="blue" label="Lines" value={rfq.items.length} icon={Icon.listChecks} />
@@ -161,7 +161,7 @@ function PortalBody({ vid, vendorMode }) {
   const claims = st.claims.filter((c) => c.vendorId === vid);
   const pricelist = pos.flatMap((p) => p.lines.map((l) => ({ ...l, po: p.id, date: p.date })));
   const tabs = [
-    ...(v.status !== "Active" && v.status !== "On Hold" ? [{ id: "reg", label: v.status === "Changes Requested" ? "Registration — action needed" : "Registration", icon: Icon.clipboardCheck }] : []),
+    ...(v.status !== "Active" && v.status !== "On Hold" ? [{ id: "reg", label: v.status === "Changes Requested" ? "Registration - action needed" : "Registration", icon: Icon.clipboardCheck }] : []),
     { id: "rfq", label: "RFQs", icon: Icon.scale },
     { id: "orders", label: "Purchase orders", icon: Icon.truck },
     ...(isContractor ? [{ id: "wo", label: "Work orders", icon: Icon.clipboardList }, { id: "claims", label: "RA claims", icon: Icon.receipt }] : []),
@@ -177,8 +177,8 @@ function PortalBody({ vid, vendorMode }) {
     setState((s) => {
       const w = byId(s.workOrders, wo.id);
       w.acceptance = { status, by: vendorMode ? getVendorSession()?.email : v.contact.name, at: new Date().toISOString(), reason: reason || "" };
-    }, { entity: "Work Order", id: wo.id, action: `${status} by contractor${reason ? ` — ${reason}` : ""}` });
-    toast(status === "Accepted" ? `${wo.id} accepted — work can start` : `${wo.id} declined`, status === "Accepted" ? "green" : "red");
+    }, { entity: "Work Order", id: wo.id, action: `${status} by contractor${reason ? ` - ${reason}` : ""}` });
+    toast(status === "Accepted" ? `${wo.id} accepted - work can start` : `${wo.id} declined`, status === "Accepted" ? "green" : "red");
   };
   return (
     <>
@@ -192,7 +192,7 @@ function PortalBody({ vid, vendorMode }) {
         <StatTile tone="amber" label="Amount due to you" value={inrShort(sum(invs, (i) => invoiceTotals(i).balance))} icon={Icon.rupee} />
         <StatTile tone="red" label="Documents to renew" value={docs.filter((d) => ["Missing", "Expired", "Expiring", "Rejected"].includes(docState(d))).length} icon={Icon.fileClock} />
       </StatGrid>
-      {(txBlocked || billBlocked) && <div className="px-5 pt-3"><Note tone="red" icon={Icon.lock}>{txBlocked ? `Your account is ${v.status === "On Hold" ? "on hold" : v.status.toLowerCase()}${v.hold?.reason ? ` — ${v.hold.reason}` : ""}. You can view your records, but new quotations, work-order acceptance, claims and attendance are paused.` : `Invoices are on hold${v.hold?.reason ? ` — ${v.hold.reason}` : ""}${v.hold?.until ? ` until ${fmtDate(v.hold.until)}` : ""}. New claims and invoices are paused.`}</Note></div>}
+      {(txBlocked || billBlocked) && <div className="px-5 pt-3"><Note tone="red" icon={Icon.lock}>{txBlocked ? `Your account is ${v.status === "On Hold" ? "on hold" : v.status.toLowerCase()}${v.hold?.reason ? ` - ${v.hold.reason}` : ""}. You can view your records, but new quotations, work-order acceptance, claims and attendance are paused.` : `Invoices are on hold${v.hold?.reason ? ` - ${v.hold.reason}` : ""}${v.hold?.until ? ` until ${fmtDate(v.hold.until)}` : ""}. New claims and invoices are paused.`}</Note></div>}
       <TabBar active={tab} onChange={setTab} tabs={tabs} />
       <div className={cls(tab === "reg" && "p-5")}>
         {tab === "reg" && <RegistrationFix v={v} />}
@@ -201,7 +201,7 @@ function PortalBody({ vid, vendorMode }) {
           { key: "n", label: "Lines", align: "center", render: (r) => r.items.length },
           { key: "due", label: "Quotes due", render: (r) => <ExpiryCell iso={["Awarded", "Closed"].includes(r.status) ? null : r.dueDate} /> },
           { key: "inv", label: "Invitation", filterOptions: FO.invitation, filter: (r) => (r.responses?.[vid] || {}).status || "Invited", render: (r) => <Status>{(r.responses?.[vid] || {}).status || "Invited"}</Status> },
-          { key: "me", label: "My quotation", render: (r) => { const q = r.quotes.find((x) => x.vendorId === vid); return q ? <span className="flex flex-col"><span className="num">{inrShort(quoteTotal(r, q))}</span><Status>{quoteStatus(r, q)}</Status></span> : <span className="text-ink-faint">—</span>; } },
+          { key: "me", label: "My quotation", render: (r) => { const q = r.quotes.find((x) => x.vendorId === vid); return q ? <span className="flex flex-col"><span className="num">{inrShort(quoteTotal(r, q))}</span><Status>{quoteStatus(r, q)}</Status></span> : <span className="text-ink-faint">-</span>; } },
           { key: "a", label: "", align: "right", render: (r) => <Btn size="sm" variant={toQuote.includes(r) ? "primary" : "secondary"} icon={Icon.eye} onClick={() => setQuoteFor(r.id)}>{toQuote.includes(r) ? "Respond" : "View"}</Btn> },
         ]} />}
         {tab === "orders" && <DataTable rows={pos} onRow={(p) => open("po", p.id)} empty={<EmptyState icon={Icon.package} title="No purchase orders" />} columns={[
@@ -209,7 +209,7 @@ function PortalBody({ vid, vendorMode }) {
           { key: "v", label: "Value", align: "right", num: true, render: (p) => inrShort(poValue(p)) },
           { key: "dd", label: "Delivery due", render: (p) => fmtDate(p.deliveryDate) },
           { key: "r", label: "Delivered", render: (p) => { const r = poReceived(p); return <Progress value={Math.round(pct(sum(r, (x) => x.received), sum(r, (x) => x.qty)))} />; } },
-          { key: "ret", label: "Returned", align: "right", render: (p) => (p.returns?.length ? <span className="text-red-600">{num(sum(p.returns, (x) => x.qty))}</span> : "—") },
+          { key: "ret", label: "Returned", align: "right", render: (p) => (p.returns?.length ? <span className="text-red-600">{num(sum(p.returns, (x) => x.qty))}</span> : "-") },
           { key: "b", label: "Billing", filterOptions: FO.poBilling, filter: (p) => poBillingStatus(st, p), render: (p) => <Status tone="blue">{poBillingStatus(st, p)}</Status> },
           { key: "s", label: "Status", filterOptions: FO.poStatus, filter: (p) => poStatus(p), render: (p) => <Status>{poStatus(p)}</Status> },
         ]} />}
@@ -218,7 +218,7 @@ function PortalBody({ vid, vendorMode }) {
           { key: "val", label: "Value", align: "right", num: true, render: (w) => inrShort(woValue(w)) },
           { key: "d", label: "Period", render: (w) => `${fmtDate(w.start)} → ${fmtDate(w.end)}` },
           { key: "p", label: "Progress", render: (w) => <Progress value={Math.round(woProgress(st, w).physical)} /> },
-          { key: "acc", label: "Acceptance", filterOptions: FO.acceptance, filter: (w) => w.acceptance?.status || "—", render: (w) => <Status tone={{ Accepted: "green", Pending: "amber", Declined: "red" }[w.acceptance?.status] || "gray"}>{w.acceptance?.status || "—"}</Status> },
+          { key: "acc", label: "Acceptance", filterOptions: FO.acceptance, filter: (w) => w.acceptance?.status || "-", render: (w) => <Status tone={{ Accepted: "green", Pending: "amber", Declined: "red" }[w.acceptance?.status] || "gray"}>{w.acceptance?.status || "-"}</Status> },
           { key: "a", label: "", align: "right", render: (w) => txBlocked ? null : w.acceptance?.status === "Pending" ? (
             <span className="flex justify-end gap-1" onClick={stop}><Btn size="sm" variant="success" onClick={() => actWo(w, "Accepted")}>Accept</Btn><Btn size="sm" variant="danger" onClick={() => setWoDecline({ wo: w, reason: "" })}>Decline</Btn></span>
           ) : woAccepted(w) && ["Issued", "In Progress"].includes(w.status) && !billBlocked ? <span onClick={stop}><Btn size="sm" icon={Icon.receipt} onClick={() => setClaimFor(w.id)}>Submit RA claim</Btn></span> : null },
@@ -228,7 +228,7 @@ function PortalBody({ vid, vendorMode }) {
           { key: "d", label: "Submitted", render: (c) => fmtDate(c.date) },
           { key: "v", label: "Claimed value", align: "right", num: true, render: (c) => inr(claimValue(st, c)) },
           { key: "s", label: "Status", filterOptions: FO.claimStatus, filter: (c) => c.status, render: (c) => <span className="flex flex-col"><Status tone={{ Submitted: "blue", Verified: "green", Returned: "red" }[c.status]}>{c.status}</Status>{c.status === "Returned" && <span className="max-w-[260px] whitespace-normal text-[11px] text-red-600">{c.history[c.history.length - 1].remark}</span>}</span> },
-          { key: "b", label: "RA bill", render: (c) => (c.raBillId ? `${c.raBillId} · ${byId(st.raBills, c.raBillId)?.status}` : "—") },
+          { key: "b", label: "RA bill", render: (c) => (c.raBillId ? `${c.raBillId} · ${byId(st.raBills, c.raBillId)?.status}` : "-") },
           { key: "a", label: "", align: "right", render: (c) => c.status === "Returned" && !c.resubmittedAs && !billBlocked && <span onClick={stop}><Btn size="sm" onClick={() => setClaimFor({ woId: c.woId, from: c.id })}>Revise & resubmit</Btn></span> },
         ]} />}
         {tab === "att" && (txBlocked ? <div className="p-4"><Note tone="red">Attendance entry is paused while the account is on hold.</Note></div> : <AttendanceSheet vendorId={vid} portal />)}
@@ -245,8 +245,8 @@ function PortalBody({ vid, vendorMode }) {
         ]} />}
         {tab === "docs" && <><DataTable noun="documents" rows={docs} rowKey={(d) => d.name} onRow={(d) => open("doc", d.name)} columns={[
           { key: "name", label: "Document", className: "font-medium" },
-          { key: "file", label: "File", render: (d) => (d.file ? <FileLink name={d.file} dataUrl={d.dataUrl} /> : <span className="text-ink-mute">—</span>) },
-          { key: "up", label: "Uploaded", sort: (d) => d.uploadedAt || "", render: (d) => (d.uploadedAt ? fmtDate(d.uploadedAt) : <span className="text-ink-mute">—</span>) },
+          { key: "file", label: "File", render: (d) => (d.file ? <FileLink name={d.file} dataUrl={d.dataUrl} /> : <span className="text-ink-mute">-</span>) },
+          { key: "up", label: "Uploaded", sort: (d) => d.uploadedAt || "", render: (d) => (d.uploadedAt ? fmtDate(d.uploadedAt) : <span className="text-ink-mute">-</span>) },
           { key: "e", label: "Valid till", render: (d) => <ExpiryCell iso={d.expiry} /> },
           { key: "s", label: "Status", filterOptions: FO.docState, filter: (d) => docState(d), render: (d) => <span className="flex flex-col"><Status>{docState(d)}</Status>{d.status === "Rejected" && d.remark && <span className="max-w-[260px] whitespace-normal text-[11px] text-red-600">{d.remark}</span>}</span> },
           { key: "a", label: "", align: "right", render: (d) => ["Missing", "Expired", "Expiring", "Rejected"].includes(docState(d)) && <span onClick={stop}><Btn size="sm" icon={Icon.upload} onClick={() => setReup({ name: d.name, expiry: shiftDays(365), file: "", dataUrl: null })}>Upload</Btn></span> },
@@ -303,7 +303,7 @@ function PortalBody({ vid, vendorMode }) {
       </div>
       {invNew && <PortalInvoiceModal v={v} by={vendorMode ? getVendorSession()?.email || v.contact.name : v.contact.name} onClose={() => setInvNew(false)} />}
       {detail?.kind === "po" && <PortalPoDrawer key={detail.id} id={detail.id} open={open} onClose={() => setDetail(null)} />}
-      {detail?.kind === "wo" && <PortalWoDrawer key={detail.id} id={detail.id} open={open} onClose={() => setDetail(null)} onAccept={(w) => (txBlocked ? toast("Your account is on hold — work orders can't be accepted", "red") : actWo(w, "Accepted"))} onDecline={(w) => setWoDecline({ wo: w, reason: "" })}
+      {detail?.kind === "wo" && <PortalWoDrawer key={detail.id} id={detail.id} open={open} onClose={() => setDetail(null)} onAccept={(w) => (txBlocked ? toast("Your account is on hold - work orders can't be accepted", "red") : actWo(w, "Accepted"))} onDecline={(w) => setWoDecline({ wo: w, reason: "" })}
         onClaim={(wid) => (billBlocked ? toast("Claims are paused while your account is on hold", "red") : setClaimFor(wid))} />}
       {detail?.kind === "claim" && <PortalClaimDrawer key={detail.id} id={detail.id} open={open} onClose={() => setDetail(null)} onRevise={(c) => setClaimFor({ woId: c.woId, from: c.id })} />}
       {detail?.kind === "bill" && <PortalRaBillDrawer key={detail.id} id={detail.id} open={open} onClose={() => setDetail(null)} />}
@@ -323,11 +323,11 @@ function PortalBody({ vid, vendorMode }) {
         </Modal>
       )}
       {reup && (
-        <Modal open onClose={() => setReup(null)} width={460} title={`Upload — ${reup.name}`}
+        <Modal open onClose={() => setReup(null)} width={460} title={`Upload - ${reup.name}`}
           footer={<><Btn onClick={() => setReup(null)}>Cancel</Btn><Btn variant="primary" disabled={!reup.file} onClick={() => {
-            if (reup.expiry && reup.expiry < todayISO()) return toast("Valid-till date is in the past — upload a current document", "red");
+            if (reup.expiry && reup.expiry < todayISO()) return toast("Valid-till date is in the past - upload a current document", "red");
             setState((s) => { const x = byId(s.vendors, vid); let d = x.docs.find((dd) => dd.name === reup.name); if (!d) { d = { name: reup.name }; x.docs.push(d); } withVersion(d, { status: "Pending", file: reup.file, dataUrl: reup.dataUrl, expiry: reup.expiry, uploadedAt: todayISO() }, vendorMode ? getVendorSession()?.email : v.contact.name); }, { entity: "Vendor", id: vid, action: `${reup.name} uploaded via portal` });
-            toast("Uploaded — the buyer will verify it"); setReup(null);
+            toast("Uploaded - the buyer will verify it"); setReup(null);
           }}>Upload</Btn></>}>
           <div className="space-y-3">
             <Field label="File"><input type="file" className="block w-full text-[13px]" onChange={async (e) => { const a = await readAttachment(e.target.files[0]); a && setReup((r) => ({ ...r, file: a.name, dataUrl: a.dataUrl })); }} /></Field>
@@ -379,14 +379,14 @@ function RegistrationFix({ v }) {
       x.changeRequest = cr ? { ...cr, resolvedAt: new Date().toISOString() } : null;
       x.status = "Pending Approval";
     }, { entity: "Vendor", id: v.id, action: "Vendor updated registration and resubmitted" });
-    toast("Resubmitted — thank you");
+    toast("Resubmitted - thank you");
   };
   return (
     <div className="space-y-4">
       {cr && !cr.resolvedAt && (
         <Note tone="amber" icon={Icon.alert}>
           <b>{cr.by} ({cr.dept}) asked for changes on {fmtDate(cr.at)}:</b>
-          <ul className="mt-1 list-disc pl-5">{cr.items.map((it, i) => <li key={i}><b>{it.label}</b>{it.note ? ` — ${it.note}` : ""}</li>)}</ul>
+          <ul className="mt-1 list-disc pl-5">{cr.items.map((it, i) => <li key={i}><b>{it.label}</b>{it.note ? ` - ${it.note}` : ""}</li>)}</ul>
           {cr.message && <p className="mt-1">{cr.message}</p>}
         </Note>
       )}

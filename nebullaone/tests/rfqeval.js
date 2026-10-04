@@ -1,4 +1,4 @@
-// G7 — RFQ technical + commercial evaluation, clarifications, BAFO, recommendation, award gate
+// G7 - RFQ technical + commercial evaluation, clarifications, BAFO, recommendation, award gate
 require('./lib')('rfqeval', async ({ p, go, dlg, S, mut, T }) => {
   const RID = 'RFQ-001';
   const evalTab = async () => { await go(`vendor-management/rfq?open=${RID}`); await p.waitForTimeout(400); await p.locator('[data-drawer] [role=tab]:has-text("Evaluation")').click(); await p.waitForTimeout(200); return p.locator('[data-drawer]'); };

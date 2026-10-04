@@ -1,4 +1,4 @@
-// CLOSURE — Final Settlement, DLP & Warranty, Contractor Release, Termination & Final Account and
+// CLOSURE - Final Settlement, DLP & Warranty, Contractor Release, Termination & Final Account and
 // Requalification: goods warranty and claim; DLP defect blocking closure; final settlement (statement,
 // send, agreement); contractor release with the closing evaluation → requalification flag → contract
 // closed; requalification blocking a PO until cleared; termination → final account → blacklist decision.
@@ -30,7 +30,7 @@ require('./lib')('closure', async ({ p, go, dlg, S, mut, T, pick, toastText }) =
 
   await T('C-03', 'Final settlement for CTR-005: statement, send, contractor agrees', async () => {
     await go('contract-labor/final-settlement?open=CTR-005'); await p.waitForTimeout(300); const t = await dlg().textContent();
-    await dlg().locator('label:has-text("Back-charges / LD") input').fill('12000'); await dlg().locator('label:has-text("Back-charges — reason") input').fill('Scaffold damage to podium waterproofing');
+    await dlg().locator('label:has-text("Back-charges / LD") input').fill('12000'); await dlg().locator('label:has-text("Back-charges - reason") input').fill('Scaffold damage to podium waterproofing');
     await dlg().locator('button:has-text("Send to contractor")').click(); await p.waitForTimeout(200); await dlg().locator('button:has-text("Record agreement")').click(); await p.waitForTimeout(200);
     const m = dlg(); if (!(await m.locator('label:has-text("Signed for the contractor by") input').inputValue())) await m.locator('label:has-text("Signed for the contractor by") input').fill('R. Kulkarni');
     await m.locator('button:has-text("Record agreement")').click(); await p.waitForTimeout(250);
@@ -70,7 +70,7 @@ require('./lib')('closure', async ({ p, go, dlg, S, mut, T, pick, toastText }) =
   });
 
   await T('C-06', 'Termination path on CTR-004: terminate → final account → blacklist decision', async () => {
-    // work measured but not billed before the termination is settled in the final bill — recorded directly here
+    // work measured but not billed before the termination is settled in the final bill - recorded directly here
     await mut((s) => { s.claims.forEach((c) => { if (c.status === 'Submitted') c.status = 'Verified'; }); const wos = s.workOrders.filter((w) => w.contractId === 'CTR-004').map((w) => w.id);
       s.measurements.filter((m) => wos.includes(m.woId)).forEach((m) => { m.jms.status = 'Signed'; m.billedIn = m.billedIn || 'RA-006'; }); });
     await go('contract-labor/terminations'); await btn('Terminate a contract').click(); await p.waitForTimeout(200);
@@ -83,7 +83,7 @@ require('./lib')('closure', async ({ p, go, dlg, S, mut, T, pick, toastText }) =
     if (!(await m.locator('label:has-text("Signed for the contractor by") input').inputValue())) await m.locator('label:has-text("Signed for the contractor by") input').fill('S. Patil');
     await m.locator('button:has-text("Record agreement")').click(); await p.waitForTimeout(250);
     await go('contract-labor/terminations?open=CTR-004'); await p.waitForTimeout(300); await dlg().locator('button:has-text("Record decision")').click(); await p.waitForTimeout(200);
-    const d = dlg(); await pick(d.locator('label:has-text("Decision") [role=combobox]'), 'Blacklist'); await d.locator('label:has-text("Reason") input').first().fill('Abandonment — repeated breach');
+    const d = dlg(); await pick(d.locator('label:has-text("Decision") [role=combobox]'), 'Blacklist'); await d.locator('label:has-text("Reason") input').first().fill('Abandonment - repeated breach');
     for (const k of ['Quality', 'Safety (HSE)', 'Timeliness']) await d.locator(`label:has-text("${k}") button[aria-label="1 star"]`).click();
     await d.locator('label:has-text("Remarks") input').fill('Abandoned works mid-way'); await d.locator('button:has-text("Record decision")').last().click(); await p.waitForTimeout(250);
     const s = await S(); const c = s.contracts.find((x) => x.id === 'CTR-004'), v = s.vendors.find((x) => x.id === 'VEN-010');

@@ -33,13 +33,13 @@ const CLOSEOUT_STAGES = ["Execution", "Punch list", "Final inspection", "Handove
 function addPunch(c, f) {
   if (!tryAct(CLOSEOUT_ROLES, [], "raising punch-list items")) return false;
   setState((s) => { s.punchItems = s.punchItems || []; s.punchItems.unshift({ id: nextId("PL", s.punchItems), contractId: c.id, woId: f.woId || null, desc: f.desc.trim(), location: f.location.trim(), severity: f.severity, due: f.due, status: "Open", raisedBy: currentUser(), raisedOn: todayISO(), history: [{ at: new Date().toISOString(), by: currentUser(), what: "Raised" }] }); },
-    { entity: "Contract", id: c.id, action: `Punch item raised — ${f.desc}` });
+    { entity: "Contract", id: c.id, action: `Punch item raised - ${f.desc}` });
   return true;
 }
 function movePunch(p, what, by, note) {
   if (what !== "Rectified" && !tryAct(CLOSEOUT_ROLES, [], "verifying punch items")) return false;
   setState((s) => { const x = byId(s.punchItems, p.id); x.status = what === "Rectified" ? "Rectified" : what === "Closed" ? "Closed" : "Open"; x.history.push({ at: new Date().toISOString(), by: by || currentUser(), what, note: note || "" }); },
-    { entity: "Punch", id: p.id, action: `${what}${note ? ` — ${note}` : ""}` });
+    { entity: "Punch", id: p.id, action: `${what}${note ? ` - ${note}` : ""}` });
   toast(`${p.id} ${what.toLowerCase()}`, what === "Reopened" ? "amber" : "green");
   return true;
 }
@@ -79,17 +79,17 @@ function CloseoutDrawer({ id, onClose }) {
   const printCert = () => {
     const w = window.open("", "_blank"); if (!w) return toast("Allow pop-ups to print", "red");
     w.document.write(`<html><head><title>Handover certificate ${c.id}</title><style>body{font:14px/1.6 system-ui;margin:48px;max-width:720px}h1{font-size:20px}td{padding:4px 12px 4px 0}</style></head><body><h1>Taking-over / Handover Certificate</h1>
-      <p>This certifies that the works under contract <b>${c.id} — ${c.title}</b> executed by <b>${v.name}</b> for <b>${c.project}</b> were inspected on ${fmtDate(lastInsp?.date)} and taken over on <b>${fmtDate(c.handover.date)}</b>.</p>
-      <table><tr><td>Taken over by</td><td>${c.handover.takenOverBy}</td></tr><tr><td>Certified by</td><td>${c.handover.by}</td></tr><tr><td>Defect liability period</td><td>${c.dlpMonths} months, until ${fmtDate(dlpEnd)}</td></tr><tr><td>Remarks</td><td>${c.handover.note || "—"}</td></tr></table>
+      <p>This certifies that the works under contract <b>${c.id} - ${c.title}</b> executed by <b>${v.name}</b> for <b>${c.project}</b> were inspected on ${fmtDate(lastInsp?.date)} and taken over on <b>${fmtDate(c.handover.date)}</b>.</p>
+      <table><tr><td>Taken over by</td><td>${c.handover.takenOverBy}</td></tr><tr><td>Certified by</td><td>${c.handover.by}</td></tr><tr><td>Defect liability period</td><td>${c.dlpMonths} months, until ${fmtDate(dlpEnd)}</td></tr><tr><td>Remarks</td><td>${c.handover.note || "-"}</td></tr></table>
       <p style="margin-top:48px">______________________<br/>Project Manager</p></body></html>`);
     w.document.close(); w.print();
   };
   return (
-    <Drawer open onClose={onClose} width={980} title={`Close-out — ${c.title}`} recordId={c.id} status={<Status>{contractStatus(c)}</Status>} details={[["Vendor", v.name], ["Project", c.project]]}
+    <Drawer open onClose={onClose} width={980} title={`Close-out - ${c.title}`} recordId={c.id} status={<Status>{contractStatus(c)}</Status>} details={[["Vendor", v.name], ["Project", c.project]]}
       actions={<RefLink to={`${CL_BASE}/contracts?open=${id}`}>Open contract →</RefLink>}>
       <div className="space-y-4 px-6 py-5">
         <Section><div className="overflow-x-auto p-5"><Stepper steps={CLOSEOUT_STAGES.filter((x) => x !== "Final payment" && x !== "Retention & guarantees" && (c.status === "Terminated" ? !["Punch list", "Final inspection", "Handover", "Defect liability", "Contractor release"].includes(x) : x !== "Blacklist decision")).map((x) => { const i = CLOSEOUT_STAGES.indexOf(x); return { label: x, status: i < si ? "done" : i === si ? (x === "Closed" ? "done" : "current") : "todo" }; })} /></div></Section>
-        {c.status === "Terminated" && <Note tone="red">Terminated contract — no handover; settle the final account (bills, retention, guarantees) and close.</Note>}
+        {c.status === "Terminated" && <Note tone="red">Terminated contract - no handover; settle the final account (bills, retention, guarantees) and close.</Note>}
         <Section title="1 · Work completion" icon={Icon.clipboardList}>
           <DataTable dense rows={wos} columns={[
             { key: "id", label: "WO", render: (w) => <RefLink to={`${CL_BASE}/work-orders?open=${w.id}`}>{w.id}</RefLink> }, { key: "title", label: "Title" },
@@ -109,7 +109,7 @@ function CloseoutDrawer({ id, onClose }) {
         </Section>
         <Section title="4 · Handover certificate" icon={Icon.file} actions={c.handover ? <Btn size="sm" icon={Icon.download} onClick={printCert}>Print certificate</Btn> : c.status === "Active" && <Btn size="sm" variant="primary" disabled={lastInsp?.result !== "Passed" || inspBlock.length > 0} title={lastInsp?.result !== "Passed" ? "Pass the final inspection first" : inspBlock.length ? "Close the open punch-list items first" : ""} onClick={() => setHo({ date: todayISO(), takenOverBy: "", note: "" })}>Issue handover certificate</Btn>}>
           {c.handover ? <KV cols={4} items={[["Handed over", fmtDate(c.handover.date)], ["Taken over by", c.handover.takenOverBy], ["Certified by", c.handover.by], ["DLP ends", fmtDate(dlpEnd)]]} />
-            : <p className="p-4 text-[13px] text-ink-mute">{lastInsp?.result === "Passed" ? "Final inspection passed — issue the certificate. The defect liability period starts from the handover date." : "Issued after a passed final inspection."}</p>}
+            : <p className="p-4 text-[13px] text-ink-mute">{lastInsp?.result === "Passed" ? "Final inspection passed - issue the certificate. The defect liability period starts from the handover date." : "Issued after a passed final inspection."}</p>}
         </Section>
         <Section title="5 · Final bill" icon={Icon.receipt} actions={(c.handover || c.status === "Terminated") && !finalBills.length && <Btn size="sm" variant="primary" onClick={() => setBill(true)}>Prepare final bill</Btn>}>
           {finalBills.length ? <DataTable dense rows={finalBills} columns={[
@@ -130,7 +130,7 @@ function CloseoutDrawer({ id, onClose }) {
         </Section>
         <Section title="7 · Final settlement & release" icon={Icon.handshake}>
           <KV cols={4} items={[["Final settlement", c.settlement ? <Status tone={c.settlement.status === "Agreed" ? "green" : "amber"}>{c.settlement.status}</Status> : "Not prepared"],
-            ["Net position", c.settlement ? inr(c.settlement.net) : "—"], [c.status === "Terminated" ? "Blacklist decision" : "Release certificate", c.status === "Terminated" ? (c.blacklistDecision ? c.blacklistDecision.decision : "Pending") : (c.release ? c.release.no : "Not issued")],
+            ["Net position", c.settlement ? inr(c.settlement.net) : "-"], [c.status === "Terminated" ? "Blacklist decision" : "Release certificate", c.status === "Terminated" ? (c.blacklistDecision ? c.blacklistDecision.decision : "Pending") : (c.release ? c.release.no : "Not issued")],
             ["Open", <span className="flex flex-col gap-0.5">{settlementReady(st, c) ? <RefLink to={`${CL_BASE}/final-settlement?open=${c.id}`}>Final Settlement →</RefLink> : <span className="text-ink-mute">Settlement after the final bill</span>}{c.status === "Terminated" ? <RefLink to={`${CL_BASE}/terminations?open=${c.id}`}>Termination & Final Account →</RefLink> : (c.settlement?.status === "Agreed" || c.release) ? <RefLink to={`${CL_BASE}/contractor-release?open=${c.id}`}>Contractor Release →</RefLink> : null}</span>]]} />
         </Section>
         <Section title="8 · Closure checklist" icon={Icon.check} actions={c.status !== "Closed" && <Btn size="sm" variant="success" disabled={checklist.some((i) => !i.ok)} title={checklist.filter((i) => !i.ok).map((i) => i.label).join("\n")} onClick={() => closeContract(c)}>Close contract</Btn>}>
@@ -144,34 +144,34 @@ function CloseoutDrawer({ id, onClose }) {
           <div className="grid grid-cols-2 gap-3">
             <Field label="Snag / defect" required span={2}><TextInput value={pf.desc} onChange={(x) => setPf({ ...pf, desc: x })} placeholder="e.g. Plaster crack at lift lobby L4" /></Field>
             <Field label="Location"><TextInput value={pf.location} onChange={(x) => setPf({ ...pf, location: x })} /></Field>
-            <Field label="Work order"><Select value={pf.woId} onChange={(x) => setPf({ ...pf, woId: x })} options={wos.map((w) => ({ value: w.id, label: `${w.id} — ${w.title}` }))} /></Field>
+            <Field label="Work order"><Select value={pf.woId} onChange={(x) => setPf({ ...pf, woId: x })} options={wos.map((w) => ({ value: w.id, label: `${w.id} - ${w.title}` }))} /></Field>
             <Field label="Severity"><Select value={pf.severity} onChange={(x) => setPf({ ...pf, severity: x })} options={["Minor", "Major", "Critical"]} /></Field>
             <Field label="Rectify by" required><DateInput value={pf.due} onChange={(x) => setPf({ ...pf, due: x })} /></Field>
           </div>
         </Modal>
       )}
       {insp && (
-        <Modal open onClose={() => setInsp(null)} width={560} title={`Final inspection — ${c.id}`} footer={<><Btn onClick={() => setInsp(null)}>Cancel</Btn><Btn variant="primary" disabled={!insp.note.trim() || (insp.result === "Failed" && !insp.snags.trim())} onClick={() => {
+        <Modal open onClose={() => setInsp(null)} width={560} title={`Final inspection - ${c.id}`} footer={<><Btn onClick={() => setInsp(null)}>Cancel</Btn><Btn variant="primary" disabled={!insp.note.trim() || (insp.result === "Failed" && !insp.snags.trim())} onClick={() => {
           if (!tryAct(["Project Manager"], [], "the final inspection")) return;
           setState((s) => {
             s.inspections = s.inspections || []; const fid = nextId("FI", s.inspections);
             s.inspections.push({ id: fid, contractId: c.id, date: todayISO(), by: currentUser(), result: insp.result, note: insp.note.trim() });
             if (insp.result === "Failed") { s.punchItems = s.punchItems || []; insp.snags.split("\n").map((x) => x.trim()).filter(Boolean).forEach((d) => s.punchItems.unshift({ id: nextId("PL", s.punchItems), contractId: c.id, woId: wos[0]?.id || null, desc: d, location: "", severity: "Major", due: shiftDays(7), status: "Open", raisedBy: currentUser(), raisedOn: todayISO(), history: [{ at: new Date().toISOString(), by: currentUser(), what: `Raised at ${fid}` }] })); }
           }, { entity: "Contract", id: c.id, action: `Final inspection ${insp.result.toLowerCase()}` });
-          toast(insp.result === "Passed" ? "Final inspection passed — issue the handover certificate" : "Inspection failed — snags added to the punch list", insp.result === "Passed" ? "green" : "amber"); setInsp(null);
+          toast(insp.result === "Passed" ? "Final inspection passed - issue the handover certificate" : "Inspection failed - snags added to the punch list", insp.result === "Passed" ? "green" : "amber"); setInsp(null);
         }}>Save</Btn></>}>
           <div className="space-y-3">
             <Field label="Result"><div className="flex gap-1 rounded-lg bg-gray-100 p-0.5">{["Passed", "Failed"].map((r) => <button key={r} type="button" onClick={() => setInsp({ ...insp, result: r })} className={cls("h-[28px] flex-1 rounded-md text-[13px]", insp.result === r ? cls("bg-white font-medium shadow-sm", r === "Passed" ? "text-green-700" : "text-red-600") : "text-ink-soft")}>{r}</button>)}</div></Field>
             <Field label="Remarks" required><TextInput value={insp.note} onChange={(x) => setInsp({ ...insp, note: x })} placeholder="e.g. Joint walk-through with client; all areas acceptable" /></Field>
-            {insp.result === "Failed" && <Field label="Snags found (one per line — added to the punch list)" required><TextArea rows={3} value={insp.snags} onChange={(x) => setInsp({ ...insp, snags: x })} /></Field>}
+            {insp.result === "Failed" && <Field label="Snags found (one per line - added to the punch list)" required><TextArea rows={3} value={insp.snags} onChange={(x) => setInsp({ ...insp, snags: x })} /></Field>}
           </div>
         </Modal>
       )}
       {ho && (
         <Modal open onClose={() => setHo(null)} width={520} title="Issue handover certificate" subtitle="The defect liability period runs from this date" footer={<><Btn onClick={() => setHo(null)}>Cancel</Btn><Btn variant="primary" disabled={!ho.takenOverBy.trim() || !ho.date || ho.date > todayISO()} onClick={() => {
           if (!tryAct("Project Manager", [], "issuing the handover certificate")) return;
-          setState((s) => { byId(s.contracts, c.id).handover = { date: ho.date, by: currentUser(), takenOverBy: ho.takenOverBy.trim(), note: ho.note.trim(), inspectionId: lastInsp.id }; }, { entity: "Contract", id: c.id, action: `Handover certificate issued — taken over ${fmtDate(ho.date)} by ${ho.takenOverBy}` });
-          toast("Handover certificate issued — DLP started"); setHo(null);
+          setState((s) => { byId(s.contracts, c.id).handover = { date: ho.date, by: currentUser(), takenOverBy: ho.takenOverBy.trim(), note: ho.note.trim(), inspectionId: lastInsp.id }; }, { entity: "Contract", id: c.id, action: `Handover certificate issued - taken over ${fmtDate(ho.date)} by ${ho.takenOverBy}` });
+          toast("Handover certificate issued - DLP started"); setHo(null);
         }}>Issue certificate</Btn></>}>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Handover date" required><DateInput value={ho.date} onChange={(x) => setHo({ ...ho, date: x })} /></Field>
@@ -198,9 +198,9 @@ function CloseoutPage() {
         { key: "t", label: "Title", className: "font-medium", render: (r) => r.c.title },
         { key: "v", label: "Contractor", filterOptions: FO.contractors, filter: (r) => vendorName(st, r.c.vendorId), render: (r) => vendorName(st, r.c.vendorId) },
         { key: "w", label: "Work orders done", render: (r) => { const ws = st.workOrders.filter((w) => w.contractId === r.c.id); return `${ws.filter(woDone).length}/${ws.length}`; } },
-        { key: "p", label: "Open punch items", align: "right", render: (r) => (st.punchItems || []).filter((p) => p.contractId === r.c.id && p.status !== "Closed").length || "—" },
-        { key: "h", label: "Handover", render: (r) => (r.c.handover ? fmtDate(r.c.handover.date) : "—") },
-        { key: "d", label: "DLP ends", render: (r) => (r.c.handover ? fmtDate(shiftDays((r.c.dlpMonths || 0) * 30, r.c.handover.date)) : "—") },
+        { key: "p", label: "Open punch items", align: "right", render: (r) => (st.punchItems || []).filter((p) => p.contractId === r.c.id && p.status !== "Closed").length || "-" },
+        { key: "h", label: "Handover", render: (r) => (r.c.handover ? fmtDate(r.c.handover.date) : "-") },
+        { key: "d", label: "DLP ends", render: (r) => (r.c.handover ? fmtDate(shiftDays((r.c.dlpMonths || 0) * 30, r.c.handover.date)) : "-") },
         { key: "s", label: "Stage", render: (r) => <Status tone={{ Execution: "blue", Closed: "gray", "Ready to close": "green", "Defect liability": "purple" }[r.stage] || "amber"}>{r.stage}</Status> },
       ]} />
       {open && <CloseoutDrawer id={open} onClose={() => setOpen(null)} />}
@@ -214,8 +214,8 @@ function reviewVendorInvoice(inv, accept, remark) {
   if (!tryAct(["Accounts", "Finance Controller"], [], "reviewing vendor invoices")) return false;
   if (!accept && !(remark || "").trim()) { toast("A reason is required to reject", "red"); return false; }
   setState((s) => Object.assign(byId(s.invoices, inv.id), { review: accept ? "Accepted" : "Rejected", reviewedBy: currentUser(), reviewedAt: new Date().toISOString(), reviewRemark: remark || "" }),
-    { entity: "Invoice", id: inv.id, action: accept ? "Vendor invoice accepted by AP" : `Vendor invoice rejected — ${remark}` });
-  toast(accept ? `${inv.id} accepted — goes to the payment run` : `${inv.id} returned to the vendor`, accept ? "green" : "red");
+    { entity: "Invoice", id: inv.id, action: accept ? "Vendor invoice accepted by AP" : `Vendor invoice rejected - ${remark}` });
+  toast(accept ? `${inv.id} accepted - goes to the payment run` : `${inv.id} returned to the vendor`, accept ? "green" : "red");
   return true;
 }
 function PortalInvoiceModal({ v, by, onClose }) {
@@ -240,12 +240,12 @@ function PortalInvoiceModal({ v, by, onClose }) {
         setState((s) => { const id = nextId("INV", s.invoices); s.invoices.unshift({ id, vendorId: v.id, source: "Purchase Order", poId: f.poId, number: f.number.trim(), date: f.date, due: shiftDays(days, f.date), gstPct: Number(f.gstPct), hold: null, notes: [], payments: [], schedule: null,
           lines: lines.filter((l) => Number(qtyOf(l)) > 0).map((l) => ({ line: l.line, desc: l.desc, qty: Number(qtyOf(l)), rate: l.rate })), review: "Pending", submittedVia: "Portal", submittedBy: by, enteredBy: by, attachment: f.file }); },
           { entity: "Invoice", id: f.number, action: `Submitted by ${v.name} in the portal against ${f.poId}` });
-        toast("Invoice submitted — the buyer's Accounts team will review it"); onClose();
+        toast("Invoice submitted - the buyer's Accounts team will review it"); onClose();
       }}>Submit invoice</Btn></>}>
       {pos.length === 0 ? <EmptyState icon={Icon.receipt} title="Nothing to invoice" text="Invoices can be raised against received (or ordered, where agreed) quantities that aren't billed yet." /> : (
         <div className="space-y-3">
           <div className="grid grid-cols-4 gap-3">
-            <Field label="Purchase order" required span={2}><Select value={f.poId} onChange={(x) => setF({ ...f, poId: x, qty: {} })} options={pos.map((x) => ({ value: x.p.id, label: `${x.p.id} — ${itemsSummary(x.p.lines)}` }))} /></Field>
+            <Field label="Purchase order" required span={2}><Select value={f.poId} onChange={(x) => setF({ ...f, poId: x, qty: {} })} options={pos.map((x) => ({ value: x.p.id, label: `${x.p.id} - ${itemsSummary(x.p.lines)}` }))} /></Field>
             <Field label="Your invoice no." required><TextInput value={f.number} onChange={(x) => setF({ ...f, number: x })} /></Field>
             <Field label="Invoice date" required><DateInput value={f.date} onChange={(x) => setF({ ...f, date: x })} /></Field>
           </div>

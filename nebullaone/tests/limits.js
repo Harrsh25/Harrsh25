@@ -1,10 +1,10 @@
-// G11 — PO approval limits (delegation of authority)
+// G11 - PO approval limits (delegation of authority)
 require('./lib')('limits', async ({ p, go, dlg, S, mut, T }) => {
   // a draft PO worth ₹70 L (above the ₹50 L Procurement Head limit)
   await mut(`(s) => { s.purchaseOrders.unshift({ id: 'PO-900', vendorId: 'VEN-003', project: s.purchaseOrders[0].project, date: '2026-10-01', deliveryDate: '2026-10-20', status: 'Draft', billingPolicy: 'On received quantity', tolerance: 2, rfqId: null, blanketId: null, returns: [], receipts: [], lines: [{ desc: 'TMT Fe500D 16 mm', unit: 'MT', qty: 120, rate: 58000 }], revisions: [{ rev: 0, at: '2026-10-01T10:00:00Z', by: 'Buyer A', note: 'PO created' }] }); }`);
   await T('LIM-01', 'PO drawer shows the approval chain by value', async () => {
     await go('vendor-management/purchase-orders?open=PO-900'); await p.waitForTimeout(400); const t = await p.locator('[data-drawer]').innerText();
-    return [(t.match(/Approval by value[^\n]*/) || ['—'])[0], /Procurement Head — pending → Finance Controller/.test(t) && /Approve as Procurement Head/.test(t)];
+    return [(t.match(/Approval by value[^\n]*/) || ['-'])[0], /Procurement Head - pending → Finance Controller/.test(t) && /Approve as Procurement Head/.test(t)];
   });
   await T('LIM-02', 'First approval (Procurement Head) keeps it Draft; second (Finance Controller) issues it', async () => {
     await p.locator('[data-drawer] button:has-text("Approve as Procurement Head")').click(); await p.waitForTimeout(250);

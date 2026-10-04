@@ -4,7 +4,7 @@
 const REGIONS = ["Mumbai (Zone I)", "Pune (Zone II)", "Nashik (Zone III)"];
 const SKILLS = ["Unskilled", "Semi-skilled", "Skilled", "Highly Skilled"];
 const PROJECT_REGION = {
-  "Skyline Towers — Phase 1": "Pune (Zone II)", "Metro Line Extension": "Mumbai (Zone I)", "400kV Transmission Line A": "Nashik (Zone III)",
+  "Skyline Towers - Phase 1": "Pune (Zone II)", "Metro Line Extension": "Mumbai (Zone I)", "400kV Transmission Line A": "Nashik (Zone III)",
   "Riverside Business Park": "Pune (Zone II)", "Solar Farm Substation": "Nashik (Zone III)",
 };
 const rateKey = (r) => `${r.trade}|${r.region}|${r.vendorId || ""}`;
@@ -25,7 +25,7 @@ function RateModal({ base, onClose }) {
   const cur = base && st.laborRates.find((r) => r.status === "Active" && rateKey(r) === rateKey(base));
   const lrErr = {
     trade: VX.req(String(f.trade).trim()),
-    dupCard: !base && f.trade && st.laborRates.some((r) => ["Active", "Pending Approval"].includes(r.status) && rateKey(r) === rateKey({ ...f, trade: f.trade.trim(), vendorId: f.vendorId || null })) ? "A rate card for this trade, zone and contractor already exists — use Revise" : "",
+    dupCard: !base && f.trade && st.laborRates.some((r) => ["Active", "Pending Approval"].includes(r.status) && rateKey(r) === rateKey({ ...f, trade: f.trade.trim(), vendorId: f.vendorId || null })) ? "A rate card for this trade, zone and contractor already exists - use Revise" : "",
     minWage: VX.num(f.minWage, { gt: 0, label: "Minimum wage" }),
     rate: VX.num(f.rate, { gt: 0, label: "Rate" }) || (Number(f.rate) < Number(f.minWage) ? "Billing rate can't be below the statutory minimum wage" : ""),
     ot: VX.num(f.otMultiplier, { min: 1, max: 3, label: "Overtime multiplier" }),
@@ -34,12 +34,12 @@ function RateModal({ base, onClose }) {
   };
   const ok = !VX.any(lrErr);
   return (
-    <Modal open onClose={onClose} width={640} title={base ? `Revise rate — ${base.trade}, ${base.region}` : "New labour rate"} subtitle="New versions go for approval; the approved one supersedes the current card from its effective date"
+    <Modal open onClose={onClose} width={640} title={base ? `Revise rate - ${base.trade}, ${base.region}` : "New labour rate"} subtitle="New versions go for approval; the approved one supersedes the current card from its effective date"
       footer={<><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!ok} onClick={() => {
         const id = nextId("LR", st.laborRates);
         const prev = st.laborRates.filter((r) => rateKey(r) === rateKey({ ...f, vendorId: f.vendorId || null }));
         setState((s) => s.laborRates.unshift({ id, trade: f.trade, skill: f.skill, region: f.region, vendorId: f.vendorId || null, minWage: Number(f.minWage), rate: Number(f.rate), otMultiplier: Number(f.otMultiplier) || 2, basis: f.basis, effectiveFrom: f.effectiveFrom, effectiveTo: null, status: "Pending Approval", version: Math.max(0, ...prev.map((p) => p.version)) + 1, reason: f.reason, createdBy: currentUser() }),
-          { entity: "Labour Rate", id, action: `${base ? "Revision" : "New rate"} submitted — ${f.trade} @ ${inr(f.rate)}/day` });
+          { entity: "Labour Rate", id, action: `${base ? "Revision" : "New rate"} submitted - ${f.trade} @ ${inr(f.rate)}/day` });
         toast(`${id} sent for approval`); onClose();
       }}>Submit for approval</Btn></>}>
       <div className="grid grid-cols-3 gap-3">
@@ -65,7 +65,7 @@ function approveRate(r, approve) {
     if (!approve) { x.status = "Rejected"; return; }
     s.laborRates.filter((o) => o.id !== r.id && o.status === "Active" && rateKey(o) === rateKey(r)).forEach((o) => { o.status = "Superseded"; o.effectiveTo = shiftDays(-1, r.effectiveFrom); });
     x.status = "Active";
-  }, { entity: "Labour Rate", id: r.id, action: approve ? `Approved — ${r.trade} ${inr(r.rate)}/day from ${fmtDate(r.effectiveFrom)}` : "Rejected" });
+  }, { entity: "Labour Rate", id: r.id, action: approve ? `Approved - ${r.trade} ${inr(r.rate)}/day from ${fmtDate(r.effectiveFrom)}` : "Rejected" });
   toast(approve ? "Rate approved and active" : "Rate rejected", approve ? "green" : "red");
 }
 
@@ -98,23 +98,23 @@ function LaborRatesPage() {
     { key: "ver", label: "Ver.", opt: true, align: "center", render: (r) => `v${r.version}` },
   ];
   return (
-    <Page title="Labour Rate Management" subtitle="Rate cards by trade, skill and wage zone — versioned, approved and checked against minimum wages" icon={Icon.hardHat}
+    <Page title="Labour Rate Management" subtitle="Rate cards by trade, skill and wage zone - versioned, approved and checked against minimum wages" icon={Icon.hardHat}
       actions={<Btn variant="primary" icon={Icon.plus} onClick={() => setEdit({})}>New rate</Btn>}>
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "cards", label: "Rate cards", icon: Icon.sheet }, { id: "pending", label: "Pending approval", icon: Icon.clipboardCheck }, { id: "check", label: "Work order rate check", icon: Icon.scale }, { id: "hist", label: "Revision history", icon: Icon.fileClock }]} />
       {tab === "cards" && <DataTable noun="rate cards" defaultCols={["trade", "skill", "region", "rate", "ef"]} filters={rateFilters} rows={filt(active)} onRow={(r) => setOpenR(r.id)} columns={[...cols, { key: "a", label: "", align: "right", render: (r) => <span onClick={(e) => e.stopPropagation()}><Btn size="sm" icon={Icon.pencil} onClick={() => setEdit(r)}>Revise</Btn></span> }]} />}
       {tab === "pending" && <DataTable noun="revisions" rows={pending} onRow={(r) => setOpenR(r.id)} empty={<EmptyState icon={Icon.check} title="No revisions awaiting approval" />} columns={[...cols,
         { key: "cur", label: "Current rate", align: "right", num: true, render: (r) => { const c = active.find((a) => rateKey(a) === rateKey(r)); return c ? <span>{inr(c.rate)} <span className={cls("text-[11px]", r.rate > c.rate ? "text-red-600" : "text-green-600")}>({r.rate > c.rate ? "+" : ""}{pct(r.rate - c.rate, c.rate)}%)</span></span> : "new"; } },
-        { key: "why", label: "Reason", className: "whitespace-normal text-[12px] text-ink-soft", render: (r) => r.reason || "—" },
+        { key: "why", label: "Reason", className: "whitespace-normal text-[12px] text-ink-soft", render: (r) => r.reason || "-" },
         { key: "a", label: "", align: "right", render: (r) => <span className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}><Btn size="sm" variant="success" onClick={() => approveRate(r, true)}>Approve</Btn><Btn size="sm" variant="danger" onClick={() => approveRate(r, false)}>Reject</Btn></span> }]} />}
       {tab === "check" && <DataTable noun="items" rows={labourItems} rowKey={(r) => r.wo.id + r.i.id} empty={<EmptyState icon={Icon.hardHat} title="No man-day items on work orders" />} columns={[
         { key: "wo", label: "Work order", filterOptions: FO.contractors, filter: (r) => vendorName(st, r.wo.vendorId), filterLabel: "Contractor", render: (r) => <span><span className="mono text-[12px]">{r.wo.id}</span> · {vendorName(st, r.wo.vendorId)}</span> },
         { key: "i", label: "Item", render: (r) => r.i.desc },
         { key: "reg", label: "Wage zone", filterOptions: FO.regions, filter: (r) => PROJECT_REGION[r.wo.project], render: (r) => PROJECT_REGION[r.wo.project] },
         { key: "wr", label: "WO rate", align: "right", num: true, render: (r) => inr(r.i.rate) },
-        { key: "cr", label: "Rate card", align: "right", num: true, render: (r) => (r.card ? `${inr(r.card.rate)} (${r.card.id})` : "—") },
-        { key: "mw", label: "Min. wage", align: "right", num: true, render: (r) => (r.card ? inr(r.card.minWage) : "—") },
+        { key: "cr", label: "Rate card", align: "right", num: true, render: (r) => (r.card ? `${inr(r.card.rate)} (${r.card.id})` : "-") },
+        { key: "mw", label: "Min. wage", align: "right", num: true, render: (r) => (r.card ? inr(r.card.minWage) : "-") },
         { key: "res", label: "Check", render: (r) => !r.card ? <Status tone="gray">No card</Status> : r.i.rate < r.card.minWage ? <Status tone="red">Below min. wage</Status> : r.i.rate > r.card.rate ? <Status tone="amber">{`Above card by ${pct(r.i.rate - r.card.rate, r.card.rate)}%`}</Status> : <Status tone="green">Within card</Status> },
-        { key: "v", label: "Value at risk", align: "right", num: true, render: (r) => (r.card && r.i.rate > r.card.rate ? inr((r.i.rate - r.card.rate) * r.i.qty) : "—") },
+        { key: "v", label: "Value at risk", align: "right", num: true, render: (r) => (r.card && r.i.rate > r.card.rate ? inr((r.i.rate - r.card.rate) * r.i.qty) : "-") },
       ]} />}
       {tab === "hist" && <DataTable noun="versions" filters={rateFilters} onRow={(r) => setOpenR(r.id)} rows={filt(st.laborRates).slice().sort((a, b) => rateKey(a).localeCompare(rateKey(b)) || b.version - a.version)} columns={[...cols, { key: "s", label: "Status", render: (r) => <Status>{r.status}</Status> }]} />}
       {edit && <RateModal base={edit.id ? edit : null} onClose={() => setEdit(null)} />}
@@ -122,7 +122,7 @@ function LaborRatesPage() {
         const r = byId(st.laborRates, openR); if (!r) return null;
         const versions = st.laborRates.filter((x) => rateKey(x) === rateKey(r)).sort((a, b) => b.version - a.version);
         return (
-          <Drawer open onClose={() => setOpenR(null)} width={760} title={`${r.trade} — ${r.skill}`} recordId={r.id} status={<Status>{r.status}</Status>} details={[["Region", r.region], ["Vendor", r.vendorId ? vendorName(st, r.vendorId) : "Standard rate"], ["Version", `v${r.version}`]]}
+          <Drawer open onClose={() => setOpenR(null)} width={760} title={`${r.trade} - ${r.skill}`} recordId={r.id} status={<Status>{r.status}</Status>} details={[["Region", r.region], ["Vendor", r.vendorId ? vendorName(st, r.vendorId) : "Standard rate"], ["Version", `v${r.version}`]]}
            
             actions={r.status === "Pending Approval" ? <><Btn variant="danger" onClick={() => approveRate(r, false)}>Reject</Btn><Btn variant="success" icon={Icon.check} onClick={() => approveRate(r, true)}>Approve</Btn></>
               : r.status === "Active" && <Btn icon={Icon.pencil} onClick={() => { setOpenR(null); setEdit(r); }}>Revise</Btn>}>
@@ -135,14 +135,14 @@ function LaborRatesPage() {
               </div>
               <Section title="Rate card" icon={Icon.sheet}>
                 <KV items={[["Trade", r.trade], ["Skill", r.skill], ["Wage zone", r.region], ["Applies to", r.vendorId ? vendorName(st, r.vendorId) : "All contractors (standard)"],
-                  ["Overtime", `${r.otMultiplier}× rate`], ["Effective", `${fmtDate(r.effectiveFrom)}${r.effectiveTo ? ` → ${fmtDate(r.effectiveTo)}` : " onwards"}`], ["Version", `v${r.version}`], ["Status", r.status], ["Reason", r.reason || "—"]]} />
+                  ["Overtime", `${r.otMultiplier}× rate`], ["Effective", `${fmtDate(r.effectiveFrom)}${r.effectiveTo ? ` → ${fmtDate(r.effectiveTo)}` : " onwards"}`], ["Version", `v${r.version}`], ["Status", r.status], ["Reason", r.reason || "-"]]} />
               </Section>
               <Section title="Version history" icon={Icon.fileClock}>
                 <DataTable dense rows={versions} onRow={(x) => setOpenR(x.id)} columns={[
                   { key: "v", label: "Version", render: (x) => <span className={cls(x.id === r.id && "font-semibold")}>v{x.version}</span> },
                   { key: "rate", label: "Rate / day", align: "right", num: true, render: (x) => inr(x.rate) },
                   { key: "ef", label: "Effective", render: (x) => `${fmtDate(x.effectiveFrom)}${x.effectiveTo ? ` → ${fmtDate(x.effectiveTo)}` : ""}` },
-                  { key: "why", label: "Reason", className: "whitespace-normal text-[12px]", render: (x) => x.reason || "—" },
+                  { key: "why", label: "Reason", className: "whitespace-normal text-[12px]", render: (x) => x.reason || "-" },
                   { key: "s", label: "Status", render: (x) => <Status>{x.status}</Status> },
                 ]} />
               </Section>

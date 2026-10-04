@@ -1,4 +1,4 @@
-// Layout check — every page header and every list's first record panel at 1920 / 1440 / 1280 px:
+// Layout check - every page header and every list's first record panel at 1920 / 1440 / 1280 px:
 // title cut off, details squeezed into a narrow column, buttons pushed past the edge.
 const { chromium } = require('playwright'); const fs = require('fs'), path = require('path');
 const FILE = 'file://' + path.resolve(__dirname, '../../NebullaOne-WFM.html');

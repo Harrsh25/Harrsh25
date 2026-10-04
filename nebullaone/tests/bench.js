@@ -1,4 +1,4 @@
-// BENCHMARK SUITE — fields added from Vendor_Module_Benchmark.xlsx: vendor master extras, contacts
+// BENCHMARK SUITE - fields added from Vendor_Module_Benchmark.xlsx: vendor master extras, contacts
 // and addresses, bank settings, qualification limits and question library, requisitions, RFQ
 // questions, vendor price lists, PO controls, receiving, bills / TDS, payments, scorecard
 // criteria, contract terms, worker details and the supplier portal.
@@ -14,7 +14,7 @@ require('./lib')('bench', async ({ p, go, dlg, S, mut, T, pick, toastText }) => 
     await d.locator('label:has-text("Contact person") input').first().fill('Asha Rao'); await d.locator('input[type=email]').first().fill('asha@bench.in');
     await d.locator('button:has-text("Save draft")').click(); await p.waitForTimeout(300);
     const v = (await S()).vendors.find((x) => x.name === 'Benchmark Cement Co');
-    // MSME / entity type / credit limit were removed from the form on request — registration saves trades, GSTIN and PAN
+    // MSME / entity type / credit limit were removed from the form on request - registration saves trades, GSTIN and PAN
     return [`saved ${v?.id} ${v?.status}; trades ${(v?.categories || []).join(', ')}; GSTIN ${v?.gstin}; PAN ${v?.pan}`, !!v && v.status === 'Draft' && (v.categories || []).includes('Cement & Aggregates') && v.pan === 'BNCHM4411K'];
   });
   await T('BF-02a', 'Approved vendor: contacts & addresses are locked (no Add contact)', async () => {
@@ -89,7 +89,7 @@ require('./lib')('bench', async ({ p, go, dlg, S, mut, T, pick, toastText }) => 
     await d.locator('input[placeholder="Qty"]').first().fill('100'); await d.locator('input[placeholder="Rate"]').first().fill('92'); await p.waitForTimeout(100);
     await d.locator('button:has-text("Create & issue")').click(); await p.waitForTimeout(300);
     const po = (await S()).purchaseOrders[0];
-    return [`${po.id} ${po.status} — ${po.approval?.remark}`, po.status === 'Issued' && /threshold/.test(po.approval?.remark || '')];
+    return [`${po.id} ${po.status} - ${po.approval?.remark}`, po.status === 'Issued' && /threshold/.test(po.approval?.remark || '')];
   });
   await T('BF-11', 'Same item twice on a PO is blocked (setting off)', async () => {
     await go('vendor-management/purchase-orders'); await btn('New PO').first().click(); await p.waitForTimeout(200); const d = dlg();

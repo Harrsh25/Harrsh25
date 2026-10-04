@@ -1,4 +1,4 @@
-// Contract & Labor Management — contractor onboarding and contract creation /
+// Contract & Labor Management - contractor onboarding and contract creation /
 // tracking (renewal reminders, change orders, bank guarantees).
 
 const contractorVendors = (st) => st.vendors.filter((v) => v.isContractor || hasType(v, "Labor"));
@@ -20,8 +20,8 @@ function OnboardingPage() {
         { key: "st", label: "Stage", render: (v) => { const s0 = onboardingStage(v); return <Status tone={{ Documents: "amber", "Under Review": "blue", Mobilising: "purple", Onboarded: "green", Rejected: "red" }[s0]}>{s0}</Status>; } },
         { key: "d", label: "Documents", render: (v) => { const ok = v.docs.filter((d) => d.status === "Verified").length, n = requiredDocs(v).length; return <span className="flex items-center gap-2"><span className="h-1.5 w-16 overflow-hidden rounded-full bg-gray-200"><span className={cls("block h-full rounded-full", ok >= n ? "bg-green-500" : "bg-amber-500")} style={{ width: `${(ok / (n || 1)) * 100}%` }} /></span><span className="num text-[12px] text-ink-soft">{ok}/{n}</span></span>; } },
         { key: "a", label: "Approval", render: (v) => { const pnd = v.approval.stages.find((x) => x.status === "Pending"); return pnd ? <Status tone="blue">{`With ${pnd.dept}`}</Status> : v.status === "Active" || v.status === "On Hold" ? <Status tone="green">Approved</Status> : <Status>{v.status}</Status>; } },
-        { key: "c", label: "Mobilisation checklist", render: (v) => { const ck = v.onboarding?.checklist || []; const done = ck.filter((x) => x.done).length; return ck.length ? <span className="flex items-center gap-2"><span className="h-1.5 w-16 overflow-hidden rounded-full bg-gray-200"><span className="block h-full rounded-full bg-violet-500" style={{ width: `${(done / ck.length) * 100}%` }} /></span><span className="num text-[12px] text-ink-soft">{done}/{ck.length}</span></span> : <span className="text-ink-faint">—</span>; } },
-        { key: "w", label: "Workforce", align: "right", num: true, render: (v) => v.contractor?.workforce || "—" },
+        { key: "c", label: "Mobilisation checklist", render: (v) => { const ck = v.onboarding?.checklist || []; const done = ck.filter((x) => x.done).length; return ck.length ? <span className="flex items-center gap-2"><span className="h-1.5 w-16 overflow-hidden rounded-full bg-gray-200"><span className="block h-full rounded-full bg-violet-500" style={{ width: `${(done / ck.length) * 100}%` }} /></span><span className="num text-[12px] text-ink-soft">{done}/{ck.length}</span></span> : <span className="text-ink-faint">-</span>; } },
+        { key: "w", label: "Workforce", align: "right", num: true, render: (v) => v.contractor?.workforce || "-" },
         { key: "cp", label: "Compliance", filterOptions: FO.compliance, filter: (v) => complianceOf(v).status, render: (v) => <Status>{complianceOf(v).status}</Status> },
       ]} />
       <RegisterVendorModal open={reg} contractorMode onClose={() => setReg(false)} onCreated={setOpen} />
@@ -57,26 +57,26 @@ function OnboardingDrawer({ vendorId, onClose, onFull }) {
         </Section>
         {(v.status === "Draft" || v.status === "Rejected") && (
           <Note tone={docs.every((d) => d.status !== "Missing") ? "blue" : "amber"}>
-            {docs.every((d) => d.status !== "Missing") ? "All documents uploaded — submit for Procurement → Legal → Finance approval." : `${docs.filter((d) => d.status === "Missing").length} document(s) still missing. You can submit now, but approvers will see the gaps.`}
+            {docs.every((d) => d.status !== "Missing") ? "All documents uploaded - submit for Procurement → Legal → Finance approval." : `${docs.filter((d) => d.status === "Missing").length} document(s) still missing. You can submit now, but approvers will see the gaps.`}
             <div className="mt-2"><Btn variant="primary" size="sm" icon={Icon.send} onClick={() => { if (resubmit(v)) toast("Submitted for approval"); }}>Submit for approval</Btn></div>
           </Note>
         )}
         {v.status === "Pending Approval" && <Note>Awaiting <b>{v.approval.stages.find((s) => s.status === "Pending")?.dept}</b> approval. <button className="font-medium text-brand" onClick={() => onFull("approval")}>Open approvals →</button></Note>}
-        {backgroundIssue(v) && <Note tone="red" icon={Icon.lock}>{backgroundIssue(v)}. Mobilisation (safety induction, gate passes, work orders) is blocked until the background check is clear — record it on the vendor's Approval tab.</Note>}
+        {backgroundIssue(v) && <Note tone="red" icon={Icon.lock}>{backgroundIssue(v)}. Mobilisation (safety induction, gate passes, work orders) is blocked until the background check is clear - record it on the vendor's Approval tab.</Note>}
         {v.qualification && <Note tone={qualStatus(v).tone === "green" ? "green" : qualStatus(v).tone === "amber" ? "amber" : "red"}>Qualification: <b>{qualStatus(v).status}</b>{qualStatus(v).limit ? ` · project value limit ${inrShort(qualStatus(v).limit)}` : ""}{qualStatus(v).exceptions ? ` · ${qualStatus(v).exceptions}` : ""}</Note>}
         <Section title="Mobilisation checklist" icon={Icon.listChecks} actions={<span className="text-[12px] text-ink-mute">{ck.filter((c) => c.done).length}/{ck.length} done</span>}>
           <ul className="divide-y divide-line">
             {ck.map((c, i) => (
               <li key={c.item} className="px-4 py-2">
                 <Check checked={c.done} onChange={() => (!(v.status === "Active" || v.status === "On Hold") ? toast("Checklist opens once the contractor is approved", "red")
-                  : !c.done && SITE_ITEMS.includes(c.item) && backgroundIssue(v) ? toast(`${backgroundIssue(v)} — mobilisation is blocked until it is clear`, "red") : toggle(i))} label={c.item} />
+                  : !c.done && SITE_ITEMS.includes(c.item) && backgroundIssue(v) ? toast(`${backgroundIssue(v)} - mobilisation is blocked until it is clear`, "red") : toggle(i))} label={c.item} />
               </li>
             ))}
           </ul>
         </Section>
         {v.contractor && (
           <Section title="Contractor profile" icon={Icon.hardHat}>
-            <KV items={[["Labour licence", v.contractor.labourLicence || "—"], ["Valid till", fmtDate(v.contractor.licenceExpiry)], ["Workforce", v.contractor.workforce || "—"], ["PF code", v.contractor.pfCode || "—"], ["ESI code", v.contractor.esiCode || "—"], ["Experience", v.contractor.experienceYrs ? `${v.contractor.experienceYrs} yrs` : "—"]]} />
+            <KV items={[["Labour licence", v.contractor.labourLicence || "-"], ["Valid till", fmtDate(v.contractor.licenceExpiry)], ["Workforce", v.contractor.workforce || "-"], ["PF code", v.contractor.pfCode || "-"], ["ESI code", v.contractor.esiCode || "-"], ["Experience", v.contractor.experienceYrs ? `${v.contractor.experienceYrs} yrs` : "-"]]} />
           </Section>
         )}
       </div>

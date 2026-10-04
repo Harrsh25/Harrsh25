@@ -1,11 +1,11 @@
-// G3 — bank-account change control on an approved vendor:
+// G3 - bank-account change control on an approved vendor:
 // request → verify → Finance approval → cooling period (old account still paid) → new account becomes default
 require('./lib')('bank', async ({ p, go, dlg, S, mut, T }) => {
   const VID = 'VEN-003'; const ACC = '918020055501234';
   const bankTab = async () => { await go(`vendor-management/registry?open=${VID}&tab=bank`); await p.waitForTimeout(300); };
   const acc = async () => (await S()).vendors.find((x) => x.id === VID).bankAccounts;
   const old0 = (await S()).vendors.find((x) => x.id === VID).bankAccounts.find((b) => b.isDefault);
-  await T('BK-01', 'Approved vendor: no free editing — "Request bank change" adds an Unverified account; no Make default / Settings / Remove', async () => {
+  await T('BK-01', 'Approved vendor: no free editing - "Request bank change" adds an Unverified account; no Make default / Settings / Remove', async () => {
     await bankTab(); const v = (await S()).vendors.find((x) => x.id === VID); const d = dlg();
     await d.locator('button:has-text("Request bank change")').click(); await p.waitForTimeout(100);
     await d.locator('label:has-text("Account holder name") input').fill(v.legalName); await d.locator('label:has-text("Bank") input').nth(1).fill('Axis Bank');

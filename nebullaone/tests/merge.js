@@ -1,4 +1,4 @@
-// MERGE SUITE — checks for the validations and features merged from the other build:
+// MERGE SUITE - checks for the validations and features merged from the other build:
 // vendor master formats and bank verification, bills & payments, purchasing, contractor side,
 // qualification status and limits, background-check mobilisation, remaining forms,
 // configurable approval stages, and the removal of roles.

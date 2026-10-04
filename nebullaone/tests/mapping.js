@@ -1,4 +1,4 @@
-// WORKFLOW MAPPING UAT — takes the data left by final.js (the full vendor and contractor lifecycles
+// WORKFLOW MAPPING UAT - takes the data left by final.js (the full vendor and contractor lifecycles
 // driven through the screens) and checks that every field carried from one step to the next maps
 // correctly, both in the data and on the screen the user sees:
 //   P2P:   registration → vendor master → RFQ → quotation → award → PO → goods receipt → bill (3-way) → payment
@@ -128,7 +128,7 @@ require('./lib')('mapping', async ({ p, go, dlg, S, T }) => {
   await T('C2C-07', 'Approved RA bill → payable → payment: payable = RA net; paid in full; RA bill Paid', async () => {
     const bad = [];
     bills.forEach((b) => { const i = by(s.invoices, b.invoiceId); if (!i) return bad.push(`${b.id} has no payable`); if (i.raBillId !== b.id) bad.push(`${i.id} not linked back`); if (!near(i.amount, b.net)) bad.push(`${i.id} ${i.amount}≠${b.net}`); if (b.status !== 'Paid') bad.push(`${b.id} ${b.status}`); if (!near(sum(i.payments, (x) => x.amount + (x.tds || 0)), i.amount)) bad.push(`${i.id} not fully paid`); });
-    return [bills.map((b) => `${b.id} → ${b.invoiceId}`).join(', ') + (bad.length ? ' — ' + bad.join('; ') : ' — amounts and links match'), !bad.length];
+    return [bills.map((b) => `${b.id} → ${b.invoiceId}`).join(', ') + (bad.length ? ' - ' + bad.join('; ') : ' - amounts and links match'), !bad.length];
   });
   await T('C2C-08', 'Retention ledger: held = Σ RA retention; released via approved release; balance 0 at close', async () => {
     const held = sum(bills.filter((b) => b.status !== 'Draft'), (b) => b.ded.retention), rel = sum(s.retentionReleases.filter((r) => r.contractId === ct.id && r.status === 'Released'), (r) => r.amount);

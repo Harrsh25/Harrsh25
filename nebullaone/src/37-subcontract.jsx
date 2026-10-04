@@ -10,7 +10,7 @@ function subBlockers(st, c, sub) {
   const v = byId(st.vendors, sub.vendorId), out = [];
   if (!v) return ["Subcontractor not found"];
   if (v.id === c.vendorId) out.push("The main contractor can't be its own subcontractor");
-  if (lifeStatus(v) !== "Active") out.push(`${v.name} is ${(lifeStatus(v) || approvalStatus(v)).toLowerCase()} — only approved, active vendors can be subcontractors`);
+  if (lifeStatus(v) !== "Active") out.push(`${v.name} is ${(lifeStatus(v) || approvalStatus(v)).toLowerCase()} - only approved, active vendors can be subcontractors`);
   if (isBlockedFor(v, "Orders")) out.push(`${v.name} is on hold for orders`);
   const comp = complianceOf(v); if (comp.blocking.length) out.push(`Compliance: ${comp.blocking.slice(0, 2).join("; ")}`);
   const q = qualStatus(v); if (["Not qualified", "Expired", "Requalification required"].includes(q.status)) out.push(`Qualification: ${q.status}`);
@@ -23,10 +23,10 @@ const subWorkers = (st, sub) => st.workers.filter((w) => w.subcontractId === sub
 
 function decideSub(c, sub, approve, remark) {
   const st = getState();
-  if (approve) { const b = subBlockers(st, c, sub); if (b.length) { toast(`Can't approve — ${b.join("; ")}`, "red"); return false; } }
+  if (approve) { const b = subBlockers(st, c, sub); if (b.length) { toast(`Can't approve - ${b.join("; ")}`, "red"); return false; } }
   if (!approve && !(remark || "").trim()) { toast("A reason is required to reject", "red"); return false; }
   setState((s) => Object.assign(byId(s.contracts, c.id).subcontracts.find((x) => x.id === sub.id), { status: approve ? "Approved" : "Rejected", decidedBy: currentUser(), decidedAt: new Date().toISOString(), remark: remark || "" }),
-    { entity: "Contract", id: c.id, action: `Subcontract ${sub.id} to ${vendorName(st, sub.vendorId)} ${approve ? "approved" : "rejected"}${remark ? ` — ${remark}` : ""}` });
+    { entity: "Contract", id: c.id, action: `Subcontract ${sub.id} to ${vendorName(st, sub.vendorId)} ${approve ? "approved" : "rejected"}${remark ? ` - ${remark}` : ""}` });
   toast(approve ? "Subcontract approved" : "Subcontract rejected", approve ? "green" : "red");
   return true;
 }
@@ -48,8 +48,8 @@ function SubcontractSection({ c }) {
     setTried(true); if (VX.any(er)) return;
     const n = allSubs(getState()).length + 1, id = `SUB-${String(n).padStart(3, "0")}`;
     setState((s) => { const x = byId(s.contracts, c.id); x.subcontracts = [...(x.subcontracts || []), { id, vendorId: f.vendorId, scope: f.scope.trim(), value: Number(f.value), start: f.start, end: f.end, status: "Proposed", requestedBy: currentUser(), requestedAt: new Date().toISOString() }]; },
-      { entity: "Contract", id: c.id, action: `Subcontract ${id} proposed — ${vendorName(st, f.vendorId)} for ${f.scope.trim()} (${inrShort(Number(f.value))})` });
-    toast("Subcontract proposed — waiting for approval"); setF(null); setTried(false);
+      { entity: "Contract", id: c.id, action: `Subcontract ${id} proposed - ${vendorName(st, f.vendorId)} for ${f.scope.trim()} (${inrShort(Number(f.value))})` });
+    toast("Subcontract proposed - waiting for approval"); setF(null); setTried(false);
   };
   return (
     <Section title="Subcontractors" icon={Icon.users} actions={live && !f && <Btn size="sm" icon={Icon.plus} onClick={() => setF({ vendorId: "", scope: "", value: "", start: c.start, end: c.end })}>Propose subcontractor</Btn>}>
@@ -91,8 +91,8 @@ function SubcontractSection({ c }) {
           setState((s) => {
             Object.assign(byId(s.contracts, c.id).subcontracts.find((x) => x.id === closeIt.sub.id), { status: "Closed", closedAt: new Date().toISOString(), closedBy: currentUser(), rating: r });
             s.ratings.push({ id: `RT-${Date.now().toString(36)}`, vendorId: closeIt.sub.vendorId, woId: null, contractId: c.id, period: `Subcontract ${closeIt.sub.id}`, quality: r.quality, safety: r.safety, manpower: r.quality, remarks: r.remark || `Subcontract under ${c.id}`, incidents: 0, by: currentUser(), date: todayISO() });
-          }, { entity: "Contract", id: c.id, action: `Subcontract ${closeIt.sub.id} closed — rated quality ${r.quality}/5, safety ${r.safety}/5` });
-          toast("Subcontract closed — rating added to the subcontractor's scorecard"); setCloseIt(null);
+          }, { entity: "Contract", id: c.id, action: `Subcontract ${closeIt.sub.id} closed - rated quality ${r.quality}/5, safety ${r.safety}/5` });
+          toast("Subcontract closed - rating added to the subcontractor's scorecard"); setCloseIt(null);
         }}>Close</Btn></>}>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Quality (1–5)"><Select value={closeIt.quality} onChange={(x) => setCloseIt({ ...closeIt, quality: x })} options={["1", "2", "3", "4", "5"]} /></Field>
@@ -110,7 +110,7 @@ function SubcontractorsPage() {
   const st = useStore(), nav = useNavigate();
   const rows = allSubs(st);
   return (
-    <Page title="Subcontractors" subtitle="Who each main contractor has sublet work to — scope, value, approval, checks and workers" icon={Icon.users}>
+    <Page title="Subcontractors" subtitle="Who each main contractor has sublet work to - scope, value, approval, checks and workers" icon={Icon.users}>
       <div className="grid grid-cols-4 gap-3 px-4 pt-4">
         <StatTile tone="blue" label="Waiting for approval" value={rows.filter((x) => x.status === "Proposed").length} sub="proposed by main contractors" icon={Icon.clock} />
         <StatTile tone="green" label="Approved" value={rows.filter((x) => x.status === "Approved").length} sub={inrShort(sum(rows.filter((x) => x.status === "Approved"), (x) => x.value))} icon={Icon.check} />

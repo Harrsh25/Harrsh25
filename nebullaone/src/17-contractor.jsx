@@ -35,12 +35,12 @@ function ClaimModal({ woId, fromClaim, onClose }) {
         lines: draft.lines.map((l) => ({ ...l, qty: l.qty !== undefined ? Number(l.qty) : undefined, pct: l.pct !== undefined ? Number(l.pct) : undefined })),
         history: [{ status: "Submitted", by, at: new Date().toISOString(), remark: prev ? `Revision of ${prev.id}` : "" }], revises: prev?.id || null });
       if (prev) byId(s.claims, prev.id).resubmittedAs = id;
-    }, { entity: "RA Claim", id, action: `Submitted by contractor for ${woId} — ${inr(value)}` });
+    }, { entity: "RA Claim", id, action: `Submitted by contractor for ${woId} - ${inr(value)}` });
     toast(`${id} submitted for verification`);
     onClose();
   };
   return (
-    <Modal open onClose={onClose} width={960} title={`Submit RA claim — ${wo.id}`} subtitle={`${wo.title} · ${wo.type}. Claim the work done this period; the site engineer verifies it jointly before certification.`}
+    <Modal open onClose={onClose} width={960} title={`Submit RA claim - ${wo.id}`} subtitle={`${wo.title} · ${wo.type}. Claim the work done this period; the site engineer verifies it jointly before certification.`}
       footer={<><span className="mr-auto text-[13px]">Claimed value <b className="num">{inr(value)}</b></span><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" icon={Icon.send} disabled={!draft.lines.length || bad} onClick={submit}>Submit claim</Btn></>}>
       <div className="space-y-3">
         {prev && <Note tone="amber">Returned by the buyer: <b>{prev.history[prev.history.length - 1].remark}</b></Note>}
@@ -71,7 +71,7 @@ function ClaimModal({ woId, fromClaim, onClose }) {
                     <Td align="right"><div className="ml-auto w-28"><NumInput value={l.qty} onChange={(x) => setL(i, "qty", x)} /></div>{Number(l.qty) + p.measured > p.total && <span className="block text-[10.5px] text-amber-700">exceeds WO qty</span>}</Td>
                   </>}
                   <Td><TextInput value={l.location} onChange={(x) => setL(i, "location", x)} placeholder="Grid / floor / chainage" /></Td>
-                  <Td align="right" className="num">{amt ? inr(amt) : "—"}</Td>
+                  <Td align="right" className="num">{amt ? inr(amt) : "-"}</Td>
                 </tr>
               );
             })}
@@ -99,12 +99,12 @@ function ClaimReviewModal({ id, onClose, onBill }) {
   const who = actBlock("Site Engineer", [], "claim verification");
   const ret = () => {
     if (!tryAct("Site Engineer", [], "returning a claim")) return;
-    setState((s) => { const x = byId(s.claims, id); x.status = "Returned"; x.history.push({ status: "Returned", by: currentUser(), at: new Date().toISOString(), remark }); }, { entity: "RA Claim", id, action: `Returned for revision — ${remark}` });
+    setState((s) => { const x = byId(s.claims, id); x.status = "Returned"; x.history.push({ status: "Returned", by: currentUser(), at: new Date().toISOString(), remark }); }, { entity: "RA Claim", id, action: `Returned for revision - ${remark}` });
     toast(`${id} returned to contractor`, "red"); onClose();
   };
   const verify = () => {
     if (!tryAct("Site Engineer", [], "claim verification")) return;
-    if (over.length) return toast("Certified quantity is above the work order — reduce it or raise a change order", "red");
+    if (over.length) return toast("Certified quantity is above the work order - reduce it or raise a change order", "red");
     let billId;
     setState((s) => {
       const mbIds = [];
@@ -128,7 +128,7 @@ function ClaimReviewModal({ id, onClose, onBill }) {
       mbIds.forEach((m) => (byId(s.measurements, m).billedIn = billId));
       const x = byId(s.claims, id); x.status = "Verified"; x.raBillId = billId; x.history.push({ status: "Verified", by: currentUser(), at: new Date().toISOString(), remark });
     }, { entity: "RA Claim", id, action: `Verified → RA bill created` });
-    toast(`${id} verified — RA bill created for QS certification`);
+    toast(`${id} verified - RA bill created for QS certification`);
     onClose(); onBill && onBill(billId);
   };
   return (
@@ -138,7 +138,7 @@ function ClaimReviewModal({ id, onClose, onBill }) {
       <div className="space-y-3">
         {who && <Note tone="amber" icon={Icon.lock}>{who}</Note>}
         {over.length > 0 && <Note tone="red">Above the work-order quantity on {over.map((l) => pos.find((x) => x.line.id === l.lineId)?.line.desc).join(", ")}. Certify only up to the balance, or raise a change order first.</Note>}
-        {(st.ncrs || []).some((n) => n.woId === c.woId && n.status !== "Closed") && <Note tone="amber">This work order has open NCRs — the bill can be verified but QS certification waits until they close.</Note>}
+        {(st.ncrs || []).some((n) => n.woId === c.woId && n.status !== "Closed") && <Note tone="amber">This work order has open NCRs - the bill can be verified but QS certification waits until they close.</Note>}
         {c.note && <Note>Contractor's note: {c.note}</Note>}
         {c.attachment && <p className="text-[12.5px]">Supporting sheet: <FileLink name={c.attachment.name} dataUrl={c.attachment.dataUrl} /></p>}
         <table className="w-full">
@@ -149,7 +149,7 @@ function ClaimReviewModal({ id, onClose, onBill }) {
               const amt = wo.type === "Lump Sum" ? (Math.max(0, (Number(cert[i]) || 0) - p.measured) / 100) * p.value : (Number(cert[i]) || 0) * p.line.rate;
               return (
                 <tr key={l.lineId}>
-                  <Td className="max-w-[260px] whitespace-normal">{p.line.name || `${p.line.code} · ${p.line.desc}`}</Td><Td className="text-[12px]">{l.location || "—"}</Td>
+                  <Td className="max-w-[260px] whitespace-normal">{p.line.name || `${p.line.code} · ${p.line.desc}`}</Td><Td className="text-[12px]">{l.location || "-"}</Td>
                   <Td align="right" className="num">{wo.type === "Lump Sum" ? `${p.measured}%` : `${num(p.measured)} ${p.unit}`}</Td>
                   <Td align="right" className="num">{wo.type === "Lump Sum" ? `${l.pct}%` : num(l.qty)}</Td>
                   <Td align="right"><div className="ml-auto w-28"><NumInput value={cert[i]} onChange={(x) => setCert(cert.map((y2, j) => (j === i ? x : y2)))} /></div></Td>
@@ -163,7 +163,7 @@ function ClaimReviewModal({ id, onClose, onBill }) {
           <Field label="Contractor's representative at joint verification" required><TextInput value={rep} onChange={setRep} /></Field>
           <Field label="Engineer remark" hint="Required when returning"><TextInput value={remark} onChange={setRemark} placeholder="e.g. Slab L3 shuttering reduced to 756 sqm as per JMS" /></Field>
         </div>
-        <Check checked={qcOk} onChange={setQcOk} label="Work inspected at joint verification — quality and HSE acceptable (fail it by returning the claim or raising an NCR)" />
+        <Check checked={qcOk} onChange={setQcOk} label="Work inspected at joint verification - quality and HSE acceptable (fail it by returning the claim or raising an NCR)" />
       </div>
     </Modal>
   );
@@ -181,7 +181,7 @@ function ClaimsTab({ onBill }) {
         { key: "wo", label: "Work order", render: (c) => `${c.woId} · ${byId(st.workOrders, c.woId)?.type}` },
         { key: "p", label: "Period", render: (c) => `${fmtDate(c.periodFrom)} – ${fmtDate(c.periodTo)}` },
         { key: "val", label: "Claimed", align: "right", num: true, render: (c) => inr(claimValue(st, c)) },
-        { key: "cert", label: "Certified", align: "right", num: true, render: (c) => (c.raBillId ? inr(byId(st.raBills, c.raBillId)?.gross) : "—") },
+        { key: "cert", label: "Certified", align: "right", num: true, render: (c) => (c.raBillId ? inr(byId(st.raBills, c.raBillId)?.gross) : "-") },
         { key: "s", label: "Status", filterOptions: FO.claimStatus, filter: (c) => c.status, render: (c) => <Status tone={{ Submitted: "blue", Verified: "green", Returned: "red" }[c.status]}>{c.status}{c.resubmittedAs ? ` → ${c.resubmittedAs}` : ""}</Status> },
         { key: "a", label: "", align: "right", render: (c) => c.status === "Submitted" ? <Btn size="sm" variant="primary" onClick={(e) => { e.stopPropagation(); setRev(c.id); }}>Verify</Btn> : c.raBillId ? <Btn size="sm" onClick={(e) => { e.stopPropagation(); onBill(c.raBillId); }}>Open {c.raBillId}</Btn> : null },
       ]} />
@@ -216,14 +216,14 @@ function AttendanceSheet({ vendorId, portal }) {
     setState((s) => {
       s.attendance = s.attendance.filter((a) => !(a.date === date && a.woId === woId));
       for (const w of workers) { const r0 = rows[w.id]; if (!r0) continue; const r = elig(w).eligible ? r0 : { ...r0, status: "A", ot: 0 }; s.attendance.push({ date, woId, workerId: w.id, status: r.status, hours: r.status === "P" ? 8 : r.status === "H" ? 4 : 0, ot: Number(r.ot) || 0, rolledInto: null, source: portal ? "Contractor" : "Site", verified: verify || r.verified || false }); }
-    }, { entity: "Attendance", id: `${woId} ${date}`, action: `${portal ? "Submitted by contractor" : verify ? "Verified by site" : "Saved"} — ${Object.values(rows).filter((r) => r.status !== "A").length}/${workers.length} present` });
+    }, { entity: "Attendance", id: `${woId} ${date}`, action: `${portal ? "Submitted by contractor" : verify ? "Verified by site" : "Saved"} - ${Object.values(rows).filter((r) => r.status !== "A").length}/${workers.length} present` });
     toast(verify ? "Muster verified" : "Attendance saved");
   };
   return (
     <div className="space-y-3 p-4">
       <div className="flex flex-wrap items-end gap-3">
         {!vendorId && <Field label="Contractor"><Select value={vid} onChange={(x) => { setVid(x); setWoId(st.workOrders.find((w) => w.vendorId === x && woAccepted(w))?.id || ""); }} options={vendors.map((v) => ({ value: v.id, label: v.name }))} /></Field>}
-        <Field label="Work order"><Select value={woId} placeholder="Select…" onChange={setWoId} options={wos.map((w) => ({ value: w.id, label: `${w.id} — ${w.title}` }))} /></Field>
+        <Field label="Work order"><Select value={woId} placeholder="Select…" onChange={setWoId} options={wos.map((w) => ({ value: w.id, label: `${w.id} - ${w.title}` }))} /></Field>
         <Field label="Date"><DateInput value={date} max={todayISO()} onChange={setDate} /></Field>
         <span className="flex-1" />
         <Btn icon={Icon.userPlus} onClick={() => setNw({ name: "", trade: "Mason", skill: "Skilled", gatePass: "" })}>Add worker</Btn>
@@ -236,7 +236,7 @@ function AttendanceSheet({ vendorId, portal }) {
             <tbody>
               {workers.map((w) => (
                 <tr key={w.id}>
-                  <Td className="font-medium">{w.name}{!elig(w).eligible && <span className="block text-[11px] font-normal text-red-600">Not allowed on site — {elig(w).block[0]}</span>}</Td><Td>{w.trade}</Td><Td className="mono text-[12px]">{w.gatePass}</Td>
+                  <Td className="font-medium">{w.name}{!elig(w).eligible && <span className="block text-[11px] font-normal text-red-600">Not allowed on site - {elig(w).block[0]}</span>}</Td><Td>{w.trade}</Td><Td className="mono text-[12px]">{w.gatePass}</Td>
                   <Td>
                     <span className="inline-flex gap-1">
                       {ATT_STATUS.map((o) => (
@@ -265,7 +265,7 @@ function AttendanceSheet({ vendorId, portal }) {
         const age = nw.dob ? Math.floor((Date.now() - new Date(nw.dob).getTime()) / (365.25 * DAY)) : null;
         const e = {
           name: !String(nw.name).trim() ? "Enter the full name" : "",
-          dob: !nw.dob ? "Required" : nw.dob > todayISO() ? "Date can't be in the future" : age < 18 ? "Worker must be at least 18 (Child & Adolescent Labour Act / BOCW)" : age > 70 ? "Check the date of birth — age over 70" : "",
+          dob: !nw.dob ? "Required" : nw.dob > todayISO() ? "Date can't be in the future" : age < 18 ? "Worker must be at least 18 (Child & Adolescent Labour Act / BOCW)" : age > 70 ? "Check the date of birth - age over 70" : "",
           mobile: VX.mobile(nw.mobile),
           gatePass: nw.gatePass && st.workers.some((w) => normNo(w.gatePass) === normNo(nw.gatePass)) ? "Gate pass already issued to another worker" : "",
           email: nw.email && !EMAIL_RE.test(nw.email) ? "Enter a valid e-mail" : "",
@@ -282,7 +282,7 @@ function AttendanceSheet({ vendorId, portal }) {
         }}>Add</Btn></>}>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Full name" required span={2}><TextInput value={nw.name} onChange={(x) => setNw({ ...nw, name: x })} /><FieldErr m={nw.name !== "" && e.name} />
-              {dupName && <span className="mt-1 block text-[11px] text-amber-700">{dupName.name} ({dupName.gatePass}) is already on this contractor's roll — check this is not a duplicate.</span>}</Field>
+              {dupName && <span className="mt-1 block text-[11px] text-amber-700">{dupName.name} ({dupName.gatePass}) is already on this contractor's roll - check this is not a duplicate.</span>}</Field>
             <Field label="Date of birth" required><DateInput value={nw.dob || ""} onChange={(x) => setNw({ ...nw, dob: x })} /><FieldErr m={nw.dob && e.dob} /></Field>
             <Field label="Mobile"><TextInput value={nw.mobile || ""} onChange={(x) => setNw({ ...nw, mobile: x })} placeholder="98xxxxxxxx" /><FieldErr m={e.mobile} /></Field>
             <Field label="Trade"><Select value={nw.trade} onChange={(x) => setNw({ ...nw, trade: x })} options={[...new Set(st.laborRates.map((r) => r.trade))]} /></Field>
@@ -292,10 +292,10 @@ function AttendanceSheet({ vendorId, portal }) {
             <Field label="E-mail"><TextInput value={nw.email || ""} onChange={(x) => setNw({ ...nw, email: x })} /><FieldErr m={e.email} /></Field>
             <Field label="Residential status" hint="Inter-state migrant workers need ISMW registration"><Select value={nw.residential || "Local"} onChange={(x) => setNw({ ...nw, residential: x })} options={["Local", "Inter-state migrant", "Intra-state migrant"]} /></Field>
             <Field label="Address" span={2}><TextInput value={nw.address || ""} onChange={(x) => setNw({ ...nw, address: x })} placeholder="Permanent address" /></Field>
-            <Field label="Pay rate / day (₹)" hint={card ? `Rate card ${card.id}: min wage ₹${card.minWage || "—"}` : ""}><NumInput value={nw.payRate ?? ""} onChange={(x) => setNw({ ...nw, payRate: x })} /></Field>
+            <Field label="Pay rate / day (₹)" hint={card ? `Rate card ${card.id}: min wage ₹${card.minWage || "-"}` : ""}><NumInput value={nw.payRate ?? ""} onChange={(x) => setNw({ ...nw, payRate: x })} /></Field>
             <Field label="Bill rate / day (₹)" hint={card ? `Rate card ₹${card.rate}` : ""}><NumInput value={nw.billRate ?? (card ? card.rate : "")} onChange={(x) => setNw({ ...nw, billRate: x })} /><FieldErr m={e.rates} /></Field>
             <Field label="Available from"><DateInput value={nw.availableFrom || ""} onChange={(x) => setNw({ ...nw, availableFrom: x })} /><FieldErr m={e.available} /></Field>
-            <Field label="Skill rating (1–5)"><Select value={String(nw.skillRating || "")} placeholder="—" onChange={(x) => setNw({ ...nw, skillRating: Number(x) })} options={["1", "2", "3", "4", "5"]} /></Field>
+            <Field label="Skill rating (1–5)"><Select value={String(nw.skillRating || "")} placeholder="-" onChange={(x) => setNw({ ...nw, skillRating: Number(x) })} options={["1", "2", "3", "4", "5"]} /></Field>
             <Field label="ID proof / CV" span={2}>
               <label className="flex h-[32px] cursor-pointer items-center gap-2 truncate rounded-md border border-dashed border-gray-300 px-2.5 text-[12.5px] text-ink-soft hover:border-brand hover:text-brand">{h(Icon.upload, { size: 13 })}<span className="truncate">{nw.cv?.name || "Attach Aadhaar / CV (PDF, JPG, PNG)"}</span>
                 <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={async (ev) => { const a = ev.target.files[0] && await readAttachment(ev.target.files[0]); if (a) setNw({ ...nw, cv: { name: a.name, dataUrl: a.dataUrl } }); }} /></label>
@@ -352,7 +352,7 @@ function LabourAttendancePage() {
       {tab === "roll" && (
         <div className="space-y-3 p-4">
           <div className="flex flex-wrap items-end gap-3">
-            <Field label="Work order"><Select value={roll.woId} onChange={(x) => setRoll({ ...roll, woId: x })} options={st.workOrders.filter((w) => (w.items || []).some((i) => i.unit === "man-day")).map((w) => ({ value: w.id, label: `${w.id} — ${w.title}` }))} /></Field>
+            <Field label="Work order"><Select value={roll.woId} onChange={(x) => setRoll({ ...roll, woId: x })} options={st.workOrders.filter((w) => (w.items || []).some((i) => i.unit === "man-day")).map((w) => ({ value: w.id, label: `${w.id} - ${w.title}` }))} /></Field>
             <Field label="From"><DateInput value={roll.from} onChange={(x) => setRoll({ ...roll, from: x })} /></Field>
             <Field label="To"><DateInput value={roll.to} onChange={(x) => setRoll({ ...roll, to: x })} /></Field>
           </div>
@@ -362,8 +362,8 @@ function LabourAttendancePage() {
             { key: "ot", label: "OT hours", align: "right", num: true, render: (r) => `${num(r.ot)} → ${num(r.otDays)} md` },
             { key: "t", label: "Billable man-days", align: "right", render: (r) => <b className="num">{num(r.total)}</b> },
             { key: "i", label: "WO item", render: (r) => (r.item ? `${r.item.code} · ${r.item.desc}` : <Status tone="red">No matching man-day item</Status>) },
-            { key: "rate", label: "WO rate vs card", align: "right", render: (r) => (r.item ? <span className="num">{inr(r.item.rate)}{r.card && <span className={cls("block text-[11px]", r.item.rate > r.card.rate ? "text-amber-700" : "text-ink-mute")}>card {inr(r.card.rate)}</span>}</span> : "—") },
-            { key: "v", label: "Value", align: "right", num: true, render: (r) => (r.item ? inr(r.total * r.item.rate) : "—") },
+            { key: "rate", label: "WO rate vs card", align: "right", render: (r) => (r.item ? <span className="num">{inr(r.item.rate)}{r.card && <span className={cls("block text-[11px]", r.item.rate > r.card.rate ? "text-amber-700" : "text-ink-mute")}>card {inr(r.card.rate)}</span>}</span> : "-") },
+            { key: "v", label: "Value", align: "right", num: true, render: (r) => (r.item ? inr(r.total * r.item.rate) : "-") },
             { key: "u", label: "", render: (r) => (r.unverified ? <Status tone="amber">{`${r.unverified} unverified`}</Status> : <Status tone="green">Verified</Status>) },
           ]} />
           {rows.length > 0 && <div className="flex justify-end"><Btn variant="primary" icon={Icon.ruler} disabled={rows.some((r) => r.unverified) || !rows.some((r) => r.item)} onClick={rollUp}>Post to measurement book</Btn></div>}

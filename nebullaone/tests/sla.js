@@ -1,4 +1,4 @@
-// G2 — approval deadlines (SLA) per stage and escalation
+// G2 - approval deadlines (SLA) per stage and escalation
 require('./lib')('sla', async ({ p, go, dlg, S, mut, T }) => {
   const s0 = await S(); const v = s0.vendors.find((x) => x.status === 'Pending Approval');
   const ago = (d) => new Date(Date.now() - d * 86400000).toISOString();
@@ -6,9 +6,9 @@ require('./lib')('sla', async ({ p, go, dlg, S, mut, T }) => {
     await mut(`(s) => { const x = s.vendors.find((y) => y.id === '${v.id}'); x.approval.stages.find((a) => a.status === 'Pending').since = '${ago(10)}'; }`);
     await go('vendor-management/approvals'); const head = await p.locator('main table thead').innerText();
     const row = await p.locator('main table tbody tr').filter({ hasText: v.name }).first().innerText();
-    return [`header has "Decision due": ${/Decision due/.test(head)}; ${v.name}: ${(row.match(/Overdue \d+ days?/) || ['—'])[0]}`, /Decision due/.test(head) && /Overdue \d+ days?/.test(row)];
+    return [`header has "Decision due": ${/Decision due/.test(head)}; ${v.name}: ${(row.match(/Overdue \d+ days?/) || ['-'])[0]}`, /Decision due/.test(head) && /Overdue \d+ days?/.test(row)];
   });
-  await T('SLA-02', 'Overdue approval can be escalated — recorded on the stage and in the audit log', async () => {
+  await T('SLA-02', 'Overdue approval can be escalated - recorded on the stage and in the audit log', async () => {
     await go(`vendor-management/approvals?open=${v.id}`); await dlg().locator('[role=tab]:has-text("Approvals")').click(); await p.waitForTimeout(150);
     const before = await dlg().locator('[data-sla]').innerText();
     await dlg().locator('[data-sla] button:has-text("Escalate")').click(); await p.waitForTimeout(150);
@@ -26,7 +26,7 @@ require('./lib')('sla', async ({ p, go, dlg, S, mut, T }) => {
   await T('SLA-04', 'Approving the stage restarts the clock for the next stage (on time)', async () => {
     await go(`vendor-management/approvals?open=${v.id}`); await dlg().locator('[role=tab]:has-text("Approvals")').click(); await p.waitForTimeout(150);
     const s = await S(); const x = s.vendors.find((y) => y.id === v.id); const i = x.approval.stages.findIndex((a) => a.status === 'Pending');
-    if (i === x.approval.stages.length - 1) return ['pending is last stage — skipped', true];
+    if (i === x.approval.stages.length - 1) return ['pending is last stage - skipped', true];
     await dlg().locator('button:has-text("Approve as")').click(); await p.waitForTimeout(250);
     const t = await p.locator('[data-drawer] [data-sla]').innerText();
     return [t.replace(/\s+/g, ' '), /Due in \d+ days?/.test(t) && !/Escalated/.test(t)];

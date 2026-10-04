@@ -1,4 +1,4 @@
-// FLOW WIRING — a requisition becomes an RFQ, an awarded PO and a goods receipt; a vendor hold stops
+// FLOW WIRING - a requisition becomes an RFQ, an awarded PO and a goods receipt; a vendor hold stops
 // POs and payments and its release restores them; a change order's approval changes the contract
 // value; every step lands in the audit log with a working link.
 require('./lib')('flow', async ({ p, go, dlg, S, mut, T, pick, toastText }) => {
@@ -48,11 +48,11 @@ require('./lib')('flow', async ({ p, go, dlg, S, mut, T, pick, toastText }) => {
   await T('W-05', 'Change order raised on a contract; its approval raises the contract value', async () => {
     const before = (await S()).contracts.find((c) => c.id === 'CTR-004');
     await go('contract-labor/contracts?open=CTR-004'); await p.waitForTimeout(300); await btn('Raise change order').click(); await p.waitForTimeout(200); const d = dlg();
-    await d.locator('label:has-text("Change description") input').fill('Extra dewatering — Block C'); await d.locator('label:has-text("Reason") input').fill('Ground water at 2.1 m');
+    await d.locator('label:has-text("Change description") input').fill('Extra dewatering - Block C'); await d.locator('label:has-text("Reason") input').fill('Ground water at 2.1 m');
     await d.locator('label:has-text("Value") input').fill('250000'); await d.locator('button:has-text("Submit for approval")').click(); await p.waitForTimeout(300);
     await go('contract-labor/contracts?open=CTR-004'); await p.waitForTimeout(300); const listed = (await dlg().textContent()).includes('Extra dewatering');
     await p.locator('tr:has-text("Extra dewatering") button:has-text("Approve")').click(); await p.waitForTimeout(300);
-    const c = (await S()).contracts.find((x) => x.id === 'CTR-004'); const co = c.changeOrders.find((o) => o.desc === 'Extra dewatering — Block C');
+    const c = (await S()).contracts.find((x) => x.id === 'CTR-004'); const co = c.changeOrders.find((o) => o.desc === 'Extra dewatering - Block C');
     const val = (x) => (Number(x.value) || 0) + (x.changeOrders || []).filter((o) => o.status === 'Approved').reduce((a, o) => a + (Number(o.amount) || 0), 0);
     return [`listed ${listed}; ${co?.id} ${co?.status}; contract value ${val(before)} → ${val(c)}`, listed && co?.status === 'Approved' && val(c) === val(before) + 250000];
   });

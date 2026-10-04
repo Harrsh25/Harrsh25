@@ -8,15 +8,15 @@ function exceptionRows(st) {
     if (!lifeStatus(v)) continue;
     const c = complianceOf(v);
     if (c.status === "Non-Compliant") add("Compliance failing", c.blocking.length ? "High" : "Medium", "Vendor", v.id, v.name, c.issues.join(" · "), null, `${VM_BASE}/registry?open=${v.id}`);
-    for (const b of v.bankAccounts || []) if (b.isDefault && bankStatus(b) !== "Verified") add("Default bank account not verified", "High", "Vendor", v.id, v.name, `${b.bank || "Bank"} ••${String(b.account).slice(-4)} — ${bankStatus(b)}`, b.addedAt, `${VM_BASE}/registry?open=${v.id}`);
-    for (const b of v.bankAccounts || []) if (b.change?.status === "Requested") add("Bank change waiting", "Medium", "Vendor", v.id, v.name, `${b.bank || "Bank"} ••${String(b.account).slice(-4)} — ${bankStatus(b) === "Verified" ? "verified, waiting for Finance approval" : "waiting for penny-drop verification"}`, (b.change.requestedAt || "").slice(0, 10), `${VM_BASE}/registry?open=${v.id}&tab=bank`);
-      else if (bankCooling(b)) add("Bank change in cooling period", "Low", "Vendor", v.id, v.name, `${b.bank || "Bank"} ••${String(b.account).slice(-4)} becomes the default on ${fmtDate(b.change.switchOn)} — current account paid until then`, null, `${VM_BASE}/registry?open=${v.id}&tab=bank`);
+    for (const b of v.bankAccounts || []) if (b.isDefault && bankStatus(b) !== "Verified") add("Default bank account not verified", "High", "Vendor", v.id, v.name, `${b.bank || "Bank"} ••${String(b.account).slice(-4)} - ${bankStatus(b)}`, b.addedAt, `${VM_BASE}/registry?open=${v.id}`);
+    for (const b of v.bankAccounts || []) if (b.change?.status === "Requested") add("Bank change waiting", "Medium", "Vendor", v.id, v.name, `${b.bank || "Bank"} ••${String(b.account).slice(-4)} - ${bankStatus(b) === "Verified" ? "verified, waiting for Finance approval" : "waiting for penny-drop verification"}`, (b.change.requestedAt || "").slice(0, 10), `${VM_BASE}/registry?open=${v.id}&tab=bank`);
+      else if (bankCooling(b)) add("Bank change in cooling period", "Low", "Vendor", v.id, v.name, `${b.bank || "Bank"} ••${String(b.account).slice(-4)} becomes the default on ${fmtDate(b.change.switchOn)} - current account paid until then`, null, `${VM_BASE}/registry?open=${v.id}&tab=bank`);
   }
   for (const v of st.vendors) {
     if (!lifeStatus(v)) continue;
     const r = vendorRisk(st, v), to = `${VM_BASE}/registry?open=${v.id}&tab=risk`;
-    if (["High", "Critical"].includes(r.level.name) && !r.open.length) add(`${r.level.name} supplier risk — no action`, "High", "Vendor", v.id, v.name, `Score ${r.score}: ${r.drivers.slice(0, 2).map((d) => d.why).join(" · ")}`, null, to);
-    for (const a of r.overdue) add("Risk action overdue", "Medium", "Vendor", v.id, v.name, `${a.title} — ${a.owner}, due ${fmtDate(a.due)}`, a.due, to);
+    if (["High", "Critical"].includes(r.level.name) && !r.open.length) add(`${r.level.name} supplier risk - no action`, "High", "Vendor", v.id, v.name, `Score ${r.score}: ${r.drivers.slice(0, 2).map((d) => d.why).join(" · ")}`, null, to);
+    for (const a of r.overdue) add("Risk action overdue", "Medium", "Vendor", v.id, v.name, `${a.title} - ${a.owner}, due ${fmtDate(a.due)}`, a.due, to);
   }
   for (const v of st.vendors.filter((x) => x.status === "Pending Approval")) {
     const hints = duplicateHints(v); if (hints.length) add("Possible duplicate supplier", "High", "Vendor", v.id, v.name, hints.join(" · "), v.createdAt, `${VM_BASE}/approvals?open=${v.id}`);
@@ -24,8 +24,8 @@ function exceptionRows(st) {
   // subcontracts waiting for approval, or approved but the subcontractor no longer passes the checks
   for (const x of allSubs(st)) {
     const to = `${CL_BASE}/contracts?open=${x.contract.id}`;
-    if (x.status === "Proposed") add("Subcontract waiting for approval", "Low", "Contract", x.contract.id, `${vendorName(st, x.vendorId)} under ${vendorName(st, x.contract.vendorId)}`, `${x.id} — ${x.scope} (${inrShort(x.value)})`, (x.requestedAt || "").slice(0, 10), to);
-    if (x.status === "Approved") { const b = subBlockers(st, x.contract, x); if (b.length) add("Subcontractor no longer eligible", "High", "Contract", x.contract.id, `${vendorName(st, x.vendorId)} under ${vendorName(st, x.contract.vendorId)}`, `${x.id} — ${b.join(" · ")}`, null, to); }
+    if (x.status === "Proposed") add("Subcontract waiting for approval", "Low", "Contract", x.contract.id, `${vendorName(st, x.vendorId)} under ${vendorName(st, x.contract.vendorId)}`, `${x.id} - ${x.scope} (${inrShort(x.value)})`, (x.requestedAt || "").slice(0, 10), to);
+    if (x.status === "Approved") { const b = subBlockers(st, x.contract, x); if (b.length) add("Subcontractor no longer eligible", "High", "Contract", x.contract.id, `${vendorName(st, x.vendorId)} under ${vendorName(st, x.contract.vendorId)}`, `${x.id} - ${b.join(" · ")}`, null, to); }
   }
   // workers: not eligible for site, papers expiring, or marked present while not eligible
   for (const w of st.workers || []) {
@@ -34,18 +34,18 @@ function exceptionRows(st) {
     if (i.block.length) add("Worker not eligible for site", "High", "Worker", w.id, `${w.name} · ${vendorName(st, w.vendorId)}`, i.block.join(" · "), null, to);
     else if (i.warn.some((x) => /due/.test(x))) add("Worker papers expiring", "Low", "Worker", w.id, `${w.name} · ${vendorName(st, w.vendorId)}`, i.warn.filter((x) => /due/.test(x)).join(" · "), null, to);
     const bad = st.attendance.filter((a) => a.workerId === w.id && a.status !== "A" && !workerIssues(w, a.date).eligible);
-    if (bad.length) add("Worker attended while not eligible", "Medium", "Worker", w.id, `${w.name} · ${vendorName(st, w.vendorId)}`, `${bad.length} day(s) present from ${fmtDate(bad.map((a) => a.date).sort()[0])} — ${workerIssues(w, bad[0].date).block[0]}`, bad.map((a) => a.date).sort()[0], to);
+    if (bad.length) add("Worker attended while not eligible", "Medium", "Worker", w.id, `${w.name} · ${vendorName(st, w.vendorId)}`, `${bad.length} day(s) present from ${fmtDate(bad.map((a) => a.date).sort()[0])} - ${workerIssues(w, bad[0].date).block[0]}`, bad.map((a) => a.date).sort()[0], to);
   }
-  for (const r of st.rfqs) if (r.status === "Sent" && r.dueDate && r.dueDate < today) add("RFQ quotes overdue", "Medium", "RFQ", r.id, r.title, `Quotes were due ${fmtDate(r.dueDate)} — none received`, r.dueDate, `${VM_BASE}/rfq?open=${r.id}`);
+  for (const r of st.rfqs) if (r.status === "Sent" && r.dueDate && r.dueDate < today) add("RFQ quotes overdue", "Medium", "RFQ", r.id, r.title, `Quotes were due ${fmtDate(r.dueDate)} - none received`, r.dueDate, `${VM_BASE}/rfq?open=${r.id}`);
   for (const po of st.purchaseOrders) {
     const s = poStatus(po);
-    if (["Issued", "Partially Received"].includes(s) && po.deliveryDate && po.deliveryDate < today) add("PO delivery overdue", "Medium", "PO", po.id, vendorName(st, po.vendorId), `${s} — delivery was due ${fmtDate(po.deliveryDate)}`, po.deliveryDate, `${VM_BASE}/purchase-orders?open=${po.id}`);
+    if (["Issued", "Partially Received"].includes(s) && po.deliveryDate && po.deliveryDate < today) add("PO delivery overdue", "Medium", "PO", po.id, vendorName(st, po.vendorId), `${s} - delivery was due ${fmtDate(po.deliveryDate)}`, po.deliveryDate, `${VM_BASE}/purchase-orders?open=${po.id}`);
   }
   for (const inv of st.invoices) {
     if (inv.cancelled) continue;
     const s = invoiceStatus(inv), m = threeWay(st, inv).status;
     if (m === "Mismatch" && s !== "Paid") add("Invoice mismatch (3-way)", "High", "Invoice", inv.id, vendorName(st, inv.vendorId), `Bill ${inv.number} does not match the PO / goods receipt`, inv.date, `${VM_BASE}/invoices?open=${inv.id}`);
-    if (s === "Overdue") add("Payment overdue", "Medium", "Invoice", inv.id, vendorName(st, inv.vendorId), `Bill ${inv.number} — balance ${inr(invoiceTotals(inv).balance)} was due ${fmtDate(inv.due)}`, inv.due, `${VM_BASE}/invoices?open=${inv.id}`);
+    if (s === "Overdue") add("Payment overdue", "Medium", "Invoice", inv.id, vendorName(st, inv.vendorId), `Bill ${inv.number} - balance ${inr(invoiceTotals(inv).balance)} was due ${fmtDate(inv.due)}`, inv.due, `${VM_BASE}/invoices?open=${inv.id}`);
   }
   for (const c of st.contracts) {
     const s = contractStatus(c);
@@ -57,7 +57,7 @@ function exceptionRows(st) {
   for (const b of st.raBills) if (b.status === "Rejected") { const w = byId(st.workOrders, b.woId); add("RA bill rejected", "Medium", "RA Bill", b.id, w ? w.title : b.woId, b.rejection?.reason || b.remark || "Returned to the contractor", b.periodTo, `${CL_BASE}/ra-bills?open=${b.id}`); }
   // approvals past their stage deadline (Procurement Settings → Approval stages)
   for (const [kind, list, ent, to] of [["vendor", st.vendors, "Vendor", (x) => `${VM_BASE}/approvals?open=${x.id}`], ["contract", st.contracts, "Contract", (x) => `${CL_BASE}/contracts?open=${x.id}`]])
-    for (const x of list) { const c = approvalClock(x, kind, st); if (c && c.state === "Overdue") add("Approval overdue", c.escalated ? "High" : "Medium", ent, x.id, kind === "vendor" ? x.name : x.title, `${c.name} — decision was due ${fmtDate(c.due)} (${c.days}-day deadline)${c.escalated ? ` · escalated to ${c.escalated.to}` : ""}`, c.due, to(x)); }
+    for (const x of list) { const c = approvalClock(x, kind, st); if (c && c.state === "Overdue") add("Approval overdue", c.escalated ? "High" : "Medium", ent, x.id, kind === "vendor" ? x.name : x.title, `${c.name} - decision was due ${fmtDate(c.due)} (${c.days}-day deadline)${c.escalated ? ` · escalated to ${c.escalated.to}` : ""}`, c.due, to(x)); }
   // Everything the Vendor and Contract & Labor overviews raise as an alert is an exception too (one place for all of it):
   // payment blocked, delayed / declined work orders, wage below minimum, joint measurements waiting > 7 days,
   // muster to verify, onboarding incomplete, retention due for release, approvals and documents waiting…
@@ -66,8 +66,8 @@ function exceptionRows(st) {
   const all = { project: "All", vendor: "All" };
   const area = (to) => (/contract-labor/.test(to || "") ? "Contract & Labor" : "Vendor");
   for (const a of [...buildVendorOverview(st, all).actions, ...buildContractOverview(st, all).actions]) {
-    const name = a.who || a.ref || "—";
-    const twin = { "Delivery late": "PO delivery overdue", "Payment overdue": "Payment overdue", "Measurement disputed": "Measurement disputed", "RFQ past due — not awarded": "RFQ quotes overdue", "Compliance gap — payments held": "Compliance failing" }[a.title];
+    const name = a.who || a.ref || "-";
+    const twin = { "Delivery late": "PO delivery overdue", "Payment overdue": "Payment overdue", "Measurement disputed": "Measurement disputed", "RFQ past due - not awarded": "RFQ quotes overdue", "Compliance gap - payments held": "Compliance failing" }[a.title];
     if (twin && [...seen].some((k) => k.startsWith(twin + "|"))) continue;
     if (/approval pending/i.test(a.title) && seen.has(`Approval overdue|${name}`)) continue;
     const key = `${a.title}|${name}|${a.detail}`; if (seen.has(key)) continue; seen.add(key);
@@ -81,11 +81,11 @@ function ExceptionCenterPage() {
   const rows = exceptionRows(st);
   const high = rows.filter((r) => r.sev === "High").length, med = rows.filter((r) => r.sev === "Medium").length;
   return (
-    <Page title="Exception Center" subtitle="Everything that needs attention right now — across vendors, purchasing and contracts" icon={Icon.alert}>
+    <Page title="Exception Center" subtitle="Everything that needs attention right now - across vendors, purchasing and contracts" icon={Icon.alert}>
       <div className="grid grid-cols-4 gap-3 px-4 pt-4">
         <StatTile tone="red" label="High" value={high} sub="act now" icon={Icon.alert} />
         <StatTile tone="amber" label="Medium" value={med} sub="plan this week" icon={Icon.clock} />
-        <StatTile tone="blue" label="Low — waiting on someone" value={rows.length - high - med} sub="approvals, verifications, sign-offs" icon={Icon.listChecks} />
+        <StatTile tone="blue" label="Low - waiting on someone" value={rows.length - high - med} sub="approvals, verifications, sign-offs" icon={Icon.listChecks} />
         <StatTile tone="purple" label="Records affected" value={new Set(rows.map((r) => r.id)).size} sub={`${new Set(rows.map((r) => r.type)).size} kinds of exception`} icon={Icon.layers} />
       </div>
       <DataTable noun="exceptions" rows={rows} rowKey={(r) => r.key} onRow={(r) => r.to && nav(r.to)} exportName="exceptions"
@@ -96,7 +96,7 @@ function ExceptionCenterPage() {
           { key: "rec", label: "Record", sort: (r) => r.name, render: (r) => <span className="text-brand">{r.name}</span> },
           { key: "detail", label: "What's wrong", className: "max-w-[420px] whitespace-normal text-[12.5px]", render: (r) => r.detail },
           { key: "sev", label: "Severity", filterOptions: () => ["High", "Medium", "Low"], filter: (r) => r.sev, render: (r) => <Status tone={r.sev === "High" ? "red" : r.sev === "Medium" ? "amber" : "blue"}>{r.sev}</Status> },
-          { key: "age", label: "Open for", sort: (r) => r.age ?? -1, render: (r) => (r.age == null ? <span className="text-ink-mute">—</span> : `${r.age} day${r.age === 1 ? "" : "s"}`) },
+          { key: "age", label: "Open for", sort: (r) => r.age ?? -1, render: (r) => (r.age == null ? <span className="text-ink-mute">-</span> : `${r.age} day${r.age === 1 ? "" : "s"}`) },
           { key: "entity", label: "Area", filterOptions: () => uniqSorted(exceptionRows(getState()).map((r) => r.entity)), filter: (r) => r.entity },
         ]} />
     </Page>

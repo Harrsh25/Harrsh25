@@ -13,7 +13,7 @@ function evaluateAutoBlock() {
       const v = byId(s.vendors, h0.id);
       v.status = "On Hold";
       v.hold = { scope: "Payments", until: shiftDays(30), reason: `Scorecard below ${blockThreshold}`, placedAt: todayISO(), auto: true };
-    }), { entity: "Vendor", id: hits.map((x) => x.id).join(", "), action: `Auto-hold — score below ${blockThreshold}` });
+    }), { entity: "Vendor", id: hits.map((x) => x.id).join(", "), action: `Auto-hold - score below ${blockThreshold}` });
   return hits;
 }
 
@@ -45,12 +45,12 @@ function RatePerformanceModal({ open, onClose, vendorId: fixedVendor, woId: fixe
       footer={<>{rtErr && <span className="mr-auto text-[12px] text-red-600">{rtErr}</span>}<Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!!rtErr} onClick={() => {
         setState((s) => s.ratings.push({ ...f, id: `RT-${Date.now().toString(36)}`, by: currentUser(), at: todayISO() }), { entity: "Vendor", id: f.vendorId, action: `Performance rated for ${f.period}` });
         const blocked = evaluateAutoBlock();
-        toast(blocked.some((b) => b.id === f.vendorId) ? "Rating saved — vendor auto-held (score below threshold)" : "Rating saved", blocked.length ? "red" : "green");
+        toast(blocked.some((b) => b.id === f.vendorId) ? "Rating saved - vendor auto-held (score below threshold)" : "Rating saved", blocked.length ? "red" : "green");
         onClose();
       }}>Save rating</Btn></>}>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Contractor / vendor"><Select value={f.vendorId} placeholder="Select…" onChange={(x) => setF({ ...f, vendorId: x, woId: "" })} options={st.vendors.filter((v) => v.status !== "Draft").map((v) => ({ value: v.id, label: v.name }))} /></Field>
-        <Field label="Work order"><Select value={f.woId} placeholder="General" onChange={(x) => setF({ ...f, woId: x })} options={wos.map((w) => ({ value: w.id, label: `${w.id} — ${w.title}` }))} /></Field>
+        <Field label="Work order"><Select value={f.woId} placeholder="General" onChange={(x) => setF({ ...f, woId: x })} options={wos.map((w) => ({ value: w.id, label: `${w.id} - ${w.title}` }))} /></Field>
         <Field label="Period"><TextInput value={f.period} onChange={(x) => setF({ ...f, period: x })} /></Field>
         <Field label="Safety incidents (LTI / near-miss)"><NumInput value={f.incidents} onChange={(x) => setF({ ...f, incidents: x })} /></Field>
         {[["quality", "Quality of work"], ["safety", "Safety & housekeeping"], ["manpower", "Manpower adherence"]].map(([k, l]) => (
@@ -81,7 +81,7 @@ function OffboardModal({ vendorId, onClose }) {
   return (
     <Modal open onClose={onClose} width={600} title={`Offboard ${v.name}`} subtitle="Deactivates the vendor, keeps history, revokes access"
       footer={<><Btn onClick={onClose}>Cancel</Btn><Btn variant="danger" disabled={!ready} onClick={() => {
-        setState((s) => { const x = byId(s.vendors, vendorId); x.status = "Inactive"; x.hold = null; x.notes.unshift({ at: new Date().toISOString(), by: currentUser(), text: `Offboarded — ${reason}` }); }, { entity: "Vendor", id: vendorId, action: `Offboarded — ${reason}` });
+        setState((s) => { const x = byId(s.vendors, vendorId); x.status = "Inactive"; x.hold = null; x.notes.unshift({ at: new Date().toISOString(), by: currentUser(), text: `Offboarded - ${reason}` }); }, { entity: "Vendor", id: vendorId, action: `Offboarded - ${reason}` });
         toast(`${v.name} offboarded`); onClose();
       }}>Deactivate vendor</Btn></>}>
       <ul className="space-y-2">
@@ -104,7 +104,7 @@ function ScorecardPage() {
   const cats = {};
   rows.forEach((r) => { if (r.score != null) (cats[primaryCategory(r.v)] = cats[primaryCategory(r.v)] || []).push(r.score); });
   const catAvg = (v) => { const a = cats[primaryCategory(v)] || []; return a.length ? sum(a) / a.length : null; };
-  const partCell = (x) => (x == null ? <span className="text-ink-faint">—</span> : <span className={cls("num", x < 60 && "text-red-600")}>{Math.round(x)}</span>);
+  const partCell = (x) => (x == null ? <span className="text-ink-faint">-</span> : <span className={cls("num", x < 60 && "text-red-600")}>{Math.round(x)}</span>);
   return (
     <Page title="Vendor Scorecard" subtitle="Weighted KPIs, category benchmarking, auto-block and corrective action" icon={Icon.gauge}
       actions={<><Btn icon={Icon.star} onClick={() => setRate(true)}>Rate performance</Btn>
@@ -115,12 +115,12 @@ function ScorecardPage() {
           { key: "name", label: "Vendor", render: (r) => <span className="font-medium">{r.v.name}</span> },
           { key: "cat", label: "Category", filterOptions: FO.trades, filter: (r) => primaryCategory(r.v), render: (r) => primaryCategory(r.v) },
           { key: "score", label: "Score", render: (r) => <ScoreBadge value={r.score} /> },
-          { key: "band", label: "Standing", filterOptions: FO.standings, filter: (r) => standingOf(st, r.v.id)?.name, render: (r) => { const b = standingOf(st, r.v.id); return b ? <span className="flex flex-col"><Status tone={b.color === "blue" ? "blue" : b.color}>{b.name}</Status><span className="text-[10.5px] text-ink-mute">{[b.preventRfq && "no RFQ", b.preventPo && "no PO", !b.preventRfq && b.warnRfq && "warn RFQ", !b.preventPo && b.warnPo && "warn PO"].filter(Boolean).join(" · ") || "no restriction"}</span></span> : "—"; } },
+          { key: "band", label: "Standing", filterOptions: FO.standings, filter: (r) => standingOf(st, r.v.id)?.name, render: (r) => { const b = standingOf(st, r.v.id); return b ? <span className="flex flex-col"><Status tone={b.color === "blue" ? "blue" : b.color}>{b.name}</Status><span className="text-[10.5px] text-ink-mute">{[b.preventRfq && "no RFQ", b.preventPo && "no PO", !b.preventRfq && b.warnRfq && "warn RFQ", !b.preventPo && b.warnPo && "warn PO"].filter(Boolean).join(" · ") || "no restriction"}</span></span> : "-"; } },
           { key: "q", label: "Quality", opt: true, align: "right", render: (r) => partCell(r.parts.quality) },
           { key: "t", label: "Timeliness", opt: true, align: "right", render: (r) => partCell(r.parts.timeliness) },
           { key: "s", label: "Safety", opt: true, align: "right", render: (r) => partCell(r.parts.safety) },
           { key: "c", label: "Compliance", opt: true, align: "right", render: (r) => partCell(r.parts.compliance) },
-          { key: "b", label: "vs category", align: "right", render: (r) => { const a = catAvg(r.v); if (a == null || r.score == null) return "—"; const d = r.score - a; return <span className={cls("num", d < 0 ? "text-red-600" : "text-green-600")}>{d >= 0 ? "+" : ""}{d.toFixed(1)}</span>; } },
+          { key: "b", label: "vs category", align: "right", render: (r) => { const a = catAvg(r.v); if (a == null || r.score == null) return "-"; const d = r.score - a; return <span className={cls("num", d < 0 ? "text-red-600" : "text-green-600")}>{d >= 0 ? "+" : ""}{d.toFixed(1)}</span>; } },
           { key: "st", label: "Status", filterOptions: FO.vendorStatus, filter: (r) => r.v.status, render: (r) => <Status>{r.v.status}</Status> },
           { key: "a", label: "", align: "right", render: (r) => (
             <span className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
@@ -138,7 +138,7 @@ function ScorecardPage() {
           { key: "due", label: "Due", render: (c) => <ExpiryCell iso={c.status === "Open" ? c.dueDate : null} /> },
           { key: "owner", label: "Owner", filterOptions: FO.owners, filter: true },
           { key: "s", label: "Status", filterOptions: FO.capStatus, filter: (c) => (c.status === "Open" && daysUntil(c.dueDate) < 0 ? "Overdue" : c.status), render: (c) => <Status tone={c.status === "Open" ? (daysUntil(c.dueDate) < 0 ? "red" : "amber") : "gray"}>{c.status === "Open" && daysUntil(c.dueDate) < 0 ? "Overdue" : c.status}</Status> },
-          { key: "a", label: "", align: "right", render: (c) => c.status === "Open" && <Btn size="sm" variant="success" onClick={() => setState((s) => (byId(s.caps, c.id).status = "Closed"), { entity: "CAP", id: c.id, action: "Closed — actions verified" })}>Close</Btn> },
+          { key: "a", label: "", align: "right", render: (c) => c.status === "Open" && <Btn size="sm" variant="success" onClick={() => setState((s) => (byId(s.caps, c.id).status = "Closed"), { entity: "CAP", id: c.id, action: "Closed - actions verified" })}>Close</Btn> },
         ]} />
       )}
       {tab === "model" && (
@@ -189,7 +189,7 @@ function ScorecardPage() {
       )}
       <RatePerformanceModal open={rate} onClose={() => setRate(false)} />
       {cap && (
-        <Modal open onClose={() => setCap(null)} width={560} title={`Corrective action plan — ${vendorName(st, cap.vendorId)}`}
+        <Modal open onClose={() => setCap(null)} width={560} title={`Corrective action plan - ${vendorName(st, cap.vendorId)}`}
           footer={<>{capErr(cap) && <span className="mr-auto text-[12px] text-red-600">{capErr(cap)}</span>}<Btn onClick={() => setCap(null)}>Cancel</Btn><Btn variant="primary" disabled={!!capErr(cap)} onClick={() => {
             const id = nextId("CAP", st.caps);
             setState((s) => s.caps.unshift({ ...cap, id, issuedOn: todayISO(), status: "Open" }), { entity: "CAP", id, action: `Issued to ${vendorName(st, cap.vendorId)}` });

@@ -1,5 +1,5 @@
-// Vendor 360: everything we do with one vendor in one place — sourcing, orders, bills and payments, contracts,
-// work orders, subcontracts, workers — with totals; each row opens its own record.
+// Vendor 360: everything we do with one vendor in one place - sourcing, orders, bills and payments, contracts,
+// work orders, subcontracts, workers - with totals; each row opens its own record.
 function Vendor360({ v }) {
   const st = useStore(), nav = useNavigate();
   const rfqs = st.rfqs.filter((r) => r.vendorIds.includes(v.id));
@@ -51,10 +51,10 @@ function Vendor360({ v }) {
         ]} />
         <T title="Work orders" icon={Icon.clipboardList} rows={wos} to={(w) => `${CL_BASE}/work-orders?open=${w.id}`} empty="No work orders." cols={[
           { key: "title", label: "Work order", className: "font-medium" }, { key: "v", label: "Value", align: "right", render: (w) => <span className="num">{inrShort(woValue(w))}</span> },
-          { key: "pr", label: "Progress", align: "right", render: (w) => (["Issued", "In Progress", "Completed"].includes(w.status) ? `${woProgress(st, w).physical.toFixed(0)}%` : "—") }, { key: "s", label: "Status", render: (w) => <Status>{w.status}</Status> },
+          { key: "pr", label: "Progress", align: "right", render: (w) => (["Issued", "In Progress", "Completed"].includes(w.status) ? `${woProgress(st, w).physical.toFixed(0)}%` : "-") }, { key: "s", label: "Status", render: (w) => <Status>{w.status}</Status> },
         ]} />
         {subs.length > 0 && <T title="Subcontracts" icon={Icon.users} rows={subs} to={(x) => `${CL_BASE}/contracts?open=${x.contract.id}`} empty="" cols={[
-          { key: "r", label: "Role", render: (x) => (x.vendorId === v.id ? `Subcontractor to ${vendorName(st, x.contract.vendorId)}` : `Main contractor — sublet to ${vendorName(st, x.vendorId)}`) },
+          { key: "r", label: "Role", render: (x) => (x.vendorId === v.id ? `Subcontractor to ${vendorName(st, x.contract.vendorId)}` : `Main contractor - sublet to ${vendorName(st, x.vendorId)}`) },
           { key: "scope", label: "Scope" }, { key: "value", label: "Value", align: "right", render: (x) => <span className="num">{inrShort(x.value)}</span> }, { key: "s", label: "Status", render: (x) => <Status tone={SUB_STATUS_TONE[x.status]}>{x.status}</Status> },
         ]} />}
       </>}

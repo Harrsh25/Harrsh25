@@ -1,4 +1,4 @@
-// G4 — Supplier Risk 360: score + level with reasons, risk actions, registry column, exceptions
+// G4 - Supplier Risk 360: score + level with reasons, risk actions, registry column, exceptions
 require('./lib')('risk', async ({ p, go, dlg, S, mut, T, pick }) => {
   const VID = 'VEN-003';
   await T('RK-01', 'Registry shows a Risk column (level + score) that can be switched on', async () => {
@@ -15,10 +15,10 @@ require('./lib')('risk', async ({ p, go, dlg, S, mut, T, pick }) => {
     return [`${(t.match(/Risk level\s*(\w+)/) || [])[1]} · ${(t.match(/score \d+/) || [])[0]}; reasons: ${['On hold', 'bank account not verified', 'Compliance'].filter((k) => t.includes(k)).join(', ')}`, /Risk level\s*(High|Critical)/.test(t) && /On hold/.test(t) && /bank account not verified/.test(t)];
   });
   await T('RK-03', 'High risk with no action shows in the Exception Center', async () => {
-    await go('administration/exceptions'); const r = await p.locator('main table tbody tr').filter({ hasText: /supplier risk — no action/ }).count();
+    await go('administration/exceptions'); const r = await p.locator('main table tbody tr').filter({ hasText: /supplier risk - no action/ }).count();
     return [`rows ${r}`, r >= 1];
   });
-  await T('RK-04', 'Add a risk action (owner + due) — logged; the "no action" exception goes away', async () => {
+  await T('RK-04', 'Add a risk action (owner + due) - logged; the "no action" exception goes away', async () => {
     await go(`vendor-management/registry?open=${VID}&tab=risk`); await p.waitForTimeout(300);
     await dlg().locator('button:has-text("Add risk action")').click(); await p.waitForTimeout(100);
     await dlg().locator('button:has-text("Add")').last().click(); await p.waitForTimeout(100);
@@ -26,7 +26,7 @@ require('./lib')('risk', async ({ p, go, dlg, S, mut, T, pick }) => {
     await dlg().locator('label:has-text("Action") input').fill('Collect GST and PAN certificates'); await pick(dlg().locator('label:has-text("Owner") [role=combobox]'), 'Procurement Head');
     await dlg().locator('label:has-text("Due") input').fill('2026-10-20'); await dlg().locator('button:has-text("Add")').last().click(); await p.waitForTimeout(250);
     const s = await S(); const a = (s.vendors.find((x) => x.id === VID).riskActions || [])[0]; const log = s.audit.find((x) => x.id === VID && /Risk action added/.test(x.action));
-    await go('administration/exceptions'); const r = await p.locator('main table tbody tr').filter({ hasText: /supplier risk — no action/ }).filter({ hasText: s.vendors.find((x) => x.id === VID).name }).count();
+    await go('administration/exceptions'); const r = await p.locator('main table tbody tr').filter({ hasText: /supplier risk - no action/ }).filter({ hasText: s.vendors.find((x) => x.id === VID).name }).count();
     return [`validation shown ${/Pick an owner/.test(errs)}; action ${a?.title} / ${a?.owner} / ${a?.due}; logged ${!!log}; no-action row left ${r}`, /Pick an owner/.test(errs) && a?.owner === 'Procurement Head' && !!log && r === 0];
   });
   await T('RK-05', 'Overdue action is an exception; Mark done closes it', async () => {

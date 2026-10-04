@@ -1,4 +1,4 @@
-// Review follow-ups — duplicate supplier detection (GSTIN / bank account block; PAN / e-mail / phone warn),
+// Review follow-ups - duplicate supplier detection (GSTIN / bank account block; PAN / e-mail / phone warn),
 // the approver's "possible duplicate" note, and the Exception Center.
 require('./lib')('review', async ({ p, go, dlg, S, mut, T }) => {
   const open = async () => { await go('vendor-management/registry'); await p.locator('main button:has-text("Register vendor")').first().click(); await p.waitForTimeout(250); return dlg(); };
@@ -56,7 +56,7 @@ require('./lib')('review', async ({ p, go, dlg, S, mut, T }) => {
     await mut(`(s) => { const v = s.vendors.find((x) => x.id === '${pend.id}'); v.contact.email = '${ref.contact.email}'; }`);
     await go(`vendor-management/approvals?open=${pend.id}`); await p.waitForTimeout(350); await dlg().locator('[role=tab]:has-text("Approvals")').click(); await p.waitForTimeout(150);
     const row = dlg().locator('[data-dup] tr').filter({ hasText: ref.name }).first(); await row.locator('button:has-text("Different")').click(); await p.waitForTimeout(150);
-    await dlg().locator('input').last().fill('Different company — separate GSTIN'); await dlg().locator('button:has-text("Confirm")').click(); await p.waitForTimeout(250);
+    await dlg().locator('input').last().fill('Different company - separate GSTIN'); await dlg().locator('button:has-text("Confirm")').click(); await p.waitForTimeout(250);
     const s = await S(); const d = s.vendors.find((x) => x.id === pend.id).dupDecisions?.[ref.id]; const a = s.audit.find((x) => x.id === pend.id && /Duplicate review/.test(x.action));
     await go('administration/exceptions'); const ex = await p.locator('main table tbody tr').filter({ hasText: 'Possible duplicate supplier' }).filter({ hasText: pend.name }).count();
     return [`decision ${d?.decision} (${d?.confidence}%); audit ${!!a}; exception left ${ex}`, d?.decision === 'Different supplier' && !!a && ex === 0];
@@ -68,7 +68,7 @@ require('./lib')('review', async ({ p, go, dlg, S, mut, T }) => {
     await mut(`(s) => { const v = s.vendors.find((x) => x.id === '${pend.id}'); v.pan = '${tgt.pan}'; v.bankAccounts = [{ id: 77, bank: 'Axis Bank', account: '918000011112222', ifsc: 'UTIB0000999', status: 'Unverified', isDefault: true }]; }`);
     await go(`vendor-management/approvals?open=${pend.id}`); await p.waitForTimeout(350); await dlg().locator('[role=tab]:has-text("Approvals")').click(); await p.waitForTimeout(150);
     const row = dlg().locator('[data-dup] tr').filter({ hasText: tgt.name }).first(); const rt = await row.innerText();
-    await row.locator('button:has-text("Merge")').click(); await p.waitForTimeout(150); await dlg().locator('input').last().fill('Same PAN — re-registration by branch office'); await dlg().locator('button:has-text("Confirm")').click(); await p.waitForTimeout(300);
+    await row.locator('button:has-text("Merge")').click(); await p.waitForTimeout(150); await dlg().locator('input').last().fill('Same PAN - re-registration by branch office'); await dlg().locator('button:has-text("Confirm")').click(); await p.waitForTimeout(300);
     const s = await S(); const v = s.vendors.find((x) => x.id === pend.id), t = s.vendors.find((x) => x.id === tgt.id); const moved = t.bankAccounts.find((b) => b.account === '918000011112222');
     return [`row "${rt.replace(/\s+/g, ' ').slice(0, 70)}"; ${v.status}, mergedInto ${v.mergedInto}; bank moved ${moved?.status} change ${moved?.change?.status}`, v.status === 'Rejected' && v.mergedInto === tgt.id && moved?.status === 'Unverified' && /PAN/.test(rt)];
   });

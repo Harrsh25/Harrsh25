@@ -1,4 +1,4 @@
-// Worker Master: every worker a contractor (or its subcontractor) brings to site — identity, trade and skill,
+// Worker Master: every worker a contractor (or its subcontractor) brings to site - identity, trade and skill,
 // statutory registrations (PF / ESI), safety induction, medical fitness, certificates, site / work order, joining and exit.
 // A worker who is not eligible (induction or medical lapsed, exited) can't be marked present in the daily muster.
 const WORKER_CERTS = ["Electrical wireman licence", "Welder certification", "Scaffolding competency", "Working at height", "Crane / rigging operator", "First aid", "Confined space entry"];
@@ -37,7 +37,7 @@ function seedWorkerDetails(s) {
       idType: w.idType || "Aadhaar", idRef: w.idRef || `XXXX-XXXX-${String(4100 + n * 37).slice(-4)}`,
       uan: w.uan ?? (n % 9 === 0 ? "" : `1009${String(48210000 + n * 113)}`), esic: w.esic ?? (n % 7 === 0 ? "" : `31000${String(5512000 + n * 71)}`),
       medicalValidTill: w.medicalValidTill || shiftDays(n === 4 ? -6 : 90 + n * 9), joiningOn: w.joiningOn || shiftDays(-120 + n), shift: w.shift || (n % 4 === 0 ? "Night" : "Day"),
-      site: w.site || "Skyline Towers — Phase 1", certificates: w.certificates || (w.trade.startsWith("Carpenter") ? [{ name: "Working at height", no: `WAH-${700 + n}`, validTill: shiftDays(n % 2 ? 9 : 200) }] : []),
+      site: w.site || "Skyline Towers - Phase 1", certificates: w.certificates || (w.trade.startsWith("Carpenter") ? [{ name: "Working at height", no: `WAH-${700 + n}`, validTill: shiftDays(n % 2 ? 9 : 200) }] : []),
     });
   });
 }
@@ -57,7 +57,7 @@ function WorkerForm({ w0, onClose }) {
     uan: f.uan && !/^\d{12}$/.test(String(f.uan).replace(/\s/g, "")) ? "UAN is 12 digits" : "",
     esic: f.esic && !/^\d{10,17}$/.test(String(f.esic).replace(/\s/g, "")) ? "ESI number is 10–17 digits" : "",
     gatePass: f.gatePass && st.workers.some((x) => x.id !== w0?.id && normNo(x.gatePass) === normNo(f.gatePass)) ? "Gate pass already issued to another worker" : "",
-    medical: f.medicalValidTill && f.medicalValidTill < todayISO() && !w0 ? "Medical fitness has expired — get a fresh certificate" : "",
+    medical: f.medicalValidTill && f.medicalValidTill < todayISO() && !w0 ? "Medical fitness has expired - get a fresh certificate" : "",
     certs: (f.certificates || []).some((c) => !c.name || !c.validTill) ? "Each certificate needs a name and a valid-till date" : "",
   };
   const wos = st.workOrders.filter((x) => x.vendorId === f.vendorId && ["Issued", "In Progress"].includes(x.status));
@@ -65,7 +65,7 @@ function WorkerForm({ w0, onClose }) {
     setTried(true); if (VX.any(e)) return;
     const id = w0 ? w0.id : nextId("WK", st.workers);
     const rec = { ...f, name: f.name.trim(), uan: String(f.uan || "").replace(/\s/g, ""), esic: String(f.esic || "").replace(/\s/g, ""), gatePass: f.gatePass || `GP-${4300 + st.workers.length + 1}`, active: f.active !== false };
-    setState((s) => { if (w0) Object.assign(byId(s.workers, id), rec); else s.workers.push({ id, ...rec }); }, { entity: "Worker", id, action: w0 ? "Worker details updated" : `Worker added to ${vendorName(st, f.vendorId)} — ${f.trade}` });
+    setState((s) => { if (w0) Object.assign(byId(s.workers, id), rec); else s.workers.push({ id, ...rec }); }, { entity: "Worker", id, action: w0 ? "Worker details updated" : `Worker added to ${vendorName(st, f.vendorId)} - ${f.trade}` });
     toast(w0 ? "Worker updated" : "Worker added"); onClose(id);
   };
   const setC = (i, patch) => setF({ ...f, certificates: f.certificates.map((c, j) => (j === i ? { ...c, ...patch } : c)) });
@@ -80,21 +80,21 @@ function WorkerForm({ w0, onClose }) {
         <Field label="Mobile"><TextInput value={f.mobile || ""} onChange={(x) => setF({ ...f, mobile: x })} placeholder="98xxxxxxxx" /><FieldErr m={e.mobile} /></Field>
         <Field label="ID proof"><Select value={f.idType} onChange={(x) => setF({ ...f, idType: x })} options={ID_TYPES} /></Field>
         <Field label="ID number" required hint="Store only the last 4 digits of Aadhaar"><TextInput value={f.idRef} onChange={(x) => setF({ ...f, idRef: x })} placeholder="XXXX-XXXX-1234" />{tried && <FieldErr m={e.idRef} />}</Field>
-        <Field label="PF — UAN"><TextInput value={f.uan || ""} onChange={(x) => setF({ ...f, uan: x })} placeholder="12 digits" className={cls(inputCls, "mono")} /><FieldErr m={e.uan} /></Field>
+        <Field label="PF - UAN"><TextInput value={f.uan || ""} onChange={(x) => setF({ ...f, uan: x })} placeholder="12 digits" className={cls(inputCls, "mono")} /><FieldErr m={e.uan} /></Field>
         <Field label="ESI number"><TextInput value={f.esic || ""} onChange={(x) => setF({ ...f, esic: x })} className={cls(inputCls, "mono")} /><FieldErr m={e.esic} /></Field>
         <Field label="Gate pass no."><TextInput value={f.gatePass || ""} onChange={(x) => setF({ ...f, gatePass: x })} placeholder="Auto" /><FieldErr m={e.gatePass} /></Field>
         <Field label="Safety induction on"><DateInput value={f.inductionOn || ""} onChange={(x) => setF({ ...f, inductionOn: x })} /></Field>
         <Field label="Medical fit till"><DateInput value={f.medicalValidTill || ""} onChange={(x) => setF({ ...f, medicalValidTill: x })} /><FieldErr m={e.medical} /></Field>
         <Field label="Joining date"><DateInput value={f.joiningOn || ""} onChange={(x) => setF({ ...f, joiningOn: x })} /></Field>
-        <Field label="Site / project"><TextInput value={f.site || ""} onChange={(x) => setF({ ...f, site: x })} placeholder="e.g. Skyline Towers — Phase 1" /></Field>
-        <Field label="Work order"><Select value={f.woId || ""} placeholder="—" onChange={(x) => setF({ ...f, woId: x })} options={wos.map((x) => ({ value: x.id, label: `${x.id} — ${x.title}` }))} /></Field>
+        <Field label="Site / project"><TextInput value={f.site || ""} onChange={(x) => setF({ ...f, site: x })} placeholder="e.g. Skyline Towers - Phase 1" /></Field>
+        <Field label="Work order"><Select value={f.woId || ""} placeholder="-" onChange={(x) => setF({ ...f, woId: x })} options={wos.map((x) => ({ value: x.id, label: `${x.id} - ${x.title}` }))} /></Field>
         {(() => { const subs = st.contracts.filter((k) => k.vendorId === f.vendorId).flatMap(contractSubs).filter((x) => x.status === "Approved");
           return <Field label="Employed by" hint="Subcontractor workers need an approved subcontract"><Select value={f.subcontractId || ""} onChange={(x) => setF({ ...f, subcontractId: x })} options={[{ value: "", label: "Main contractor" }, ...subs.map((x) => ({ value: x.id, label: `${vendorName(st, x.vendorId)} (${x.id})` }))]} /></Field>; })()}
         <Field label="Shift"><Select value={f.shift || "Day"} onChange={(x) => setF({ ...f, shift: x })} options={["Day", "Night", "General"]} /></Field>
       </div>
       <div className="mt-4 rounded-lg border border-line">
         <div className="flex items-center justify-between border-b border-line px-3 py-2"><span className="text-[13px] font-medium">Certificates & licences</span><Btn size="sm" icon={Icon.plus} onClick={() => setF({ ...f, certificates: [...f.certificates, { name: WORKER_CERTS[0], no: "", validTill: "" }] })}>Add certificate</Btn></div>
-        {f.certificates.length === 0 ? <p className="px-3 py-2 text-[12.5px] text-ink-mute">None — add trade licences or competency cards the work needs.</p> : f.certificates.map((c, i) => (
+        {f.certificates.length === 0 ? <p className="px-3 py-2 text-[12.5px] text-ink-mute">None - add trade licences or competency cards the work needs.</p> : f.certificates.map((c, i) => (
           <div key={i} className="grid grid-cols-[1.4fr_1fr_150px_auto] items-center gap-2 px-3 py-2">
             <Select value={c.name} onChange={(x) => setC(i, { name: x })} options={WORKER_CERTS} />
             <TextInput value={c.no || ""} onChange={(x) => setC(i, { no: x })} placeholder="Certificate no." />
@@ -118,7 +118,7 @@ function WorkerDrawer({ id, onClose }) {
   const wo = byId(st.workOrders, w.woId);
   return (
     <Drawer open onClose={onClose} width={860} title={w.name} recordId={w.id} status={<Status tone={workerTone[state]}>{state}</Status>}
-      details={[["Contractor", vendorName(st, w.vendorId)], w.subcontractId && ["Employed by", `${vendorName(st, allSubs(st).find((x) => x.id === w.subcontractId)?.vendorId)} (${w.subcontractId})`], ["Trade", `${w.trade} · ${w.skill}`], ["Site / project", w.site || "—"], ["Work order", wo ? `${wo.id} — ${wo.title}` : "—"], ["Shift", w.shift || "—"], ["Gate pass", w.gatePass], ["Joining", fmtDate(w.joiningOn)], w.exitOn && ["Exit", `${fmtDate(w.exitOn)} — ${w.exitReason || ""}`]]}
+      details={[["Contractor", vendorName(st, w.vendorId)], w.subcontractId && ["Employed by", `${vendorName(st, allSubs(st).find((x) => x.id === w.subcontractId)?.vendorId)} (${w.subcontractId})`], ["Trade", `${w.trade} · ${w.skill}`], ["Site / project", w.site || "-"], ["Work order", wo ? `${wo.id} - ${wo.title}` : "-"], ["Shift", w.shift || "-"], ["Gate pass", w.gatePass], ["Joining", fmtDate(w.joiningOn)], w.exitOn && ["Exit", `${fmtDate(w.exitOn)} - ${w.exitReason || ""}`]]}
       actions={state !== "Exited" && <><Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit</Btn><Btn variant="danger" onClick={() => setExit({ on: todayISO(), reason: "" })}>Record exit</Btn></>}
       tabs={{ tabs: [{ id: "profile", label: "Profile" }, { id: "att", label: "Attendance" }], active: tab, onChange: setTab }}>
       <div className="space-y-4 px-6 py-4">
@@ -126,10 +126,10 @@ function WorkerDrawer({ id, onClose }) {
           {iss.block.length > 0 && <Note tone="red" icon={Icon.alert}><b>Can't work on site:</b> {iss.block.join(" · ")}. The daily muster won't mark this worker present until it is fixed.</Note>}
           {iss.warn.length > 0 && <Note tone="amber">{iss.warn.join(" · ")}</Note>}
           <Section title="Identity & statutory" icon={Icon.idCard || Icon.user}>
-            <KV items={[["Date of birth", w.dob ? fmtDate(w.dob) : "—"], ["Mobile", w.mobile || "—"], ["ID proof", w.idRef ? `${w.idType || "ID"} · ${w.idRef}` : "—"], ["PF — UAN", w.uan || "Not recorded"], ["ESI number", w.esic || "Not recorded"], ["Residential status", w.residential || "Local"]]} />
+            <KV items={[["Date of birth", w.dob ? fmtDate(w.dob) : "-"], ["Mobile", w.mobile || "-"], ["ID proof", w.idRef ? `${w.idType || "ID"} · ${w.idRef}` : "-"], ["PF - UAN", w.uan || "Not recorded"], ["ESI number", w.esic || "Not recorded"], ["Residential status", w.residential || "Local"]]} />
           </Section>
           <Section title="Safety & medical" icon={Icon.shieldCheck}>
-            <KV items={[["Safety induction", w.inductionOn ? `${fmtDate(w.inductionOn)} — valid till ${fmtDate(inductionValidTill(w))}` : "Not done"], ["Medical fit till", w.medicalValidTill ? fmtDate(w.medicalValidTill) : "Not recorded"]]} />
+            <KV items={[["Safety induction", w.inductionOn ? `${fmtDate(w.inductionOn)} - valid till ${fmtDate(inductionValidTill(w))}` : "Not done"], ["Medical fit till", w.medicalValidTill ? fmtDate(w.medicalValidTill) : "Not recorded"]]} />
           </Section>
           <Section title="Certificates & licences" icon={Icon.file}>
             <DataTable dense plain rows={(w.certificates || []).map((c, i) => ({ ...c, id: i }))} empty={<p className="p-4 text-[13px] text-ink-mute">No certificates recorded.</p>} columns={[
@@ -155,13 +155,13 @@ function WorkerDrawer({ id, onClose }) {
       </div>
       {edit && <WorkerForm w0={w} onClose={() => setEdit(false)} />}
       {exit && (
-        <Modal open width={460} onClose={() => setExit(null)} title={`Record exit — ${w.name}`} footer={<><Btn onClick={() => setExit(null)}>Cancel</Btn><Btn variant="danger" disabled={exit.reason.trim().length < 3 || !exit.on} onClick={() => {
-          setState((s) => Object.assign(byId(s.workers, w.id), { exitOn: exit.on, exitReason: exit.reason.trim(), active: false }), { entity: "Worker", id: w.id, action: `Exit recorded ${fmtDate(exit.on)} — ${exit.reason.trim()}` });
-          toast("Exit recorded — gate pass cancelled"); setExit(null);
+        <Modal open width={460} onClose={() => setExit(null)} title={`Record exit - ${w.name}`} footer={<><Btn onClick={() => setExit(null)}>Cancel</Btn><Btn variant="danger" disabled={exit.reason.trim().length < 3 || !exit.on} onClick={() => {
+          setState((s) => Object.assign(byId(s.workers, w.id), { exitOn: exit.on, exitReason: exit.reason.trim(), active: false }), { entity: "Worker", id: w.id, action: `Exit recorded ${fmtDate(exit.on)} - ${exit.reason.trim()}` });
+          toast("Exit recorded - gate pass cancelled"); setExit(null);
         }}>Record exit</Btn></>}>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Exit date" required><DateInput value={exit.on} onChange={(x) => setExit({ ...exit, on: x })} /></Field>
-            <Field label="Reason" required><Select value={exit.reason} placeholder="Select" onChange={(x) => setExit({ ...exit, reason: x })} options={["Resigned", "Work order completed", "Transferred to another site", "Terminated — misconduct", "Medically unfit", "Absconding"]} /></Field>
+            <Field label="Reason" required><Select value={exit.reason} placeholder="Select" onChange={(x) => setExit({ ...exit, reason: x })} options={["Resigned", "Work order completed", "Transferred to another site", "Terminated - misconduct", "Medically unfit", "Absconding"]} /></Field>
           </div>
           <p className="mt-3 text-[12.5px] text-ink-soft">The gate pass is cancelled and the worker no longer appears in the daily muster. Full and final settlement of wages stays with the contractor.</p>
         </Modal>
@@ -177,7 +177,7 @@ function WorkerMasterPage() {
   const cnt = (s) => rows.filter((w) => workerState(w) === s).length;
   const expiring = rows.filter((w) => workerState(w) === "Active" && workerIssues(w).warn.some((x) => /due/.test(x))).length;
   return (
-    <Page title="Worker Master" subtitle="Every worker on site — identity, PF / ESI, safety induction, medical, certificates, site and work order" icon={Icon.users}
+    <Page title="Worker Master" subtitle="Every worker on site - identity, PF / ESI, safety induction, medical, certificates, site and work order" icon={Icon.users}
       actions={<Btn variant="primary" icon={Icon.userPlus} onClick={() => setAdd(true)}>Add worker</Btn>}>
       <div className="grid grid-cols-4 gap-3 px-4 pt-4">
         <StatTile tone="green" label="Active" value={cnt("Active")} sub="eligible for site" icon={Icon.users} />
@@ -191,11 +191,11 @@ function WorkerMasterPage() {
         { key: "trade", label: "Trade", filterOptions: FO.labourTrades, filter: true, render: (w) => <span>{w.trade} <span className="text-ink-mute">· {w.skill}</span></span> },
         { key: "chk", label: "Checks", render: (w) => { const i = workerIssues(w); return i.block.length ? <span className="text-[12.5px] text-red-600">{i.block[0]}</span> : i.warn.length ? <span className="text-[12.5px] text-amber-700">{i.warn[0]}</span> : <span className="text-[12.5px] text-green-700">All in order</span>; } },
         { key: "s", label: "Status", filterOptions: ["Active", "Not eligible", "Exited", "Inactive"], filter: (w) => workerState(w), render: (w) => <Status tone={workerTone[workerState(w)]}>{workerState(w)}</Status> },
-        { key: "wo", label: "Work order", render: (w) => w.woId || "—" },
-        { key: "site", label: "Site / project", render: (w) => w.site || "—" },
-        { key: "uan", label: "PF — UAN", render: (w) => w.uan || "—" },
-        { key: "med", label: "Medical fit till", render: (w) => (w.medicalValidTill ? <ExpiryCell iso={w.medicalValidTill} /> : "—") },
-        { key: "ind", label: "Induction valid till", render: (w) => (w.inductionOn ? <ExpiryCell iso={inductionValidTill(w)} /> : "—") },
+        { key: "wo", label: "Work order", render: (w) => w.woId || "-" },
+        { key: "site", label: "Site / project", render: (w) => w.site || "-" },
+        { key: "uan", label: "PF - UAN", render: (w) => w.uan || "-" },
+        { key: "med", label: "Medical fit till", render: (w) => (w.medicalValidTill ? <ExpiryCell iso={w.medicalValidTill} /> : "-") },
+        { key: "ind", label: "Induction valid till", render: (w) => (w.inductionOn ? <ExpiryCell iso={inductionValidTill(w)} /> : "-") },
         { key: "gate", label: "Gate pass", render: (w) => w.gatePass },
       ]} />
       {add && <WorkerForm onClose={(id) => { setAdd(false); if (id) setOpen(id); }} />}

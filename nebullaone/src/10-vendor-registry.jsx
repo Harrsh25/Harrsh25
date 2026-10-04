@@ -1,6 +1,6 @@
 // Vendor Registry (modules 1 & 3): registration, classification, vendor master,
 // flags (preferred / hold / blacklist / disable), bank accounts, documents,
-// qualification, approvals and audit trail — all in one vendor drawer.
+// qualification, approvals and audit trail - all in one vendor drawer.
 
 const vendorName = (st, id) => (byId(st.vendors, id) || {}).name || id;
 const GSTIN_RE = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
@@ -15,7 +15,7 @@ const openOrdersText = (v) => {
 };
 // Optional columns for the vendor master list (switched on from the "+" Customize Columns panel)
 const approvedOn = (v) => { const st = v.approval?.stages || []; return st.length && st.every((x) => x.status === "Approved") ? st.map((x) => x.at).filter(Boolean).sort().pop() || null : null; };
-const muted = (x) => x || <span className="text-ink-faint">—</span>;
+const muted = (x) => x || <span className="text-ink-faint">-</span>;
 const VENDOR_EXTRA_COLUMNS = (st) => [
   { key: "xContact", label: "Contact person", desc: "Main contact at the vendor", render: (v) => muted(v.contact?.name) },
   { key: "xEmail", label: "Email", desc: "Contact e-mail address", render: (v) => muted(v.contact?.email) },
@@ -23,7 +23,7 @@ const VENDOR_EXTRA_COLUMNS = (st) => [
   { key: "xCity", label: "City / State", desc: "Registered city and state", sort: (v) => v.state, render: (v) => muted([v.city, v.state].filter(Boolean).join(", ")) },
   { key: "xGstin", label: "GSTIN", desc: "GST registration number", render: (v) => muted(v.gstin) },
   { key: "xPan", label: "PAN", desc: "Permanent account number", render: (v) => muted(v.pan) },
-  { key: "xSupType", label: "Supplier type", desc: "Company, LLP, individual — decides TDS rate", sort: (v) => v.supplierType || "Company", render: (v) => v.supplierType || "Company" },
+  { key: "xSupType", label: "Supplier type", desc: "Company, LLP, individual - decides TDS rate", sort: (v) => v.supplierType || "Company", render: (v) => v.supplierType || "Company" },
   { key: "xStanding", label: "Scorecard standing", desc: "Excellent / Good / Average / Poor", filterLabel: "Standing", filterOptions: FO.standings, filter: (v) => standingOf(st, v.id)?.name, render: (v) => { const b = standingOf(st, v.id); return b ? <Status tone={b.color === "blue" ? "blue" : b.color}>{b.name}</Status> : muted(null); } },
   { key: "xRegOn", label: "Registered on", desc: "Date the vendor record was created", render: (v) => fmtDate(v.createdAt) },
   { key: "xApprOn", label: "Approved on", desc: "Date the last approval stage signed off", render: (v) => muted(approvedOn(v) && fmtDate(approvedOn(v))) },
@@ -57,7 +57,7 @@ const emptyVendor = () => ({
 });
 
 // Another vendor with the same GSTIN (same registration → blocked) or the same PAN (same company, maybe another state → warning)
-// Duplicate supplier check: GSTIN (blocks), bank account no. + IFSC (blocks — a payment destination may belong to one vendor only),
+// Duplicate supplier check: GSTIN (blocks), bank account no. + IFSC (blocks - a payment destination may belong to one vendor only),
 // and PAN / e-mail / phone (warnings: a sister branch or shared contact can be legitimate, the approver decides)
 const digits10 = (x) => String(x || "").replace(/\D/g, "").slice(-10);
 const acctKey = (b) => (b && b.account ? `${String(b.account).replace(/\s/g, "").toUpperCase()}|${String(b.ifsc || b.swift || "").toUpperCase()}` : "");
@@ -93,7 +93,7 @@ function validateVendor(f) {
     if (!PAN_RE.test(f.pan.trim().toUpperCase())) e.pan = "Enter a valid PAN (ABCDE1234F)";
     else if (GSTIN_RE.test(f.gstin.trim().toUpperCase()) && f.gstin.toUpperCase().slice(2, 12) !== f.pan.toUpperCase()) e.pan = "PAN doesn't match GSTIN";
     const dupe = findDuplicate(f).gstin;
-    if (dupe) e.gstin = `Already registered as ${dupe.id} — ${dupe.name}`;
+    if (dupe) e.gstin = `Already registered as ${dupe.id} - ${dupe.name}`;
   } else {
     if (!String(f.taxId || "").trim()) e.taxId = "Enter the tax / VAT registration no.";
     else if (getState().vendors.some((v) => v.id !== f.id && normNo(v.taxId) === normNo(f.taxId))) e.taxId = "Already registered with this tax number";
@@ -166,8 +166,8 @@ const GST_STATES = { "01": "Jammu & Kashmir", "03": "Punjab", "05": "Uttarakhand
   "20": "Jharkhand", "21": "Odisha", "22": "Chhattisgarh", "23": "Madhya Pradesh", "24": "Gujarat", "27": "Maharashtra", "29": "Karnataka", "30": "Goa", "32": "Kerala", "33": "Tamil Nadu", "36": "Telangana", "37": "Andhra Pradesh" };
 const STATES = [...new Set(Object.values(GST_STATES))].sort();
 const TYPE_INFO = {
-  Goods: { icon: Icon.package, text: "Supplies material — cement, steel, hardware, electricals" },
-  Services: { icon: Icon.wrench, text: "Provides a service — hire, installation, testing, EPC" },
+  Goods: { icon: Icon.package, text: "Supplies material - cement, steel, hardware, electricals" },
+  Services: { icon: Icon.wrench, text: "Provides a service - hire, installation, testing, EPC" },
   Labor: { icon: Icon.hardHat, text: "Supplies workers / manpower for site work" },
 };
 
@@ -194,7 +194,7 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
   const ok = (cond, text) => cond && <span className="mt-1 flex items-center gap-1 text-[11px] text-green-700">{h(Icon.check, { size: 11 })}{text}</span>;
   const isLabour = hasType(f, "Labor");
   const foreign = isForeign(f);
-  // contractor statutory details (CLRA licence, PF, ESI, workforce) apply to labour suppliers only — not to Goods or Services
+  // contractor statutory details (CLRA licence, PF, ESI, workforce) apply to labour suppliers only - not to Goods or Services
   const showContractor = isLabour;
   const gstOk = GSTIN_RE.test((f.gstin || "").toUpperCase()), panOk = PAN_RE.test((f.pan || "").toUpperCase());
   const ifscOk = /^[A-Z]{4}0[A-Z0-9]{6}$/.test(f.bank.ifsc || "");
@@ -226,7 +226,7 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
       <FormSection n={++n} title="Company & what they supply" desc={publicMode ? "Your company and the work you do" : "Who the vendor is and what they do for you"} done={!!(f.name && f.categories.length)}>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Company / trade name" required><TextInput value={f.name} onChange={(v) => upd("name", v)} placeholder="e.g. Shree Balaji Infra" />{err("name")}</Field>
-          <Field label="Registered legal name" hint="As on the GST certificate — leave empty if same"><TextInput value={f.legalName} onChange={(v) => upd("legalName", v)} placeholder={f.name || "Legal name"} /></Field>
+          <Field label="Registered legal name" hint="As on the GST certificate - leave empty if same"><TextInput value={f.legalName} onChange={(v) => upd("legalName", v)} placeholder={f.name || "Legal name"} /></Field>
         </div>
         <p className="mb-1.5 mt-3 text-[12px] font-medium text-ink-soft">What they supply <span className="text-red-500">*</span> <span className="font-normal text-ink-mute">- tick all that apply</span></p>
         <div className="flex flex-wrap gap-2">
@@ -245,12 +245,12 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
         </div>
       </FormSection>
 
-      <FormSection n={++n} title="Tax & payment" desc={foreign ? "Foreign vendor — GSTIN and PAN are not required" : "GSTIN fills the PAN and state automatically"} done={foreign ? !!f.taxId : gstOk && panOk}>
+      <FormSection n={++n} title="Tax & payment" desc={foreign ? "Foreign vendor - GSTIN and PAN are not required" : "GSTIN fills the PAN and state automatically"} done={foreign ? !!f.taxId : gstOk && panOk}>
         <div className="grid grid-cols-3 gap-3">
           <Field label="Country" required><Select value={f.country || "India"} onChange={(v) => set({ ...f, country: v, currency: COUNTRY_CURRENCY[v] || f.currency, tds: v === "India" ? autoTds(vTypes(f), f.supplierType) : "NONE" })} options={COUNTRIES} /></Field>
           {foreign && <Field label="Tax / VAT registration no." required span={2}><TextInput value={f.taxId || ""} onChange={(v) => upd("taxId", v.toUpperCase())} placeholder="e.g. TRN 100234567800003" className={cls(inputCls, "mono")} />{err("taxId")}</Field>}
           {!foreign && <Field label="GSTIN" required><TextInput value={f.gstin} onChange={setGstin} placeholder="27AAKCS4412M1Z3" maxLength={15} className={cls(inputCls, "mono")} />{err("gstin") || dupNote(dup.gstin, "Already registered:") || ok(gstOk, `Valid · ${GST_STATES[f.gstin.slice(0, 2)] || "state code " + f.gstin.slice(0, 2)}`)}</Field>}
-          {!foreign && <Field label="PAN" required><TextInput value={f.pan} onChange={(v) => upd("pan", v.toUpperCase())} placeholder="AAKCS4412M" maxLength={10} className={cls(inputCls, "mono")} />{err("pan") || (dup.pan && <span className="mt-1 block text-[11px] text-amber-700">Same PAN as <b>{dup.pan.name}</b> ({dup.pan.id}) — another branch of the same company?</span>) || ok(panOk && gstOk && f.gstin.slice(2, 12) === f.pan, "Matches GSTIN")}</Field>}
+          {!foreign && <Field label="PAN" required><TextInput value={f.pan} onChange={(v) => upd("pan", v.toUpperCase())} placeholder="AAKCS4412M" maxLength={10} className={cls(inputCls, "mono")} />{err("pan") || (dup.pan && <span className="mt-1 block text-[11px] text-amber-700">Same PAN as <b>{dup.pan.name}</b> ({dup.pan.id}) - another branch of the same company?</span>) || ok(panOk && gstOk && f.gstin.slice(2, 12) === f.pan, "Matches GSTIN")}</Field>}
           <Field label="Supplier type"><Select value={f.supplierType || "Company"} onChange={(v) => set({ ...f, supplierType: v, tds: autoTds(vTypes(f), v) })} options={SUPPLIER_TYPES} /></Field>
           <Field label={publicMode ? "Preferred payment terms" : "Payment terms"}><Select value={f.paymentTerms} onChange={(v) => upd("paymentTerms", v)} options={PAYMENT_TERMS} /></Field>
           <Field label="Currency"><Select value={f.currency} onChange={(v) => upd("currency", v)} options={withCurrent(CURRENCIES, f.currency)} /></Field>
@@ -292,10 +292,10 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
         </FormSection>
       )}
 
-      <FormSection n={++n} title="Bank details" desc={lockBank ? "Locked — only the vendor can change bank details" : "Payments are blocked until a bank account is on file"} done={!!(f.bank.account && ifscOk)}
+      <FormSection n={++n} title="Bank details" desc={lockBank ? "Locked - only the vendor can change bank details" : "Payments are blocked until a bank account is on file"} done={!!(f.bank.account && ifscOk)}
         right={lockBank && <span className="flex items-center gap-1 text-[12px] text-ink-mute">{h(Icon.lock, { size: 13 })}Locked</span>}>
         <div className="grid grid-cols-3 gap-3">
-          <Field label="Account holder name" hint="Exactly as in bank records — used for penny-drop verification"><TextInput value={f.bank.holder || ""} disabled={lockBank} onChange={(v) => updB("holder", v)} placeholder={f.legalName || f.name || "Legal name"} />{err("bank_holder")}</Field>
+          <Field label="Account holder name" hint="Exactly as in bank records - used for penny-drop verification"><TextInput value={f.bank.holder || ""} disabled={lockBank} onChange={(v) => updB("holder", v)} placeholder={f.legalName || f.name || "Legal name"} />{err("bank_holder")}</Field>
           <Field label="Bank"><TextInput value={f.bank.bank} disabled={lockBank} onChange={(v) => updB("bank", v)} placeholder="e.g. HDFC Bank" />{err("bank_bank")}</Field>
           <Field label={foreign ? "Account no. / IBAN" : "Account no."}><TextInput value={f.bank.account} disabled={lockBank} onChange={(v) => updB("account", v.replace(/\s/g, ""))} className={cls(inputCls, "mono")} />{err("bank_account")}</Field>
           {foreign ? <Field label="SWIFT / BIC"><TextInput value={f.bank.swift || ""} disabled={lockBank} onChange={(v) => updB("swift", v.toUpperCase())} maxLength={11} className={cls(inputCls, "mono")} />{err("bank_ifsc")}</Field>
@@ -309,14 +309,14 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
         </div>
       </FormSection>
 
-      <FormSection n={++n} title="Documents" desc="PDF / JPG / PNG — each is verified by the approver" done={docsDone}
+      <FormSection n={++n} title="Documents" desc="PDF / JPG / PNG - each is verified by the approver" done={docsDone}
         right={<span className="rounded-full bg-gray-100 px-2 py-0.5 text-[12px] font-medium text-ink-soft">{Object.values(f.uploads || {}).filter((u) => u.file).length} / {requiredDocs(f).length}</span>}>
         <DocUploadList docs={requiredDocs(f)} uploads={f.uploads || {}} onChange={(u) => set({ ...f, uploads: u })} />
         {errors.docs && <span className="mt-1 block text-[11px] text-red-600">{errors.docs}</span>}
       </FormSection>
 
       {!publicMode && (
-        <FormSection n={++n} title="Internal classification" desc="Only visible to your team — not shown to the vendor" done>
+        <FormSection n={++n} title="Internal classification" desc="Only visible to your team - not shown to the vendor" done>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Supplier tier"><Select value={f.tier} onChange={(v) => upd("tier", v)} options={TIERS} /></Field>
             <Field label="Registration tier" hint="Prospective vendors can quote but can't receive POs"><Select value={f.regTier} onChange={(v) => upd("regTier", v)} options={["Spend Authorized", "Prospective"]} /></Field>
@@ -379,7 +379,7 @@ function RegisterVendorModal({ open, onClose, onCreated, contractorMode }) {
     if (submit && currentSettings().requireDocsOnSubmit) {
       const tmp = { ...f, isContractor: f.isContractor || hasType(f, "Labor") };
       const missing = requiredDocs(tmp).filter((n) => !(f.uploads || {})[n]?.file);
-      if (missing.length) { setErrors({ docs: `Upload before submitting: ${missing.join(", ")}` }); toast(`Upload the required documents first — ${missing.join(", ")}. Or save as draft.`, "red"); return; }
+      if (missing.length) { setErrors({ docs: `Upload before submitting: ${missing.join(", ")}` }); toast(`Upload the required documents first - ${missing.join(", ")}. Or save as draft.`, "red"); return; }
     }
     const id = createVendor(f, submit);
     toast(submit ? `${id} submitted for approval` : `${id} saved as draft`);
@@ -399,9 +399,9 @@ function RegisterVendorModal({ open, onClose, onCreated, contractorMode }) {
 }
 
 // ---------------------------------------------------------------- vendor drawer
-// mode "registry": the requester's view — edit while Draft / Rejected / Changes Requested,
+// mode "registry": the requester's view - edit while Draft / Rejected / Changes Requested,
 // read-only while Pending Approval, no approval decisions.
-// mode "approval": opened from Vendor Approvals / Approval Management — decisions allowed.
+// mode "approval": opened from Vendor Approvals / Approval Management - decisions allowed.
 const EDITABLE_STATUSES = ["Draft", "Rejected", "Changes Requested"];
 function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "registry" }) {
   const st = useStore();
@@ -431,7 +431,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
   ];
   return (
     <Drawer open related={relatedFor(st, "vendor", v)} onClose={onClose} width={880} title={v.name}
-      recordId={v.id} status={/* view only — status is changed from the Status & flags tab */ <Status>{APPROVAL_STATES.includes(v.status) ? approvalStatus(v) : v.status}</Status>}
+      recordId={v.id} status={/* view only - status is changed from the Status & flags tab */ <Status>{APPROVAL_STATES.includes(v.status) ? approvalStatus(v) : v.status}</Status>}
       topActions={<span className="inline-flex h-7 items-center px-0.5"><PreferredStar v={v} size={17} always /></span>}
       actions={canEdit && <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>}
       tabs={{ tabs, active: tab, onChange: setTab }}>
@@ -447,7 +447,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
           {tab === "qual" && <Questionnaire v={v} />}
           {tab === "equip" && <EquipmentRegister v={v} locked={locked} approving={approving} />}
         </fieldset>
-        {/* bank details of an approved vendor are not edited — a change is requested, verified, approved by Finance, then switches after the cooling period */}
+        {/* bank details of an approved vendor are not edited - a change is requested, verified, approved by Finance, then switches after the cooling period */}
         {tab === "bank" && <div className="space-y-4"><VendorBanks v={v} locked={locked} approving={approving} control={locked && mode === "registry" && !!lifeStatus(v)} /><BankHistory v={v} /></div>}
         {tab === "v360" && <Vendor360 v={v} />}
         {tab === "risk" && <VendorRiskTab v={v} canAct={mode === "registry"} />}
@@ -467,10 +467,10 @@ function VendorOverview({ v, comp }) {
           <b>{comp.status}:</b> {comp.issues.join(" · ")}
         </Note>
       )}
-      {v.hold && v.status === "On Hold" && <Note tone="amber" icon={Icon.lock}><b>On hold ({v.hold.scope}):</b> {v.hold.reason}{v.hold.until ? ` — until ${fmtDate(v.hold.until)}` : ""}</Note>}
+      {v.hold && v.status === "On Hold" && <Note tone="amber" icon={Icon.lock}><b>On hold ({v.hold.scope}):</b> {v.hold.reason}{v.hold.until ? ` - until ${fmtDate(v.hold.until)}` : ""}</Note>}
       <InfoCard title="Vendor Information" icon={Icon.building} rows={[
         ["Legal name", v.legalName || v.name], ["Supplies", <VendorTypeTag v={v} />],
-        ["Status", lifeStatus(v) ? <Status>{v.status}</Status> : "—"], ["Approval", <Status>{approvalStatus(v)}</Status>], ["Registration", <Status>{v.regTier}</Status>],
+        ["Status", lifeStatus(v) ? <Status>{v.status}</Status> : "-"], ["Approval", <Status>{approvalStatus(v)}</Status>], ["Registration", <Status>{v.regTier}</Status>],
         ["Compliance", <Status>{comp.status}</Status>], ["Tier", v.tier], ["Supplier type", v.supplierType || "Company"],
         ["GSTIN", <span className="mono">{v.gstin}</span>], ["PAN", <span className="mono">{v.pan}</span>], ["Currency", v.currency],
         ["Payment terms", v.paymentTerms], ["TDS", tdsLabel(v.tds)], ["Open orders", openOrdersText(v)],
@@ -480,9 +480,9 @@ function VendorOverview({ v, comp }) {
       {v.contractor && hasType(v, "Labor") && (
         <Section title="Contractor profile" icon={Icon.hardHat}>
           <KV items={[
-            ["Labour licence (CLRA)", v.contractor.labourLicence || "—"], ["Licence valid till", fmtDate(v.contractor.licenceExpiry)], ["Workforce", v.contractor.workforce ? `${v.contractor.workforce} workers` : "—"],
-            ["PF code", v.contractor.pfCode || "—"], ["ESI code", v.contractor.esiCode || "—"], ["Experience", v.contractor.experienceYrs ? `${v.contractor.experienceYrs} yrs` : "—"],
-            ["Past projects", v.contractor.pastProjects || "—"],
+            ["Labour licence (CLRA)", v.contractor.labourLicence || "-"], ["Licence valid till", fmtDate(v.contractor.licenceExpiry)], ["Workforce", v.contractor.workforce ? `${v.contractor.workforce} workers` : "-"],
+            ["PF code", v.contractor.pfCode || "-"], ["ESI code", v.contractor.esiCode || "-"], ["Experience", v.contractor.experienceYrs ? `${v.contractor.experienceYrs} yrs` : "-"],
+            ["Past projects", v.contractor.pastProjects || "-"],
           ]} />
         </Section>
       )}
@@ -491,7 +491,7 @@ function VendorOverview({ v, comp }) {
 }
 
 function ExpiryCell({ iso }) {
-  if (!iso) return <span className="text-ink-mute">—</span>;
+  if (!iso) return <span className="text-ink-mute">-</span>;
   const d = daysUntil(iso);
   return (
     <span className="flex items-center gap-2">
@@ -502,7 +502,7 @@ function ExpiryCell({ iso }) {
 }
 
 // Status & flags as label → value. For editable vendors (Draft, Changes Requested, Rejected) the editable values are
-// dropdowns in place — the layout stays the same.
+// dropdowns in place - the layout stays the same.
 function VendorFlagsView({ v, canEdit, canEditFlags }) {
   const [ask, setAsk] = y.useState(null);
   // status changes go through the same flow as the status badge (hold and blacklist ask for a reason)
@@ -535,7 +535,7 @@ function VendorFlagsView({ v, canEdit, canEditFlags }) {
         ["Allow bills without PO", yn("allowBillWithoutPO", "Allowed bills without PO", "PO required for bills", "Allow bills without PO")],
         ["Allow bills before goods receipt", yn("allowBillWithoutReceipt", "Allowed bills before receipt", "Receipt required before billing", "Allow bills before goods receipt")],
         ["Frozen (no new transactions)", canEditFlags ? box(<Select label="Frozen" value={v.frozen ? "Yes" : "No"} onChange={(x) => { if (x === "Yes" && !v.frozen) setFreeze(""); else if (x === "No" && v.frozen) mut((z) => { z.frozen = false; z.freeze = null; }, "Vendor unfrozen"); }} options={["Yes", "No"]} />) : yes(v.frozen)],
-        v.frozen && v.freeze && ["Freeze reason", `${v.freeze.reason} — ${v.freeze.by}, ${fmtDate(v.freeze.at)}`],
+        v.frozen && v.freeze && ["Freeze reason", `${v.freeze.reason} - ${v.freeze.by}, ${fmtDate(v.freeze.at)}`],
       ]} />
       <InfoCard title="Status" icon={Icon.lock} rows={[
         ["Status", live ? box(<Select label="Status" value={v.status} onChange={toStatus} options={VSTATUS} />) : <Status>{v.status}</Status>],
@@ -549,7 +549,7 @@ function VendorFlagsView({ v, canEdit, canEditFlags }) {
       {ask === "black" && <BlacklistModal v={v} onClose={() => setAsk(null)} />}
       {freeze !== null && (
         <Modal open onClose={() => setFreeze(null)} width={480} title={`Freeze ${v.name}?`} subtitle="No new RFQs, POs or bills until the vendor is unfrozen"
-          footer={<><Btn onClick={() => setFreeze(null)}>Cancel</Btn><Btn variant="danger" disabled={!freeze.trim()} onClick={() => { mut((z) => { z.frozen = true; z.freeze = { reason: freeze.trim(), by: currentUser(), at: todayISO() }; }, `Vendor frozen — ${freeze.trim()}`); toast(`${v.name} frozen`); setFreeze(null); }}>Freeze vendor</Btn></>}>
+          footer={<><Btn onClick={() => setFreeze(null)}>Cancel</Btn><Btn variant="danger" disabled={!freeze.trim()} onClick={() => { mut((z) => { z.frozen = true; z.freeze = { reason: freeze.trim(), by: currentUser(), at: todayISO() }; }, `Vendor frozen - ${freeze.trim()}`); toast(`${v.name} frozen`); setFreeze(null); }}>Freeze vendor</Btn></>}>
           <Field label="Reason (audit logged)" required><TextInput value={freeze} onChange={setFreeze} placeholder="e.g. Quality dispute under investigation" autoFocus /></Field>
         </Modal>)}
     </>
@@ -572,11 +572,11 @@ function VendorDocs({ v, mode = "registry", locked }) {
     <Section title="Document checklist" icon={Icon.folderCheck} actions={!locked && mode !== "approval" && <Btn size="sm" variant="primary" icon={Icon.upload} onClick={() => setUp({ name: docs.find((d) => docState(d) !== "Verified")?.name || docs[0].name, expiry: "", file: "", pick: true })}>Upload document</Btn>}>
       <DataTable dense rows={extra.length ? [...docs, ...extra] : docs} rowKey={(d) => d.name} columns={[
         { key: "name", label: "Document", className: "font-medium" },
-        { key: "file", label: "File", render: (d) => (d.file ? <FileLink name={d.file} dataUrl={d.dataUrl} /> : <span className="text-ink-mute">—</span>) },
+        { key: "file", label: "File", render: (d) => (d.file ? <FileLink name={d.file} dataUrl={d.dataUrl} /> : <span className="text-ink-mute">-</span>) },
         { key: "status", label: "Status", render: (d) => <span title={d.status === "Rejected" && d.remark ? `Rejected: ${d.remark}` : undefined}><Status>{docState(d)}</Status></span> },
-        { key: "verified", label: "Verified on", render: (d) => (d.verifiedAt && d.status === "Verified" ? fmtDate(d.verifiedAt) : d.verifiedAt && d.status === "Rejected" ? <span className="text-red-600" title={d.remark || undefined}>Rejected {fmtDate(d.verifiedAt)}</span> : <span className="text-ink-mute">—</span>) },
+        { key: "verified", label: "Verified on", render: (d) => (d.verifiedAt && d.status === "Verified" ? fmtDate(d.verifiedAt) : d.verifiedAt && d.status === "Rejected" ? <span className="text-red-600" title={d.remark || undefined}>Rejected {fmtDate(d.verifiedAt)}</span> : <span className="text-ink-mute">-</span>) },
         { key: "expiry", label: "Valid till", render: (d) => <ExpiryCell iso={d.expiry} /> },
-        { key: "ver", label: "Versions", render: (d) => ((d.versions || []).length ? <button className="text-[12px] font-medium text-brand hover:underline" onClick={() => setHist(d)}>v{(d.versions || []).length + 1} · history</button> : d.file ? <span className="text-[12px] text-ink-mute">v1</span> : "—") },
+        { key: "ver", label: "Versions", render: (d) => ((d.versions || []).length ? <button className="text-[12px] font-medium text-brand hover:underline" onClick={() => setHist(d)}>v{(d.versions || []).length + 1} · history</button> : d.file ? <span className="text-[12px] text-ink-mute">v1</span> : "-") },
         { key: "a", label: "", align: "right", render: (d) => (
           <span className="flex justify-end gap-1">
             {/* the approver only verifies or rejects; uploads and replacements are done from the vendor record */}
@@ -590,15 +590,15 @@ function VendorDocs({ v, mode = "registry", locked }) {
           </span>
         ) },
       ]} />
-      {rej && <RejectReasonModal title={`Reject — ${rej}`} onClose={() => setRej(null)} onReject={(reason) => mut(rej, (x) => { Object.assign(x, { status: "Rejected", remark: reason, verifiedBy: currentUser(), verifiedAt: new Date().toISOString() }); }, `${rej} rejected — ${reason}`)} />}
+      {rej && <RejectReasonModal title={`Reject - ${rej}`} onClose={() => setRej(null)} onReject={(reason) => mut(rej, (x) => { Object.assign(x, { status: "Rejected", remark: reason, verifiedBy: currentUser(), verifiedAt: new Date().toISOString() }); }, `${rej} rejected - ${reason}`)} />}
       {hist && (
-        <Modal open onClose={() => setHist(null)} width={640} title={`${hist.name} — version history`} footer={<Btn onClick={() => setHist(null)}>Close</Btn>}>
+        <Modal open onClose={() => setHist(null)} width={640} title={`${hist.name} - version history`} footer={<Btn onClick={() => setHist(null)}>Close</Btn>}>
           <DataTable dense rows={[{ ...hist, current: true }, ...(hist.versions || []).slice().reverse()]} rowKey={(x, i) => (x.current ? "cur" : x.replacedAt || i)} columns={[
             { key: "v", label: "Version", render: (x) => (x.current ? <b>Current</b> : `Replaced ${fmtDate(x.replacedAt)}`) },
-            { key: "file", label: "File", render: (x) => (x.file ? <FileLink name={x.file} dataUrl={x.dataUrl} /> : "—") },
+            { key: "file", label: "File", render: (x) => (x.file ? <FileLink name={x.file} dataUrl={x.dataUrl} /> : "-") },
             { key: "up", label: "Uploaded", render: (x) => fmtDate(x.uploadedAt) }, { key: "exp", label: "Valid till", render: (x) => fmtDate(x.expiry) },
-            { key: "st", label: "Status then", render: (x) => <Status>{x.status}</Status> }, { key: "by", label: "Verified by", render: (x) => (x.verifiedBy ? `${x.verifiedBy} · ${fmtDate(x.verifiedAt)}` : "—") },
-            { key: "rb", label: "Replaced by", render: (x) => x.replacedBy || "—" },
+            { key: "st", label: "Status then", render: (x) => <Status>{x.status}</Status> }, { key: "by", label: "Verified by", render: (x) => (x.verifiedBy ? `${x.verifiedBy} · ${fmtDate(x.verifiedAt)}` : "-") },
+            { key: "rb", label: "Replaced by", render: (x) => x.replacedBy || "-" },
           ]} />
         </Modal>
       )}
@@ -618,14 +618,14 @@ function VendorDocs({ v, mode = "registry", locked }) {
           <p className="text-[13px] text-ink-soft">{del.d.file}</p>
         </Modal>
       )}
-      <Modal open={!!up} onClose={() => setUp(null)} title={`Upload — ${up?.name}`} width={480}
+      <Modal open={!!up} onClose={() => setUp(null)} title={`Upload - ${up?.name}`} width={480}
         footer={<><Btn onClick={() => setUp(null)}>Cancel</Btn><Btn variant="primary" disabled={!up?.file || !up?.name?.trim()} onClick={() => {
-          if (up.expiry && up.expiry < todayISO()) return toast("Valid-till date is in the past — upload a current document", "red");
+          if (up.expiry && up.expiry < todayISO()) return toast("Valid-till date is in the past - upload a current document", "red");
           mut(up.name, (x) => withVersion(x, { status: "Pending", file: up.file, dataUrl: up.dataUrl || null, expiry: up.expiry || null, uploadedAt: todayISO() }, currentUser()), `${up.name} ${up.replace ? "replaced" : "uploaded"}`);
-          toast("Document uploaded — awaiting verification"); setUp(null);
+          toast("Document uploaded - awaiting verification"); setUp(null);
         }}>Upload</Btn></>}>
         {up && <div className="space-y-3">
-          {up.pick && <Field label="Document" required><Select value={other ? "__other" : up.name} onChange={(x) => setUp({ ...up, name: x === "__other" ? "" : x, other: x === "__other" })} options={[...docs.map((d) => ({ value: d.name, label: `${d.name} — ${docState(d)}` })), { value: "__other", label: "Other document…" }]} /></Field>}
+          {up.pick && <Field label="Document" required><Select value={other ? "__other" : up.name} onChange={(x) => setUp({ ...up, name: x === "__other" ? "" : x, other: x === "__other" })} options={[...docs.map((d) => ({ value: d.name, label: `${d.name} - ${docState(d)}` })), { value: "__other", label: "Other document…" }]} /></Field>}
           {other && <Field label="Document name" required><TextInput value={up.name} onChange={(x) => setUp({ ...up, name: x })} placeholder="e.g. ISO 9001 certificate" /></Field>}
           <Field label="File" required><input type="file" accept=".pdf,.jpg,.jpeg,.png" className="block w-full text-[13px]" onChange={async (e) => { const f0 = e.target.files[0]; if (f0) { const att = await readAttachment(f0); if (att) setUp((u) => ({ ...u, file: att.name, dataUrl: att.dataUrl })); else e.target.value = ""; } }} /></Field>
           <Field label="Valid till" hint="Leave empty for documents that don't expire"><DateInput value={up.expiry} onChange={(x) => setUp({ ...up, expiry: x })} /></Field>
@@ -660,38 +660,38 @@ function VendorBanks({ v, locked: locked0, approving, control }) {
   { const k = acctKey(f), o = k.length > 6 && getState().vendors.find((z) => z.id !== v.id && (z.bankAccounts || []).some((b) => acctKey(b) === k)); if (o) er.account = `This bank account is already registered to ${o.name} (${o.id})`; }
   const [ed, setEd] = y.useState(null), [adding, setAdding] = y.useState(false);
   const tail = (a) => "••" + String(a.account).slice(-4);
-  const live = !!lifeStatus(v), notice = v.contact?.email ? ` — change confirmation sent to ${v.contact.email}` : "";
+  const live = !!lifeStatus(v), notice = v.contact?.email ? ` - change confirmation sent to ${v.contact.email}` : "";
   const makeDefault = (a) => mut((x) => x.bankAccounts.forEach((o) => { o.isDefault = o.id === a.id; }), `Default bank set to ${a.bank} ${tail(a)}`);
   // Finance approves a verified change; the old account stays the default until the cooling period ends
   const approveChange = (a) => {
     const on = coolingDate() || todayISO();
     mut((x) => { const o = x.bankAccounts.find((b) => b.id === a.id); o.change = { ...o.change, status: "Approved", approvedBy: currentUser(), approvedAt: new Date().toISOString(), switchOn: on }; },
-      `Bank change approved by Finance — ${a.bank} ${tail(a)} becomes the default on ${fmtDate(on)}; payments go to the current account until then${notice}`);
-    toast(`Approved — switches on ${fmtDate(on)}`);
+      `Bank change approved by Finance - ${a.bank} ${tail(a)} becomes the default on ${fmtDate(on)}; payments go to the current account until then${notice}`);
+    toast(`Approved - switches on ${fmtDate(on)}`);
   };
   const verify = (a) => {
     const ok = nameMatch(a.holder || v.legalName, v);
     mut((x) => Object.assign(x.bankAccounts.find((o) => o.id === a.id), ok
-      ? { status: "Verified", remark: "", verifiedBy: currentUser(), verifiedAt: new Date().toISOString(), method: "Penny drop — name matched" }
+      ? { status: "Verified", remark: "", verifiedBy: currentUser(), verifiedAt: new Date().toISOString(), method: "Penny drop - name matched" }
       : { status: "Rejected", remark: `Penny drop: beneficiary name does not match “${v.legalName || v.name}”`, verifiedBy: currentUser(), verifiedAt: new Date().toISOString(), method: "Penny drop" }),
-      ok ? `Bank account ${tail(a)} verified (penny drop)${a.change ? " — waiting for Finance approval of the change" : ""}` : `Bank account ${tail(a)} failed verification — name mismatch`);
-    toast(ok ? "Bank account verified" : "Verification failed — holder name mismatch", ok ? "green" : "red");
+      ok ? `Bank account ${tail(a)} verified (penny drop)${a.change ? " - waiting for Finance approval of the change" : ""}` : `Bank account ${tail(a)} failed verification - name mismatch`);
+    toast(ok ? "Bank account verified" : "Verification failed - holder name mismatch", ok ? "green" : "red");
   };
   return (
     <Section title="Bank accounts" icon={Icon.wallet} actions={!locked && !approving && !adding && <Btn size="sm" variant="primary" icon={Icon.plus} onClick={() => setAdding(true)}>{control ? "Request bank change" : "Add bank account"}</Btn>}>
-      <DataTable dense rows={v.bankAccounts} empty={<p className="p-4 text-[13px] text-ink-mute">No bank account on file — payments are blocked until one is added.</p>}
+      <DataTable dense rows={v.bankAccounts} empty={<p className="p-4 text-[13px] text-ink-mute">No bank account on file - payments are blocked until one is added.</p>}
         columns={[
-          { key: "holder", label: "Account holder", render: (a) => a.holder || <span className="text-ink-mute">—</span> },
+          { key: "holder", label: "Account holder", render: (a) => a.holder || <span className="text-ink-mute">-</span> },
           { key: "bank", label: "Bank", className: "font-medium" }, { key: "account", label: "Account no.", className: "mono text-[12px]", render: (a) => "•••• " + String(a.account).slice(-4) },
-          { key: "ifsc", label: foreign ? "SWIFT" : "IFSC", className: "mono text-[12px]", render: (a) => a.ifsc || a.swift || "—" },
+          { key: "ifsc", label: foreign ? "SWIFT" : "IFSC", className: "mono text-[12px]", render: (a) => a.ifsc || a.swift || "-" },
           { key: "ty", label: "Type · currency", render: (a) => <span className="flex flex-col text-[12px]"><span>{a.accountType || "Current"} · {a.currency || v.currency || "INR"}</span>{a.iban && <span className="mono text-ink-mute">IBAN {a.iban}</span>}{a.branch && <span className="text-ink-mute">{a.branch}</span>}</span> },
           { key: "fl", label: "Settings", render: (a) => <span className="flex flex-wrap gap-1">{a.disabled ? <Status tone="gray">Disabled</Status> : a.paymentsEnabled === false ? <Status tone="amber">Payments off</Status> : <Status tone="green">Payments on</Status>}{a.allowIntl && <Status tone="blue">International</Status>}</span> },
           { key: "st", label: "Verification", render: (a) => <span title={a.remark || undefined}><Status tone={{ Verified: "green", Rejected: "red" }[bankStatus(a)] || "amber"}>{bankStatus(a)}</Status></span> },
-          { key: "pay", label: "Payments", render: (a) => (a.change?.status === "Requested" ? <Status tone="amber">{bankStatus(a) === "Verified" ? "Change — Finance approval" : "Change — verify first"}</Status>
+          { key: "pay", label: "Payments", render: (a) => (a.change?.status === "Requested" ? <Status tone="amber">{bankStatus(a) === "Verified" ? "Change - Finance approval" : "Change - verify first"}</Status>
             : bankCooling(a) ? <span title={`Approved by ${a.change.approvedBy} on ${fmtDate(a.change.approvedAt)}`}><Status tone="amber">{`Becomes default ${fmtDate(a.change.switchOn)}`}</Status></span>
             : a.replacedOn ? <Status tone="gray">{`Replaced ${fmtDate(a.replacedOn)}`}</Status>
             : a.id === defaultBank(v)?.id && bankPayable(a) ? <Status tone="green">Paid to</Status> : bankPayable(a) ? <Status tone="green">Can pay</Status> : <Status tone="gray">Blocked</Status>) },
-          { key: "von", label: "Verified on", render: (a) => (a.verifiedAt ? <span title={[a.verifiedBy, a.method].filter(Boolean).join(" · ") || undefined}>{fmtDate(a.verifiedAt)}</span> : <span className="text-ink-mute">—</span>) },
+          { key: "von", label: "Verified on", render: (a) => (a.verifiedAt ? <span title={[a.verifiedBy, a.method].filter(Boolean).join(" · ") || undefined}>{fmtDate(a.verifiedAt)}</span> : <span className="text-ink-mute">-</span>) },
           { key: "d", label: "", align: "right", render: (a) => !locked && (approving ? (
             <span className="flex justify-end gap-1">
               {bankStatus(a) !== "Verified" && <Btn size="sm" variant="success" onClick={() => verify(a)}>Verify</Btn>}
@@ -707,7 +707,7 @@ function VendorBanks({ v, locked: locked0, approving, control }) {
             </span>) },
         ]} />
       {control && <div className="border-t border-line px-4 py-2 text-[12px] text-ink-mute">Bank change: request → verify (penny drop) → Finance approval → cooling period ({settingsOf(getState()).bankCoolingDays || 0} days) while the current account keeps getting paid → new account becomes the default. Old accounts stay in the history.</div>}
-      {v.bankAccounts.some((a) => a.isDefault && bankStatus(a) !== "Verified") && <div className="border-t border-line px-4 py-2"><Note tone="amber">The default account is not verified — payments are blocked until it is verified.</Note></div>}
+      {v.bankAccounts.some((a) => a.isDefault && bankStatus(a) !== "Verified") && <div className="border-t border-line px-4 py-2"><Note tone="amber">The default account is not verified - payments are blocked until it is verified.</Note></div>}
       {!locked && !approving && adding && <>
       <div className="grid grid-cols-[1.2fr_1fr_1fr_140px_auto] items-start gap-3 border-t border-line p-4">
         <Field label="Account holder name" hint="Exactly as in bank records"><TextInput value={f.holder} onChange={(x) => setF({ ...f, holder: x })} placeholder={v.legalName} />{tried && <FieldErr m={er.holder} />}</Field>
@@ -717,8 +717,8 @@ function VendorBanks({ v, locked: locked0, approving, control }) {
           : <Field label="IFSC"><TextInput value={f.ifsc} onChange={(x) => setF({ ...f, ifsc: x.toUpperCase() })} maxLength={11} />{(tried || f.ifsc) && <FieldErr m={er.ifsc} />}</Field>}
         <div className="pt-[22px]"><Btn variant="primary" icon={Icon.plus} onClick={() => {
           setTried(true); if (VX.any(er)) return;
-          mut((x) => x.bankAccounts.push({ id: Date.now(), ...f, accountConfirm: undefined, account: f.account.replace(/\s/g, ""), status: "Unverified", addedAt: todayISO(), isDefault: x.bankAccounts.length === 0, ...(control ? { change: { status: "Requested", requestedBy: currentUser(), requestedAt: new Date().toISOString() } } : {}) }), `${control ? "Bank change requested" : "Bank account added"} (${f.bank} ••${f.account.slice(-4)}) — pending verification`);
-          toast(control ? "Bank change requested — verify it, then Finance approves; the current account stays the default until the cooling period ends" : "Bank account added — verify it before payments"); setF(blank); setTried(false); setAdding(false);
+          mut((x) => x.bankAccounts.push({ id: Date.now(), ...f, accountConfirm: undefined, account: f.account.replace(/\s/g, ""), status: "Unverified", addedAt: todayISO(), isDefault: x.bankAccounts.length === 0, ...(control ? { change: { status: "Requested", requestedBy: currentUser(), requestedAt: new Date().toISOString() } } : {}) }), `${control ? "Bank change requested" : "Bank account added"} (${f.bank} ••${f.account.slice(-4)}) - pending verification`);
+          toast(control ? "Bank change requested - verify it, then Finance approves; the current account stays the default until the cooling period ends" : "Bank account added - verify it before payments"); setF(blank); setTried(false); setAdding(false);
         }}>Add</Btn></div>
       </div>
       <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr] items-start gap-3 px-4 pb-4">
@@ -733,11 +733,11 @@ function VendorBanks({ v, locked: locked0, approving, control }) {
       </div>
       </>}
       {ed && (
-        <Modal open onClose={() => setEd(null)} width={560} title={`Bank account ${tail(ed)} — settings`}
+        <Modal open onClose={() => setEd(null)} width={560} title={`Bank account ${tail(ed)} - settings`}
           footer={<><Btn onClick={() => setEd(null)}>Cancel</Btn><Btn variant="primary" onClick={() => {
             if (ed.disabled && ed.isDefault && v.bankAccounts.length > 1) return toast("Make another account the default before disabling this one", "red");
             mut((x) => Object.assign(x.bankAccounts.find((o) => o.id === ed.id), { accountType: ed.accountType, currency: ed.currency, branch: ed.branch, notes: ed.notes, allowIntl: !!ed.allowIntl, paymentsEnabled: ed.paymentsEnabled !== false, disabled: !!ed.disabled }),
-              `Bank account ${tail(ed)} settings updated${ed.disabled ? " — disabled" : ""}`); toast("Bank account updated"); setEd(null); }}>Save</Btn></>}>
+              `Bank account ${tail(ed)} settings updated${ed.disabled ? " - disabled" : ""}`); toast("Bank account updated"); setEd(null); }}>Save</Btn></>}>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Account type"><Select value={ed.accountType || "Current"} onChange={(x) => setEd({ ...ed, accountType: x })} options={ACCOUNT_TYPES} /></Field>
             <Field label="Account currency"><Select value={ed.currency || v.currency || "INR"} onChange={(x) => setEd({ ...ed, currency: x })} options={withCurrent(CURRENCIES, ed.currency)} /></Field>
@@ -753,7 +753,7 @@ function VendorBanks({ v, locked: locked0, approving, control }) {
       )}
       {rej && (
         <Modal open onClose={() => setRej(null)} width={460} title={`Reject bank account ${tail(rej.a)}`}
-          footer={<><Btn onClick={() => setRej(null)}>Cancel</Btn><Btn variant="danger" disabled={!!VX.reason(rej.reason)} onClick={() => { mut((x) => Object.assign(x.bankAccounts.find((o) => o.id === rej.a.id), { status: "Rejected", remark: rej.reason.trim(), verifiedBy: currentUser(), verifiedAt: new Date().toISOString(), isDefault: false }), `Bank account ${tail(rej.a)} rejected — ${rej.reason.trim()}`); toast("Bank account rejected", "red"); setRej(null); }}>Reject</Btn></>}>
+          footer={<><Btn onClick={() => setRej(null)}>Cancel</Btn><Btn variant="danger" disabled={!!VX.reason(rej.reason)} onClick={() => { mut((x) => Object.assign(x.bankAccounts.find((o) => o.id === rej.a.id), { status: "Rejected", remark: rej.reason.trim(), verifiedBy: currentUser(), verifiedAt: new Date().toISOString(), isDefault: false }), `Bank account ${tail(rej.a)} rejected - ${rej.reason.trim()}`); toast("Bank account rejected", "red"); setRej(null); }}>Reject</Btn></>}>
           <Field label="Reason" required><TextInput value={rej.reason} onChange={(x) => setRej({ ...rej, reason: x })} placeholder="e.g. Cancelled cheque shows a different account" /><FieldErr m={rej.reason && VX.reason(rej.reason)} /></Field>
         </Modal>
       )}
@@ -800,7 +800,7 @@ function CalmStatus({ children }) {
 // Bulk actions for ticked vendors
 function BulkBar({ sel, onClear, onHold }) {
   const st = useStore(), vs = sel.map((id) => byId(st.vendors, id)).filter(Boolean);
-  const bulk = (fn, action) => { setState((s) => sel.forEach((id) => fn(byId(s.vendors, id))), { entity: "Vendor", id: sel.join(", "), action }); toast(`${action} — ${sel.length} vendor${sel.length > 1 ? "s" : ""}`); };
+  const bulk = (fn, action) => { setState((s) => sel.forEach((id) => fn(byId(s.vendors, id))), { entity: "Vendor", id: sel.join(", "), action }); toast(`${action} - ${sel.length} vendor${sel.length > 1 ? "s" : ""}`); };
   const due = vs.flatMap((v) => complianceItems(v).filter((i) => i.level > 0).map((item) => ({ v, item })));
   return (
     <div className="flex flex-wrap items-center gap-2 border-b border-brand/20 bg-brand-soft/50 px-4 py-2 text-[13px]">
@@ -818,13 +818,13 @@ function BulkBar({ sel, onClear, onHold }) {
 function holdErr(h) {
   if ((h.reason || "").trim().length < 5) return "Enter a reason (at least 5 characters)";
   if (h.until && h.until <= todayISO()) return "Release date must be in the future";
-  if (h.until && daysUntil(h.until) > 365) return "Release date must be within a year — leave it blank for an indefinite hold";
+  if (h.until && daysUntil(h.until) > 365) return "Release date must be within a year - leave it blank for an indefinite hold";
   return "";
 }
 function BulkHoldModal({ ids, onClose, onDone }) {
   const [hold, setHold] = y.useState({ scope: "Payments", until: shiftDays(30), reason: "" });
   const go = () => {
-    setState((s) => ids.forEach((id) => { const x = byId(s.vendors, id); if (x.status === "Blacklisted") return; x.status = "On Hold"; x.hold = { ...hold, reason: hold.reason.trim(), until: hold.until || null, placedAt: todayISO() }; }), { entity: "Vendor", id: ids.join(", "), action: `Placed on hold (${hold.scope}) — ${hold.reason}` });
+    setState((s) => ids.forEach((id) => { const x = byId(s.vendors, id); if (x.status === "Blacklisted") return; x.status = "On Hold"; x.hold = { ...hold, reason: hold.reason.trim(), until: hold.until || null, placedAt: todayISO() }; }), { entity: "Vendor", id: ids.join(", "), action: `Placed on hold (${hold.scope}) - ${hold.reason}` });
     toast(`${ids.length} vendor${ids.length > 1 ? "s" : ""} put on hold`); onDone();
   };
   return (
@@ -857,8 +857,8 @@ function setVendorStatus(v, to, extra = {}) {
   setState((s) => {
     const x = byId(s.vendors, v.id); const from = x.status; x.status = to;
     if (to === "On Hold") x.hold = { ...extra.hold, placedAt: todayISO() }; else if (from === "On Hold") x.hold = null;
-    if (to === "Blacklisted") { x.hold = null; x.notes.unshift({ at: todayISO(), by: currentUser(), text: `Blacklisted — ${extra.reason}` }); }
-  }, { entity: "Vendor", id: v.id, action: `Status ${v.status} → ${to}${extra.reason ? ` — ${extra.reason}` : extra.hold ? ` (${extra.hold.scope}) — ${extra.hold.reason}` : ""}` });
+    if (to === "Blacklisted") { x.hold = null; x.notes.unshift({ at: todayISO(), by: currentUser(), text: `Blacklisted - ${extra.reason}` }); }
+  }, { entity: "Vendor", id: v.id, action: `Status ${v.status} → ${to}${extra.reason ? ` - ${extra.reason}` : extra.hold ? ` (${extra.hold.scope}) - ${extra.hold.reason}` : ""}` });
   toast(`${v.name}: ${v.status} → ${to}`);
 }
 function VendorStatusMenu({ v, approval, caret }) {
@@ -879,7 +879,7 @@ function VendorStatusMenu({ v, approval, caret }) {
     <span onClick={(e) => e.stopPropagation()} className="inline-flex">
       <button ref={btn} type="button" aria-label={approval ? `Approval status of ${v.name}` : `Change status of ${v.name}`} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}
         className={cls("group/st inline-flex items-center gap-1 rounded-md px-1 py-0.5 hover:bg-gray-100", !caret && "-mx-1", open && "bg-gray-100")}>
-        {approval ? <Status>{approvalStatus(v)}</Status> : lifeStatus(v) ? <Status>{v.status}</Status> : <span className="text-ink-faint" data-tip="Not active until the registration is approved">—</span>}{h(Icon.chevronDown, { size: 12, className: caret ? "text-ink-mute" : "text-ink-faint opacity-0 group-hover/st:opacity-100" })}
+        {approval ? <Status>{approvalStatus(v)}</Status> : lifeStatus(v) ? <Status>{v.status}</Status> : <span className="text-ink-faint" data-tip="Not active until the registration is approved">-</span>}{h(Icon.chevronDown, { size: 12, className: caret ? "text-ink-mute" : "text-ink-faint opacity-0 group-hover/st:opacity-100" })}
       </button>
       {open && pos && (
         <div ref={menu} role="menu" className="fixed z-[80] w-[260px] overflow-hidden whitespace-normal rounded-lg border border-line bg-white py-1 shadow-lg" style={{ left: pos.left, top: pos.top, bottom: pos.bottom }}>
@@ -923,7 +923,7 @@ function VendorRegistryPage() {
     true);
   const compIssues = st.vendors.filter((v) => v.status === "Active" && complianceOf(v).status !== "Compliant").length;
   return (
-    <Page title="Vendor Registry" subtitle="Vendor master — registration, classification and status" icon={Icon.building}
+    <Page title="Vendor Registry" subtitle="Vendor master - registration, classification and status" icon={Icon.building}
       actions={<>
         
         <Btn icon={Icon.mail} onClick={() => setInvite(true)}>Invite vendor</Btn>
@@ -951,14 +951,14 @@ function VendorRegistryPage() {
         { key: "reg", label: "Registration", sort: (v) => v.regTier, render: (v) => <CalmStatus>{v.regTier}</CalmStatus> },
         { key: "comp", label: "Compliance", sort: (v) => complianceOf(v).status, render: (v) => <CalmStatus>{complianceOf(v).status}</CalmStatus> },
         { key: "approval", label: "Approval", sort: (v) => approvalStatus(v), render: (v) => <VendorStatusMenu v={v} approval /> },
-        { key: "risk", label: "Risk", filterOptions: RISK_LEVELS.map((l) => l.name).reverse(), filter: (v) => (lifeStatus(v) ? vendorRisk(st, v).level.name : ""), sort: (v) => (lifeStatus(v) ? vendorRisk(st, v).score : -1), render: (v) => (lifeStatus(v) ? <RiskBadge r={vendorRisk(st, v)} /> : <span className="text-ink-faint">—</span>) },
+        { key: "risk", label: "Risk", filterOptions: RISK_LEVELS.map((l) => l.name).reverse(), filter: (v) => (lifeStatus(v) ? vendorRisk(st, v).level.name : ""), sort: (v) => (lifeStatus(v) ? vendorRisk(st, v).score : -1), render: (v) => (lifeStatus(v) ? <RiskBadge r={vendorRisk(st, v)} /> : <span className="text-ink-faint">-</span>) },
         { key: "score", label: "Score", sort: (v) => vendorScore(st, v.id).score ?? -1, render: (v) => { const sc = vendorScore(st, v.id).score; return sc == null ? <span data-tip="No orders, work orders or ratings yet" className="text-[12.5px] text-ink-faint">New</span> : <ScoreBadge value={sc} />; } },
       ]} />
       </>}
       {invite && <InviteVendorModal onClose={() => setInvite(false)} />}
       <RegisterVendorModal open={reg} onClose={() => setReg(false)} onCreated={(id) => setOpen(id)} />
       {share && <ShareLinkModal title="Vendor self-registration link" url={appUrl("/vendor-register")} onClose={() => setShare(false)}
-        text="Send this link to prospective vendors. They fill in their company, tax and bank details and upload documents themselves — no login needed. Submissions arrive in Approval Management under “Vendor Registration”." />}
+        text="Send this link to prospective vendors. They fill in their company, tax and bank details and upload documents themselves - no login needed. Submissions arrive in Approval Management under “Vendor Registration”." />}
       {open && <VendorDrawer vendorId={open} initialTab={new URLSearchParams(window.location.hash.split("?")[1] || "").get("tab") || "overview"} onClose={() => setOpen(null)} />}
       {holdFor && <BulkHoldModal ids={holdFor} onClose={() => setHoldFor(null)} onDone={() => { setHoldFor(null); setSel([]); }} />}
     </Page>

@@ -7,7 +7,7 @@
 //   fn useNavigate · Ht useLocation · Zn Link · at auth store
 
 const Card = B, PageHeader = H, Toolbar = se, Th = S, Td = g;
-// Page tabs — same look as the host tab bar, plus tab roles so keyboards, screen readers and tests can find them
+// Page tabs - same look as the host tab bar, plus tab roles so keyboards, screen readers and tests can find them
 // A row of tabs that never wraps or hides tabs: when they don't fit, the row scrolls sideways
 // (mouse wheel, drag on touch, or the ‹ › arrows that appear at the ends) and the open tab is scrolled into view
 function ScrollTabs({ className, gap = "gap-1", active, arrowClass = "", children }) {
@@ -88,9 +88,9 @@ const todayISO = () => new Date().toISOString().slice(0, 10);
 const shiftDays = (n, from) => new Date((from ? new Date(from) : new Date()).getTime() + n * DAY).toISOString().slice(0, 10);
 const daysUntil = (iso) => (iso ? Math.round((new Date(iso).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / DAY) : null);
 const fmtDate = (iso) =>
-  iso ? new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+  iso ? new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "-";
 const fmtDateTime = (iso) =>
-  iso ? new Date(iso).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "numeric", minute: "2-digit" }) : "—";
+  iso ? new Date(iso).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "numeric", minute: "2-digit" }) : "-";
 const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
 const num = (n, d = 2) => (Number(n) || 0).toLocaleString("en-IN", { maximumFractionDigits: d });
 const inr = (n) => "₹" + (Number(n) || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 });
@@ -109,7 +109,7 @@ const nextId = (prefix, list, pad = 3) => {
 };
 const currentUser = () => actor().name;
 const PROJECTS = [
-  "Skyline Towers — Phase 1",
+  "Skyline Towers - Phase 1",
   "Metro Line Extension",
   "400kV Transmission Line A",
   "Riverside Business Park",
@@ -159,7 +159,7 @@ function getState() {
   }
   return state;
 }
-// Settings without forcing a load — safe to call while the seed is being built
+// Settings without forcing a load - safe to call while the seed is being built
 const currentSettings = () => settingsOf(state || {});
 // Audit "old → new": for the record an action is about, the sensitive fields are compared before and after the change
 // and every difference is stored with the entry (bank details, tax IDs, values, terms, status…)
@@ -182,7 +182,7 @@ function auditChanges(prev, next, audit) {
   if (!b) return null;
   let sa = {}, sb = {}; try { sa = a ? snap(a) : {}; sb = snap(b); } catch { return null; }
   const norm = (x) => (x == null || x === "" ? "" : String(x));
-  const out = Object.keys(sb).filter((k) => norm(sa[k]) !== norm(sb[k])).map((k) => ({ field: k, from: norm(sa[k]) || "—", to: norm(sb[k]) || "—" }));
+  const out = Object.keys(sb).filter((k) => norm(sa[k]) !== norm(sb[k])).map((k) => ({ field: k, from: norm(sa[k]) || "-", to: norm(sb[k]) || "-" }));
   return out.length ? out : null;
 }
 function setState(mutator, audit) {
@@ -313,7 +313,7 @@ function Modal({ open, title, subtitle, onClose, footer, width = 640, children }
 }
 
 // Detail-panel tabs (Project Center style): plain text, single line, blue when active.
-// Every tab is always shown — when they don't fit the panel the row scrolls sideways (no "More" menu).
+// Every tab is always shown - when they don't fit the panel the row scrolls sideways (no "More" menu).
 function DetailTabs({ tabs, active, onChange }) {
   return (
     <div className="border-b border-line px-6">
@@ -359,7 +359,7 @@ function useContentBox() {
   y.useLayoutEffect(() => { const u = () => setB(get()); u(); window.addEventListener("resize", u); return () => window.removeEventListener("resize", u); }, []);
   return b;
 }
-// Record panel. Header (same on every record): title, then the record ID and its status — nothing else.
+// Record panel. Header (same on every record): title, then the record ID and its status - nothing else.
 // Any other key facts passed as `details` ([label, value] rows) show in a "Details" card at the top of the first tab.
 function Drawer({ open, title, badge, subtitle, recordId, rowId, status, details, onClose, actions, topActions, width = 760, tabs, related, comments, children }) {
   useEscape(open, onClose);
@@ -371,13 +371,14 @@ function Drawer({ open, title, badge, subtitle, recordId, rowId, status, details
     if (!open || key == null) return setNav({ prev: null, next: null });
     const rows = [...document.querySelectorAll("main table tbody tr[data-row-key].cursor-pointer")];
     const i = rows.findIndex((r) => r.getAttribute("data-row-key") === String(key));
-    const n = i < 0 ? { prev: null, next: null } : { prev: rows[i - 1] || null, next: rows[i + 1] || null };
+    // the arrows run in a cycle: after the last record comes the first, before the first comes the last
+    const n = i < 0 || rows.length < 2 ? { prev: null, next: null } : { prev: rows[(i - 1 + rows.length) % rows.length], next: rows[(i + 1) % rows.length] };
     if (n.prev !== nav.prev || n.next !== nav.next) setNav(n);
   });
   const step = (tr) => { if (tr) { tr.click(); tr.scrollIntoView({ block: "nearest" }); } };
   if (!open) return null;
   return (
-    // Side panel (Project Center style): the list stays visible and clickable beside it — pick another row to switch records
+    // Side panel (Project Center style): the list stays visible and clickable beside it - pick another row to switch records
     <div className="pointer-events-none fixed inset-0 z-[55] flex justify-end">
       <div role="dialog" aria-modal="false" aria-label={typeof title === "string" ? title : undefined} data-drawer
         className="nx-drawer pointer-events-auto absolute flex flex-col rounded-xl border border-line bg-white shadow-[-8px_0_28px_rgba(16,24,40,0.14)]"
@@ -442,7 +443,7 @@ function DateInput({ value, onChange, ...rest }) {
 function OptBox({ on }) {
   return <span className={cls("grid h-4 w-4 shrink-0 place-items-center rounded border", on ? "border-brand bg-brand text-white" : "border-gray-300 bg-white")}>{on && <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2.5 6.2 5 8.6 9.5 3.6" /></svg>}</span>;
 }
-// Form dropdown — same popover menu as the list filters (heading, dots, tick), positioned on screen
+// Form dropdown - same popover menu as the list filters (heading, dots, tick), positioned on screen
 function Select({ value, onChange, options, placeholder, disabled, className, label, ...rest }) {
   const fieldLabel = y.useContext(FieldCtx);
   const [open, setOpen] = y.useState(false);
@@ -862,7 +863,7 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
   );
   const list = !dense && !plain;
   // Columns marked opt start hidden; they can be switched on in Customize Columns
-  // List pages show names, not codes: a record's own ID / code column (key id / seq, or labelled ID / Code) is left out — it shows in the record panel
+  // List pages show names, not codes: a record's own ID / code column (key id / seq, or labelled ID / Code) is left out - it shows in the record panel
   const isCode = (c) => list && (c.key === "id" || c.key === "seq" || /^(id|code)$/i.test(String(c.label || "")));
   // Every list shows 5 default data columns: the first column (the record's name) is fixed, the other four are
   // switched on by default; every other column (and the page's extra columns) can be switched on in Customize Columns.
@@ -974,7 +975,7 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
   const resetPanel = () => { Object.values(regs.current).forEach((x) => x.onChange(x.first)); setCf({}); setQ(""); onClearFilters && onClearFilters(); setDraft({ cols: {}, page: {} }); setFiltersOpen(false); };
   y.useEffect(() => { if (!filtersOpen) return; const k = (e) => e.key === "Escape" && setFiltersOpen(false); document.addEventListener("keydown", k); return () => document.removeEventListener("keydown", k); }, [filtersOpen]);
   // Column widths: each column as wide as its content (measured in a hidden copy of the table, kept between 96 and 360px),
-  // then any leftover width is shared out equally — so the gap after the text is the same in every column
+  // then any leftover width is shared out equally - so the gap after the text is the same in every column
   const [colPx, setColPx] = y.useState(null);
   const [boxW, setBoxW] = y.useState(0);
   y.useEffect(() => { if (!list) return; const on = () => setBoxW(tableRef.current?.parentElement?.clientWidth || 0); on(); window.addEventListener("resize", on); return () => window.removeEventListener("resize", on); }, []);
@@ -1007,7 +1008,7 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
     </tr>
   );
   const colName = (c) => c.filterLabel || (typeof c.label === "string" ? c.label : c.key);
-  const groupOf = (c, r) => fval(c, r)[0] || "—";
+  const groupOf = (c, r) => fval(c, r)[0] || "-";
   const orderGroups = (c, list0) => {
     const dom = (typeof c.filterOptions === "function" ? c.filterOptions() : c.filterOptions || []).map((v) => String(typeof v === "object" ? v.value : v));
     const m = new Map(); list0.forEach((r) => { const g = groupOf(c, r); if (!m.has(g)) m.set(g, []); m.get(g).push(r); });
@@ -1176,7 +1177,7 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
 
 // Classes used by host patches in build.mjs (kept here so Tailwind generates them):
 // mt-8 max-w-[680px] gap-4 rounded-xl px-4 py-4 h-9 w-9 rounded-lg mt-3 text-[15px] mt-2
-// Summary card (original tinted style) — the host's card on every page renders this too
+// Summary card (original tinted style) - the host's card on every page renders this too
 const CARD_TONE = {
   blue: "border-blue-200 bg-blue-50/70 text-blue-700", purple: "border-violet-200 bg-violet-50/70 text-violet-700", amber: "border-amber-200 bg-amber-50/70 text-amber-700",
   green: "border-green-200 bg-green-50/70 text-green-700", red: "border-red-200 bg-red-50/70 text-red-600", orange: "border-orange-200 bg-orange-50/70 text-orange-600",
@@ -1290,9 +1291,9 @@ function ScoreRing({ value, size = 44 }) {
   );
 }
 
-// Score in table cells — same bar + value style as the Progress columns
+// Score in table cells - same bar + value style as the Progress columns
 function ScoreBadge({ value }) {
-  if (value == null) return <span className="text-[12px] text-ink-faint">—</span>;
+  if (value == null) return <span className="text-[12px] text-ink-faint">-</span>;
   const v = Math.max(0, Math.min(100, Math.round(value)));
   return (
     <span className="flex items-center gap-2 whitespace-nowrap">
@@ -1310,7 +1311,7 @@ function PreferredStar({ v, size = 14, always }) {
     toast(v.preferred ? `${v.name} removed from preferred suppliers` : `${v.name} marked as preferred supplier`);
   };
   return (
-    <button type="button" onClick={toggle} title={v.preferred ? "Preferred supplier — click to remove" : "Mark as preferred supplier"}
+    <button type="button" onClick={toggle} title={v.preferred ? "Preferred supplier - click to remove" : "Mark as preferred supplier"}
       className={cls("inline-flex rounded p-0.5 transition-opacity hover:bg-amber-50", v.preferred ? "text-amber-400" : always ? "text-gray-300 hover:text-amber-400" : "text-gray-300 opacity-0 hover:text-amber-400 focus:opacity-100 group-hover:opacity-100")}>
       {h(Icon.star, { size, fill: v.preferred ? "currentColor" : "none" })}
     </button>
@@ -1434,7 +1435,7 @@ function RefLink({ to, children }) {
   const clipped = (el) => {
     if (el.tagName === "INPUT") return el.type !== "checkbox" && el.type !== "radio" && el.scrollWidth > el.clientWidth + 1;
     if (!el.clientWidth || el.children.length > 3) return false;
-    // a cell that holds an open menu / dropdown / dialog is not "cut-off text" — never echo the whole menu
+    // a cell that holds an open menu / dropdown / dialog is not "cut-off text" - never echo the whole menu
     if (el.querySelector('[role=menu],[role=listbox],[role=dialog],[aria-multiselectable]')) return false;
     const cs = getComputedStyle(el);
     // scrollable panels (overflow auto/scroll) are not "cut-off text"

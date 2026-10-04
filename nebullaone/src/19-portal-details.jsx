@@ -83,8 +83,8 @@ function PortalPoDrawer({ id, onClose, open }) {
             <KV items={[
               ["PO number", po.id], ["Issued on", fmtDate(po.date)], ["Deliver to", po.project], ["Delivery by", fmtDate(po.deliveryDate)],
               ["Billing", po.billingPolicy || "On received quantity"], ["Receipt tolerance", `${po.tolerance || 0}%`],
-              ["Source", po.rfqId ? `RFQ ${po.rfqId}` : po.blanketId ? `Blanket order ${po.blanketId}` : "Direct"], ["Your quote ref", po.quoteNo || "—"],
-              ["Payment terms", byId(st.vendors, po.vendorId).paymentTerms || "—"],
+              ["Source", po.rfqId ? `RFQ ${po.rfqId}` : po.blanketId ? `Blanket order ${po.blanketId}` : "Direct"], ["Your quote ref", po.quoteNo || "-"],
+              ["Payment terms", byId(st.vendors, po.vendorId).paymentTerms || "-"],
             ]} />
           </Section>
         )}
@@ -141,7 +141,7 @@ function PortalWoDrawer({ id, onClose, open, onAccept, onDecline, onClaim }) {
           <StatTile tone="cyan" label="Billed" value={`${pr.financial.toFixed(1)}%`} sub={inrShort(pr.billed)} icon={Icon.receipt} />
         </div>
         {tab === "scope" && (
-          <Section title={ls ? `Milestones — lump sum ${inr(wo.lumpSum)}` : "Items — quantity, rate, measured and billed"} icon={Icon.listChecks}>
+          <Section title={ls ? `Milestones - lump sum ${inr(wo.lumpSum)}` : "Items - quantity, rate, measured and billed"} icon={Icon.listChecks}>
             <DataTable dense rows={pos} rowKey={(p) => p.line.id} columns={ls ? [
               { key: "n", label: "Milestone", className: "whitespace-normal", render: (p) => p.line.name },
               { key: "w", label: "Weight", align: "right", render: (p) => `${p.line.weight}%` },
@@ -161,7 +161,7 @@ function PortalWoDrawer({ id, onClose, open, onAccept, onDecline, onClaim }) {
           </Section>
         )}
         {tab === "mb" && (
-          <Section title="Measurement book — joint measurement status" icon={Icon.ruler}>
+          <Section title="Measurement book - joint measurement status" icon={Icon.ruler}>
             <DataTable dense rows={mbs} empty={<EmptyRow text="No measurements recorded yet." />} columns={[
               { key: "id", label: "MB", className: "mono text-[12px]" }, { key: "date", label: "Date", render: (m) => fmtDate(m.date) },
               { key: "i", label: ls ? "Milestone" : "Item", className: "max-w-[240px] whitespace-normal", render: (m) => (lineOf(m.lineId) ? lineName(lineOf(m.lineId)) : m.lineId) },
@@ -170,7 +170,7 @@ function PortalWoDrawer({ id, onClose, open, onAccept, onDecline, onClaim }) {
               { key: "j", label: "JMS", render: (m) => <span className="flex flex-col"><Status tone={{ Signed: "green", Pending: "amber", Disputed: "red" }[m.jms.status]}>{m.jms.status}</Status>{m.jms.status === "Disputed" && <span className="text-[11px] text-red-600">{m.jms.remark}</span>}</span> },
               { key: "b", label: "Billed in", render: (m) => (m.billedIn ? <button className="mono text-[12px] font-medium text-brand hover:underline" onClick={() => open("bill", m.billedIn)}>{m.billedIn}</button> : <span className="text-[12px] text-ink-mute">Not billed</span>) },
               { key: "a", label: "Your JMS sign-off", align: "right", render: (m) => m.jms.status !== "Pending" ? (m.jms.contractorAgreed ? <span className="text-[12px] text-green-700">Agreed</span> : null)
-                : m.jms.contractorAgreed ? <span className="text-[12px] text-green-700">Agreed {fmtDate(m.jms.contractorAgreed.at)} — engineer to countersign</span>
+                : m.jms.contractorAgreed ? <span className="text-[12px] text-green-700">Agreed {fmtDate(m.jms.contractorAgreed.at)} - engineer to countersign</span>
                 : <span className="flex justify-end gap-1"><Btn size="sm" variant="success" onClick={() => contractorJms(m, true, "", me)}>Agree</Btn><Btn size="sm" variant="danger" onClick={() => setDis({ m, reason: "" })}>Dispute</Btn></span> },
             ]} />
           </Section>
@@ -180,13 +180,13 @@ function PortalWoDrawer({ id, onClose, open, onAccept, onDecline, onClaim }) {
           <Section title="Daily progress reports" icon={Icon.calendar} actions={canWork && <Btn size="sm" icon={Icon.plus} onClick={() => setDpr({ date: todayISO(), manpower: "", work: "", hindrance: "", weather: "Clear" })}>Submit daily report</Btn>}>
             <DataTable dense rows={dprs} empty={<EmptyRow text="No daily reports yet." />} columns={[
               { key: "date", label: "Date", render: (d) => fmtDate(d.date) }, { key: "manpower", label: "Manpower", align: "right", num: true },
-              { key: "work", label: "Work done", className: "max-w-[380px] whitespace-normal text-[12.5px]" }, { key: "hindrance", label: "Hindrance", className: "text-[12px]", render: (d) => d.hindrance || "—" }, { key: "by", label: "By", className: "text-[12px] text-ink-soft" },
+              { key: "work", label: "Work done", className: "max-w-[380px] whitespace-normal text-[12.5px]" }, { key: "hindrance", label: "Hindrance", className: "text-[12px]", render: (d) => d.hindrance || "-" }, { key: "by", label: "By", className: "text-[12px] text-ink-soft" },
             ]} />
           </Section>
         )}
         {dis && (
           <Modal open onClose={() => setDis(null)} width={460} title={`Dispute ${dis.m.id}`} footer={<><Btn onClick={() => setDis(null)}>Cancel</Btn><Btn variant="danger" disabled={!dis.reason.trim()} onClick={() => { contractorJms(dis.m, false, dis.reason.trim(), me); setDis(null); }}>Send dispute</Btn></>}>
-            <Field label="What is wrong with the measurement?" required><TextArea value={dis.reason} onChange={(x) => setDis({ ...dis, reason: x })} placeholder="e.g. Drop beam sides not included — 790 sqm, not 756" /></Field>
+            <Field label="What is wrong with the measurement?" required><TextArea value={dis.reason} onChange={(x) => setDis({ ...dis, reason: x })} placeholder="e.g. Drop beam sides not included - 790 sqm, not 756" /></Field>
           </Modal>
         )}
         {dpr && <DprModal wo={wo} f={dpr} setF={setDpr} by={me} />}
@@ -196,7 +196,7 @@ function PortalWoDrawer({ id, onClose, open, onAccept, onDecline, onClaim }) {
               { key: "id", label: "Claim", className: "mono text-[12px]" }, { key: "p", label: "Period", render: (x) => `${fmtDate(x.periodFrom)} – ${fmtDate(x.periodTo)}` },
               { key: "v", label: "Claimed", align: "right", num: true, render: (x) => inr(claimValue(st, x)) },
               { key: "s", label: "Status", render: (x) => <Status tone={{ Submitted: "blue", Verified: "green", Returned: "red" }[x.status]}>{x.status}</Status> },
-              { key: "b", label: "RA bill", render: (x) => x.raBillId || "—" },
+              { key: "b", label: "RA bill", render: (x) => x.raBillId || "-" },
             ]} />
           </Section>
         )}
@@ -239,18 +239,18 @@ function PortalClaimDrawer({ id, onClose, open, onRevise }) {
       <div className="space-y-4 px-6 py-5">
         {c.status === "Returned" && <Note tone="red">Returned by {last.by}: {last.remark}</Note>}
         {c.status === "Submitted" && <Note>Waiting for joint verification at site by the engineer.</Note>}
-        {c.status === "Verified" && c.raBillId && <Note tone="green" icon={Icon.check}>Verified — RA bill {c.raBillId} is now {byId(st.raBills, c.raBillId)?.status}.</Note>}
+        {c.status === "Verified" && c.raBillId && <Note tone="green" icon={Icon.check}>Verified - RA bill {c.raBillId} is now {byId(st.raBills, c.raBillId)?.status}.</Note>}
         <div className="grid grid-cols-3 gap-3">
           <StatTile tone="blue" label="Claimed value" value={inr(claimValue(st, c))} sub="excl. GST" icon={Icon.receipt} />
-          <StatTile tone="green" label="Certified value" value={c.raBillId ? inr(byId(st.raBills, c.raBillId)?.gross) : "—"} icon={Icon.check} />
+          <StatTile tone="green" label="Certified value" value={c.raBillId ? inr(byId(st.raBills, c.raBillId)?.gross) : "-"} icon={Icon.check} />
           <StatTile tone="purple" label="Lines claimed" value={c.lines.length} icon={Icon.listChecks} />
         </div>
         <Section title="Claimed work" icon={Icon.ruler}>
           <DataTable dense rows={c.lines} rowKey={(l) => l.lineId} columns={[
             { key: "i", label: ls ? "Milestone" : "Item", className: "whitespace-normal", render: (l) => { const p = pos.find((x) => x.line.id === l.lineId); return p ? lineName(p) : l.lineId; } },
-            { key: "loc", label: "Location", className: "text-[12px]", render: (l) => l.location || "—" },
+            { key: "loc", label: "Location", className: "text-[12px]", render: (l) => l.location || "-" },
             { key: "q", label: "Claimed", align: "right", num: true, render: (l) => (ls ? `${l.pct}%` : `${num(l.qty, 3)} ${pos.find((x) => x.line.id === l.lineId)?.unit || ""}`) },
-            { key: "r", label: "Rate", align: "right", num: true, render: (l) => (ls ? "—" : inr(pos.find((x) => x.line.id === l.lineId)?.line.rate)) },
+            { key: "r", label: "Rate", align: "right", num: true, render: (l) => (ls ? "-" : inr(pos.find((x) => x.line.id === l.lineId)?.line.rate)) },
             { key: "a", label: "Amount", align: "right", num: true, render: (l) => inr(claimValue(st, { ...c, lines: [l] })) },
           ]} />
         </Section>
@@ -260,7 +260,7 @@ function PortalClaimDrawer({ id, onClose, open, onRevise }) {
           </Section>
         )}
         <Section title="History" icon={Icon.fileClock}>
-          <AuditList items={c.history.slice().reverse().map((x) => ({ id: x.status, action: x.remark || "—", by: x.by, at: x.at }))} />
+          <AuditList items={c.history.slice().reverse().map((x) => ({ id: x.status, action: x.remark || "-", by: x.by, at: x.at }))} />
         </Section>
       </div>
     </Drawer>
@@ -288,14 +288,14 @@ function PortalRaBillDrawer({ id, onClose, open }) {
               return { label: f.label, status, meta: hx ? fmtDateTime(hx.at) : f.role };
             })} />
           </div>
-          {bill.status === "Rejected" && <div className="border-t border-line p-4"><Note tone="red">Rejected — {bill.history[bill.history.length - 1].remark}</Note></div>}
+          {bill.status === "Rejected" && <div className="border-t border-line p-4"><Note tone="red">Rejected - {bill.history[bill.history.length - 1].remark}</Note></div>}
         </Section>
-        {bill.claimId && <Note>From your claim <b>{bill.claimId}</b> — claimed {inr(bill.claimedValue)}, certified {inr(bill.gross)}.</Note>}
+        {bill.claimId && <Note>From your claim <b>{bill.claimId}</b> - claimed {inr(bill.claimedValue)}, certified {inr(bill.gross)}.</Note>}
         <Section title="Bill abstract" icon={Icon.sheet}><BillAbstract bill={bill} wo={wo} /></Section>
         <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-4">
           <Section title="Deductions & net payable" icon={Icon.percent}><BillSummary calc={bill} contract={c} vendor={v} /></Section>
           <Section title="History" icon={Icon.fileClock}>
-            <AuditList items={bill.history.slice().reverse().map((x) => ({ id: x.status, action: x.remark || "—", by: x.by, at: x.at }))} />
+            <AuditList items={bill.history.slice().reverse().map((x) => ({ id: x.status, action: x.remark || "-", by: x.by, at: x.at }))} />
           </Section>
         </div>
       </div>
@@ -321,11 +321,11 @@ function PortalInvoiceDrawer({ id, onClose, open }) {
           <StatTile tone="green" label="Received" value={inr(t.paid)} sub="incl. TDS withheld" icon={Icon.check} />
           <StatTile tone={t.balance > 0.5 ? "amber" : "green"} label="Balance due" value={inr(t.balance)} icon={Icon.wallet} />
         </div>
-        {holdActive && t.balance > 0.5 && <Note tone="amber" icon={Icon.lock}>Payment on hold — {inv.hold.reason}{inv.hold.note ? `: ${inv.hold.note}` : ""}{inv.hold.until ? ` (review by ${fmtDate(inv.hold.until)})` : ""}. Raise a query if you need to discuss it.</Note>}
+        {holdActive && t.balance > 0.5 && <Note tone="amber" icon={Icon.lock}>Payment on hold - {inv.hold.reason}{inv.hold.note ? `: ${inv.hold.note}` : ""}{inv.hold.until ? ` (review by ${fmtDate(inv.hold.until)})` : ""}. Raise a query if you need to discuss it.</Note>}
         {inv.lines.length > 0 && inv.source !== "RA Bill" && (
           <Section title="Bill lines" icon={Icon.listChecks}>
             <DataTable dense rows={inv.lines} rowKey={(_, i) => i} columns={[
-              { key: "d", label: "Item", className: "whitespace-normal", render: (l) => l.desc || (po && po.lines[l.line]?.desc) || "—" },
+              { key: "d", label: "Item", className: "whitespace-normal", render: (l) => l.desc || (po && po.lines[l.line]?.desc) || "-" },
               { key: "q", label: "Qty", align: "right", num: true, render: (l) => `${num(l.qty)} ${l.unit || (po && po.lines[l.line]?.unit) || ""}` },
               { key: "r", label: "Rate", align: "right", num: true, render: (l) => inr(l.rate) },
               { key: "a", label: "Amount", align: "right", num: true, render: (l) => inr(l.qty * l.rate) },
@@ -353,7 +353,7 @@ function PortalInvoiceDrawer({ id, onClose, open }) {
             { key: "date", label: "Date", render: (p) => fmtDate(p.date) }, { key: "mode", label: "Mode" },
             { key: "ref", label: "UTR / reference", className: "mono text-[12px]" },
             { key: "amount", label: "Amount paid", align: "right", num: true, render: (p) => inr(p.amount) },
-            { key: "tds", label: "TDS withheld", align: "right", num: true, render: (p) => (p.tds ? inr(p.tds) : "—") },
+            { key: "tds", label: "TDS withheld", align: "right", num: true, render: (p) => (p.tds ? inr(p.tds) : "-") },
           ]} />
         </Section>
       </div>
@@ -375,12 +375,12 @@ function PortalDocDrawer({ vid, name, onClose, onUpload }) {
       <div className="space-y-4 px-6 py-5">
         {state === "Rejected" && <Note tone="red">The buyer rejected this document{d.remark ? `: ${d.remark}` : ""}. Please upload a corrected copy.</Note>}
         {state === "Expired" && <Note tone="red">This document has expired. Upload the renewed copy to avoid a hold on POs and payments.</Note>}
-        {state === "Expiring" && <Note tone="amber">Expires in {daysUntil(d.expiry)} days — upload the renewal in advance.</Note>}
-        {state === "Pending" && <Note>Uploaded — waiting for the buyer to verify.</Note>}
+        {state === "Expiring" && <Note tone="amber">Expires in {daysUntil(d.expiry)} days - upload the renewal in advance.</Note>}
+        {state === "Pending" && <Note>Uploaded - waiting for the buyer to verify.</Note>}
         <Section title="Details" icon={Icon.file}>
           <KV cols={2} items={[
             ["Document", name], ["Status", state], ["File", d.file ? <FileLink name={d.file} dataUrl={d.dataUrl} /> : "Not uploaded"],
-            ["Number", d.number || "—"], ["Valid till", d.expiry ? fmtDate(d.expiry) : "No expiry"], ["Uploaded on", d.uploadedAt ? fmtDate(d.uploadedAt) : "—"],
+            ["Number", d.number || "-"], ["Valid till", d.expiry ? fmtDate(d.expiry) : "No expiry"], ["Uploaded on", d.uploadedAt ? fmtDate(d.uploadedAt) : "-"],
           ]} />
         </Section>
         <Section title="History" icon={Icon.fileClock}><AuditList items={hist.map((a) => ({ id: a.entity, action: a.action, by: a.by, at: a.at }))} /></Section>

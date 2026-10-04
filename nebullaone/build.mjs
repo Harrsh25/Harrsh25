@@ -171,7 +171,7 @@ const RAW_CSS = "[role=dialog] .mono{white-space:nowrap}[role=dialog] p.flex.ite
   // Phone layout (≤768px): sidebar slides in from a menu button, toolbars and drawer headers wrap, grids drop to 1–2 columns, wide tables scroll
   // Detail side panel is ~46% wide: 4-across cards drop to 2 per row
   "[data-drawer] .grid-cols-4{grid-template-columns:repeat(2,minmax(0,1fr))}" +
-  // No visible scrollbars anywhere — areas still scroll with the wheel, trackpad or touch
+  // No visible scrollbars anywhere - areas still scroll with the wheel, trackpad or touch
   "*{scrollbar-width:none}*::-webkit-scrollbar{display:none;width:0;height:0}" +
   ".nx-burger,.nx-scrim{display:none}" +
   "@media (max-width:768px){" +
@@ -200,6 +200,8 @@ const TYPO_CSS =
   ".nx-noscroll{scrollbar-width:none}.nx-noscroll::-webkit-scrollbar{display:none}";
 html = html.slice(0, styleEnd) + C_BEGIN + extraCss + RAW_CSS + TYPO_CSS + C_END + html.slice(styleEnd);
 
+// short dash everywhere: no long em dash in any visible text (host app and module)
+html = html.replace(/\u2014/g, "-").replace(/\\u2014/g, "-");
 writeFileSync(HTML, html);
 console.log(`built: ${files.length} files, js ${(block.length / 1024).toFixed(1)} KB, css +${(extraCss.length / 1024).toFixed(1)} KB`);
 

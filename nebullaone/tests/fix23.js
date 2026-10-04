@@ -1,4 +1,4 @@
-// Batches 2–3 — SoD on RA bills / retention, award recommendation + award-to-contract,
+// Batches 2–3 - SoD on RA bills / retention, award recommendation + award-to-contract,
 // contract approval & signing, BG register, WO gates, suspend, change-order quantities, closure checklist
 require('./lib')('fix23', async ({ p, go, dlg, S, mut, as, T, pick, toastText }) => {
   const btn = (t) => p.locator(`button:has-text("${t}")`);
@@ -8,7 +8,7 @@ require('./lib')('fix23', async ({ p, go, dlg, S, mut, as, T, pick, toastText })
     const r = (await S()).retentionReleases[0];
     return [`status ${r.status}; release button before approval: ${relBtns}`, r.status === 'Pending Approval' && relBtns === 0];
   });
-  await T('G-25b', 'Approve, then release — status Approved → Released with both steps logged', async () => {
+  await T('G-25b', 'Approve, then release - status Approved → Released with both steps logged', async () => {
     await go('contract-labor/retention'); await p.getByText('Retention releases', { exact: true }).click(); await p.waitForTimeout(150);
     await p.locator('tr:has-text("RR-001") button:has-text("Approve")').click(); await p.waitForTimeout(150); const s1 = (await S()).retentionReleases[0].status;
     await p.locator('tr:has-text("RR-001") button:has-text("Release payment")').click(); await p.waitForTimeout(150);
@@ -31,9 +31,9 @@ require('./lib')('fix23', async ({ p, go, dlg, S, mut, as, T, pick, toastText })
   });
   await T('G-03b', 'New contract: draft → Legal → Finance → sign (needs performance BG)', async () => {
     await as('Arjun Mehta'); await go('contract-labor/contracts'); await btn('Create contract').click(); await p.waitForTimeout(200); const d = dlg();
-    await pick(d.locator('label:has-text("Contractor") [role=combobox]'), 'Kaveri Manpower'); await d.locator('label:has-text("Contract title") input').fill('Finishing labour — Station 5');
+    await pick(d.locator('label:has-text("Contractor") [role=combobox]'), 'Kaveri Manpower'); await d.locator('label:has-text("Contract title") input').fill('Finishing labour - Station 5');
     await d.locator('label:has-text("Contract value") input').fill('2500000'); await d.locator('button:has-text("Submit for approval")').click(); await p.waitForTimeout(250);
-    let c = (await S()).contracts.find((x) => x.title === 'Finishing labour — Station 5'); const s0 = c.status;
+    let c = (await S()).contracts.find((x) => x.title === 'Finishing labour - Station 5'); const s0 = c.status;
     await as('Neha Kulkarni'); await go('contract-labor/contracts?open=' + c.id); await p.waitForTimeout(300); await btn('Approve as Legal').click(); await p.waitForTimeout(150);
     await as('Rohit Shah'); await go('contract-labor/contracts?open=' + c.id); await p.waitForTimeout(300); await btn('Approve as Finance').click(); await p.waitForTimeout(150);
     c = (await S()).contracts.find((x) => x.id === c.id); const s1 = c.status;
@@ -52,7 +52,7 @@ require('./lib')('fix23', async ({ p, go, dlg, S, mut, as, T, pick, toastText })
     return [`BG ${g.number} expiry now ${g.expiry}; history ${g.history.length}`, g.history.length === 1];
   });
   await T('G-04', 'Blocked contractor: contract hidden from WO picker; draft WO cannot be issued', async () => {
-    await mut((s) => { const v = s.vendors.find((x) => x.id === 'VEN-010'); v.status = 'Blacklisted'; s.workOrders.unshift({ id: 'WO-099', contractId: 'CTR-004', vendorId: 'VEN-010', project: 'Riverside Business Park', wbs: '1.2 Earthworks — Block C', title: 'Test draft', type: 'Item-Rate', location: 'X', start: '2026-10-01', end: '2026-12-01', status: 'Draft', items: [{ id: '099-1', code: '1', desc: 'x', unit: 'cum', qty: 1, rate: 1 }], acceptance: null }); });
+    await mut((s) => { const v = s.vendors.find((x) => x.id === 'VEN-010'); v.status = 'Blacklisted'; s.workOrders.unshift({ id: 'WO-099', contractId: 'CTR-004', vendorId: 'VEN-010', project: 'Riverside Business Park', wbs: '1.2 Earthworks - Block C', title: 'Test draft', type: 'Item-Rate', location: 'X', start: '2026-10-01', end: '2026-12-01', status: 'Draft', items: [{ id: '099-1', code: '1', desc: 'x', unit: 'cum', qty: 1, rate: 1 }], acceptance: null }); });
     await go('contract-labor/work-orders'); await btn('Create work order').click(); await p.waitForTimeout(200);
     await dlg().locator('label:has-text("Contract") [role=combobox]').first().click(); await p.waitForTimeout(100);
     const opts = (await p.locator('[role=listbox] [role=option]').allTextContents()).join('|'); await p.keyboard.press('Escape'); await p.keyboard.press('Escape');
@@ -70,14 +70,14 @@ require('./lib')('fix23', async ({ p, go, dlg, S, mut, as, T, pick, toastText })
   });
   await T('G-21', 'Suspend and resume a work order', async () => {
     await as('Vikram Rao'); await go('contract-labor/work-orders?open=WO-002'); await p.waitForTimeout(300); await btn('Suspend').click(); await p.waitForTimeout(100);
-    await dlg().locator('textarea:not([aria-label="Write a comment"])').fill('Client stop-work — design revision'); await dlg().locator('button:has-text("Confirm")').click(); await p.waitForTimeout(200);
+    await dlg().locator('textarea:not([aria-label="Write a comment"])').fill('Client stop-work - design revision'); await dlg().locator('button:has-text("Confirm")').click(); await p.waitForTimeout(200);
     const s1 = (await S()).workOrders.find((x) => x.id === 'WO-002').status; const mbBtn = await btn('Record measurement').count();
     await btn('Resume').click(); await p.waitForTimeout(200); const s2 = (await S()).workOrders.find((x) => x.id === 'WO-002').status;
     return [`suspend → ${s1} (measure button ${mbBtn}); resume → ${s2}`, s1 === 'Suspended' && mbBtn === 0 && s2 === 'In Progress'];
   });
   await T('G-07', 'Change order with a quantity line raises the WO quantity on approval', async () => {
     await as('Arjun Mehta'); await go('contract-labor/contracts?open=CTR-004'); await p.waitForTimeout(300); await btn('Raise change order').click(); await p.waitForTimeout(150); const d = dlg();
-    await d.locator('label:has-text("Change description") input').fill('Extra excavation — revised footing levels'); await d.locator('label:has-text("Reason") input').fill('Consultant instruction CI-12');
+    await d.locator('label:has-text("Change description") input').fill('Extra excavation - revised footing levels'); await d.locator('label:has-text("Reason") input').fill('Consultant instruction CI-12');
     await d.locator('button:has-text("Add quantity line")').click(); await p.waitForTimeout(100);
     await pick(d.locator('[role=combobox]').nth(1), 'Excavation in ordinary soil'); await d.locator('input[inputmode], input[type=number]').last().fill('500').catch(async () => {});
     const qty = d.locator('.grid.grid-cols-\\[150px_1fr_1fr_70px_90px_100px_28px\\] input').nth(2); await qty.fill('500');
@@ -92,7 +92,7 @@ require('./lib')('fix23', async ({ p, go, dlg, S, mut, as, T, pick, toastText })
     return [`Close disabled=${dis}; checklist shows ${(t.match(/Closure checklist/) || []).length ? 'yes' : 'no'}`, dis && /Handover certificate issued/.test(t)];
   });
   await T('G-08/G-20', 'Contractor RFQ award → draft contract with BOQ; recommendation required', async () => {
-    await mut((s) => { s.rfqs.unshift({ id: 'RFQ-009', title: 'Block B excavation — labour', project: 'Riverside Business Park', mode: 'Call for Tenders', status: 'Quotes Received', createdOn: '2026-09-20', dueDate: '2026-10-10', template: '', tnc: 't', incoterm: 'DAP (delivered at site)', sourceRef: '', weights: { price: 60, quality: 25, delivery: 15 },
+    await mut((s) => { s.rfqs.unshift({ id: 'RFQ-009', title: 'Block B excavation - labour', project: 'Riverside Business Park', mode: 'Call for Tenders', status: 'Quotes Received', createdOn: '2026-09-20', dueDate: '2026-10-10', template: '', tnc: 't', incoterm: 'DAP (delivered at site)', sourceRef: '', weights: { price: 60, quality: 25, delivery: 15 },
       items: [{ desc: 'Excavation in ordinary soil', unit: 'cum', qty: 5000, requiredBy: '2026-10-20' }, { desc: 'Backfilling', unit: 'cum', qty: 2000, requiredBy: '2026-10-20' }], vendorIds: ['VEN-010', 'VEN-001'],
       quotes: ['VEN-010', 'VEN-001'].map((v, k) => ({ vendorId: v, rates: k ? [200, 150] : [182, 140], deliveryDays: 10, validUntil: '2026-12-01', submittedOn: '2026-09-25', via: 'Portal', review: 'Accepted', quoteNo: 'Q' + k, noBid: [false, false], leadDays: [10, 10], discounts: [0, 0], lineFiles: [null, null], gstPct: 18 })),
       negotiation: [], awards: [], emails: [], responses: { 'VEN-010': { status: 'Accepted' }, 'VEN-001': { status: 'Accepted' } }, awardedTo: null }); });

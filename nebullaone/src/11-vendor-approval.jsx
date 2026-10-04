@@ -4,7 +4,7 @@
 
 const RULE_SETS = [
   {
-    id: "base", name: "Base — all vendors", applies: () => true, requalifyDays: 365,
+    id: "base", name: "Base - all vendors", applies: () => true, requalifyDays: 365,
     questions: [
       { key: "years", q: "Years in business", type: "number", score: (a) => Math.min(10, a), writeBack: ["contractor", "experienceYrs"] },
       { key: "turnover", q: "Average annual turnover, last 3 years (₹ Cr)", type: "number", score: (a) => Math.min(10, a / 3) },
@@ -13,7 +13,7 @@ const RULE_SETS = [
     ],
   },
   {
-    id: "contractor", name: "Contractor — labour & HSE", applies: (v) => v.isContractor || hasType(v, "Labor"), requalifyDays: 365,
+    id: "contractor", name: "Contractor - labour & HSE", applies: (v) => v.isContractor || hasType(v, "Labor"), requalifyDays: 365,
     questions: [
       { key: "workforce", q: "Average deployable workforce", type: "number", score: (a) => Math.min(10, a / 20), writeBack: ["contractor", "workforce"] },
       { key: "clra", q: "Valid CLRA labour licence?", type: "yesno", score: (a) => (a === "Yes" ? 10 : 0) },
@@ -57,10 +57,10 @@ function Questionnaire({ v }) {
     setState((s) => {
       const x = byId(s.vendors, v.id);
       x.qualification = { ...(x.qualification || {}), ruleSet: sets.map((r) => r.name).join(", "), score, answers: { ...ans }, libAnswers: { ...la }, at: todayISO() };
-      if (x.requalRequired) { x.requalHistory = [...(x.requalHistory || []), { ...x.requalRequired, clearedAt: todayISO(), clearedBy: currentUser(), how: `Re-assessed — ${score}/100` }]; x.requalRequired = null; }
+      if (x.requalRequired) { x.requalHistory = [...(x.requalHistory || []), { ...x.requalRequired, clearedAt: todayISO(), clearedBy: currentUser(), how: `Re-assessed - ${score}/100` }]; x.requalRequired = null; }
       for (const q of qs) if (q.writeBack && x[q.writeBack[0]]) x[q.writeBack[0]][q.writeBack[1]] = ans[q.key]; // response updates profile
     }, { entity: "Vendor", id: v.id, action: `Qualification questionnaire scored ${score}/100` });
-    toast(`Qualification saved — ${score}/100`);
+    toast(`Qualification saved - ${score}/100`);
   };
   const qs0 = qualStatus(v);
   const due = v.qualification?.at && daysUntil(shiftDays(Math.min(...sets.map((s) => s.requalifyDays)), v.qualification.at)) < 0;
@@ -95,7 +95,7 @@ function Questionnaire({ v }) {
               {lib.map((q) => (
                 <div key={q.id} className="grid grid-cols-[1fr_220px] items-center gap-4 px-4 py-2.5">
                   <div><p className="text-[13px] text-ink">{q.question}{q.required && <span className="text-red-500"> *</span>} {q.critical && <Status tone="red">Critical</Status>}</p>
-                    <p className="text-[11px] text-ink-mute">{q.id} · owner {q.owner || "—"} · answered by {q.responder}{q.critical && la[q.id] === "No" ? " · failed — blocks final approval" : ""}</p></div>
+                    <p className="text-[11px] text-ink-mute">{q.id} · owner {q.owner || "-"} · answered by {q.responder}{q.critical && la[q.id] === "No" ? " · failed - blocks final approval" : ""}</p></div>
                   {q.responseType === "Number" ? <NumInput value={la[q.id] ?? ""} onChange={(x) => setLa({ ...la, [q.id]: x })} />
                     : q.responseType === "Text" ? <TextInput value={la[q.id] || ""} onChange={(x) => setLa({ ...la, [q.id]: x })} />
                     : <Select value={la[q.id] || ""} placeholder="Select…" onChange={(x) => setLa({ ...la, [q.id]: x })} options={q.responseType === "Choice" ? String(q.options || "").split(",").map((o) => o.trim()).filter(Boolean) : ["Yes", "No"]} />}
@@ -110,7 +110,7 @@ function Questionnaire({ v }) {
   );
 }
 
-// Background check result — litigation and watchlist must be Clear before mobilisation
+// Background check result - litigation and watchlist must be Clear before mobilisation
 function BackgroundModal({ v, onClose }) {
   const [f, setF] = y.useState(() => ({ credit: v.background?.credit || "A", litigation: "Clear", watchlist: "Clear", checkedAt: todayISO(), note: "" }));
   const adverse = f.litigation !== "Clear" || f.watchlist !== "Clear";
@@ -118,8 +118,8 @@ function BackgroundModal({ v, onClose }) {
   const save = () => {
     if (err) return toast(err, "red");
     setState((s) => { byId(s.vendors, v.id).background = { credit: f.credit, litigation: f.litigation, watchlist: f.watchlist, checkedAt: f.checkedAt, note: f.note.trim(), by: currentUser() }; },
-      { entity: "Vendor", id: v.id, action: `Background check recorded — ${adverse ? `not clear (${f.note.trim()})` : "clear"}` });
-    toast(adverse ? "Background check recorded — not clear, mobilisation blocked" : "Background check recorded — clear", adverse ? "amber" : "green"); onClose();
+      { entity: "Vendor", id: v.id, action: `Background check recorded - ${adverse ? `not clear (${f.note.trim()})` : "clear"}` });
+    toast(adverse ? "Background check recorded - not clear, mobilisation blocked" : "Background check recorded - clear", adverse ? "amber" : "green"); onClose();
   };
   return (
     <Modal open onClose={onClose} width={560} title="Record background check" footer={<><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!!err} onClick={save}>Save</Btn></>}>
@@ -152,7 +152,7 @@ function QualLimitForm({ v }) {
   const save = () => {
     if (err) return toast(err, "red");
     setState((s) => { const x = byId(s.vendors, v.id).qualification; Object.assign(x, { valueLimit: Number(lim), singleLimit: f.single === "" ? null : Number(f.single), exceptions: exc.trim(), expiryDate: f.expiry, notes: f.notes.trim(), riskRating: f.risk, reviewComments: f.comments }); },
-      { entity: "Vendor", id: v.id, action: `Qualification outcome set — ${exc.trim() ? "qualified with exceptions" : "qualified"}, aggregate ${inrShort(Number(lim))}${f.single !== "" ? `, single ${inrShort(Number(f.single))}` : ""}, expires ${fmtDate(f.expiry)}, risk ${f.risk}` });
+      { entity: "Vendor", id: v.id, action: `Qualification outcome set - ${exc.trim() ? "qualified with exceptions" : "qualified"}, aggregate ${inrShort(Number(lim))}${f.single !== "" ? `, single ${inrShort(Number(f.single))}` : ""}, expires ${fmtDate(f.expiry)}, risk ${f.risk}` });
     toast("Qualification outcome saved");
   };
   const cats = ruleSetsFor(v).map((r) => r.name);
@@ -165,7 +165,7 @@ function QualLimitForm({ v }) {
         <Field label="Risk rating"><Select value={f.risk} onChange={(x) => setF({ ...f, risk: x })} options={["Low", "Medium", "High", "Critical"]} /></Field>
         <Field label="Exceptions (leave blank if none)" span={2} hint="Anything that makes this 'Qualified with exceptions'"><TextArea rows={2} value={exc} onChange={(x) => setF({ ...f, exc: x })} placeholder="e.g. ISO 45001 certificate pending" /></Field>
         <Field label="Qualification notes" span={2}><TextArea rows={2} value={f.notes} onChange={(x) => setF({ ...f, notes: x })} placeholder="Basis of the decision, conditions" /></Field>
-        {cats.map((c) => <Field key={c} label={`Review comments — ${c}`} span={2}><TextInput value={f.comments[c] || ""} onChange={(x) => setF({ ...f, comments: { ...f.comments, [c]: x } })} /></Field>)}
+        {cats.map((c) => <Field key={c} label={`Review comments - ${c}`} span={2}><TextInput value={f.comments[c] || ""} onChange={(x) => setF({ ...f, comments: { ...f.comments, [c]: x } })} /></Field>)}
         <div className="col-span-4 flex justify-end"><Btn variant="primary" disabled={!dirty || !!err} onClick={save}>Save outcome</Btn></div>
       </div>
       {err && <div className="px-4 pb-3"><FieldErr m={err} /></div>}
@@ -185,7 +185,7 @@ function approvalAction(v, decision, remark, opts = {}) {
   if (decision === "Rejected" && !(remark || "").trim()) { toast("A reason is required to reject", "red"); return false; }
   if (decision === "Approved" && last) {
     const b = approvalBlockers(v);
-    if (b.length && !opts.override) { toast(`Can't approve yet — ${b.join("; ")}`, "red"); return false; }
+    if (b.length && !opts.override) { toast(`Can't approve yet - ${b.join("; ")}`, "red"); return false; }
     if (b.length && !(remark || "").trim()) { toast("An override needs a reason", "red"); return false; }
   }
   const ov = decision === "Approved" && last && opts.override ? approvalBlockers(v) : null;
@@ -196,12 +196,12 @@ function approvalAction(v, decision, remark, opts = {}) {
     if (decision === "Rejected") x.status = "Rejected";
     else if (i + 1 < x.approval.stages.length) Object.assign(x.approval.stages[i + 1], { status: "Pending", since: st0.at });
     else { x.status = "Active"; x.approvedOn = todayISO(); }
-  }, { entity: "Vendor", id: v.id, action: `${decision} at ${stg.dept}${ov && ov.length ? ` with override (${ov.join("; ")})` : ""}${remark ? ` — ${remark}` : ""}` });
+  }, { entity: "Vendor", id: v.id, action: `${decision} at ${stg.dept}${ov && ov.length ? ` with override (${ov.join("; ")})` : ""}${remark ? ` - ${remark}` : ""}` });
   return true;
 }
 function resubmit(v) {
   const b = submitBlockers(v);
-  if (b.length) { toast(`Upload the required documents first — ${b.join("; ")}`, "red"); return false; }
+  if (b.length) { toast(`Upload the required documents first - ${b.join("; ")}`, "red"); return false; }
   setState((s) => {
     const x = byId(s.vendors, v.id);
     // a first submission picks up the current approval stages from Procurement Settings
@@ -226,20 +226,20 @@ function VendorApproval({ v, mode = "approval" }) {
   return (
     <>
       <Section title="Approval routing" icon={Icon.clipboardCheck}>
-        {/* possible duplicate supplier — shown to the approver before deciding */}
+        {/* possible duplicate supplier - shown to the approver before deciding */}
         {!lifeStatus(v) && <DuplicateReview v={v} canDecide={decide && v.status === "Pending Approval"} />}
         {v.noteToApprover && <div className="border-b border-line px-4 py-2"><Note icon={Icon.info}><b>Note to approver:</b> {v.noteToApprover}</Note></div>}
         <div className="p-5">
           <Stepper steps={stages.map((s) => ({
             label: s.dept,
             status: s.status === "Approved" ? "done" : s.status === "Rejected" ? "rejected" : s.status === "Pending" || s.status === "Changes Requested" ? "current" : "todo",
-            meta: s.by ? `${s.by} · ${fmtDateTime(s.at)}${s.remark && s.remark !== "OK" ? ` — ${s.remark}` : ""}` : s.status === "Pending" ? "Awaiting decision" : "",
+            meta: s.by ? `${s.by} · ${fmtDateTime(s.at)}${s.remark && s.remark !== "OK" ? ` - ${s.remark}` : ""}` : s.status === "Pending" ? "Awaiting decision" : "",
           }))} />
         </div>
         <ApprovalDeadline rec={v} kind="vendor" />
         {pending && !decide && v.status === "Pending Approval" && (
           <div className="flex items-center justify-between gap-3 border-t border-line p-4">
-            <span className="text-[13px] text-ink-soft">Waiting for <b>{pending.dept}</b>. Approvers record their decision in Vendor Approvals or Approval Management — this view is read-only.</span>
+            <span className="text-[13px] text-ink-soft">Waiting for <b>{pending.dept}</b>. Approvers record their decision in Vendor Approvals or Approval Management - this view is read-only.</span>
             <span className="shrink-0 whitespace-nowrap text-[13px]"><RefLink to={`${VM_BASE}/approvals?open=${v.id}`}>Open in Vendor Approvals →</RefLink></span>
           </div>
         )}
@@ -253,20 +253,20 @@ function VendorApproval({ v, mode = "approval" }) {
             <div className="flex justify-end gap-2">
               <Btn onClick={() => setRc(true)}>Request changes</Btn>
               <Btn variant="danger" disabled={!remark.trim()} title={remark.trim() ? "" : "Write a remark first"} onClick={() => { if (approvalAction(v, "Rejected", remark.trim())) { setRemark(""); toast("Registration rejected", "red"); } }}>Reject</Btn>
-              {canOverride && <Btn disabled={!remark.trim()} title={remark.trim() ? "" : "Write a remark first"} onClick={() => { if (approvalAction(v, "Approved", remark.trim(), { override: true })) { setRemark(""); toast("Approved with override — logged"); } }}>Approve with override</Btn>}
+              {canOverride && <Btn disabled={!remark.trim()} title={remark.trim() ? "" : "Write a remark first"} onClick={() => { if (approvalAction(v, "Approved", remark.trim(), { override: true })) { setRemark(""); toast("Approved with override - logged"); } }}>Approve with override</Btn>}
               <Btn variant="success" icon={Icon.check} disabled={last && blockers.length > 0} title={last && blockers.length ? `Close first: ${blockers.join(" · ")}` : ""} onClick={() => { if (approvalAction(v, "Approved", remark.trim())) { setRemark(""); toast(`${pending.dept} approved`); } }}>Approve as {pending.dept}</Btn>
             </div>
           </div>
           );
         })()}
         {v.status === "Changes Requested" && v.changeRequest && (
-          <div className="border-t border-line p-4"><Note tone="amber"><b>Waiting for the vendor</b> — {v.changeRequest.by} ({v.changeRequest.dept}) asked on {fmtDate(v.changeRequest.at)} for: {v.changeRequest.items.map((i) => `${i.label}${i.note ? ` (${i.note})` : ""}`).join("; ")}. The vendor fixes these in the supplier portal and resubmits; approval resumes at {v.changeRequest.dept}.</Note></div>
+          <div className="border-t border-line p-4"><Note tone="amber"><b>Waiting for the vendor</b> - {v.changeRequest.by} ({v.changeRequest.dept}) asked on {fmtDate(v.changeRequest.at)} for: {v.changeRequest.items.map((i) => `${i.label}${i.note ? ` (${i.note})` : ""}`).join("; ")}. The vendor fixes these in the supplier portal and resubmits; approval resumes at {v.changeRequest.dept}.</Note></div>
         )}
         {rc && <RequestChangesModal v={v} onClose={() => setRc(false)} />}
         {edit && <EditRegistrationModal v={v} onClose={() => setEdit(false)} />}
         {!decide && EDITABLE_STATUSES.includes(v.status) && (
           <div className="flex items-center justify-between gap-3 border-t border-line p-4">
-            <span className="text-[13px] text-ink-soft">{v.status === "Draft" ? "Draft registration — use Edit details and upload documents, then submit. Details lock once submitted." : "Sent back by the approver — you can edit the details again (Edit details), then resubmit. Earlier approvals are kept."}</span>
+            <span className="text-[13px] text-ink-soft">{v.status === "Draft" ? "Draft registration - use Edit details and upload documents, then submit. Details lock once submitted." : "Sent back by the approver - you can edit the details again (Edit details), then resubmit. Earlier approvals are kept."}</span>
             <Btn variant="primary" icon={Icon.send} onClick={() => { if (resubmit(v)) toast("Submitted for approval"); }}>{v.status === "Draft" ? "Submit for approval" : "Resubmit"}</Btn>
           </div>
         )}
@@ -290,7 +290,7 @@ function VendorApprovalsPage() {
         <DataTable noun="vendors" rows={queue} defaultCols={["name", "type", "stage", "sla", "status"]} onRow={(v) => setOpen(v.id)} empty={<EmptyState icon={Icon.check} title="Approval queue is clear" text="New registrations will show up here." />} columns={[
           { key: "name", label: "Vendor", className: "font-medium" },
           { key: "type", label: "Supplies", filterOptions: VENDOR_TYPES, filter: (v) => vTypes(v), render: (v) => <span className="text-ink-soft">{typeLabel(v)}</span> },
-          { key: "stage", label: "Routing", filterOptions: FO.stage, filter: (v) => (v.approval?.stages || []).find((s) => s.status === "Pending")?.dept || "—", filterLabel: "Stage", render: (v) => (
+          { key: "stage", label: "Routing", filterOptions: FO.stage, filter: (v) => (v.approval?.stages || []).find((s) => s.status === "Pending")?.dept || "-", filterLabel: "Stage", render: (v) => (
             <span className="flex items-center gap-1">
               {v.approval.stages.map((s) => (
                 <span key={s.dept} title={`${s.dept}: ${s.status}`} className={cls("rounded px-1.5 py-[1px] text-[11px] font-medium",
@@ -298,7 +298,7 @@ function VendorApprovalsPage() {
               ))}
             </span>) },
           { key: "since", label: "Registered", render: (v) => fmtDate(v.createdAt) },
-          { key: "sla", label: "Decision due", filterOptions: ["Overdue", "Due today", "On time"], filter: (v) => approvalClock(v, "vendor", st)?.state || "", sort: (v) => approvalClock(v, "vendor", st)?.due || "9999", render: (v) => { const c = approvalClock(v, "vendor", st); return c ? <span className="flex flex-col"><Status tone={slaTone(c)}>{slaText(c)}</Status><span className="text-[11px] text-ink-mute">{fmtDate(c.due)}{c.escalated ? " · escalated" : ""}</span></span> : "—"; } },
+          { key: "sla", label: "Decision due", filterOptions: ["Overdue", "Due today", "On time"], filter: (v) => approvalClock(v, "vendor", st)?.state || "", sort: (v) => approvalClock(v, "vendor", st)?.due || "9999", render: (v) => { const c = approvalClock(v, "vendor", st); return c ? <span className="flex flex-col"><Status tone={slaTone(c)}>{slaText(c)}</Status><span className="text-[11px] text-ink-mute">{fmtDate(c.due)}{c.escalated ? " · escalated" : ""}</span></span> : "-"; } },
           { key: "status", label: "Status", filterOptions: FO.vendorStatus, filter: (v) => v.status, render: (v) => <Status>{v.status}</Status> },
         ]} />
       )}
@@ -320,9 +320,9 @@ function VendorApprovalsPage() {
           { key: "sets", label: "Rule sets", filterOptions: FO.ruleSets, filter: (v) => v.qualification.ruleSet, render: (v) => <span className="text-[12px] text-ink-soft">{v.qualification.ruleSet}</span> },
           { key: "score", label: "Score", render: (v) => <ScoreBadge value={v.qualification.score} /> },
           { key: "res", label: "Result", filterOptions: FO.qualResult, filter: (v) => qualStatus(v).status, render: (v) => { const q = qualStatus(v); return <Status tone={q.tone}>{q.status}</Status>; } },
-          { key: "risk", label: "Risk", filterOptions: ["Low", "Medium", "High", "Critical"], filter: (v) => v.qualification.riskRating || "", render: (v) => v.qualification.riskRating ? <Status tone={{ Low: "green", Medium: "amber", High: "red", Critical: "red" }[v.qualification.riskRating]}>{v.qualification.riskRating}</Status> : "—" },
-          { key: "exp", label: "Expires", render: (v) => (qualStatus(v).expiry ? <ExpiryCell iso={qualStatus(v).expiry} /> : "—") },
-          { key: "lim", label: "Aggregate / single limit", align: "right", sort: (v) => qualStatus(v).limit, render: (v) => <span className="num">{qualStatus(v).limit ? inrShort(qualStatus(v).limit) : "—"}{qualStatus(v).single ? ` / ${inrShort(qualStatus(v).single)}` : ""}</span> },
+          { key: "risk", label: "Risk", filterOptions: ["Low", "Medium", "High", "Critical"], filter: (v) => v.qualification.riskRating || "", render: (v) => v.qualification.riskRating ? <Status tone={{ Low: "green", Medium: "amber", High: "red", Critical: "red" }[v.qualification.riskRating]}>{v.qualification.riskRating}</Status> : "-" },
+          { key: "exp", label: "Expires", render: (v) => (qualStatus(v).expiry ? <ExpiryCell iso={qualStatus(v).expiry} /> : "-") },
+          { key: "lim", label: "Aggregate / single limit", align: "right", sort: (v) => qualStatus(v).limit, render: (v) => <span className="num">{qualStatus(v).limit ? inrShort(qualStatus(v).limit) : "-"}{qualStatus(v).single ? ` / ${inrShort(qualStatus(v).single)}` : ""}</span> },
           { key: "at", label: "Assessed", render: (v) => fmtDate(v.qualification.at || v.createdAt) },
         ]} />
       )}

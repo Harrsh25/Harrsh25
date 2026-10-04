@@ -1,4 +1,4 @@
-// Public (no-login) vendor pages — self-registration and online quotation —
+// Public (no-login) vendor pages - self-registration and online quotation -
 // plus the Approval Management page, which keeps the original module queues
 // and adds vendor / contract approvals.
 
@@ -81,7 +81,7 @@ function SelfRegisterPage() {
   const mustUpload = ["PAN Card", "GST Certificate", "Cancelled Cheque / Bank Letter"];
   const submit = () => {
     const e = validateVendor(f);
-    if (getState().vendors.some((v) => v.id !== f.existingId && v.gstin === f.gstin.toUpperCase())) e.gstin = "This GSTIN is already registered with us — contact procurement.";
+    if (getState().vendors.some((v) => v.id !== f.existingId && v.gstin === f.gstin.toUpperCase())) e.gstin = "This GSTIN is already registered with us - contact procurement.";
     const missing = mustUpload.filter((n) => !(f.uploads[n] && f.uploads[n].file));
     if (missing.length) e.docs = `Please upload: ${missing.join(", ")}`;
     if (!f.bank.account || !f.bank.ifsc) e.bank = "Bank details are required";
@@ -94,7 +94,7 @@ function SelfRegisterPage() {
   if (done) {
     const v = byId(getState().vendors, done);
     return (
-      <PublicShell title="Registration submitted" subtitle="Thank you — your application is now with our procurement team.">
+      <PublicShell title="Registration submitted" subtitle="Thank you - your application is now with our procurement team.">
         <div className="space-y-5 p-6">
           <div className="flex items-center gap-4 rounded-xl border border-green-200 bg-green-50 p-4">
             <span className="grid h-11 w-11 place-items-center rounded-full bg-green-600 text-white"><Icon.check size={22} /></span>
@@ -114,7 +114,7 @@ function SelfRegisterPage() {
     );
   }
   return (
-    <PublicShell title="Supplier & contractor registration" subtitle="Register your company to receive RFQs, purchase orders and work orders. It takes about 10 minutes — keep your GST, PAN and bank documents handy.">
+    <PublicShell title="Supplier & contractor registration" subtitle="Register your company to receive RFQs, purchase orders and work orders. It takes about 10 minutes - keep your GST, PAN and bank documents handy.">
       <div className="p-6">
         {invite && invite.status === "Invited" && <div className="mb-4"><Note tone="green" icon={Icon.mail}>You were invited by {invite.by} on {fmtDate(invite.sentOn)}. {invite.message}</Note></div>}
         {invite && invite.status === "Registered" && <div className="mb-4"><Note>This invitation has already been used ({invite.vendorId}). <a className="font-medium text-brand" href={appUrl("/supplier/login")}>Sign in to the supplier portal</a> to check your status.</Note></div>}
@@ -164,7 +164,7 @@ function approvalRows(st, module) {
         by: v.source === "Self-registration" ? v.contact.name : "Procurement", date: fmtDate(v.createdAt),
         level: `L${i + 1} / ${v.approval.stages.length} · ${stage?.dept || ""}`, status: v.status === "Rejected" ? "Rejected" : v.status === "Changes Requested" ? "Changes Requested" : "Pending", vendor: v,
         extra: `${v.docs.filter((d) => d.status !== "Missing").length}/${requiredDocs(v).length} docs`, sla: approvalClock(v, "vendor", st),
-        approve: (r) => { if (approvalAction(v, "Approved", r)) toast(`${v.name} — ${stage.dept} approved`); },
+        approve: (r) => { if (approvalAction(v, "Approved", r)) toast(`${v.name} - ${stage.dept} approved`); },
         reject: (r) => { if (approvalAction(v, "Rejected", r)) toast("Sent back to vendor", "red"); },
         open: { kind: "vendor", id: v.id },
       };
@@ -186,13 +186,13 @@ function approvalRows(st, module) {
     })));
   if (module === "Labour Rates")
     return st.laborRates.filter((r) => r.status === "Pending Approval").map((r) => ({
-      ref: r.id, title: `${r.trade} — ${r.region}`, sub: `${inr(r.rate)}/day from ${fmtDate(r.effectiveFrom)}${r.reason ? ` · ${r.reason}` : ""}`, by: "HR / Commercial", date: fmtDate(r.effectiveFrom),
+      ref: r.id, title: `${r.trade} - ${r.region}`, sub: `${inr(r.rate)}/day from ${fmtDate(r.effectiveFrom)}${r.reason ? ` · ${r.reason}` : ""}`, by: "HR / Commercial", date: fmtDate(r.effectiveFrom),
       level: "L1 / 1 · Commercial head", status: "Pending", extra: r.rate < r.minWage ? "below min. wage" : `+${margin(r).toFixed(0)}% over min.`,
       approve: () => approveRate(r, true), reject: () => approveRate(r, false),
     }));
   if (module === "Purchase Orders")
     return st.purchaseOrders.filter((p) => p.status === "Draft").map((p) => ({
-      ref: p.id, title: `${vendorName(st, p.vendorId)} — ${p.lines.length} line(s)`, sub: `${p.project}${p.rfqId ? ` · from ${p.rfqId}` : ""}`, by: "Procurement", date: fmtDate(p.date),
+      ref: p.id, title: `${vendorName(st, p.vendorId)} - ${p.lines.length} line(s)`, sub: `${p.project}${p.rfqId ? ` · from ${p.rfqId}` : ""}`, by: "Procurement", date: fmtDate(p.date),
       level: (() => { const a = poApprovalState(p, st); return `L${a.i + 1} / ${a.levels.length} · ${a.next?.level || "Procurement Head"}`; })(), status: "Pending", extra: inrShort(poValue(p)),
       approve: (r) => decidePo(p, true, r), reject: (r) => decidePo(p, false, r), note: p.awardNote,
     }));
@@ -204,7 +204,7 @@ function approvalRows(st, module) {
     }));
   if (module === "Vendor Invoices")
     return st.invoices.filter((i) => i.review === "Pending").map((i) => ({
-      ref: i.id, title: `${vendorName(st, i.vendorId)} — ${i.number}`, sub: `Submitted in the portal${i.poId ? ` against ${i.poId}` : ""}`, by: i.submittedBy || "Vendor", date: fmtDate(i.date),
+      ref: i.id, title: `${vendorName(st, i.vendorId)} - ${i.number}`, sub: `Submitted in the portal${i.poId ? ` against ${i.poId}` : ""}`, by: i.submittedBy || "Vendor", date: fmtDate(i.date),
       level: "L1 / 1 · Accounts", status: "Pending", extra: inrShort(invoiceTotals(i).payable),
       approve: (r) => reviewVendorInvoice(i, true, r), reject: (r) => reviewVendorInvoice(i, false, r), open: { kind: "invoice", id: i.id },
     }));
@@ -264,7 +264,7 @@ function ApprovalManagementPage() {
             { key: "by", label: "Submitted By", filterAll: "Anyone", filter: true },
             { key: "date", label: "Date" },
             { key: "level", label: "Level", filter: true },
-            ...(rows.some((r) => r.sla) ? [{ key: "sla", label: "Decision due", filterOptions: ["Overdue", "Due today", "On time"], filter: (r) => r.sla?.state || "", sort: (r) => r.sla?.due || "9999", render: (r) => (r.sla ? <span className="flex flex-col"><Status tone={slaTone(r.sla)}>{slaText(r.sla)}</Status><span className="text-[11px] text-ink-mute">{fmtDate(r.sla.due)}{r.sla.escalated ? ` · escalated to ${r.sla.escalated.to}` : ""}</span></span> : "—") }] : []),
+            ...(rows.some((r) => r.sla) ? [{ key: "sla", label: "Decision due", filterOptions: ["Overdue", "Due today", "On time"], filter: (r) => r.sla?.state || "", sort: (r) => r.sla?.due || "9999", render: (r) => (r.sla ? <span className="flex flex-col"><Status tone={slaTone(r.sla)}>{slaText(r.sla)}</Status><span className="text-[11px] text-ink-mute">{fmtDate(r.sla.due)}{r.sla.escalated ? ` · escalated to ${r.sla.escalated.to}` : ""}</span></span> : "-") }] : []),
             { key: "status", label: "Status", filterOptions: FO.approvalStatus, filter: true, render: (r) => <Status>{r.status}</Status> },
             { key: "action", label: "Action", render: (r) => (r.status === "Pending" ? (
               <span className="flex gap-2" onClick={(e) => e.stopPropagation()}>
@@ -273,14 +273,14 @@ function ApprovalManagementPage() {
                 {r.vendor && <button className="rounded border border-amber-300 px-2 py-0.5 text-[12px] text-amber-800 hover:bg-amber-50" onClick={() => setRc(r.vendor)}>Request changes</button>}
                 {r.open && <button className="rounded border border-line px-2 py-0.5 text-[12px] text-ink-soft hover:bg-gray-50" onClick={() => setOpen(r.open)}>Review</button>}
               </span>
-            ) : r.open ? <button className="text-[12px] font-medium text-brand" onClick={(e) => { e.stopPropagation(); setOpen(r.open); }}>Open</button> : "—") },
+            ) : r.open ? <button className="text-[12px] font-medium text-brand" onClick={(e) => { e.stopPropagation(); setOpen(r.open); }}>Open</button> : "-") },
           ]} />
         )}
       {h(qp)}
       {reject && (
         <Modal open onClose={() => setReject(null)} width={480} title={`Reject ${reject.ref}`} subtitle="The reason is sent back to the submitter"
           footer={<><Btn onClick={() => setReject(null)}>Cancel</Btn><Btn variant="danger" disabled={!reject.reason} onClick={() => { reject.reject(reject.reason); setReject(null); }}>Reject</Btn></>}>
-          <Field label="Reason" required><TextArea value={reject.reason || ""} onChange={(x) => setReject({ ...reject, reason: x })} placeholder="e.g. GST certificate is not legible — please re-upload" /></Field>
+          <Field label="Reason" required><TextArea value={reject.reason || ""} onChange={(x) => setReject({ ...reject, reason: x })} placeholder="e.g. GST certificate is not legible - please re-upload" /></Field>
         </Modal>
       )}
       {rc && <RequestChangesModal v={rc} onClose={() => setRc(null)} />}

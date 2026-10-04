@@ -25,7 +25,7 @@ function vendorRisk(st, v) {
   add("Execution", Math.min(15, slow.length * 5), `${slow.length} work order(s) behind plan`);
   const disp = st.measurements.filter((m) => m.jms?.status === "Disputed" && byId(st.workOrders, m.woId)?.vendorId === v.id).length + st.raBills.filter((b) => b.vendorId === v.id && b.status === "Rejected").length;
   add("Execution", Math.min(10, disp * 5), `${disp} disputed measurement(s) / rejected bill(s)`);
-  // money — dependency on one supplier, bank details
+  // money - dependency on one supplier, bank details
   const spend = (id) => sum(st.purchaseOrders.filter((p) => p.vendorId === id && poStatus(p) !== "Cancelled"), poValue) + sum(st.contracts.filter((k) => k.vendorId === id && !["Draft", "Rejected"].includes(k.status)), contractValue);
   const total = sum(st.vendors, (x) => spend(x.id)), share = total ? spend(v.id) / total : 0;
   if (share > 0.3) add("Dependency", 10, `${Math.round(share * 100)}% of all ordered and contracted spend`);
@@ -34,21 +34,21 @@ function vendorRisk(st, v) {
   else if ((v.bankAccounts || []).some(bankChangePending)) add("Bank", 5, "Bank account change in progress");
   // status
   if (v.status === "Blacklisted") add("Status", 40, "Blacklisted");
-  else if (v.hold || v.status === "On Hold") add("Status", 15, `On hold${v.hold?.reason ? ` — ${v.hold.reason}` : ""}`);
-  if (v.frozen) add("Status", 10, `Transactions frozen${v.freeze?.reason ? ` — ${v.freeze.reason}` : ""}`);
+  else if (v.hold || v.status === "On Hold") add("Status", 15, `On hold${v.hold?.reason ? ` - ${v.hold.reason}` : ""}`);
+  if (v.frozen) add("Status", 10, `Transactions frozen${v.freeze?.reason ? ` - ${v.freeze.reason}` : ""}`);
   const dup = duplicateHints(v); if (dup.length) add("Integrity", 10, `Possible duplicate: ${dup[0]}`);
-  // HSE — safety incidents and safety ratings
+  // HSE - safety incidents and safety ratings
   const rts = st.ratings.filter((x) => x.vendorId === v.id), inc = sum(rts, (x) => Number(x.incidents) || 0);
   add("HSE", Math.min(15, inc * 5), `${inc} safety incident(s) reported`);
   if (rts.length && sum(rts, (x) => x.safety) / rts.length < 3) add("HSE", 10, `Average safety rating ${(sum(rts, (x) => x.safety) / rts.length).toFixed(1)} / 5`);
-  // financial and legal — from the qualification answers and contract history
+  // financial and legal - from the qualification answers and contract history
   const ans = v.qualification?.answers || {};
-  if (ans.turnover != null && Number(ans.turnover) < 10) add("Financial", 10, `Annual turnover ₹${ans.turnover} Cr — thin for large work`);
+  if (ans.turnover != null && Number(ans.turnover) < 10) add("Financial", 10, `Annual turnover ₹${ans.turnover} Cr - thin for large work`);
   if (/yes/i.test(String(ans.litigation || ""))) add("Legal", 10, "Pending litigation declared");
   const term = st.contracts.filter((k) => k.vendorId === v.id && k.status === "Terminated").length;
   add("Legal", Math.min(20, term * 15), `${term} contract(s) terminated`);
   // geographic
-  if (isForeign(v)) add("Geographic", 5, `Foreign supplier (${v.country || "outside India"}) — currency and import risk`);
+  if (isForeign(v)) add("Geographic", 5, `Foreign supplier (${v.country || "outside India"}) - currency and import risk`);
   const score = Math.min(100, sum(D, (d) => d.pts));
   const actions = v.riskActions || [];
   const open = actions.filter((a) => a.status !== "Done");
@@ -69,11 +69,11 @@ function VendorRiskTab({ v, canAct }) {
   const save = () => {
     setTried(true); if (Object.values(er).some(Boolean)) return;
     setState((s) => { const x = byId(s.vendors, v.id); x.riskActions = [...(x.riskActions || []), { id: Date.now(), title: f.title.trim(), area: f.area, owner: f.owner, due: f.due, status: "Open", by: currentUser(), at: new Date().toISOString(), level: r.level.name, score: r.score }]; snap(x, `Action added: ${f.title.trim()}`); },
-      { entity: "Vendor", id: v.id, action: `Risk action added — ${f.title.trim()} (owner ${f.owner}, due ${fmtDate(f.due)}); risk ${r.level.name} ${r.score}` });
+      { entity: "Vendor", id: v.id, action: `Risk action added - ${f.title.trim()} (owner ${f.owner}, due ${fmtDate(f.due)}); risk ${r.level.name} ${r.score}` });
     toast("Risk action added"); setF(null); setTried(false);
   };
   const close = (a) => {
-    setState((s) => { const x = byId(s.vendors, v.id); Object.assign(x.riskActions.find((o) => o.id === a.id), { status: "Done", closedBy: currentUser(), closedAt: new Date().toISOString() }); snap(x, `Action closed: ${a.title}`); }, { entity: "Vendor", id: v.id, action: `Risk action closed — ${a.title}` });
+    setState((s) => { const x = byId(s.vendors, v.id); Object.assign(x.riskActions.find((o) => o.id === a.id), { status: "Done", closedBy: currentUser(), closedAt: new Date().toISOString() }); snap(x, `Action closed: ${a.title}`); }, { entity: "Vendor", id: v.id, action: `Risk action closed - ${a.title}` });
     toast("Risk action closed");
   };
   return (
@@ -95,7 +95,7 @@ function VendorRiskTab({ v, canAct }) {
       <Section title="Risk actions" icon={Icon.clipboardList} actions={canAct && !f && <Btn size="sm" variant="primary" icon={Icon.plus} onClick={() => setF(blank)}>Add risk action</Btn>}>
         <DataTable dense plain rows={r.actions} empty={<p className="p-4 text-[13px] text-ink-mute">No risk actions yet.</p>} columns={[
           { key: "title", label: "Action", className: "font-medium" },
-          { key: "area", label: "Reduces", render: (a) => a.area || "—" },
+          { key: "area", label: "Reduces", render: (a) => a.area || "-" },
           { key: "owner", label: "Owner" },
           { key: "due", label: "Due", render: (a) => (a.status !== "Done" && a.due < todayISO() ? <span className="text-red-600">{fmtDate(a.due)} · overdue</span> : fmtDate(a.due)) },
           { key: "status", label: "Status", render: (a) => <Status tone={a.status === "Done" ? "green" : a.due < todayISO() ? "red" : "amber"}>{a.status === "Done" ? `Done ${fmtDate(a.closedAt)}` : a.status}</Status> },
@@ -111,8 +111,8 @@ function VendorRiskTab({ v, canAct }) {
           </div>
         )}
       </Section>
-      <Section title="Risk history" icon={Icon.clock} actions={canAct && <Btn size="sm" onClick={() => { setState((s) => snap(byId(s.vendors, v.id), "Periodic risk review"), { entity: "Vendor", id: v.id, action: `Risk reviewed — ${r.level.name} ${r.score}, residual ${r.residual}` }); toast("Risk review recorded"); }}>Record review</Btn>}>
-        <DataTable dense plain rows={r.history.map((h0, i) => ({ ...h0, id: i }))} empty={<p className="p-4 text-[13px] text-ink-mute">No reviews recorded yet — the score is shown live above.</p>} columns={[
+      <Section title="Risk history" icon={Icon.clock} actions={canAct && <Btn size="sm" onClick={() => { setState((s) => snap(byId(s.vendors, v.id), "Periodic risk review"), { entity: "Vendor", id: v.id, action: `Risk reviewed - ${r.level.name} ${r.score}, residual ${r.residual}` }); toast("Risk review recorded"); }}>Record review</Btn>}>
+        <DataTable dense plain rows={r.history.map((h0, i) => ({ ...h0, id: i }))} empty={<p className="p-4 text-[13px] text-ink-mute">No reviews recorded yet - the score is shown live above.</p>} columns={[
           { key: "at", label: "When", render: (h0) => fmtDateTime(h0.at) },
           { key: "level", label: "Risk", render: (h0) => <span className="inline-flex items-center gap-1.5"><Status tone={riskLevel(h0.score).tone}>{h0.level}</Status><span className="num text-[12px] text-ink-mute">{h0.score}</span></span> },
           { key: "residual", label: "Residual", render: (h0) => <span className="num">{h0.residual}</span> },

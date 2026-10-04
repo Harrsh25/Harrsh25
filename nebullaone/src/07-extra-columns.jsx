@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------- optional list columns (Customize Columns)
-// Hidden until switched on with the "+" at the end of each list's header — the same idea as ERPNext list
+// Hidden until switched on with the "+" at the end of each list's header - the same idea as ERPNext list
 // settings, Odoo optional columns, Zoho custom views, Oracle / SAP table personalisation.
-const xDash = (v) => (v === undefined || v === null || v === "" ? <span className="text-ink-faint">—</span> : v);
+const xDash = (v) => (v === undefined || v === null || v === "" ? <span className="text-ink-faint">-</span> : v);
 const xDate = (v) => xDash(v ? fmtDate(v) : "");
 const xMoney = (v) => xDash(v || v === 0 ? inrShort(v) : "");
 const xCount = (n) => xDash(n ? String(n) : "");
@@ -16,7 +16,7 @@ const LIST_EXTRA = {
     { key: "xEst", label: "Estimated value", desc: "Σ qty × rate on the lines", align: "right", render: (r) => xMoney(sum(r.items || [], (i) => (Number(i.qty) || 0) * (Number(i.rate) || 0)) || "") },
     { key: "xDecBy", label: "Approved / rejected by", desc: "Who decided", render: (r) => xDash(r.decidedBy) },
     { key: "xDecOn", label: "Decided on", desc: "Approval date", render: (r) => xDate(r.decidedAt) },
-    { key: "xStores", label: "From → to store", desc: "For material transfers", render: (r) => xDash(r.sourceStore || r.targetStore ? `${r.sourceStore || "—"} → ${r.targetStore || "—"}` : "") },
+    { key: "xStores", label: "From → to store", desc: "For material transfers", render: (r) => xDash(r.sourceStore || r.targetStore ? `${r.sourceStore || "-"} → ${r.targetStore || "-"}` : "") },
   ],
   rfqs: (st) => [
     { key: "xCreated", label: "Created on", desc: "RFQ date", render: (r) => xDate(r.createdOn) },

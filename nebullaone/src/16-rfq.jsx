@@ -1,4 +1,4 @@
-// RFQ & quotations — rebuilt after the Odoo / ERPNext review.
+// RFQ & quotations - rebuilt after the Odoo / ERPNext review.
 // Buyer: create (T&C, Incoterm, required-by per line, BOQ ref), compose & send
 // e-mail with preview, print PDF, review quotes (accept / return), compare,
 // split-award per line → one PO per vendor.
@@ -11,7 +11,7 @@ const GST_RATES = [0, 5, 12, 18, 28];
 function vendorRfqBadge(st, vid, what) {
   const g = scorecardGate(st, vid, what);
   if (!g.standing) return null;
-  if (g.block) return <Status tone="red">{`${g.standing.name} — blocked`}</Status>;
+  if (g.block) return <Status tone="red">{`${g.standing.name} - blocked`}</Status>;
   if (g.warn) return <Status tone="amber">{`${g.standing.name} standing`}</Status>;
   return null;
 }
@@ -20,7 +20,7 @@ function vendorRfqBadge(st, vid, what) {
 const RFQ_TEMPLATES = [
   { name: "Steel supply", days: 14, items: [["TMT Fe500D 8 mm", "MT"], ["TMT Fe500D 10 mm", "MT"], ["TMT Fe500D 12 mm", "MT"], ["TMT Fe500D 16 mm", "MT"], ["TMT Fe500D 20 mm", "MT"], ["TMT Fe500D 25 mm", "MT"], ["TMT Fe500D 32 mm", "MT"], ["Binding wire 18 SWG", "kg"]] },
   { name: "Cement supply", days: 7, items: [["OPC 53 grade cement (50 kg bag)", "bag"], ["OPC 43 grade cement (50 kg bag)", "bag"], ["PPC cement (50 kg bag)", "bag"], ["PSC cement (50 kg bag)", "bag"], ["White cement (40 kg bag)", "bag"], ["Wall putty (40 kg bag)", "bag"]] },
-  { name: "Aggregates & sand", days: 7, items: [["Coarse aggregate 20 mm", "cum"], ["Coarse aggregate 10 mm", "cum"], ["Manufactured sand (M-sand) — concrete", "cum"], ["Plaster sand (P-sand)", "cum"], ["Granular sub-base (GSB)", "cum"], ["Wet mix macadam (WMM)", "cum"]] },
+  { name: "Aggregates & sand", days: 7, items: [["Coarse aggregate 20 mm", "cum"], ["Coarse aggregate 10 mm", "cum"], ["Manufactured sand (M-sand) - concrete", "cum"], ["Plaster sand (P-sand)", "cum"], ["Granular sub-base (GSB)", "cum"], ["Wet mix macadam (WMM)", "cum"]] },
   { name: "Ready-mix concrete", days: 5, items: [["RMC M20 grade", "cum"], ["RMC M25 grade", "cum"], ["RMC M30 grade", "cum"], ["RMC M35 grade", "cum"], ["RMC M40 grade", "cum"], ["Concrete pumping charges (boom / line)", "cum"]] },
   { name: "Blocks & bricks", days: 10, items: [["AAC block 600×200×100 mm", "cum"], ["AAC block 600×200×150 mm", "cum"], ["AAC block 600×200×200 mm", "cum"], ["Red clay bricks (first class)", "nos"], ["Fly ash bricks", "nos"], ["Block jointing adhesive (40 kg)", "bag"]] },
   { name: "Hardware", days: 7, items: [["Anchor fasteners M12", "nos"], ["Chemical anchors M16", "nos"], ["Nails assorted", "kg"], ["MS binding wire", "kg"], ["Cutting discs 4\"", "nos"], ["Grinding discs 4\"", "nos"], ["Welding electrodes 3.15 mm", "pkt"], ["PVC cover blocks 25 mm", "nos"]] },
@@ -28,7 +28,7 @@ const RFQ_TEMPLATES = [
   { name: "Plumbing & sanitary", days: 14, items: [["CPVC pipe 25 mm (3 m)", "nos"], ["CPVC pipe 20 mm (3 m)", "nos"], ["CPVC fittings assorted", "lot"], ["UPVC pipe 110 mm SWR", "m"], ["UPVC pipe 75 mm SWR", "m"], ["Ball valve 25 mm", "nos"], ["Floor trap 100 mm", "nos"], ["EWC with seat cover", "nos"], ["Wash basin with pedestal", "nos"]] },
   { name: "Waterproofing & chemicals", days: 10, items: [["Integral waterproofing compound", "kg"], ["Polymer-modified cementitious coating", "kg"], ["APP membrane 3 mm", "sqm"], ["Crystalline waterproofing slurry", "kg"], ["PU sealant (600 ml)", "nos"], ["Concrete admixture (superplasticiser)", "ltr"], ["Curing compound", "ltr"]] },
   { name: "Formwork & shuttering", days: 10, items: [["Shuttering plywood 12 mm (8×4)", "nos"], ["Film-faced plywood 18 mm (8×4)", "nos"], ["Telescopic props 3.2 m", "nos"], ["MS channel 75 mm", "m"], ["H-frame scaffolding set", "set"], ["Tie rods & wing nuts", "set"], ["Shuttering oil", "ltr"]] },
-  { name: "Labour — item rate", days: 21, items: [["Earthwork excavation in soil up to 3 m", "cum"], ["PCC M15 in foundations", "cum"], ["RCC M25 in columns, beams & slabs (labour)", "cum"], ["Reinforcement — cut, bend & place", "MT"], ["Shuttering for slabs & beams", "sqm"], ["Brick / block masonry 230 mm", "cum"], ["Internal plaster 12 mm", "sqm"], ["External plaster 20 mm", "sqm"]] },
+  { name: "Labour - item rate", days: 21, items: [["Earthwork excavation in soil up to 3 m", "cum"], ["PCC M15 in foundations", "cum"], ["RCC M25 in columns, beams & slabs (labour)", "cum"], ["Reinforcement - cut, bend & place", "MT"], ["Shuttering for slabs & beams", "sqm"], ["Brick / block masonry 230 mm", "cum"], ["Internal plaster 12 mm", "sqm"], ["External plaster 20 mm", "sqm"]] },
   { name: "Equipment hire", days: 3, items: [["Backhoe loader (JCB 3DX) with operator", "hr"], ["Hydra crane 14 T", "day"], ["Transit mixer 6 cum", "trip"], ["Concrete pump (stationary)", "day"], ["DG set 125 kVA with fuel", "day"], ["Tower crane (monthly hire)", "month"], ["Tipper 10 cum", "trip"]] },
   { name: "Safety & PPE", days: 7, items: [["Safety helmet with chin strap", "nos"], ["Safety shoes (steel toe)", "pair"], ["Full-body harness with lanyard", "nos"], ["Reflective safety jacket", "nos"], ["Cotton hand gloves", "pair"], ["Safety goggles", "nos"], ["Safety net 3×6 m", "nos"], ["Barricading tape (300 m)", "roll"]] },
 ];
@@ -50,7 +50,7 @@ function NewRfqModal({ open, onClose, onCreated, preset }) {
   const errs = [
     !f.title.trim() && "Title required",
     (VX.req(f.dueDate, "Quotes due date required") || (f.dueDate <= todayISO() ? "Quotes due date must be in the future" : "")),
-    ["price", "quality", "delivery"].some((k) => VX.pct(f.weights[k])) ? "Each weight must be 0–100" : wsum !== 100 ? `Weights total ${wsum}% — must be 100%` : "",
+    ["price", "quality", "delivery"].some((k) => VX.pct(f.weights[k])) ? "Each weight must be 0–100" : wsum !== 100 ? `Weights total ${wsum}% - must be 100%` : "",
     !lines.length && "Add at least one line with a quantity",
     ...f.items.map((it, i) => (!it.desc && !it.qty ? "" : !String(it.desc).trim() ? `Line ${i + 1}: description required` : !String(it.unit || "").trim() ? `Line ${i + 1}: unit required` : it.qty !== "" && Number(it.qty) < 0 ? `Line ${i + 1}: quantity can't be negative` : Number(it.qty) > 0 && !it.requiredBy ? `Line ${i + 1}: required-by date missing` : Number(it.qty) > 0 && it.requiredBy < f.dueDate ? `Line ${i + 1}: required by ${fmtDate(it.requiredBy)} is before quotes are due` : "")),
     f.mode === "Single Vendor" ? (f.vendorIds.length !== 1 && "Pick exactly one vendor") : f.vendorIds.length < 2 && "Invite at least two vendors",
@@ -63,14 +63,14 @@ function NewRfqModal({ open, onClose, onCreated, preset }) {
     setState((s) => { if (f.requisitionId) { const q = (s.requisitions || []).find((x) => x.id === f.requisitionId); if (q) q.rfqIds = [...(q.rfqIds || []), id]; } s.rfqs.unshift({ ...f, id, status: "Draft", createdOn: todayISO(), createdAt: new Date().toISOString(), quotes: [], negotiation: [], awards: [], emails: [], awardedTo: null,
       responses: Object.fromEntries(f.vendorIds.map((v) => [v, { status: "Not sent" }])), items: lines.map((i) => ({ ...i, qty: Number(i.qty) })) }); },
       { entity: "RFQ", id, action: `Created${f.requisitionId ? ` from ${f.requisitionId}` : ""}` });
-    toast(`${id} created — compose the e-mail to send it`);
+    toast(`${id} created - compose the e-mail to send it`);
     onClose(); onCreated && onCreated(id, true);
   };
   const toggleVendor = (v) => {
     const g = scorecardGate(st, v.id, "rfq");
-    if (g.block) return toast(`${v.name} is in "${g.standing.name}" standing — RFQs are prevented`, "red");
+    if (g.block) return toast(`${v.name} is in "${g.standing.name}" standing - RFQs are prevented`, "red");
     const sg = sourcingGate(st, v, "rfq");
-    if (sg.block && !f.vendorIds.includes(v.id)) return toast(`${v.name} can't be invited — ${sg.issues.join("; ")}`, "red");
+    if (sg.block && !f.vendorIds.includes(v.id)) return toast(`${v.name} can't be invited - ${sg.issues.join("; ")}`, "red");
     if (sg.warn && !f.vendorIds.includes(v.id)) toast(`Check before inviting ${v.name}: ${sg.issues.join("; ")}`, "amber");
     let ids = f.vendorIds.includes(v.id) ? f.vendorIds.filter((x) => x !== v.id) : [...f.vendorIds, v.id];
     if (f.mode === "Single Vendor") ids = ids.slice(-1);
@@ -81,15 +81,15 @@ function NewRfqModal({ open, onClose, onCreated, preset }) {
       footer={<><span className="mr-auto max-w-[520px] truncate text-[12px] text-red-600" title={errs.join("\n")}>{errs[0] || ""}{errs.length > 1 ? ` (+${errs.length - 1} more)` : ""}</span><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!ok} onClick={save}>Save & compose e-mail</Btn></>}>
       <div className="space-y-4">
         <div className="grid grid-cols-3 gap-3">
-          <Field label="Title" required span={2}><TextInput value={f.title} onChange={(x) => setF({ ...f, title: x })} placeholder="e.g. TMT steel Fe500D — 120 MT" /></Field>
-          <Field label="Template" hint={f.template ? `${f.items.length} line items loaded — edit or remove as needed` : "Loads a ready list of line items"}><Select value={f.template} placeholder="Blank" onChange={(x) => setF({ ...f, template: x, title: f.title || (x ? `${x} — ${f.project}` : ""), items: templateItems(x) || [{ desc: "", unit: "nos", qty: "", requiredBy: shiftDays(14) }] })} options={RFQ_TEMPLATES.map((t) => ({ value: t.name, label: `${t.name} (${t.items.length} items)` }))} /></Field>
+          <Field label="Title" required span={2}><TextInput value={f.title} onChange={(x) => setF({ ...f, title: x })} placeholder="e.g. TMT steel Fe500D - 120 MT" /></Field>
+          <Field label="Template" hint={f.template ? `${f.items.length} line items loaded - edit or remove as needed` : "Loads a ready list of line items"}><Select value={f.template} placeholder="Blank" onChange={(x) => setF({ ...f, template: x, title: f.title || (x ? `${x} - ${f.project}` : ""), items: templateItems(x) || [{ desc: "", unit: "nos", qty: "", requiredBy: shiftDays(14) }] })} options={RFQ_TEMPLATES.map((t) => ({ value: t.name, label: `${t.name} (${t.items.length} items)` }))} /></Field>
           <Field label="Project"><Select value={f.project} onChange={(x) => setF({ ...f, project: x })} options={PROJECTS} /></Field>
           <Field label="Source (BOQ / material request)"><TextInput value={f.sourceRef} onChange={(x) => setF({ ...f, sourceRef: x })} placeholder="e.g. BOQ-2026-002 · Structural steel" /></Field>
           <Field label="Sourcing mode"><Select value={f.mode} onChange={(x) => setF({ ...f, mode: x, vendorIds: x === "Single Vendor" ? f.vendorIds.slice(0, 1) : f.vendorIds })} options={["Multiple Vendors", "Single Vendor"]} /></Field>
           <Field label="Quotes due (order deadline)"><DateInput value={f.dueDate} onChange={(x) => setF({ ...f, dueDate: x })} /></Field>
           <Field label="Incoterm"><Select value={f.incoterm} onChange={(x) => setF({ ...f, incoterm: x })} options={INCOTERMS} /></Field>
         </div>
-        <Section title={`Line items — ${lines.length} of ${f.items.length} with quantity`} actions={<Btn size="sm" icon={Icon.plus} onClick={() => setF({ ...f, items: [...f.items, { desc: "", unit: "nos", qty: "", requiredBy: shiftDays(14) }] })}>Add line</Btn>}>
+        <Section title={`Line items - ${lines.length} of ${f.items.length} with quantity`} actions={<Btn size="sm" icon={Icon.plus} onClick={() => setF({ ...f, items: [...f.items, { desc: "", unit: "nos", qty: "", requiredBy: shiftDays(14) }] })}>Add line</Btn>}>
           <div className="space-y-2 p-3">
             <div className="grid grid-cols-[1fr_90px_110px_150px_28px] gap-2 text-[11.5px] font-medium text-ink-mute"><span>Description</span><span>Unit</span><span>Quantity</span><span>Required by</span><span /></div>
             {f.items.map((it, i) => (
@@ -121,7 +121,7 @@ function NewRfqModal({ open, onClose, onCreated, preset }) {
         <Field label="Terms & conditions (sent to vendors)"><TextArea rows={2} value={f.tnc} onChange={(x) => setF({ ...f, tnc: x })} /></Field>
         <RfqExtras f={f} setF={setF} />
         <div className="grid grid-cols-3 gap-3">
-          {["price", "quality", "delivery"].map((k) => <Field key={k} label={`Weight — ${k} (%)`}><NumInput value={f.weights[k]} onChange={(x) => setF({ ...f, weights: { ...f.weights, [k]: x } })} /></Field>)}
+          {["price", "quality", "delivery"].map((k) => <Field key={k} label={`Weight - ${k} (%)`}><NumInput value={f.weights[k]} onChange={(x) => setF({ ...f, weights: { ...f.weights, [k]: x } })} /></Field>)}
         </div>
       </div>
     </Modal>
@@ -135,7 +135,7 @@ const rfqEmailBody = (rfq, v) =>
 function SendRfqModal({ rfq, onClose, resendTo }) {
   const st = useStore();
   const targets = resendTo ? [resendTo] : rfq.vendorIds;
-  const [subject, setSubject] = y.useState(`Request for Quotation ${rfq.id} — ${rfq.title}`);
+  const [subject, setSubject] = y.useState(`Request for Quotation ${rfq.id} - ${rfq.title}`);
   const [custom, setCustom] = y.useState(null); // null = use per-vendor template
   const [attachPdf, setAttachPdf] = y.useState(true);
   const [attachFiles, setAttachFiles] = y.useState((rfq.attachments || []).length > 0);
@@ -201,9 +201,9 @@ function printRfq(rfq, vendor) {
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${rfq.id}</title><style>
     body{font:13px/1.45 Inter,system-ui,sans-serif;color:#111;margin:32px}h1{font-size:20px;margin:0}table{width:100%;border-collapse:collapse;margin-top:14px}
     th,td{border:1px solid #d1d5db;padding:6px 8px;text-align:left}th{background:#f3f4f6}.r{text-align:right}.muted{color:#6b7280}.grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 24px;margin-top:12px}</style></head><body>
-    <h1>Request for Quotation — ${esc(rfq.id)}</h1><p class="muted">${esc(rfq.title)}</p>
+    <h1>Request for Quotation - ${esc(rfq.id)}</h1><p class="muted">${esc(rfq.title)}</p>
     <div class="grid"><div><b>Project:</b> ${esc(rfq.project)}</div><div><b>Quotes due:</b> ${esc(fmtDate(rfq.dueDate))}</div>
-    <div><b>Incoterm:</b> ${esc(rfq.incoterm)}</div><div><b>Reference:</b> ${esc(rfq.sourceRef || "—")}</div>
+    <div><b>Incoterm:</b> ${esc(rfq.incoterm)}</div><div><b>Reference:</b> ${esc(rfq.sourceRef || "-")}</div>
     ${vendor ? `<div><b>To:</b> ${esc(vendor.name)}</div>` : ""}<div><b>Issued:</b> ${esc(fmtDate(rfq.sentOn || rfq.createdOn))}</div></div>
     <table><thead><tr><th>#</th><th>Description</th><th class="r">Quantity</th><th>Unit</th><th>Required by</th><th class="r">Rate</th><th class="r">Amount</th></tr></thead><tbody>
     ${rfq.items.map((it, i) => `<tr><td>${i + 1}</td><td>${esc(it.desc)}</td><td class="r">${esc(num(it.qty))}</td><td>${esc(it.unit)}</td><td>${esc(fmtDate(it.requiredBy))}</td><td></td><td></td></tr>`).join("")}
@@ -262,7 +262,7 @@ function QuoteForm({ rfq, vendorId, mode = "vendor", onDone }) {
     f.currency !== "INR" && !(Number(f.fx) > 0) ? "Enter the exchange rate" : "",
     rfqAnswerErr(rfq, f.answers),
     ...Object.values(docDetailErrors("quote", f.details || {})),
-    mode === "vendor" && prev && rfq.multiResponse === false ? "This RFQ accepts one response only — contact the buyer to revise" : "",
+    mode === "vendor" && prev && rfq.multiResponse === false ? "This RFQ accepts one response only - contact the buyer to revise" : "",
   ].filter(Boolean);
   const ok = priced > 0 && !qErr.length && agree;
   const upload = async (file) => {
@@ -294,7 +294,7 @@ function QuoteForm({ rfq, vendorId, mode = "vendor", onDone }) {
       r.status = r.status === "Sent" ? "Quotes Received" : r.status;
       r.responses = r.responses || {};
       r.responses[vendorId] = { status: "Quoted", at: new Date().toISOString() };
-      r.negotiation.push({ at: new Date().toISOString(), by: mode === "buyer" ? currentUser() : vName, vendorId, text: `${prev ? "Revised" : "Submitted"} quotation${f.quoteNo ? ` ${f.quoteNo}` : ""} — ${priced}/${n} lines, ${f.currency} ${num(taxable)} + GST ${f.gstPct}%` });
+      r.negotiation.push({ at: new Date().toISOString(), by: mode === "buyer" ? currentUser() : vName, vendorId, text: `${prev ? "Revised" : "Submitted"} quotation${f.quoteNo ? ` ${f.quoteNo}` : ""} - ${priced}/${n} lines, ${f.currency} ${num(taxable)} + GST ${f.gstPct}%` });
     }, { entity: "RFQ", id: rfq.id, action: `Quotation ${prev ? "revised" : "submitted"} by ${vName}${mode === "buyer" ? " (recorded by buyer)" : ""}` });
     toast(prev ? "Quotation revised" : "Quotation submitted");
     onDone && onDone();
@@ -305,7 +305,7 @@ function QuoteForm({ rfq, vendorId, mode = "vendor", onDone }) {
         return i >= 0 ? <Note icon={Icon.trending}>Your current rank: <b>{i + 1} of {all.length}</b>{rfq.ranking === "Show rank and best price" ? <> · best price {inrShort(all[0].t)}</> : null}</Note> : null; })()}
       {prev?.review === "Returned" && mode === "vendor" && <Note tone="amber">The buyer returned your quotation: <b>{prev.returnReason}</b>. Please revise and resubmit.</Note>}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-[12.5px] text-ink-soft">Price the lines you can supply — tick <b>No bid</b> for the rest.</span>
+        <span className="text-[12.5px] text-ink-soft">Price the lines you can supply - tick <b>No bid</b> for the rest.</span>
         <span className="flex gap-2">
           <Btn size="sm" icon={Icon.download} onClick={() => csvDownload(rfq, { ...f, rates: f.rates })}>Download sheet (CSV)</Btn>
           <label className="inline-flex h-[26px] cursor-pointer items-center gap-1.5 rounded-md border border-line bg-white px-2 text-[12px] font-medium hover:bg-gray-50">
@@ -323,7 +323,7 @@ function QuoteForm({ rfq, vendorId, mode = "vendor", onDone }) {
                 <Td align="right"><div className="ml-auto w-28"><NumInput value={f.rates[i]} disabled={f.noBid[i]} onChange={(x) => set("rates", i, x)} /></div></Td>
                 <Td align="right"><div className="ml-auto w-16"><NumInput value={f.discounts[i]} disabled={f.noBid[i]} onChange={(x) => set("discounts", i, x)} /></div></Td>
                 <Td align="right"><div className="ml-auto w-16"><NumInput value={f.leadDays[i]} disabled={f.noBid[i]} onChange={(x) => set("leadDays", i, x)} /></div></Td>
-                <Td align="right" className="num">{f.noBid[i] ? "—" : num(it.qty * net(i))}</Td>
+                <Td align="right" className="num">{f.noBid[i] ? "-" : num(it.qty * net(i))}</Td>
                 <Td>
                   <label title={f.lineFiles[i]?.name || "Attach datasheet / test certificate"} className={cls("grid h-7 w-7 cursor-pointer place-items-center rounded-md border", f.lineFiles[i] ? "border-green-300 bg-green-50 text-green-700" : "border-dashed border-gray-300 text-ink-mute hover:text-brand")}>
                     <Icon.upload size={12} /><input type="file" className="hidden" onChange={async (e) => { const a = await readAttachment(e.target.files[0], VX.SHEET_TYPES); a && set("lineFiles", i, a); }} />
@@ -371,13 +371,13 @@ function RespondToInvite({ rfq, vendorId }) {
   const [declining, setDeclining] = y.useState(false);
   const respond = (status) => {
     setState((s) => { const r = byId(s.rfqs, rfq.id); r.responses = r.responses || {}; r.responses[vendorId] = { status, reason: status === "Declined" ? reason : "", at: new Date().toISOString() }; },
-      { entity: "RFQ", id: rfq.id, action: `${vendorName(getState(), vendorId)} ${status.toLowerCase()} the invitation${reason ? ` — ${reason}` : ""}` });
-    toast(status === "Accepted" ? "Thanks — you can now submit your quotation" : "Response sent to the buyer", status === "Accepted" ? "green" : "red");
+      { entity: "RFQ", id: rfq.id, action: `${vendorName(getState(), vendorId)} ${status.toLowerCase()} the invitation${reason ? ` - ${reason}` : ""}` });
+    toast(status === "Accepted" ? "Thanks - you can now submit your quotation" : "Response sent to the buyer", status === "Accepted" ? "green" : "red");
   };
   return (
     <div className="rounded-xl border border-brand/30 bg-brand-soft/40 p-4">
       <p className="text-[14px] font-semibold">Will you submit a quotation for this RFQ?</p>
-      <p className="mt-0.5 text-[12.5px] text-ink-soft">Let the buyer know early — declining helps them invite someone else.</p>
+      <p className="mt-0.5 text-[12.5px] text-ink-soft">Let the buyer know early - declining helps them invite someone else.</p>
       {declining ? (
         <div className="mt-3 grid grid-cols-[1fr_auto_auto] gap-2">
           <TextInput value={reason} onChange={setReason} placeholder="Reason (e.g. capacity full this month)" />
@@ -448,8 +448,8 @@ function SplitAwardModal({ rfq, onClose, preset }) {
       r.status = allDone || !keepOpen ? "Awarded" : "Partially Awarded";
       r.awardedTo = Object.keys(groups).length === 1 ? Object.keys(groups)[0] : "Split";
       r.poId = created[0];
-    }, { entity: "RFQ", id: rfq.id, action: `Awarded — ${Object.entries(groups).map(([v, l]) => `${vendorName(st, v)}: lines ${l.map((i) => i + 1).join(",")}`).join("; ")}` });
-    toast(`${Object.keys(groups).length} draft PO(s) created — approve them in Approval Management`);
+    }, { entity: "RFQ", id: rfq.id, action: `Awarded - ${Object.entries(groups).map(([v, l]) => `${vendorName(st, v)}: lines ${l.map((i) => i + 1).join(",")}`).join("; ")}` });
+    toast(`${Object.keys(groups).length} draft PO(s) created - approve them in Approval Management`);
     onClose();
   };
   // Contractor awards become draft contracts carrying the awarded lines as the contract BOQ;
@@ -474,21 +474,21 @@ function SplitAwardModal({ rfq, onClose, preset }) {
       r.status = allDone || !keepOpen ? "Awarded" : "Partially Awarded";
       r.awardedTo = Object.keys(groups).length === 1 ? Object.keys(groups)[0] : "Split";
       r.contractId = created[0];
-    }, { entity: "RFQ", id: rfq.id, action: `Awarded as contract — ${Object.entries(groups).map(([v, l]) => `${vendorName(st, v)}: lines ${l.map((i) => i + 1).join(",")}`).join("; ")}` });
-    toast(`${created.length} draft contract(s) created — submit for approval from Contracts`);
+    }, { entity: "RFQ", id: rfq.id, action: `Awarded as contract - ${Object.entries(groups).map(([v, l]) => `${vendorName(st, v)}: lines ${l.map((i) => i + 1).join(",")}`).join("; ")}` });
+    toast(`${created.length} draft contract(s) created - submit for approval from Contracts`);
     onClose();
   };
   return (
-    <Modal open onClose={onClose} width={960} title={`Award ${rfq.id} — choose a vendor per line`} subtitle="Like Odoo's 'Compare product lines': pick the winning quote for each line. One draft PO is created per vendor."
+    <Modal open onClose={onClose} width={960} title={`Award ${rfq.id} - choose a vendor per line`} subtitle="Like Odoo's 'Compare product lines': pick the winning quote for each line. One draft PO is created per vendor."
       footer={<><Check checked={keepOpen} onChange={setKeepOpen} label="Keep RFQ open for unawarded lines" /><span className="flex-1" /><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!Object.keys(groups).length || !note.trim()} onClick={confirm}>Award & create {Object.keys(groups).length} {target === "contract" ? "contract" : "PO"}(s)</Btn></>}>
       <div className="mb-3 flex flex-wrap items-center gap-2 text-[12.5px]">
         <span className="text-ink-soft">Quick pick:</span>
         <Btn size="sm" onClick={() => setPick(rfq.items.map((_, i) => (already.has(i) ? "" : best(i))))}>Lowest rate per line</Btn>
         {eligible.map((q) => <Btn key={q.vendorId} size="sm" onClick={() => setPick(rfq.items.map((_, i) => (already.has(i) || lineRate(q, i) == null ? "" : q.vendorId)))}>All to {vendorName(st, q.vendorId)}</Btn>)}
       </div>
-      {rfq.quotes.some((q) => q.review === "Under review") && <div className="mb-3"><Note tone="amber">Quotes still under review are not selectable — accept them first.</Note></div>}
+      {rfq.quotes.some((q) => q.review === "Under review") && <div className="mb-3"><Note tone="amber">Quotes still under review are not selectable - accept them first.</Note></div>}
       <div className="mb-3 grid grid-cols-[1fr_260px] gap-3">
-        <Field label="Award recommendation (sent with the approval)" required hint={notL1 ? "Not the lowest rate on every line — say why" : "e.g. L1 on all lines, technically compliant"}>
+        <Field label="Award recommendation (sent with the approval)" required hint={notL1 ? "Not the lowest rate on every line - say why" : "e.g. L1 on all lines, technically compliant"}>
           <TextInput value={note} onChange={setNote} placeholder={notL1 ? "e.g. L1 vendor's lead time 45 days vs 12 required" : "e.g. L1, technically compliant, quote valid 30 days"} />
         </Field>
         {allCon && <Field label="Award as" hint={as === "contract" ? "Draft contract with these lines as its BOQ" : "Draft purchase order"}>
@@ -519,7 +519,7 @@ function SplitAwardModal({ rfq, onClose, preset }) {
                 <Td align="center"><input type="radio" name={`l${i}`} disabled={already.has(i)} checked={!pick[i]} onChange={() => setPick(pick.map((x, j) => (j === i ? "" : x)))} /></Td>
               </tr>
             ))}
-            <tr className="bg-gray-50"><Td className="font-semibold">Award value</Td><Td />{eligible.map((q) => <Td key={q.vendorId} align="center" className="num font-semibold">{groups[q.vendorId] ? inrShort(sum(groups[q.vendorId], (i) => rfq.items[i].qty * lineRate(q, i))) : "—"}</Td>)}<Td /></tr>
+            <tr className="bg-gray-50"><Td className="font-semibold">Award value</Td><Td />{eligible.map((q) => <Td key={q.vendorId} align="center" className="num font-semibold">{groups[q.vendorId] ? inrShort(sum(groups[q.vendorId], (i) => rfq.items[i].qty * lineRate(q, i))) : "-"}</Td>)}<Td /></tr>
           </tbody>
         </table>
       </div>
@@ -548,7 +548,7 @@ function RfqDrawer({ id, onClose, compose }) {
   const units = [...new Set(rfq.items.map((i) => i.unit).filter(Boolean))];
   const qtyText = units.length === 1 ? `${num(sum(rfq.items, (i) => Number(i.qty) || 0))} ${units[0]} · ${rfq.items.length} line${rfq.items.length > 1 ? "s" : ""}` : `${rfq.items.length} lines`;
   const review = (vid, status, reason) => setState((s) => { const q = byId(s.rfqs, id).quotes.find((x) => x.vendorId === vid); q.review = status; q.returnReason = reason || ""; },
-    { entity: "RFQ", id, action: `Quotation from ${vendorName(st, vid)} ${status === "Accepted" ? "accepted for evaluation" : `returned — ${reason}`}` });
+    { entity: "RFQ", id, action: `Quotation from ${vendorName(st, vid)} ${status === "Accepted" ? "accepted for evaluation" : `returned - ${reason}`}` });
   return (
     <Drawer open related={relatedFor(st, "rfq", rfq).filter((x) => !/Vendors|Quotations/.test(x.label))} comments={rfq.id} onClose={onClose} width={1040} title={rfq.title} recordId={rfq.id} status={<Status>{rfq.status}</Status>}
      
@@ -565,11 +565,11 @@ function RfqDrawer({ id, onClose, compose }) {
         {open && rfq.status !== "Draft" && <Btn icon={Icon.plus} onClick={() => setRecord(rfq.vendorIds.find((v) => !rfq.quotes.some((q) => q.vendorId === v)) || rfq.vendorIds[0])}>Record quote on vendor's behalf</Btn>}
       </>}>
       {cancelAsk && <ReasonModal title={`Cancel ${rfq.id}`} text="Invited vendors are told the RFQ is withdrawn; quotes received stay on record." action="Cancel RFQ" onClose={() => setCancelAsk(false)}
-        onDone={(r) => { setState((s) => { const x = byId(s.rfqs, rfq.id); x.status = "Cancelled"; x.cancelled = { at: new Date().toISOString(), by: currentUser(), reason: r }; }, { entity: "RFQ", id: rfq.id, action: `Cancelled — ${r}` }); toast(`${rfq.id} cancelled`, "red"); }} />}
-      {alt && <NewRfqModal open preset={{ ...JSON.parse(JSON.stringify({ project: rfq.project, items: rfq.items, tnc: rfq.tnc, incoterm: rfq.incoterm, weights: rfq.weights, questions: rfq.questions || [], ranking: rfq.ranking || "Hidden", details: rfq.details || {}, attachments: rfq.attachments || [] })), title: `${rfq.title} — alternative`, vendorIds: [], sourceRef: `Alternative to ${rfq.id}`, altOf: rfq.id, dueDate: shiftDays(7) }} onClose={() => setAlt(false)} onCreated={() => setAlt(false)} />}
+        onDone={(r) => { setState((s) => { const x = byId(s.rfqs, rfq.id); x.status = "Cancelled"; x.cancelled = { at: new Date().toISOString(), by: currentUser(), reason: r }; }, { entity: "RFQ", id: rfq.id, action: `Cancelled - ${r}` }); toast(`${rfq.id} cancelled`, "red"); }} />}
+      {alt && <NewRfqModal open preset={{ ...JSON.parse(JSON.stringify({ project: rfq.project, items: rfq.items, tnc: rfq.tnc, incoterm: rfq.incoterm, weights: rfq.weights, questions: rfq.questions || [], ranking: rfq.ranking || "Hidden", details: rfq.details || {}, attachments: rfq.attachments || [] })), title: `${rfq.title} - alternative`, vendorIds: [], sourceRef: `Alternative to ${rfq.id}`, altOf: rfq.id, dueDate: shiftDays(7) }} onClose={() => setAlt(false)} onCreated={() => setAlt(false)} />}
       <div className="space-y-4 px-6 py-5">
         {tab === "overview" && <>
-        {rfq.status === "Draft" && <Note>Draft — press <b>Compose & send</b> to e-mail the invitation. Vendors sign in to the supplier portal with a one-time code to respond.</Note>}
+        {rfq.status === "Draft" && <Note>Draft - press <b>Compose & send</b> to e-mail the invitation. Vendors sign in to the supplier portal with a one-time code to respond.</Note>}
         {(rfq.questions || []).length > 0 && <Note icon={Icon.listChecks}>{rfq.questions.length} requirement question(s) · ranking shown to vendors: <b>{rfq.ranking || "Hidden"}</b>{rfq.multiResponse === false ? " · one response only" : ""}</Note>}
         {(rfq.attachments || []).length > 0 && <div className="flex flex-wrap items-center gap-2 text-[12.5px]"><span className="text-ink-mute">Attachments:</span>{rfq.attachments.map((a) => <FileLink key={a.name} name={a.name} dataUrl={a.dataUrl} />)}</div>}
           <InfoCard title="RFQ Information" icon={Icon.file} rows={[
@@ -578,7 +578,7 @@ function RfqDrawer({ id, onClose, compose }) {
             ["Status", <Status>{rfq.status}</Status>], ["Sourcing mode", modeLabel(rfq.mode)], ["Due date", fmtDate(rfq.dueDate)],
             ["Created by", rfq.createdBy || (rfq.revisions || [])[0]?.by], ["Created on", fmtDate(rfq.createdOn)], ["Weights", `Price ${rfq.weights.price}% · quality ${rfq.weights.quality}% · delivery ${rfq.weights.delivery}%`],
           ]} />
-          <Section title="Terms sent to vendors" icon={Icon.file}><p className="whitespace-pre-line p-4 text-[13px] leading-relaxed text-ink">{rfq.tnc || "—"}</p></Section>
+          <Section title="Terms sent to vendors" icon={Icon.file}><p className="whitespace-pre-line p-4 text-[13px] leading-relaxed text-ink">{rfq.tnc || "-"}</p></Section>
         <DocDetailsView kind="rfq" value={rfq.details} />
         </>}
         {tab === "items" && (
@@ -588,8 +588,8 @@ function RfqDrawer({ id, onClose, compose }) {
               { key: "desc", label: "Item", className: "whitespace-normal font-medium" },
               { key: "q", label: "Quantity", align: "right", num: true, render: (r) => `${num(r.qty)} ${r.unit || ""}` },
               { key: "rb", label: "Needed by", render: (r) => fmtDate(r.requiredBy) },
-              { key: "best", label: "Lowest rate", align: "right", num: true, render: (r) => (Number.isFinite(minRate[r.i]) ? inr(minRate[r.i]) : "—") },
-              { key: "aw", label: "Awarded to", render: (r) => (rfq.awards || []).filter((a) => a.line === r.i).map((a) => `${vendorName(st, a.vendorId)} (${a.poId})`).join(", ") || <span className="text-ink-faint">—</span> },
+              { key: "best", label: "Lowest rate", align: "right", num: true, render: (r) => (Number.isFinite(minRate[r.i]) ? inr(minRate[r.i]) : "-") },
+              { key: "aw", label: "Awarded to", render: (r) => (rfq.awards || []).filter((a) => a.line === r.i).map((a) => `${vendorName(st, a.vendorId)} (${a.poId})`).join(", ") || <span className="text-ink-faint">-</span> },
             ]} />
           </Section>
         )}
@@ -597,10 +597,10 @@ function RfqDrawer({ id, onClose, compose }) {
         <Section title="Invited vendors" icon={Icon.send}>
           <DataTable dense rows={rfq.vendorIds.map((vid) => ({ id: vid, q: rfq.quotes.find((x) => x.vendorId === vid), r: resp[vid] || { status: "Not sent" }, mails: (rfq.emails || []).filter((m) => m.to === vid) }))} columns={[
             { key: "v", label: "Vendor", render: (r) => <span className="flex flex-col"><span className="font-medium">{vendorName(st, r.id)}</span><span className="text-[11.5px] text-ink-mute">{byId(st.vendors, r.id)?.contact.email}</span></span> },
-            { key: "std", label: "Standing", render: (r) => vendorRfqBadge(st, r.id, "rfq") || <span className="text-ink-faint">—</span> },
+            { key: "std", label: "Standing", render: (r) => vendorRfqBadge(st, r.id, "rfq") || <span className="text-ink-faint">-</span> },
             { key: "m", label: "E-mail", render: (r) => (r.mails.length ? <span className="text-[12px]">Sent {fmtDate(r.mails[r.mails.length - 1].at)}{r.mails.length > 1 ? ` (${r.mails.length}×)` : ""}</span> : <span className="text-ink-faint">Not sent</span>) },
-            { key: "i", label: "Invitation", render: (r) => <span title={r.r.reason || ""}><Status tone={{ Accepted: "green", Quoted: "green", Declined: "red", Invited: "amber" }[r.r.status] || "gray"}>{r.r.status}{r.r.reason ? ` — ${r.r.reason}` : ""}</Status></span> },
-            { key: "q", label: "Quotation", render: (r) => (r.q ? <span className="flex flex-col"><Status tone={{ "Under review": "blue", Accepted: "green", Returned: "red", Expired: "red", Ordered: "green", "Partially Ordered": "purple" }[quoteStatus(rfq, r.q)]}>{quoteStatus(rfq, r.q)}</Status><span className="text-[11px] text-ink-mute">{r.q.quoteNo || "—"} · {fmtDate(r.q.submittedOn)} · {r.q.via}</span></span> : <span className="text-ink-faint">—</span>) },
+            { key: "i", label: "Invitation", render: (r) => <span title={r.r.reason || ""}><Status tone={{ Accepted: "green", Quoted: "green", Declined: "red", Invited: "amber" }[r.r.status] || "gray"}>{r.r.status}{r.r.reason ? ` - ${r.r.reason}` : ""}</Status></span> },
+            { key: "q", label: "Quotation", render: (r) => (r.q ? <span className="flex flex-col"><Status tone={{ "Under review": "blue", Accepted: "green", Returned: "red", Expired: "red", Ordered: "green", "Partially Ordered": "purple" }[quoteStatus(rfq, r.q)]}>{quoteStatus(rfq, r.q)}</Status><span className="text-[11px] text-ink-mute">{r.q.quoteNo || "-"} · {fmtDate(r.q.submittedOn)} · {r.q.via}</span></span> : <span className="text-ink-faint">-</span>) },
             { key: "att", label: "Files", render: (r) => (r.q ? <span className="flex flex-col gap-0.5">{r.q.attachment && <FileLink name={r.q.attachment.name} dataUrl={r.q.attachment.dataUrl} />}{(r.q.lineFiles || []).filter(Boolean).map((a, k) => <FileLink key={k} name={a.name} dataUrl={a.dataUrl} />)}</span> : null) },
             { key: "a", label: "", align: "right", render: (r) => (
               <span className="flex justify-end gap-1">
@@ -615,10 +615,10 @@ function RfqDrawer({ id, onClose, compose }) {
           <Section title={`Quotations (${rfq.quotes.length})`} icon={Icon.receipt}>
             <DataTable dense rows={rfq.quotes} rowKey={(q) => q.vendorId} empty={<p className="p-4 text-[13px] text-ink-mute">No quotations yet.</p>} columns={[
               { key: "v", label: "Vendor", render: (q) => <span className="font-medium">{vendorName(st, q.vendorId)}</span> },
-              { key: "no", label: "Quote no.", render: (q) => q.quoteNo || "—" },
+              { key: "no", label: "Quote no.", render: (q) => q.quoteNo || "-" },
               { key: "on", label: "Received", render: (q) => fmtDate(q.submittedOn) },
               { key: "amt", label: "Taxable total", align: "right", num: true, render: (q) => inrShort(quoteTotal(rfq, q)) },
-              { key: "d", label: "Delivery", align: "right", render: (q) => (q.deliveryDays != null ? `${q.deliveryDays} d` : "—") },
+              { key: "d", label: "Delivery", align: "right", render: (q) => (q.deliveryDays != null ? `${q.deliveryDays} d` : "-") },
               { key: "vu", label: "Valid until", render: (q) => (daysUntil(q.validUntil) < 0 ? <Status tone="red">Expired</Status> : fmtDate(q.validUntil)) },
               { key: "s", label: "Status", render: (q) => <Status>{quoteStatus(rfq, q)}</Status> },
             ]} />
@@ -626,7 +626,7 @@ function RfqDrawer({ id, onClose, compose }) {
         {(rfq.questions || []).length > 0 && rfq.quotes.length > 0 && (
           <Section title="Answers to requirement questions" icon={Icon.listChecks}>
             <DataTable dense rows={rfq.questions.map((q, i) => ({ q, i }))} rowKey={(r) => r.i} columns={[{ key: "q", label: "Question", render: (r) => r.q.text },
-              ...rfq.quotes.map((q) => ({ key: q.vendorId, label: vendorName(st, q.vendorId), render: (r) => q.answers?.[r.i] ?? "—" }))]} />
+              ...rfq.quotes.map((q) => ({ key: q.vendorId, label: vendorName(st, q.vendorId), render: (r) => q.answers?.[r.i] ?? "-" }))]} />
           </Section>
         )}
         </>}
@@ -648,7 +648,7 @@ function RfqDrawer({ id, onClose, compose }) {
                   <tr className="bg-gray-50/70"><Td className="font-semibold">Taxable total</Td><Td /><Td />{rfq.quotes.map((q) => <Td key={q.vendorId} align="right" className="num font-semibold">{inrShort(quoteTotal(rfq, q))}<span className="block text-[10.5px] font-normal text-ink-mute">{quotedLines(rfq, q).length}/{rfq.items.length} lines</span></Td>)}</tr>
                   <tr><Td>GST</Td><Td /><Td />{rfq.quotes.map((q) => <Td key={q.vendorId} align="right">{q.gstPct ?? 18}%</Td>)}</tr>
                   <tr><Td>Valid until</Td><Td /><Td />{rfq.quotes.map((q) => <Td key={q.vendorId} align="right">{daysUntil(q.validUntil) < 0 ? <Status tone="red">Expired</Status> : fmtDate(q.validUntil)}</Td>)}</tr>
-                  <tr><Td>Terms</Td><Td /><Td />{rfq.quotes.map((q) => <Td key={q.vendorId} align="right" className="whitespace-normal text-[12px] text-ink-soft">{q.note || "—"}</Td>)}</tr>
+                  <tr><Td>Terms</Td><Td /><Td />{rfq.quotes.map((q) => <Td key={q.vendorId} align="right" className="whitespace-normal text-[12px] text-ink-soft">{q.note || "-"}</Td>)}</tr>
                 </tbody>
               </table>
             </div>
@@ -658,7 +658,7 @@ function RfqDrawer({ id, onClose, compose }) {
         {tab === "eval" && <>
         <RfqEvaluation rfq={rfq} />
         {ranked.length > 0 && (
-          <Section title={`Supplier score — price ${rfq.weights.price}% · quality ${rfq.weights.quality}% · delivery ${rfq.weights.delivery}% (partial bids scaled by coverage)`} icon={Icon.target}>
+          <Section title={`Supplier score - price ${rfq.weights.price}% · quality ${rfq.weights.quality}% · delivery ${rfq.weights.delivery}% (partial bids scaled by coverage)`} icon={Icon.target}>
             <DataTable dense rows={ranked} rowKey={(r) => r.q.vendorId} columns={[
               { key: "rank", label: "#", render: (_, i) => i + 1 },
               { key: "v", label: "Vendor", render: (r) => <span className="font-medium">{vendorName(st, r.q.vendorId)}</span> },
@@ -676,12 +676,12 @@ function RfqDrawer({ id, onClose, compose }) {
         </>}
         {tab === "approval" && (
           <Section title="Award & approval" icon={Icon.clipboardCheck} actions={open && reviewed.length > 0 && <Btn size="sm" variant="primary" icon={Icon.sparkles} onClick={() => setAward({})}>Award by line…</Btn>}>
-            <DataTable dense rows={rfq.awards || []} rowKey={(a, i) => a.poId + i} empty={<p className="p-4 text-[13px] text-ink-mute">{rfq.status === "Cancelled" ? `Cancelled — ${rfq.cancelled?.reason || ""}` : "Not awarded yet. Compare the quotations, then use Award by line — each awarded vendor gets a draft PO that goes for approval."}</p>} columns={[
+            <DataTable dense rows={rfq.awards || []} rowKey={(a, i) => a.poId + i} empty={<p className="p-4 text-[13px] text-ink-mute">{rfq.status === "Cancelled" ? `Cancelled - ${rfq.cancelled?.reason || ""}` : "Not awarded yet. Compare the quotations, then use Award by line - each awarded vendor gets a draft PO that goes for approval."}</p>} columns={[
               { key: "l", label: "Item", className: "whitespace-normal", render: (a) => rfq.items[a.line]?.desc },
               { key: "v", label: "Awarded to", render: (a) => vendorName(st, a.vendorId) },
               { key: "po", label: "Purchase order", render: (a) => <RefLink to={`${VM_BASE}/purchase-orders?open=${a.poId}`}>{a.poId}</RefLink> },
-              { key: "ps", label: "PO status", render: (a) => <Status>{(byId(st.purchaseOrders, a.poId) || {}).status || "—"}</Status> },
-              { key: "by", label: "Awarded by", render: (a) => [a.by, a.at && fmtDate(a.at)].filter(Boolean).join(" · ") || "—" },
+              { key: "ps", label: "PO status", render: (a) => <Status>{(byId(st.purchaseOrders, a.poId) || {}).status || "-"}</Status> },
+              { key: "by", label: "Awarded by", render: (a) => [a.by, a.at && fmtDate(a.at)].filter(Boolean).join(" · ") || "-" },
             ]} />
             {rfq.recommendation && <p className="border-t border-line px-4 py-3 text-[13px] text-ink-soft">Recommendation: {rfq.recommendation}</p>}
           </Section>
@@ -710,16 +710,16 @@ function RfqDrawer({ id, onClose, compose }) {
       </div>
       {send && <SendRfqModal rfq={rfq} resendTo={send.to} onClose={() => setSend(null)} />}
       {record && (
-        <Modal open onClose={() => setRecord(null)} width={1000} title={`Record quotation on vendor's behalf — ${rfq.id}`} subtitle="For quotes received by e-mail or on paper (Zoho 'surrogate bid')">
+        <Modal open onClose={() => setRecord(null)} width={1000} title={`Record quotation on vendor's behalf - ${rfq.id}`} subtitle="For quotes received by e-mail or on paper (Zoho 'surrogate bid')">
           <div className="mb-3 w-72"><Field label="Vendor"><Select value={record} onChange={setRecord} options={rfq.vendorIds.map((v) => ({ value: v, label: vendorName(st, v) }))} /></Field></div>
           <QuoteForm key={record} rfq={rfq} vendorId={record} mode="buyer" onDone={() => setRecord(null)} />
         </Modal>
       )}
       {award && <SplitAwardModal rfq={rfq} onClose={() => setAward(null)} />}
-      {share && <ShareLinkModal title={`Quotation link — ${vendorName(st, share)}`} url={appUrl(`/vendor-quote/${rfq.id}/${share}`)} onClose={() => setShare(null)}
+      {share && <ShareLinkModal title={`Quotation link - ${vendorName(st, share)}`} url={appUrl(`/vendor-quote/${rfq.id}/${share}`)} onClose={() => setShare(null)}
         text="Personal link for this vendor. Opening it asks them to sign in with a one-time code sent to their registered e-mail, then accept the invitation and quote." />}
       {ret && (
-        <Modal open onClose={() => setRet(null)} width={480} title={`Return quotation — ${vendorName(st, ret.vid)}`} footer={<><Btn onClick={() => setRet(null)}>Cancel</Btn><Btn variant="danger" disabled={!ret.reason} onClick={() => { review(ret.vid, "Returned", ret.reason); setRet(null); }}>Return to vendor</Btn></>}>
+        <Modal open onClose={() => setRet(null)} width={480} title={`Return quotation - ${vendorName(st, ret.vid)}`} footer={<><Btn onClick={() => setRet(null)}>Cancel</Btn><Btn variant="danger" disabled={!ret.reason} onClick={() => { review(ret.vid, "Returned", ret.reason); setRet(null); }}>Return to vendor</Btn></>}>
           <Field label="What should the vendor correct?"><TextArea value={ret.reason} onChange={(x) => setRet({ ...ret, reason: x })} placeholder="e.g. Rates must include loading; attach mill test certificate" /></Field>
         </Modal>
       )}
@@ -743,9 +743,9 @@ function RfqPage() {
     const man = q.purpose === "Manpower (labour)";
     // quotes must be in before the site needs the material: due 2 days before required-by, at the latest in 7 days, at least tomorrow
     const due = [shiftDays(7), shiftDays(-2, q.requiredBy)].sort()[0];
-    setPreset({ title: `${man ? q.labour.category + " — manpower" : itemsSummary(q.items)} (${q.id})`, project: q.project, sourceRef: q.id, requisitionId: q.id, mode: "Multiple Vendors", dueDate: due > todayISO() ? due : shiftDays(1),
+    setPreset({ title: `${man ? q.labour.category + " - manpower" : itemsSummary(q.items)} (${q.id})`, project: q.project, sourceRef: q.id, requisitionId: q.id, mode: "Multiple Vendors", dueDate: due > todayISO() ? due : shiftDays(1),
       items: q.items.map((i) => ({ desc: i.desc, unit: i.unit, qty: i.qty, requiredBy: q.requiredBy })), vendorIds: man ? (q.labour.distribution || []) : [],
-      tnc: q.terms || undefined, details: { ...docDefaults("rfq", st), company: q.company, shipTo: `Site — ${q.project}` } });
+      tnc: q.terms || undefined, details: { ...docDefaults("rfq", st), company: q.company, shipTo: `Site - ${q.project}` } });
     setCreate(true);
   }, [fromReq]);
   const bucket = (r) => {
@@ -769,7 +769,7 @@ function RfqPage() {
         { key: "project", label: "Project", filterOptions: FO.projects, filter: true },
         { key: "mode", label: "Mode", filterOptions: FO.rfqMode, filter: (r) => modeLabel(r.mode), render: (r) => modeLabel(r.mode) },
         { key: "resp", label: "Responses", render: (r) => { const R = Object.values(r.responses || {}); return <span className="text-[12px]">{r.quotes.length} quoted · {R.filter((x) => x.status === "Declined").length} declined · {r.vendorIds.length} invited</span>; } },
-        { key: "best", label: "Lowest total", align: "right", num: true, render: (r) => (r.quotes.length ? inrShort(Math.min(...r.quotes.map((q) => quoteTotal(r, q)))) : "—") },
+        { key: "best", label: "Lowest total", align: "right", num: true, render: (r) => (r.quotes.length ? inrShort(Math.min(...r.quotes.map((q) => quoteTotal(r, q)))) : "-") },
         { key: "due", label: "Due", render: (r) => <span className={cls(bucket(r) === "Late" && "font-medium text-red-600")}>{fmtDate(r.dueDate)}</span> },
         { key: "s", label: "Status", filterOptions: FO.rfqStatus, filter: (r) => r.status, render: (r) => <Status>{r.status}</Status> },
       ]} />

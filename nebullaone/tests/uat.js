@@ -1,4 +1,4 @@
-// UAT — walks every page of both modules plus the supplier portal and public pages, and checks the
+// UAT - walks every page of both modules plus the supplier portal and public pages, and checks the
 // small things: page loads without script errors, no "undefined / NaN / Invalid Date / [object Object]"
 // on screen, no sideways page scroll, sidebar label = page title, every page tab, every list (sort on
 // every column, search hit + no-match state, Filters panel apply / reset, export, column picker, footer
@@ -58,14 +58,14 @@ const PAGES = [
     const nb = await btns.count();
     if (nb) {
       const prim = btns.last(); const name = ((await prim.innerText()) || '').trim(); const dis = await prim.isDisabled();
-      if (dis) rec('Form', `"${title}" — ${name} disabled until the form is complete`, 'PASS', `${labels} fields, ${req} required`);
+      if (dis) rec('Form', `"${title}" - ${name} disabled until the form is complete`, 'PASS', `${labels} fields, ${req} required`);
       else {
         const before = await dlgCount(); const e1 = errs.length;
         await prim.click().catch(() => {}); await wait(300);
         const after = await dlgCount(); const msg = await toast(); const red = await topDlg().locator('.text-red-600, .text-red-500:not(label .text-red-500)').count().catch(() => 0);
-        if (errs.length > e1) rec('Form', `"${title}" — ${name} on the untouched form`, 'FAIL', errs.slice(e1).join(' / '));
-        else if (after < before) rec('Form', `"${title}" — ${name} on the untouched form`, req ? 'WARN' : 'INFO', `Saved straight away with the pre-filled values${req ? ` although ${req} fields are marked required` : ''}${msg ? ` — toast "${msg.slice(0, 80)}"` : ''}`);
-        else rec('Form', `"${title}" — ${name} on the untouched form`, 'PASS', `Blocked: ${red ? 'validation message shown' : msg ? `toast "${msg.slice(0, 80)}"` : 'stays open'}`);
+        if (errs.length > e1) rec('Form', `"${title}" - ${name} on the untouched form`, 'FAIL', errs.slice(e1).join(' / '));
+        else if (after < before) rec('Form', `"${title}" - ${name} on the untouched form`, req ? 'WARN' : 'INFO', `Saved straight away with the pre-filled values${req ? ` although ${req} fields are marked required` : ''}${msg ? ` - toast "${msg.slice(0, 80)}"` : ''}`);
+        else rec('Form', `"${title}" - ${name} on the untouched form`, 'PASS', `Blocked: ${red ? 'validation message shown' : msg ? `toast "${msg.slice(0, 80)}"` : 'stays open'}`);
       }
     }
     if (await dlgCount()) { const n0 = await dlgCount(); await p.keyboard.press('Escape'); await wait(150); rec('Form', `"${title}" closes with Esc`, (await dlgCount()) < n0 ? 'PASS' : 'WARN', (await dlgCount()) < n0 ? '' : 'Esc did not close it'); }
@@ -227,6 +227,6 @@ const PAGES = [
   fs.mkdirSync(path.join(__dirname, 'out'), { recursive: true });
   fs.writeFileSync(path.join(__dirname, 'out/res-uat.json'), JSON.stringify(R, null, 1));
   const c = (r) => R.filter((x) => x.result === r).length;
-  console.log(`\nuat: ${R.length} checks — ${c('PASS')} pass, ${c('FAIL')} fail, ${c('WARN')} warn, ${c('INFO')} info`);
+  console.log(`\nuat: ${R.length} checks - ${c('PASS')} pass, ${c('FAIL')} fail, ${c('WARN')} warn, ${c('INFO')} info`);
   await b.close();
 })();

@@ -1,4 +1,4 @@
-// Batch 1 — vendor gates, roles, SoD
+// Batch 1 - vendor gates, roles, SoD
 require('./lib')('fix1', async ({ p, go, dlg, S, mut, as, T, pick, toastText }) => {
   const reg = async (name, gst, pan, submit) => {
     await go('vendor-management/registry'); await p.click('text=Register vendor'); const d = dlg();
@@ -40,7 +40,7 @@ require('./lib')('fix1', async ({ p, go, dlg, S, mut, as, T, pick, toastText }) 
     return [`Approve disabled=${dis}; ${why.slice(0, 90)}`, dis && /PAN Card/.test(why)];
   });
   await T('G-01b', 'Finance Controller approves with override + reason (logged)', async () => {
-    await dlg().locator('textarea:not([aria-label="Write a comment"])').fill('WC policy renewal in progress — cover note seen'); await p.locator('button:has-text("Approve with override")').click(); await p.waitForTimeout(250);
+    await dlg().locator('textarea:not([aria-label="Write a comment"])').fill('WC policy renewal in progress - cover note seen'); await p.locator('button:has-text("Approve with override")').click(); await p.waitForTimeout(250);
     const v = (await S()).vendors.find((x) => x.id === 'VEN-007');
     return [`status ${v.status}; override recorded: ${JSON.stringify(v.approval.stages[2].override || null).slice(0, 80)}`, v.status === 'Active' && (v.approval.stages[2].override || []).length > 0];
   });

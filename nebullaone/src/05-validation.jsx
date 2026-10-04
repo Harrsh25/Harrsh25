@@ -33,7 +33,7 @@ const VX = {
   FILE_MAX: 5 * 1024 * 1024,
   FILE_TYPES: /\.(pdf|jpe?g|png)$/i,
   SHEET_TYPES: /\.(pdf|jpe?g|png|xlsx?|csv)$/i,
-  file: (f, types = VX.FILE_TYPES) => (!f ? "" : f.size > VX.FILE_MAX ? `File is ${(f.size / 1048576).toFixed(2)} MB — over the 5 MB limit` : types.test(f.name) ? "" : types === VX.FILE_TYPES ? "Only PDF, JPG or PNG files are allowed" : "Only PDF, JPG, PNG, Excel or CSV files are allowed"),
+  file: (f, types = VX.FILE_TYPES) => (!f ? "" : f.size > VX.FILE_MAX ? `File is ${(f.size / 1048576).toFixed(2)} MB - over the 5 MB limit` : types.test(f.name) ? "" : types === VX.FILE_TYPES ? "Only PDF, JPG or PNG files are allowed" : "Only PDF, JPG, PNG, Excel or CSV files are allowed"),
   any: (o) => Object.values(o).some(Boolean),
   count: (o) => Object.values(o).filter(Boolean).length,
 };
@@ -66,7 +66,7 @@ function applyBankSwitches(s) {
   for (const v of s.vendors || []) for (const b of v.bankAccounts || []) if (b.change?.status === "Approved" && b.change.switchOn && b.change.switchOn <= todayISO()) {
     v.bankAccounts.forEach((o) => { if (o.isDefault && o.id !== b.id) Object.assign(o, { isDefault: false, replacedOn: b.change.switchOn }); });
     b.isDefault = true; b.change = { ...b.change, status: "Switched" };
-    (s.audit = s.audit || []).unshift({ at: new Date().toISOString(), by: "System", entity: "Vendor", id: v.id, action: `Bank change completed — ${b.bank} ••${String(b.account).slice(-4)} is now the default bank account (cooling period ended)` });
+    (s.audit = s.audit || []).unshift({ at: new Date().toISOString(), by: "System", entity: "Vendor", id: v.id, action: `Bank change completed - ${b.bank} ••${String(b.account).slice(-4)} is now the default bank account (cooling period ended)` });
     n++;
   }
   return n;

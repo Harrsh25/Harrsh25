@@ -9,7 +9,7 @@ function auditName(a) {
     const r = (st[k] || []).find((x) => x.id === a.id);
     if (r) return r.name || r.title || r.company || (r.vendorId ? `${vendorName(st, r.vendorId)}${r.number ? " · " + r.number : ""}` : a.id);
   }
-  return a.id || "—";
+  return a.id || "-";
 }
 function auditLink(a) {
   const id = String(a.id || "").split(",")[0].trim();
@@ -34,7 +34,7 @@ function AuditLogPage() {
   const [from, setFrom] = y.useState(""), [to, setTo] = y.useState("");
   const rows = st.audit.filter((a) => (!from || a.at.slice(0, 10) >= from) && (!to || a.at.slice(0, 10) <= to)).map((a, i) => ({ ...a, key: `${a.at}-${i}` })).sort((a, b) => b.at.localeCompare(a.at));
   return (
-    <Page title="Audit Log" subtitle="Who did what, when — every recorded action across vendors, purchasing, contracts and payments (latest 400)" icon={Icon.fileClock}>
+    <Page title="Audit Log" subtitle="Who did what, when - every recorded action across vendors, purchasing, contracts and payments (latest 400)" icon={Icon.fileClock}>
       <DataTable noun="entries" rows={rows} rowKey={(r) => r.key} onRow={(r) => { const l = auditLink(r); if (l) nav(l); }} exportName="audit-log"
         filters={<span className="flex items-center gap-2 text-[12.5px]">From <span className="w-[150px]"><DateInput value={from} onChange={setFrom} /></span> to <span className="w-[150px]"><DateInput value={to} onChange={setTo} /></span></span>}
         columns={[

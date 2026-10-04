@@ -1,4 +1,4 @@
-// Compliance Center — modelled on Procore (insurance requirements & compliance that gates payments),
+// Compliance Center - modelled on Procore (insurance requirements & compliance that gates payments),
 // SAP Ariba / Oracle Supplier Qualification (requirement rules, verification queue, expiry reminders)
 // and ERPNext / Odoo (document expiry tracking).
 
@@ -23,7 +23,7 @@ function sendReminders(pairs, auto) {
   setState((s) => pairs.forEach(({ v, item }) => {
     const x = byId(s.vendors, v.id);
     x.reminders = [...(x.reminders || []), { key: item.key, item: item.name, at: new Date().toISOString(), by: auto ? "System (schedule)" : currentUser(), note: item.note }];
-  }), { entity: "Compliance", id: pairs.map((p) => p.v.id).filter((x, i, a) => a.indexOf(x) === i).join(", "), action: `Renewal reminder e-mailed — ${pairs.map((p) => `${p.v.name}: ${p.item.name}`).join("; ")}` });
+  }), { entity: "Compliance", id: pairs.map((p) => p.v.id).filter((x, i, a) => a.indexOf(x) === i).join(", "), action: `Renewal reminder e-mailed - ${pairs.map((p) => `${p.v.name}: ${p.item.name}`).join("; ")}` });
   toast(`${pairs.length} reminder${pairs.length > 1 ? "s" : ""} e-mailed`);
 }
 
@@ -57,14 +57,14 @@ function InsurancePolicies({ v, mode = "registry", locked, portal }) {
     : !(Number(edit.cover) > 0) ? "Sum insured must be more than zero"
     : !edit.start || !edit.expiry ? "Enter valid-from and valid-till dates"
     : edit.expiry <= edit.start ? "Valid till must be after valid from"
-    : edit.expiry < todayISO() ? "Policy has already expired — upload the current policy"
+    : edit.expiry < todayISO() ? "Policy has already expired - upload the current policy"
     : edit.start > shiftDays(90) ? "Valid from can't be more than 90 days ahead"
     : portal && !edit.file ? "Attach the policy copy" : "";
   const save = () => {
     if (insErr) return toast(insErr, "red");
     const p = { ...edit, policy: edit.policy.trim(), insurer: edit.insurer.trim(), cover: Number(edit.cover), status: "Pending", uploadedAt: todayISO(), id: edit.id || `POL-${Date.now()}` };
-    mut((x) => { x.insurance = [...(x.insurance || []).filter((i) => i.id !== p.id), p]; }, `${p.type} policy ${p.policy} ${edit.id ? "updated" : "added"} — awaiting verification`);
-    toast("Policy saved — awaiting verification"); setEdit(null);
+    mut((x) => { x.insurance = [...(x.insurance || []).filter((i) => i.id !== p.id), p]; }, `${p.type} policy ${p.policy} ${edit.id ? "updated" : "added"} - awaiting verification`);
+    toast("Policy saved - awaiting verification"); setEdit(null);
   };
   const pStatus = (p) => (p.status === "Rejected" ? "Rejected" : daysUntil(p.expiry) < 0 ? "Expired" : p.status === "Pending" ? "Pending" : daysUntil(p.expiry) <= currentSettings().expiryWarnDays ? "Expiring" : "Verified");
   return (
@@ -79,12 +79,12 @@ function InsurancePolicies({ v, mode = "registry", locked, portal }) {
           ))}
         </div>
       )}
-      <DataTable dense rows={policies} rowKey={(p) => p.id || p.policy} empty={<p className="p-4 text-[13px] text-ink-mute">{items.length ? "No policy on file yet — required cover is listed above." : "No insurance is required for this vendor type."}</p>} columns={[
+      <DataTable dense rows={policies} rowKey={(p) => p.id || p.policy} empty={<p className="p-4 text-[13px] text-ink-mute">{items.length ? "No policy on file yet - required cover is listed above." : "No insurance is required for this vendor type."}</p>} columns={[
         { key: "type", label: "Coverage", className: "font-medium" },
         { key: "policy", label: "Policy no." }, { key: "insurer", label: "Insurer" },
         { key: "cover", label: "Sum insured", align: "right", num: true, render: (p) => inrShort(p.cover) },
         { key: "exp", label: "Valid till", render: (p) => <ExpiryCell iso={p.expiry} /> },
-        { key: "f", label: "Policy copy", render: (p) => (p.file ? <FileLink name={p.file} dataUrl={p.dataUrl} /> : <span className="text-ink-faint">—</span>) },
+        { key: "f", label: "Policy copy", render: (p) => (p.file ? <FileLink name={p.file} dataUrl={p.dataUrl} /> : <span className="text-ink-faint">-</span>) },
         { key: "s", label: "Status", render: (p) => <span className="flex flex-col"><Status>{pStatus(p)}</Status>{p.status === "Rejected" && p.remark && <span className="max-w-[200px] whitespace-normal text-[11px] text-red-600">{p.remark}</span>}</span> },
         { key: "a", label: "", align: "right", render: (p) => (
           <span className="flex justify-end gap-1">
@@ -106,11 +106,11 @@ function InsurancePolicies({ v, mode = "registry", locked, portal }) {
             <Field label="Valid till" required><DateInput value={edit.expiry} onChange={(x) => setEdit({ ...edit, expiry: x })} /></Field>
             <Field label="Policy copy" required={portal} span={2}><input type="file" accept=".pdf,.jpg,.jpeg,.png" className="block w-full text-[13px]" onChange={async (e) => { const f0 = e.target.files[0]; if (f0) { const a = await readAttachment(f0); if (!a) { e.target.value = ""; return; } setEdit((x) => ({ ...x, file: a.name, dataUrl: a.dataUrl })); } }} /></Field>
           </div>
-          {(() => { const r = items.find((i) => i.rule.type === edit.type); return r && Number(edit.cover) > 0 && Number(edit.cover) < r.rule.min ? <div className="mt-3"><Note tone="amber">Cover is below the required {inrShort(r.rule.min)} — the vendor will stay non-compliant.</Note></div> : null; })()}
+          {(() => { const r = items.find((i) => i.rule.type === edit.type); return r && Number(edit.cover) > 0 && Number(edit.cover) < r.rule.min ? <div className="mt-3"><Note tone="amber">Cover is below the required {inrShort(r.rule.min)} - the vendor will stay non-compliant.</Note></div> : null; })()}
         </Modal>
       )}
       {rej && <RejectReasonModal title={`Reject ${rej.type} policy ${rej.policy}`} onClose={() => setRej(null)}
-        onReject={(reason) => mut((x) => { const q = x.insurance.find((i) => i === rej || i.id === rej.id); q.status = "Rejected"; q.remark = reason; }, `${rej.type} policy ${rej.policy} rejected — ${reason}`)} />}
+        onReject={(reason) => mut((x) => { const q = x.insurance.find((i) => i === rej || i.id === rej.id); q.status = "Rejected"; q.remark = reason; }, `${rej.type} policy ${rej.policy} rejected - ${reason}`)} />}
     </Section>
   );
 }
@@ -123,13 +123,13 @@ function ComplianceDrawer({ vendorId, onClose }) {
   if (!v) return null;
   const c = complianceOf(v);
   const gate = c.blocking.length ? settingsOf(st).complianceGate : "Off";
-  const hist = [...(v.reminders || []).map((r) => ({ id: "Reminder", action: `${r.item} — ${r.note}`, by: r.by, at: r.at })),
+  const hist = [...(v.reminders || []).map((r) => ({ id: "Reminder", action: `${r.item} - ${r.note}`, by: r.by, at: r.at })),
     ...st.audit.filter((a) => a.id === v.id && /upload|verif|reject|policy|document|insurance|licence|certificate/i.test(a.action))].sort((a, b) => b.at.localeCompare(a.at));
   const due = c.items.filter((i) => reminderDue(v, i));
   return (
     <Drawer open onClose={onClose} width={980} title={v.name} recordId={v.id} status={<Status>{c.status}</Status>} details={[["Supplies", <VendorTypeTag v={v} />], ["Payment gate", c.blocking.length ? <Status tone={gate === "Stop" ? "red" : "amber"}>{gate === "Stop" ? "Payments blocked" : gate === "Warn" ? "Payments flagged" : "Gate off"}</Status> : <Status tone="green">Payments open</Status>]]}
      
-      actions={<Btn icon={Icon.mail} disabled={!c.items.some((i) => i.level > 0)} title={c.items.some((i) => i.level > 0) ? "" : "Nothing is expired or expiring — no reminder needed"} onClick={() => sendReminders(c.items.filter((i) => i.level > 0).map((item) => ({ v, item })))}>Send reminder{due.length ? ` (${due.length} due)` : ""}</Btn>}
+      actions={<Btn icon={Icon.mail} disabled={!c.items.some((i) => i.level > 0)} title={c.items.some((i) => i.level > 0) ? "" : "Nothing is expired or expiring - no reminder needed"} onClick={() => sendReminders(c.items.filter((i) => i.level > 0).map((item) => ({ v, item })))}>Send reminder{due.length ? ` (${due.length} due)` : ""}</Btn>}
       tabs={{ tabs: [{ id: "check", label: "Checklist" }, { id: "docs", label: "Documents" }, { id: "hist", label: "Reminders & history", count: hist.length || null }], active: tab, onChange: setTab }}>
       <div className="space-y-4 px-6 py-5">
         {c.blocking.length > 0 && <Note tone="red" icon={Icon.lock}><b>Blocking payments:</b> {c.blocking.join(" · ")}</Note>}
@@ -141,7 +141,7 @@ function ComplianceDrawer({ vendorId, onClose }) {
               { key: "e", label: "Valid till", render: (i) => <ExpiryCell iso={i.expiry} /> },
               { key: "s", label: "Status", render: (i) => <Status tone={i.level === 2 ? "red" : i.level === 1 ? "amber" : "green"}>{i.level === 0 ? "Met" : i.note}</Status> },
               { key: "b", label: "Blocks payment", render: (i) => (i.blocks ? "Yes" : "No") },
-              { key: "r", label: "Last reminder", render: (i) => { const r = lastReminder(v, i.key); return r ? fmtDate(r.at) : <span className="text-ink-faint">—</span>; } },
+              { key: "r", label: "Last reminder", render: (i) => { const r = lastReminder(v, i.key); return r ? fmtDate(r.at) : <span className="text-ink-faint">-</span>; } },
               { key: "a", label: "", align: "right", render: (i) => i.level > 0 && <Btn size="sm" icon={Icon.mail} onClick={() => sendReminders([{ v, item: i }])}>Remind</Btn> },
             ]} />
           </Section>
@@ -165,12 +165,12 @@ function RequirementsEditor() {
   const save = () => {
     setState((s) => { s.settings = { ...settingsOf(s), complianceDocs: docs.filter((d) => d.name.trim()), complianceIns: ins.filter((d) => d.type.trim()).map((d) => ({ ...d, min: Number(d.min) || 0 })),
       expiryWarnDays: Number(warn) || 30, reminderDays: rem.split(/[,\s]+/).map(Number).filter((n) => n > 0).sort((a, b) => b - a) }; }, { entity: "Settings", id: "COMPLIANCE", action: "Compliance requirements updated" });
-    toast("Requirements saved — every vendor re-evaluated");
+    toast("Requirements saved - every vendor re-evaluated");
   };
   const Chk = ({ on, onChange }) => <input type="checkbox" className="h-4 w-4 accent-[#0b5ed7]" checked={!!on} onChange={(e) => onChange(e.target.checked)} />;
   return (
     <div className="space-y-4 p-4">
-      <Note>Requirements decide what every vendor must hold. Changes apply immediately to all vendors — statuses, the payment gate and reminders are recalculated.</Note>
+      <Note>Requirements decide what every vendor must hold. Changes apply immediately to all vendors - statuses, the payment gate and reminders are recalculated.</Note>
       <Section title="Document requirements" icon={Icon.folderCheck} actions={<Btn size="sm" icon={Icon.plus} onClick={() => setDocs([...docs, { name: "", applies: "all", expires: false, blocks: false }])}>Add document</Btn>}>
         <table className="w-full"><thead><tr><Th>Document</Th><Th>Required for</Th><Th align="center">Has expiry</Th><Th align="center">Blocks payment</Th><Th align="right">Vendors</Th><Th /></tr></thead>
           <tbody>{docs.map((d, i) => (
@@ -185,8 +185,8 @@ function RequirementsEditor() {
       <Section title="Expiry & reminders" icon={Icon.clock}>
         <div className="grid grid-cols-3 gap-4 p-4">
           <Field label="Mark as “Expiring” within (days)"><NumInput value={warn} onChange={setWarn} /></Field>
-          <Field label="Renewal reminders — days before expiry" hint="Missing / expired items are chased weekly"><TextInput value={rem} onChange={setRem} placeholder="30, 15, 7" /></Field>
-          <Field label="Payment gate" hint="Stop / Warn / Off — set in Procurement Settings"><div className="flex h-[34px] items-center text-[13px]"><Status tone={s0.complianceGate === "Stop" ? "red" : s0.complianceGate === "Warn" ? "amber" : "gray"}>{s0.complianceGate}</Status></div></Field>
+          <Field label="Renewal reminders - days before expiry" hint="Missing / expired items are chased weekly"><TextInput value={rem} onChange={setRem} placeholder="30, 15, 7" /></Field>
+          <Field label="Payment gate" hint="Stop / Warn / Off - set in Procurement Settings"><div className="flex h-[34px] items-center text-[13px]"><Status tone={s0.complianceGate === "Stop" ? "red" : s0.complianceGate === "Warn" ? "amber" : "gray"}>{s0.complianceGate}</Status></div></Field>
         </div>
       </Section>
       <div className="flex justify-end"><Btn variant="primary" icon={Icon.save} onClick={save}>Save requirements</Btn></div>
@@ -228,7 +228,7 @@ function CompliancePage() {
         <DataTable noun="vendors" filters={<FilterSelect label="Status" value={flt} onChange={setFlt} options={[{ value: "All", label: "All statuses" }, "Compliant", { value: "Expiring", label: "Attention needed" }, "Non-Compliant", { value: "Blocked", label: "Payments blocked" }]} />} rows={vendorRows} rowKey={(r) => r.v.id} onRow={(r) => setOpen(r.v.id)} columns={[
           { key: "n", label: "Vendor", className: "font-medium", render: (r) => r.v.name },
           { key: "s", label: "Status", render: (r) => <Status>{r.c.status}</Status> },
-          { key: "o", label: "Open items", render: (r) => <span className="block max-w-[240px] truncate">{r.c.issues.join(" · ") || "—"}</span> },
+          { key: "o", label: "Open items", render: (r) => <span className="block max-w-[240px] truncate">{r.c.issues.join(" · ") || "-"}</span> },
           { key: "x", label: "Next expiry", render: (r) => <ExpiryCell iso={r.next} /> },
           { key: "g", label: "Payment gate", filterOptions: FO.gate, filter: (r) => (r.c.blocking.length ? (set0.complianceGate === "Stop" ? "Blocked" : set0.complianceGate === "Warn" ? "Flagged" : "Open (gate off)") : "Open"), render: gateTag },
           { key: "a", label: "", align: "right", render: (r) => r.due.length > 0 && <span onClick={(e) => e.stopPropagation()}><Btn size="sm" icon={Icon.mail} onClick={() => sendReminders(r.due.map((item) => ({ v: r.v, item })))}>Remind ({r.due.length})</Btn></span> },
@@ -253,10 +253,10 @@ function CompliancePage() {
           { key: "v", label: "Vendor", filterOptions: FO.vendors, filter: (x) => x.v.name, className: "font-medium", render: (x) => x.v.name },
           { key: "n", label: "Document / policy", render: (x) => x.name },
           { key: "k", label: "Type", filterOptions: FO.kind, filter: (x) => x.kind, render: (x) => x.kind },
-          { key: "det", label: "Details", render: (x) => (x.p ? `${x.p.insurer} · ${inrShort(x.p.cover)}` : "—") },
+          { key: "det", label: "Details", render: (x) => (x.p ? `${x.p.insurer} · ${inrShort(x.p.cover)}` : "-") },
           { key: "e", label: "Valid till", render: (x) => <ExpiryCell iso={x.d ? x.d.expiry : x.p.expiry} /> },
           { key: "u", label: "Uploaded", render: (x) => fmtDate((x.d || x.p).uploadedAt) },
-          { key: "f", label: "File", render: (x) => { const o = x.d || x.p; return o.file ? <FileLink name={o.file} dataUrl={o.dataUrl} /> : "—"; } },
+          { key: "f", label: "File", render: (x) => { const o = x.d || x.p; return o.file ? <FileLink name={o.file} dataUrl={o.dataUrl} /> : "-"; } },
           { key: "a", label: "", align: "right", render: (x) => (
             <span className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
               <Btn size="sm" variant="success" onClick={() => (x.d ? mutDoc(x.v, x.name, (d) => { Object.assign(d, { status: "Verified", remark: "", verifiedBy: currentUser(), verifiedAt: new Date().toISOString() }); }, `${x.name} verified`) : mutPol(x.v, x.p, (p) => { p.status = "Verified"; }, `${x.name} policy verified`))}>Verify</Btn>
@@ -266,8 +266,8 @@ function CompliancePage() {
       )}
       {tab === "req" && <RequirementsEditor />}
       {open && <ComplianceDrawer vendorId={open} onClose={() => setOpen(null)} />}
-      {rej && <RejectReasonModal title={`Reject — ${rej.name} (${rej.v.name})`} onClose={() => setRej(null)}
-        onReject={(reason) => (rej.d ? mutDoc(rej.v, rej.name, (d) => { d.status = "Rejected"; d.remark = reason; }, `${rej.name} rejected — ${reason}`) : mutPol(rej.v, rej.p, (p) => { p.status = "Rejected"; p.remark = reason; }, `${rej.name} policy rejected — ${reason}`))} />}
+      {rej && <RejectReasonModal title={`Reject - ${rej.name} (${rej.v.name})`} onClose={() => setRej(null)}
+        onReject={(reason) => (rej.d ? mutDoc(rej.v, rej.name, (d) => { d.status = "Rejected"; d.remark = reason; }, `${rej.name} rejected - ${reason}`) : mutPol(rej.v, rej.p, (p) => { p.status = "Rejected"; p.remark = reason; }, `${rej.name} policy rejected - ${reason}`))} />}
     </Page>
   );
 }

@@ -23,11 +23,11 @@ function WorkOrderModal({ open, onClose, onCreated, contractId: presetContract }
   const setItem = (i, k, v) => setF({ ...f, items: f.items.map((x, j) => (j === i ? { ...x, [k]: v } : x)) });
   const setMs = (i, k, v) => setF({ ...f, milestones: f.milestones.map((x, j) => (j === i ? { ...x, [k]: v } : x)) });
   const boqOver = c && f.type !== "Lump Sum" && f.items.some((i) => { const l = i.boqRef && contractBoq(st, c).find((b) => b.id === i.boqRef); return l && Number(i.qty) > l.balance + 0.001; });
-  const dateErr = !f.start || !f.end ? "Enter start and finish dates" : f.end <= f.start ? "Finish must be after start" : c && f.start < c.start ? `Starts before the contract (${fmtDate(c.start)})` : c && f.end > c.end ? `Finishes after the contract completion (${fmtDate(c.end)}) — extend the contract first` : "";
+  const dateErr = !f.start || !f.end ? "Enter start and finish dates" : f.end <= f.start ? "Finish must be after start" : c && f.start < c.start ? `Starts before the contract (${fmtDate(c.start)})` : c && f.end > c.end ? `Finishes after the contract completion (${fmtDate(c.end)}) - extend the contract first` : "";
   const ok = c && f.title && f.wbs && value > 0 && !boqOver && !dateErr && (f.type === "Lump Sum" ? wsum === 100 && f.milestones.every((m) => m.name) : f.items.every((i) => i.desc && i.qty > 0 && i.rate > 0));
   const save = (issue) => {
     const id = nextId("WO", st.workOrders);
-    if (issue && blockers.length) return toast(`Can't issue — ${blockers.join("; ")}`, "red");
+    if (issue && blockers.length) return toast(`Can't issue - ${blockers.join("; ")}`, "red");
     const wo = { id, contractId: c.id, vendorId: c.vendorId, project: c.project, wbs: f.wbs, title: f.title, type: f.type, location: f.location, start: f.start, end: f.end, status: issue ? "Issued" : "Draft", issuedOn: issue ? todayISO() : null, issuedBy: issue ? currentUser() : null, acceptance: issue ? { status: "Pending" } : null };
     if (f.type === "Lump Sum") Object.assign(wo, { lumpSum: Number(f.lumpSum), milestones: f.milestones.map((m, i) => ({ id: `M${i + 1}`, name: m.name, weight: Number(m.weight) })) });
     else wo.items = f.items.map((it, i) => ({ id: `${id.slice(-3)}-${i + 1}`, code: it.code, desc: it.desc, unit: it.unit, qty: Number(it.qty), rate: Number(it.rate), ...(it.boqRef ? { boqRef: it.boqRef } : {}) }));
@@ -40,7 +40,7 @@ function WorkOrderModal({ open, onClose, onCreated, contractId: presetContract }
         <Btn onClick={onClose}>Cancel</Btn><Btn disabled={!ok} onClick={() => save(false)}>Save draft</Btn><Btn variant="primary" disabled={!ok || value > headroom || blockers.length > 0} onClick={() => save(true)}>Issue work order</Btn></>}>
       <div className="space-y-4">
         <div className="grid grid-cols-3 gap-3">
-          <Field label="Contract" required hint="Signed contracts of contractors who aren't blocked"><Select value={f.contractId} placeholder="Select contract…" onChange={(x) => setF({ ...f, contractId: x, wbs: "" })} options={contracts.map((x) => ({ value: x.id, label: `${x.id} — ${vendorName(st, x.vendorId)}` }))} /></Field>
+          <Field label="Contract" required hint="Signed contracts of contractors who aren't blocked"><Select value={f.contractId} placeholder="Select contract…" onChange={(x) => setF({ ...f, contractId: x, wbs: "" })} options={contracts.map((x) => ({ value: x.id, label: `${x.id} - ${vendorName(st, x.vendorId)}` }))} /></Field>
           <Field label="Work order type" hint={f.type === "Lump Sum" ? "Fixed price, billed on milestone % complete" : "Billed on measured quantity × agreed rate"}>
             <div className="flex gap-1 rounded-lg bg-gray-100 p-0.5">
               {["Item-Rate", "Lump Sum"].map((t) => <button key={t} type="button" onClick={() => setF({ ...f, type: t })} className={cls("h-[28px] flex-1 rounded-md text-[13px]", f.type === t ? "bg-white font-medium text-brand shadow-sm" : "text-ink-soft")}>{t}</button>)}
@@ -54,8 +54,8 @@ function WorkOrderModal({ open, onClose, onCreated, contractId: presetContract }
         {c && (() => { const cv = byId(st.vendors, c.vendorId), cc = cv && complianceOf(cv); return cc && cc.blocking.length > 0 ? <Note tone="amber" icon={Icon.shieldCheck}><b>{cv.name} is not compliant:</b> {cc.blocking.join(" · ")}. Payments against this work order will be held until it is fixed.</Note> : null; })()}
         {c && dateErr && <Note tone="red">{dateErr}</Note>}
         {blockers.length > 0 && <Note tone="red" icon={Icon.lock}>Can be saved as a draft but not issued: {blockers.join(" · ")}.</Note>}
-        {qualWarn && <Note tone="amber" icon={Icon.alert}>{qualWarn}. You can still issue — the approver sees this warning.</Note>}
-        {boqOver && <Note tone="red">A line is above what is left on the contract BOQ — raise a change order for the extra quantity.</Note>}
+        {qualWarn && <Note tone="amber" icon={Icon.alert}>{qualWarn}. You can still issue - the approver sees this warning.</Note>}
+        {boqOver && <Note tone="red">A line is above what is left on the contract BOQ - raise a change order for the extra quantity.</Note>}
         {c && boqLeft.length > 0 && f.type !== "Lump Sum" && <div className="flex items-center justify-between rounded-lg border border-line px-3 py-2 text-[12.5px]"><span>Contract BOQ has <b>{boqLeft.length}</b> line(s) not yet ordered.</span><Btn size="sm" icon={Icon.sheet} onClick={loadBoq}>Load lines from contract BOQ</Btn></div>}
         {c && <Note>Contract terms applied to bills under this WO: retention {c.retentionPct}%, advance recovery {c.advanceRecoveryPct || 0}%, cess {c.cessPct}%, GST {c.gstPct}%.</Note>}
         {f.type === "Item-Rate" ? (
@@ -87,7 +87,7 @@ function WorkOrderModal({ open, onClose, onCreated, contractId: presetContract }
                   <IconBtn icon={Icon.trash} title="Remove milestone" onClick={() => f.milestones.length > 1 && setF({ ...f, milestones: f.milestones.filter((_, j) => j !== i) })} />
                 </div>
               ))}
-              <p className={cls("text-[12px]", wsum === 100 ? "text-green-700" : "text-red-600")}>Milestone weights total {wsum}% {wsum !== 100 && "— must equal 100%"}</p>
+              <p className={cls("text-[12px]", wsum === 100 ? "text-green-700" : "text-red-600")}>Milestone weights total {wsum}% {wsum !== 100 && "- must equal 100%"}</p>
             </div>
           </Section>
         )}
@@ -105,13 +105,13 @@ function WorkOrderDrawer({ id, onClose }) {
   const bills = st.raBills.filter((b) => b.woId === id);
   const hasWork = st.measurements.some((m) => m.woId === id) || bills.length > 0;
   const mut = (status, reason) => {
-    if ((status === "Issued" || (status === "In Progress" && wo.status === "Suspended"))) { const b = woIssueBlockers(getState(), wo.contractId); if (b.length) return toast(`Can't ${status === "Issued" ? "issue" : "resume"} — ${b.join("; ")}`, "red"); }
+    if ((status === "Issued" || (status === "In Progress" && wo.status === "Suspended"))) { const b = woIssueBlockers(getState(), wo.contractId); if (b.length) return toast(`Can't ${status === "Issued" ? "issue" : "resume"} - ${b.join("; ")}`, "red"); }
     if (["Suspended", "Short-closed", "Cancelled"].includes(status) && !tryAct(["Project Manager", "Procurement Head"], [], `${status.toLowerCase()} a work order`)) return;
     setState((s) => {
       const w = byId(s.workOrders, id); w.status = status;
       if (status === "Issued") { w.issuedOn = todayISO(); w.issuedBy = currentUser(); w.acceptance = { status: "Pending" }; }
       if (reason) w.log = [...(w.log || []), { at: new Date().toISOString(), by: currentUser(), status, reason }];
-    }, { entity: "Work Order", id, action: `Status → ${status}${reason ? ` — ${reason}` : ""}` });
+    }, { entity: "Work Order", id, action: `Status → ${status}${reason ? ` - ${reason}` : ""}` });
     toast(`${id} ${status.toLowerCase()}`, ["Suspended", "Cancelled"].includes(status) ? "amber" : "green");
     setAct(null);
   };
@@ -129,11 +129,11 @@ function WorkOrderDrawer({ id, onClose }) {
         {["Issued", "In Progress", "Suspended"].includes(wo.status) && hasWork && <Btn onClick={() => setAct({ status: "Short-closed", reason: "" })}>Short-close</Btn>}
       </>}>
       {cancelAsk && <ReasonModal title={`Cancel ${wo.id}`} text="No work has been measured. The contractor is told the work order is withdrawn and its BOQ quantity is free again." action="Cancel WO" onClose={() => setCancelAsk(false)}
-        onDone={(r) => { setState((s) => { const x = byId(s.workOrders, id); x.status = "Cancelled"; x.cancelled = { at: new Date().toISOString(), by: currentUser(), reason: r }; }, { entity: "Work order", id, action: `Cancelled — ${r}` }); toast(`${wo.id} cancelled`, "red"); }} />}
+        onDone={(r) => { setState((s) => { const x = byId(s.workOrders, id); x.status = "Cancelled"; x.cancelled = { at: new Date().toISOString(), by: currentUser(), reason: r }; }, { entity: "Work order", id, action: `Cancelled - ${r}` }); toast(`${wo.id} cancelled`, "red"); }} />}
       <div className="space-y-4 px-6 py-5">
         {wo.status === "Draft" && woIssueBlockers(st, wo.contractId).length > 0 && <Note tone="red" icon={Icon.lock}>Can't be issued yet: {woIssueBlockers(st, wo.contractId).join(" · ")}.</Note>}
         {wo.status === "Draft" && qualLimitWarn(st, byId(st.vendors, wo.vendorId), woValue(wo), wo.id) && <Note tone="amber" icon={Icon.alert}>{qualLimitWarn(st, byId(st.vendors, wo.vendorId), woValue(wo), wo.id)}.</Note>}
-        {["Suspended", "Short-closed", "Cancelled", "Closed"].includes(wo.status) && <Note tone={wo.status === "Suspended" ? "amber" : "blue"}>{wo.status === "Suspended" ? "Stop-work: measurements, claims and new bills are paused until resumed." : wo.status === "Closed" ? "Closed with the contract — no further measurement or billing." : `${wo.status}${lastLog ? ` by ${lastLog.by} on ${fmtDate(lastLog.at)}` : ""}.`}{(wo.closedReason || lastLog?.reason) && ` Reason: ${wo.closedReason || lastLog.reason}`}</Note>}
+        {["Suspended", "Short-closed", "Cancelled", "Closed"].includes(wo.status) && <Note tone={wo.status === "Suspended" ? "amber" : "blue"}>{wo.status === "Suspended" ? "Stop-work: measurements, claims and new bills are paused until resumed." : wo.status === "Closed" ? "Closed with the contract - no further measurement or billing." : `${wo.status}${lastLog ? ` by ${lastLog.by} on ${fmtDate(lastLog.at)}` : ""}.`}{(wo.closedReason || lastLog?.reason) && ` Reason: ${wo.closedReason || lastLog.reason}`}</Note>}
         {wo.wbs && <p className="text-[12.5px] text-ink-soft">WBS <b className="text-ink">{wo.project} › {wo.wbs}</b></p>}
         {wo.acceptance?.status === "Pending" && <Note tone="amber">Waiting for the contractor to accept this work order in the supplier portal. Measurements open once it is accepted.</Note>}
         {wo.acceptance?.status === "Declined" && <Note tone="red">Contractor declined: {wo.acceptance.reason}. Revise and re-issue.</Note>}
@@ -144,7 +144,7 @@ function WorkOrderDrawer({ id, onClose }) {
           <StatTile tone={pr.spi >= 0.95 ? "green" : pr.spi >= 0.8 ? "amber" : "red"} label="Measured (physical)" value={`${pr.physical.toFixed(1)}%`} sub={`SPI ${pr.spi.toFixed(2)}`} icon={Icon.ruler} />
           <StatTile tone="cyan" label="Billed (financial)" value={`${pr.financial.toFixed(1)}%`} sub={inrShort(pr.billed)} icon={Icon.receipt} />
         </div>
-        <Section title={wo.type === "Lump Sum" ? `Milestones — lump sum ${inr(wo.lumpSum)}` : "Items — WO quantity vs measured vs billed"} icon={Icon.listChecks}>
+        <Section title={wo.type === "Lump Sum" ? `Milestones - lump sum ${inr(wo.lumpSum)}` : "Items - WO quantity vs measured vs billed"} icon={Icon.listChecks}>
           <DataTable dense rows={pos} rowKey={(p) => p.line.id} columns={wo.type === "Lump Sum" ? [
             { key: "n", label: "Milestone", render: (p) => p.line.name },
             { key: "w", label: "Weight", align: "right", render: (p) => `${p.line.weight}%` },
@@ -202,7 +202,7 @@ function WorkOrdersPage() {
         { key: "pl", label: "Planned", opt: true, align: "right", num: true, render: (w) => `${woProgress(st, w).planned.toFixed(0)}%` },
         { key: "ph", label: "Physical", render: (w) => { const p = woProgress(st, w); return <Progress value={Math.round(p.physical)} color={p.spi >= 0.95 ? "bg-green-500" : p.spi >= 0.8 ? "bg-amber-500" : "bg-red-500"} />; } },
         { key: "end", label: "Finish", render: (w) => fmtDate(w.end) },
-        { key: "acc", label: "Contractor", opt: true, filterOptions: FO.acceptance, filter: (w) => w.acceptance?.status || "—", filterLabel: "Acceptance", render: (w) => <Status tone={{ Accepted: "green", Pending: "amber", Declined: "red" }[w.acceptance?.status] || "gray"}>{w.acceptance?.status === "Pending" ? "Awaiting acceptance" : w.acceptance?.status || "—"}</Status> },
+        { key: "acc", label: "Contractor", opt: true, filterOptions: FO.acceptance, filter: (w) => w.acceptance?.status || "-", filterLabel: "Acceptance", render: (w) => <Status tone={{ Accepted: "green", Pending: "amber", Declined: "red" }[w.acceptance?.status] || "gray"}>{w.acceptance?.status === "Pending" ? "Awaiting acceptance" : w.acceptance?.status || "-"}</Status> },
         { key: "s", label: "Status", filterOptions: FO.woStatus, filter: (w) => w.status, render: (w) => <Status>{w.status}</Status> },
       ]} />
       <WorkOrderModal open={create} contractId={presetContract} onClose={() => setCreate(false)} onCreated={setOpen} />
@@ -233,12 +233,12 @@ function MeasurementModal({ preset = {}, onClose }) {
         setState((s) => {
           s.measurements.push({ id, woId: wo.id, lineId: f.lineId, date: f.date, location: f.location, nos: dimsUsed ? Number(f.nos) || 1 : null, l: f.l === "" ? null : Number(f.l), b: f.b === "" ? null : Number(f.b), d: f.d === "" ? null : Number(f.d), qty: wo.type === "Lump Sum" ? 0 : qty, pct: wo.type === "Lump Sum" ? Number(f.pct) : null, recordedBy: currentUser(), jms: { status: "Pending" }, qc: { status: "Pending" }, remarks: f.remarks, billedIn: null });
           const w = byId(s.workOrders, wo.id); if (w.status === "Issued") w.status = "In Progress";
-        }, { entity: "Measurement", id, action: `Recorded on ${wo.id} — awaiting JMS` });
+        }, { entity: "Measurement", id, action: `Recorded on ${wo.id} - awaiting JMS` });
         toast(`${id} recorded`); onClose();
       }}>Save to MB</Btn></>}>
       <div className="space-y-3">
         <div className="grid grid-cols-3 gap-3">
-          <Field label="Work order" required><Select value={f.woId} placeholder="Select…" onChange={(x) => setF({ ...f, woId: x, lineId: "" })} options={st.workOrders.filter((w) => ["Issued", "In Progress"].includes(w.status) && woAccepted(w)).map((w) => ({ value: w.id, label: `${w.id} — ${w.title}` }))} /></Field>
+          <Field label="Work order" required><Select value={f.woId} placeholder="Select…" onChange={(x) => setF({ ...f, woId: x, lineId: "" })} options={st.workOrders.filter((w) => ["Issued", "In Progress"].includes(w.status) && woAccepted(w)).map((w) => ({ value: w.id, label: `${w.id} - ${w.title}` }))} /></Field>
           <Field label={wo?.type === "Lump Sum" ? "Milestone" : "BOQ item"} required span={2}><Select value={f.lineId} placeholder="Select…" onChange={(x) => setF({ ...f, lineId: x })} options={lines} /></Field>
           <Field label="Date"><DateInput value={f.date} onChange={(x) => setF({ ...f, date: x })} /><FieldErr m={wo && mDateErr} /></Field>
           <Field label="Location / grid / chainage" required span={2}><TextInput value={f.location} onChange={(x) => setF({ ...f, location: x })} placeholder="e.g. Slab L4, grid A1–A6" /></Field>
@@ -262,7 +262,7 @@ function MeasurementModal({ preset = {}, onClose }) {
               <b className="num">{num(qty, 3)} {item?.unit || ""}</b>
             </div>
             {item && posLine && <p className="text-[12px] text-ink-mute">WO qty {num(item.qty)} · signed {num(posLine.measured)} · pending JMS {num(pending)} · balance {num(item.qty - posLine.measured - pending)}</p>}
-            {overQty && <Note tone="amber">This takes the item above its WO quantity — it will need a change order / deviation approval before billing.</Note>}
+            {overQty && <Note tone="amber">This takes the item above its WO quantity - it will need a change order / deviation approval before billing.</Note>}
           </>
         )}
         <Field label="Remarks"><TextInput value={f.remarks} onChange={(x) => setF({ ...f, remarks: x })} /></Field>
@@ -290,10 +290,10 @@ function MeasurementBookPage() {
       { entity: "Measurement", id: ids.join(", "), action: `JMS signed (${form.rep} / ${form.eng})` });
     toast(`${ids.length} measurement(s) signed`); setSel([]); setSign(null);
   };
-  const woOpts = [{ value: "All", label: "All work orders" }, ...st.workOrders.map((w) => ({ value: w.id, label: `${w.id} — ${w.title}` }))];
+  const woOpts = [{ value: "All", label: "All work orders" }, ...st.workOrders.map((w) => ({ value: w.id, label: `${w.id} - ${w.title}` }))];
   const qtyText = (m) => (m.pct !== null && m.pct !== undefined ? `${m.pct}% cum.` : `${num(m.qty, 3)} ${unitOf(m)}`);
   return (
-    <Page title="Measurement Book" subtitle="Site measurements and joint measurement sheets (JMS) — the basis for every RA bill" icon={Icon.ruler}
+    <Page title="Measurement Book" subtitle="Site measurements and joint measurement sheets (JMS) - the basis for every RA bill" icon={Icon.ruler}
       actions={<Btn variant="primary" icon={Icon.plus} onClick={() => setAdd(true)}>Record measurement</Btn>}>
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "mb", label: "Measurement book", icon: Icon.book }, { id: "jms", label: "Joint measurement sheets", icon: Icon.users }, { id: "ncr", label: `Inspections & NCRs${(st.ncrs || []).filter((n) => n.status !== "Closed").length ? ` (${(st.ncrs || []).filter((n) => n.status !== "Closed").length})` : ""}`, icon: Icon.shieldCheck }, { id: "abs", label: "Abstract by item", icon: Icon.sheet }]} />
       {tab === "ncr" && <NcrTable rows={(st.ncrs || []).filter((n) => wo === "All" || n.woId === wo)} />}
@@ -305,7 +305,7 @@ function MeasurementBookPage() {
           { key: "wo", label: "Work order", render: (m) => (byId(st.workOrders, m.woId) || {}).title || m.woId },
           { key: "item", label: "Item / milestone", className: "max-w-[260px] truncate", render: (m) => <span title={lineName(m)}>{lineName(m)}</span> },
           { key: "loc", label: "Location", opt: true, className: "max-w-[200px] truncate", render: (m) => <span title={m.location}>{m.location}</span> },
-          { key: "dims", label: "N × L × B × D", opt: true, className: "num text-[12px] text-ink-soft", render: (m) => (m.l || m.b || m.d ? [m.nos || 1, m.l ?? "–", m.b ?? "–", m.d ?? "–"].join(" × ") : "—") },
+          { key: "dims", label: "N × L × B × D", opt: true, className: "num text-[12px] text-ink-soft", render: (m) => (m.l || m.b || m.d ? [m.nos || 1, m.l ?? "–", m.b ?? "–", m.d ?? "–"].join(" × ") : "-") },
           { key: "qty", label: "Quantity", align: "right", num: true, render: (m) => <b>{qtyText(m)}</b> },
           { key: "jms", label: "JMS", render: (m) => <span title={m.jms.remark || ""}><Status>{m.jms.status}</Status></span> },
           { key: "qc", label: "Inspection", filterOptions: ["Pending", "Passed", "Failed"], filter: (m) => m.qc?.status || "Pending", render: (m) => (
@@ -313,7 +313,7 @@ function MeasurementBookPage() {
               <Status tone={{ Passed: "green", Failed: "red" }[m.qc?.status] || "amber"}>{m.qc?.status === "Failed" ? `Failed · ${m.qc.ncrId}` : m.qc?.status || "Pending"}</Status>
               {(!m.qc || m.qc.status === "Pending") && !m.billedIn && <><button className="text-[11.5px] font-medium text-green-700 hover:underline" onClick={() => inspectMeasurement(m, true)}>Pass</button><button className="text-[11.5px] font-medium text-red-600 hover:underline" onClick={() => setNcrFor(m)}>Fail</button></>}
             </span>) },
-          { key: "bill", label: "Billed in", filterOptions: FO.billed, filter: (m) => (m.billedIn ? "Billed" : "Not billed"), filterLabel: "Billing", render: (m) => (m.billedIn ? <RefLink to={`${CL_BASE}/ra-bills?open=${m.billedIn}`}>{m.billedIn}</RefLink> : <span className="text-ink-faint">—</span>) },
+          { key: "bill", label: "Billed in", filterOptions: FO.billed, filter: (m) => (m.billedIn ? "Billed" : "Not billed"), filterLabel: "Billing", render: (m) => (m.billedIn ? <RefLink to={`${CL_BASE}/ra-bills?open=${m.billedIn}`}>{m.billedIn}</RefLink> : <span className="text-ink-faint">-</span>) },
         ]} />
       </>}
       {tab === "jms" && <>
@@ -357,19 +357,19 @@ function MeasurementBookPage() {
               {m.jms.status === "Pending" && <Btn variant="danger" onClick={() => setSign({ ids: [m.id], dispute: true, remark: "" })}>Dispute</Btn>}
               <Btn variant="success" icon={Icon.check} onClick={() => setSign({ ids: [m.id], rep: "", eng: currentUser(), qty: m.jms.status === "Disputed" ? (m.pct ?? m.qty) : undefined, disputed: m.jms.status === "Disputed", isPct: m.pct !== null && m.pct !== undefined })}>Sign JMS</Btn></>}>
             {withdraw && <ReasonModal title={`Withdraw ${withdraw.id}`} text="The entry is taken out of the measurement book (kept in the audit log). Signed entries can't be billed once withdrawn." action="Withdraw" onClose={() => setWithdraw(null)}
-              onDone={(r) => { setState((s) => { const x = byId(s.measurements, withdraw.id); s.withdrawnMeasurements = [...(s.withdrawnMeasurements || []), { ...x, withdrawn: { at: new Date().toISOString(), by: currentUser(), reason: r } }]; s.measurements = s.measurements.filter((y) => y.id !== withdraw.id); }, { entity: "Measurement", id: withdraw.id, action: `Withdrawn — ${r}` }); setOpenMb(null); toast(`${withdraw.id} withdrawn`); }} />}
+              onDone={(r) => { setState((s) => { const x = byId(s.measurements, withdraw.id); s.withdrawnMeasurements = [...(s.withdrawnMeasurements || []), { ...x, withdrawn: { at: new Date().toISOString(), by: currentUser(), reason: r } }]; s.measurements = s.measurements.filter((y) => y.id !== withdraw.id); }, { entity: "Measurement", id: withdraw.id, action: `Withdrawn - ${r}` }); setOpenMb(null); toast(`${withdraw.id} withdrawn`); }} />}
             <div className="space-y-4 px-6 py-5">
               {m.jms.status === "Disputed" && <Note tone="red">Disputed: {m.jms.remark}</Note>}
               <Section title="Measurement" icon={Icon.ruler}>
-                <KV items={[["Date", fmtDate(m.date)], ["Location", m.location || "—"], ["Quantity", <b>{qtyText(m)}</b>],
-                  ["N × L × B × D", m.l || m.b || m.d ? [m.nos || 1, m.l ?? "–", m.b ?? "–", m.d ?? "–"].join(" × ") : "—"], ["Recorded by", m.recordedBy || "—"], ["Remarks", m.remarks || "—"]]} />
+                <KV items={[["Date", fmtDate(m.date)], ["Location", m.location || "-"], ["Quantity", <b>{qtyText(m)}</b>],
+                  ["N × L × B × D", m.l || m.b || m.d ? [m.nos || 1, m.l ?? "–", m.b ?? "–", m.d ?? "–"].join(" × ") : "-"], ["Recorded by", m.recordedBy || "-"], ["Remarks", m.remarks || "-"]]} />
               </Section>
               <Section title="Joint measurement (JMS)" icon={Icon.users}>
-                <KV items={[["Status", <Status>{m.jms.status}</Status>], ["Contractor representative", m.jms.contractorRep || "—"], ["Site engineer", m.jms.engineer || "—"], ["Signed on", m.jms.at && m.jms.status === "Signed" ? fmtDateTime(m.jms.at) : "—"]]} />
+                <KV items={[["Status", <Status>{m.jms.status}</Status>], ["Contractor representative", m.jms.contractorRep || "-"], ["Site engineer", m.jms.engineer || "-"], ["Signed on", m.jms.at && m.jms.status === "Signed" ? fmtDateTime(m.jms.at) : "-"]]} />
               </Section>
               <Section title="Work order & billing" icon={Icon.receipt}>
                 <KV items={[["Work order", <RefLink to={`${CL_BASE}/work-orders?open=${w.id}`}>{w.title}</RefLink>], ["Type", w.type], ["Contractor", vendorName(st, w.vendorId)],
-                  ["Billed in", m.billedIn ? <RefLink to={`${CL_BASE}/ra-bills?open=${m.billedIn}`}>RA bill {byId(st.raBills, m.billedIn)?.seq ?? ""}</RefLink> : m.jms.status !== "Signed" ? "Not billable until JMS is signed" : m.qc?.status === "Passed" || !settingsOf(st).qcBeforeBilling ? "Ready to bill" : m.qc?.status === "Failed" ? `Blocked — ${m.qc.ncrId} open` : "Waiting for quality inspection"],
+                  ["Billed in", m.billedIn ? <RefLink to={`${CL_BASE}/ra-bills?open=${m.billedIn}`}>RA bill {byId(st.raBills, m.billedIn)?.seq ?? ""}</RefLink> : m.jms.status !== "Signed" ? "Not billable until JMS is signed" : m.qc?.status === "Passed" || !settingsOf(st).qcBeforeBilling ? "Ready to bill" : m.qc?.status === "Failed" ? `Blocked - ${m.qc.ncrId} open` : "Waiting for quality inspection"],
                   ["Inspection", m.qc?.status ? `${m.qc.status}${m.qc.by ? ` · ${m.qc.by}` : ""}` : "Pending"]]} />
               </Section>
             </div>
@@ -377,7 +377,7 @@ function MeasurementBookPage() {
         );
       })()}
       {sign && !sign.dispute && (
-        <Modal open onClose={() => setSign(null)} width={500} title={`Joint measurement sign-off — ${sign.ids.length} entr${sign.ids.length > 1 ? "ies" : "y"}`}
+        <Modal open onClose={() => setSign(null)} width={500} title={`Joint measurement sign-off - ${sign.ids.length} entr${sign.ids.length > 1 ? "ies" : "y"}`}
           footer={<><Btn onClick={() => setSign(null)}>Cancel</Btn><Btn variant="primary" disabled={!sign.rep || !sign.eng || (!sign.ids.every((i) => byId(st.measurements, i)?.jms.contractorAgreed) && !sign.paper)} onClick={() => {
             if (sign.disputed && sign.isPct) { setState((s) => { const m = byId(s.measurements, sign.ids[0]); m.pct = Number(sign.qty); }); signAll(sign.ids, { rep: sign.rep, eng: sign.eng }); }
             else signAll(sign.ids, sign);
@@ -395,7 +395,7 @@ function MeasurementBookPage() {
       )}
       {sign && sign.dispute && (
         <Modal open onClose={() => setSign(null)} width={480} title="Record dispute" footer={<><Btn onClick={() => setSign(null)}>Cancel</Btn><Btn variant="danger" disabled={!sign.remark} onClick={() => {
-          setState((s) => (byId(s.measurements, sign.ids[0]).jms = { status: "Disputed", remark: sign.remark, at: new Date().toISOString() }), { entity: "Measurement", id: sign.ids[0], action: `JMS disputed — ${sign.remark}` });
+          setState((s) => (byId(s.measurements, sign.ids[0]).jms = { status: "Disputed", remark: sign.remark, at: new Date().toISOString() }), { entity: "Measurement", id: sign.ids[0], action: `JMS disputed - ${sign.remark}` });
           setSign(null);
         }}>Mark disputed</Btn></>}>
           <Field label="What does the contractor dispute?"><TextArea value={sign.remark} onChange={(x) => setSign({ ...sign, remark: x })} /></Field>

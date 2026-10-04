@@ -84,37 +84,37 @@ function PrepareBillModal({ woId: presetWo, onClose, onCreated, finalFor }) {
     VX.req(period.from, "Period from required") || VX.req(period.to, "Period to required") || VX.dateOrder(period.from, period.to, "Period to must be after period from") || VX.notFuture(period.to, "Period can't end in the future"),
     ["penalty", "other"].some((k) => manual[k] !== "" && Number(manual[k]) < 0) || (!issues.length && Number(manual.materials) < 0) ? "Deductions can't be negative" : "",
     (Number(manual.penalty) > 0 || Number(manual.other) > 0) && !String(manual.otherNote || "").trim() ? "Add a note explaining the penalty / other deduction" : "",
-    calc && calc.net < 0 ? "Deductions exceed the bill value — net payable can't be negative" : "",
+    calc && calc.net < 0 ? "Deductions exceed the bill value - net payable can't be negative" : "",
   ].filter(Boolean);
   const create = () => {
-    if (over.length) return toast("Quantity above the work order — raise a change order first", "red");
-    if (final && (unsigned > 0 || waitingQc.length > 0 || ids.length < avail.length)) return toast("A final bill must include every measurement — sign, inspect and include them all first", "red");
+    if (over.length) return toast("Quantity above the work order - raise a change order first", "red");
+    if (final && (unsigned > 0 || waitingQc.length > 0 || ids.length < avail.length)) return toast("A final bill must include every measurement - sign, inspect and include them all first", "red");
     const id = nextId("RA", st.raBills);
     setState((s) => {
       const fresh = computeRABill(s, woId, ids, manual);
       s.raBills.unshift({ id, woId, contractId: wo.contractId, vendorId: wo.vendorId, seq, date: todayISO(), periodFrom: period.from, periodTo: period.to, mbIds: ids, manual, materialIssueIds: issues.map((m) => m.id), ...fresh, status: "Submitted", final: !!final, history: [{ status: "Submitted", by: currentUser(), at: new Date().toISOString(), remark: final ? "Final bill" : "" }] });
       ids.forEach((m) => (byId(s.measurements, m).billedIn = id));
       issues.forEach((m) => (byId(s.materialIssues, m.id).recoveredIn = id));
-    }, { entity: "RA Bill", id, action: `RA-${seq} submitted for ${woId} — net ${inr(calc.net)}` });
+    }, { entity: "RA Bill", id, action: `RA-${seq} submitted for ${woId} - net ${inr(calc.net)}` });
     toast(`${id} submitted for verification`); onClose(); onCreated && onCreated(id);
   };
   return (
-    <Modal open onClose={onClose} width={980} title={`Prepare RA bill${wo ? ` — ${wo.id} · RA-${seq}` : ""}`} subtitle="Built from JMS-signed, unbilled measurement book entries; deductions follow the contract terms"
-      footer={<><span className="mr-auto text-[13px]">Net payable <b className="num">{calc ? inr(calc.net) : "—"}</b></span><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" icon={Icon.send} disabled={!ids.length || !calc || calc.gross <= 0 || over.length > 0 || raErr.length > 0} onClick={create}>Submit for certification</Btn></>}>
+    <Modal open onClose={onClose} width={980} title={`Prepare RA bill${wo ? ` - ${wo.id} · RA-${seq}` : ""}`} subtitle="Built from JMS-signed, unbilled measurement book entries; deductions follow the contract terms"
+      footer={<><span className="mr-auto text-[13px]">Net payable <b className="num">{calc ? inr(calc.net) : "-"}</b></span><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" icon={Icon.send} disabled={!ids.length || !calc || calc.gross <= 0 || over.length > 0 || raErr.length > 0} onClick={create}>Submit for certification</Btn></>}>
       <div className="space-y-4">
         <div className="grid grid-cols-3 gap-3">
-          <Field label="Work order"><Select value={woId} onChange={(x) => setWoId(x)} options={eligibleWos.map((w) => ({ value: w.id, label: `${w.id} — ${vendorName(st, w.vendorId)}` }))} /></Field>
+          <Field label="Work order"><Select value={woId} onChange={(x) => setWoId(x)} options={eligibleWos.map((w) => ({ value: w.id, label: `${w.id} - ${vendorName(st, w.vendorId)}` }))} /></Field>
           <Field label="Period from"><DateInput value={period.from} onChange={(x) => setPeriod({ ...period, from: x })} /></Field>
           <Field label="Period to"><DateInput value={period.to} onChange={(x) => setPeriod({ ...period, to: x })} /></Field>
         </div>
-        {c && (c.handover || c.status === "Terminated") && <Check checked={final} onChange={setFinal} label={`Final bill for ${wo.id} — settles all remaining work; no further RA bills on this work order`} />}
+        {c && (c.handover || c.status === "Terminated") && <Check checked={final} onChange={setFinal} label={`Final bill for ${wo.id} - settles all remaining work; no further RA bills on this work order`} />}
         {c && !c.handover && c.status !== "Terminated" && finalFor && <Note tone="amber">A final bill needs the handover certificate first.</Note>}
         {raErr.length > 0 && <Note tone="red">{raErr.join(" · ")}</Note>}
         {unsigned > 0 && <Note tone="amber">{unsigned} measurement(s) on this WO are still pending/disputed in JMS and are not included.</Note>}
         {waitingQc.length > 0 && <Note tone="amber">{waitingQc.length} signed measurement(s) are waiting for a passed quality inspection ({waitingQc.map((m) => m.id).join(", ")}) and are not included.</Note>}
-        {over.length > 0 && <Note tone="red">Quantity above the work order on {over.map((l) => `${l.code} ${l.desc} (${num(l.cumQty, 3)} of ${num(l.woQty)} ${l.unit})`).join("; ")}. Untick the excess measurements, or raise a change order with a quantity line on the contract — once approved the WO quantity rises and the bill can go through.</Note>}
+        {over.length > 0 && <Note tone="red">Quantity above the work order on {over.map((l) => `${l.code} ${l.desc} (${num(l.cumQty, 3)} of ${num(l.woQty)} ${l.unit})`).join("; ")}. Untick the excess measurements, or raise a change order with a quantity line on the contract - once approved the WO quantity rises and the bill can go through.</Note>}
         {issues.length > 0 && <Note icon={Icon.package}>Material recovery of {inr(matAuto)} applied automatically for {issues.map((m) => `${m.id} (${num(m.qty)} ${m.unit} ${m.material})`).join(", ")}.</Note>}
-        {isBlockedFor(v, "Invoices") && <Note tone="red">{v.name} is blocked for invoices — the bill can be prepared but won't be payable until the hold is lifted.</Note>}
+        {isBlockedFor(v, "Invoices") && <Note tone="red">{v.name} is blocked for invoices - the bill can be prepared but won't be payable until the hold is lifted.</Note>}
         <Section title={`Measurements included (${ids.length}/${avail.length})`} icon={Icon.ruler}>
           <DataTable dense rows={avail} columns={[
             { key: "s", label: "", render: (m) => <input type="checkbox" className="h-4 w-4 accent-[#0b5ed7]" checked={ids.includes(m.id)} onChange={(e) => setIds(e.target.checked ? [...ids, m.id] : ids.filter((x) => x !== m.id))} /> },
@@ -145,7 +145,7 @@ function PrepareBillModal({ woId: presetWo, onClose, onCreated, finalFor }) {
   );
 }
 
-// People who already acted on a bill (submitter + each stage) — none of them may take the next step
+// People who already acted on a bill (submitter + each stage) - none of them may take the next step
 const billActors = (b) => (b.history || []).map((x) => x.by);
 function raStepBlock(bill, st) {
   const i = RA_FLOW.findIndex((f) => f.status === bill.status), next = RA_FLOW[i + 1];
@@ -155,7 +155,7 @@ function raStepBlock(bill, st) {
   // Quality / HSE: an open NCR on the work order stops certification
   if (next.status === "Certified") {
     const open = (st.ncrs || []).filter((n) => n.woId === bill.woId && n.status !== "Closed");
-    if (open.length) return `Open NCR on ${bill.woId} (${open.map((n) => n.id).join(", ")}) — close it before certifying.`;
+    if (open.length) return `Open NCR on ${bill.woId} (${open.map((n) => n.id).join(", ")}) - close it before certifying.`;
   }
   return null;
 }
@@ -176,8 +176,8 @@ function advanceBill(bill, remark, st) {
       s.invoices.unshift({ id, vendorId: b.vendorId, source: "RA Bill", raBillId: b.id, number: `${b.id}/${b.woId}`, date: todayISO(), due: shiftDays(parseInt(v.paymentTerms.replace(/\D/g, ""), 10) || 30), lines: [], amount: b.net, gstPct: 0, hold: null, notes: [], payments: [] });
       b.invoiceId = id;
     }
-  }, { entity: "RA Bill", id: bill.id, action: `${next.label} done${remark ? ` — ${remark}` : ""}` });
-  toast(next.status === "Approved" ? `${bill.id} approved — payable raised` : `${bill.id} ${next.status.toLowerCase()}`);
+  }, { entity: "RA Bill", id: bill.id, action: `${next.label} done${remark ? ` - ${remark}` : ""}` });
+  toast(next.status === "Approved" ? `${bill.id} approved - payable raised` : `${bill.id} ${next.status.toLowerCase()}`);
   return true;
 }
 
@@ -195,9 +195,9 @@ function rejectBill(id, remark) {
     (b.materialIssueIds || []).forEach((mid) => { const mi = byId(s.materialIssues || [], mid); if (mi) mi.recoveredIn = null; }); // …and material recovery to the next bill
     // A bill raised from a contractor claim goes back to the contractor: its claim-generated measurements are voided
     // (marked disputed) so the revised claim doesn't double-count them
-    if (b.claimId) b.mbIds.forEach((m) => { const x = byId(s.measurements, m); x.jms = { status: "Disputed", remark: `Bill ${b.id} rejected — claim returned for revision`, at: new Date().toISOString() }; x.voided = true; });
-    if (b.claimId) { const cl = byId(s.claims, b.claimId); if (cl) { cl.status = "Returned"; cl.history.push({ status: "Returned", by: currentUser(), at: new Date().toISOString(), remark: `RA bill ${b.id} rejected — ${remark}` }); } }
-  }, { entity: "RA Bill", id, action: `Rejected — ${remark}` });
+    if (b.claimId) b.mbIds.forEach((m) => { const x = byId(s.measurements, m); x.jms = { status: "Disputed", remark: `Bill ${b.id} rejected - claim returned for revision`, at: new Date().toISOString() }; x.voided = true; });
+    if (b.claimId) { const cl = byId(s.claims, b.claimId); if (cl) { cl.status = "Returned"; cl.history.push({ status: "Returned", by: currentUser(), at: new Date().toISOString(), remark: `RA bill ${b.id} rejected - ${remark}` }); } }
+  }, { entity: "RA Bill", id, action: `Rejected - ${remark}` });
   toast(`${id} rejected`, "red");
   return true;
 }
@@ -242,14 +242,14 @@ function RaBillDrawer({ id, onClose }) {
               <Btn variant="primary" icon={Icon.rupee} onClick={() => setPay(true)}>Release payment</Btn>
             </div>
           )}
-          {bill.status === "Rejected" && <div className="border-t border-line p-4"><Note tone="red">Rejected — {bill.history[bill.history.length - 1].remark}. Its measurements are back in the unbilled pool for a corrected bill.</Note></div>}
+          {bill.status === "Rejected" && <div className="border-t border-line p-4"><Note tone="red">Rejected - {bill.history[bill.history.length - 1].remark}. Its measurements are back in the unbilled pool for a corrected bill.</Note></div>}
         </Section>
-        {bill.claimId && <Note>Raised from contractor claim <b>{bill.claimId}</b> — claimed {inr(bill.claimedValue)}, certified {inr(bill.gross)}{bill.claimedValue > bill.gross + 1 ? ` (reduced by ${inr(bill.claimedValue - bill.gross)} at verification)` : ""}.</Note>}
+        {bill.claimId && <Note>Raised from contractor claim <b>{bill.claimId}</b> - claimed {inr(bill.claimedValue)}, certified {inr(bill.gross)}{bill.claimedValue > bill.gross + 1 ? ` (reduced by ${inr(bill.claimedValue - bill.gross)} at verification)` : ""}.</Note>}
         <Section title="Bill abstract" icon={Icon.sheet}><BillAbstract bill={bill} wo={wo} /></Section>
         <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-4">
           <Section title="Deductions & net payable" icon={Icon.percent}><BillSummary calc={bill} contract={c} vendor={v} /></Section>
           <Section title="History" icon={Icon.fileClock}>
-            <AuditList items={bill.history.slice().reverse().map((h1) => ({ id: h1.status, action: h1.remark || "—", by: h1.by, at: h1.at }))} />
+            <AuditList items={bill.history.slice().reverse().map((h1) => ({ id: h1.status, action: h1.remark || "-", by: h1.by, at: h1.at }))} />
           </Section>
         </div>
       </div>
@@ -269,7 +269,7 @@ function RaBillsPage() {
   const rows = st.raBills.filter((b) => status === "All" || b.status === status);
   const inCert = st.raBills.filter((b) => ["Submitted", "Verified", "Certified"].includes(b.status));
   return (
-    <Page title="RA Bills & Certification" subtitle="Running account bills from the measurement book — verify, certify, approve, pay" icon={Icon.receipt}
+    <Page title="RA Bills & Certification" subtitle="Running account bills from the measurement book - verify, certify, approve, pay" icon={Icon.receipt}
       actions={<Btn variant="primary" icon={Icon.plus} onClick={() => setPrep(true)}>Prepare RA bill</Btn>}>
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "bills", label: "RA bills", icon: Icon.receipt }, { id: "claims", label: "Contractor claims", icon: Icon.hardHat }]} />
       {tab === "claims" && <ClaimsTab onBill={(id) => { setTab("bills"); setOpen(id); }} />}
@@ -339,7 +339,7 @@ function RetentionPage() {
           { key: "type", label: "Basis", filter: true }, { key: "note", label: "Note", className: "whitespace-normal text-[12px] text-ink-soft" },
           { key: "amount", label: "Amount", align: "right", num: true, render: (r) => inr(r.amount) },
           { key: "d", label: "Requested", render: (r) => fmtDate(r.requestedOn) },
-          { key: "by", label: "Requested / approved by", className: "text-[12px] text-ink-soft", render: (r) => [r.requestedBy, r.approvedBy].filter(Boolean).join(" → ") || "—" },
+          { key: "by", label: "Requested / approved by", className: "text-[12px] text-ink-soft", render: (r) => [r.requestedBy, r.approvedBy].filter(Boolean).join(" → ") || "-" },
           { key: "s", label: "Status", filterOptions: FO.release, filter: (r) => (r.status === "Due" ? "Pending Approval" : r.status), render: (r) => <span title={r.remark || ""}><Status tone={{ Released: "green", Approved: "blue", Rejected: "red" }[r.status] || "amber"}>{r.status === "Due" ? "Pending Approval" : r.status}</Status></span> },
           { key: "a", label: "", align: "right", render: (r) => (
             <span className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
@@ -357,8 +357,8 @@ function RetentionPage() {
           { key: "a", label: "Advance", align: "right", num: true, render: (b) => inr(b.ded.advance) },
           { key: "t", label: "TDS", align: "right", num: true, render: (b) => inr(b.ded.tds) },
           { key: "cs", label: "Cess", align: "right", num: true, render: (b) => inr(b.ded.cess) },
-          { key: "m", label: "Material", align: "right", num: true, render: (b) => (b.ded.materials ? inr(b.ded.materials) : "—") },
-          { key: "p", label: "Penalty", align: "right", num: true, render: (b) => (b.ded.penalty ? <span title={b.otherNote}>{inr(b.ded.penalty)}</span> : "—") },
+          { key: "m", label: "Material", align: "right", num: true, render: (b) => (b.ded.materials ? inr(b.ded.materials) : "-") },
+          { key: "p", label: "Penalty", align: "right", num: true, render: (b) => (b.ded.penalty ? <span title={b.otherNote}>{inr(b.ded.penalty)}</span> : "-") },
           { key: "tot", label: "Total", align: "right", num: true, render: (b) => <b>{inr(b.totalDed)}</b> },
         ]} />
       )}
@@ -382,19 +382,19 @@ function RetentionPage() {
           <Modal open onClose={() => setRel(null)} width={560} title="Request retention release"
             footer={<><Btn onClick={() => setRel(null)}>Cancel</Btn><Btn variant="primary" disabled={!c || !(rel.amount > 0) || rel.amount > max + 0.5 || early || needHo || needBg || needRef} onClick={() => {
               const id = nextId("RR", st.retentionReleases);
-              setState((s) => s.retentionReleases.unshift({ id, contractId: c.id, amount: Number(rel.amount), type: rel.type, bgRef: rel.bgRef || null, status: "Pending Approval", requestedOn: todayISO(), requestedBy: currentUser(), note: rel.note }), { entity: "Retention", id, action: `Release requested for ${c.id} — waiting for Finance approval` });
+              setState((s) => s.retentionReleases.unshift({ id, contractId: c.id, amount: Number(rel.amount), type: rel.type, bgRef: rel.bgRef || null, status: "Pending Approval", requestedOn: todayISO(), requestedBy: currentUser(), note: rel.note }), { entity: "Retention", id, action: `Release requested for ${c.id} - waiting for Finance approval` });
               toast(`${id} raised`); setRel(null); setTab("rel");
             }}>Raise request</Btn></>}>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Contract" span={2}><Select value={rel.contractId} placeholder="Select…" onChange={(x) => setRel({ ...rel, contractId: x })} options={contracts.map((x) => ({ value: x.id, label: `${x.id} — ${vendorName(st, x.vendorId)} (${inrShort(contractLedger(st, x).retentionBalance)} held)` }))} /></Field>
+              <Field label="Contract" span={2}><Select value={rel.contractId} placeholder="Select…" onChange={(x) => setRel({ ...rel, contractId: x })} options={contracts.map((x) => ({ value: x.id, label: `${x.id} - ${vendorName(st, x.vendorId)} (${inrShort(contractLedger(st, x).retentionBalance)} held)` }))} /></Field>
               <Field label="Basis"><Select value={rel.type} onChange={(x) => setRel({ ...rel, type: x })} options={["After DLP", "Against bank guarantee", "50% on completion"]} /></Field>
               <Field label="Amount (₹)" hint={c ? `Available ${inr(max)}` : ""}><NumInput value={rel.amount} onChange={(x) => setRel({ ...rel, amount: x })} /><FieldErr m={c && Number(rel.amount) > max + 0.5 ? `Exceeds available retention (${inr(max)})` : ""} /></Field>
               {rel.type === "Against bank guarantee" && <Field label="Retention BG reference" required span={2}><Select value={rel.bgRef || ""} placeholder="Select the guarantee…" onChange={(x) => setRel({ ...rel, bgRef: x })} options={c ? liveGuarantees(c, "Retention").map((g) => ({ value: g.number, label: `${g.number} · ${g.bank} · ${inrShort(g.amount)} till ${fmtDate(g.expiry)}` })) : []} /></Field>}
               <Field label="Note" span={2}><TextInput value={rel.note} onChange={(x) => setRel({ ...rel, note: x })} placeholder="e.g. BG/ICICI/2026/551 received" /></Field>
             </div>
             {early && <div className="mt-3"><Note tone="amber">DLP runs until {fmtDate(shiftDays((c.dlpMonths || 0) * 30, c.handover?.date || c.end))}. Release now only against a bank guarantee.</Note></div>}
-            {needHo && <div className="mt-3"><Note tone="red">No handover certificate yet — issue it in Close-out & Handover first.</Note></div>}
-            {needBg && <div className="mt-3"><Note tone="red">Live retention bank guarantees cover {inr(bgCover)} — add a retention BG on the contract for at least the release amount.</Note></div>}
+            {needHo && <div className="mt-3"><Note tone="red">No handover certificate yet - issue it in Close-out & Handover first.</Note></div>}
+            {needBg && <div className="mt-3"><Note tone="red">Live retention bank guarantees cover {inr(bgCover)} - add a retention BG on the contract for at least the release amount.</Note></div>}
           </Modal>
         );
       })()}
@@ -405,7 +405,7 @@ function RetentionPage() {
             toast("Advance recorded"); setAdv(null);
           }}>Save</Btn></>}>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Contract" span={2}><Select value={adv.contractId} onChange={(x) => setAdv({ ...adv, contractId: x })} options={contracts.map((x) => ({ value: x.id, label: `${x.id} — ${vendorName(st, x.vendorId)}` }))} /></Field>
+            <Field label="Contract" span={2}><Select value={adv.contractId} onChange={(x) => setAdv({ ...adv, contractId: x })} options={contracts.map((x) => ({ value: x.id, label: `${x.id} - ${vendorName(st, x.vendorId)}` }))} /></Field>
             <Field label="Type"><Select value={adv.type} onChange={(x) => setAdv({ ...adv, type: x })} options={["Mobilisation advance", "Secured advance (materials)", "Machinery advance"]} /></Field>
             <Field label="Amount (₹)" required><NumInput value={adv.amount} onChange={(x) => setAdv({ ...adv, amount: x })} /><FieldErr m={adv.amount !== "" && advErr(adv).amount} /></Field>
             <Field label="Payment date" required><DateInput value={adv.date} onChange={(x) => setAdv({ ...adv, date: x })} /><FieldErr m={advErr(adv).date} /></Field>

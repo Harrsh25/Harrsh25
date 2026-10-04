@@ -1,4 +1,4 @@
-// Batch 5 — close-out (punch → final inspection → handover → final bill → retention → closure) and portal invoices
+// Batch 5 - close-out (punch → final inspection → handover → final bill → retention → closure) and portal invoices
 require('./lib')('fix5', async ({ p, go, dlg, S, mut, as, T, pick, toastText }) => {
   const btn = (t) => p.locator(`button:has-text("${t}")`);
   const portalAs = async (name) => { await go('vendor-management/portal'); await pick(p.locator('label:has-text("Viewing as") [role=combobox]'), name); await p.waitForTimeout(200); };
@@ -70,7 +70,7 @@ require('./lib')('fix5', async ({ p, go, dlg, S, mut, as, T, pick, toastText }) 
     await d.locator('button:has-text("Submit for certification")').click(); await p.waitForTimeout(250);
     const s = await S(); const b = s.raBills.find((x) => x.contractId === 'CTR-004' && x.final);
     await go('contract-labor/ra-bills'); await btn('Prepare RA bill').click(); await p.waitForTimeout(200); const t = await dlg().textContent(); await p.keyboard.press('Escape');
-    return [`final checkbox preset=${checked}; final bill ${b?.id} ${b?.status}; WO-004 offered again=${/WO-004 —/.test(t)}`, !!b && !/WO-004 —/.test(t)];
+    return [`final checkbox preset=${checked}; final bill ${b?.id} ${b?.status}; WO-004 offered again=${/WO-004 -/.test(t)}`, !!b && !/WO-004 -/.test(t)];
   });
   await T('G-10e', 'Stage tracker on the close-out list', async () => {
     await go('contract-labor/closeout'); await p.waitForTimeout(200); const t = await p.locator('tbody').first().textContent();
@@ -79,7 +79,7 @@ require('./lib')('fix5', async ({ p, go, dlg, S, mut, as, T, pick, toastText }) 
   await T('G-11b', 'Fully settled contract (CTR-005) closes after retention release', async () => {
     await as('Rohit Shah'); await go('contract-labor/retention'); await p.getByText('Retention releases', { exact: true }).click(); await p.locator('tr:has-text("RR-001") button:has-text("Approve")').click(); await p.waitForTimeout(150);
     await as('Anita Joshi'); await go('contract-labor/retention'); await p.getByText('Retention releases', { exact: true }).click(); await p.locator('tr:has-text("RR-001") button:has-text("Release payment")').click(); await p.waitForTimeout(150);
-    // final settlement and contractor release (Lifecycle F) are covered in lifecycle.js — recorded directly here
+    // final settlement and contractor release (Lifecycle F) are covered in lifecycle.js - recorded directly here
     await mut((s) => { const c = s.contracts.find((x) => x.id === 'CTR-005'); c.settlement = { status: 'Agreed', net: 0, agreedBy: 'test', agreedAt: new Date().toISOString().slice(0, 10) }; c.release = { no: 'REL-T', date: new Date().toISOString().slice(0, 10), contractorSignatory: 'test', by: 'test' }; });
     await as('Arjun Mehta'); await go('contract-labor/closeout?open=CTR-005'); await p.waitForTimeout(300);
     const open = await dlg().locator('li:has(svg.text-amber-500)').allTextContents();

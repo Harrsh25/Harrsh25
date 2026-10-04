@@ -31,7 +31,7 @@ function ReasonModal({ title, text, action = "Confirm", tone = "danger", onClose
     <Modal open onClose={onClose} width={480} title={title}
       footer={<><Btn onClick={onClose}>Back</Btn><Btn variant={tone} disabled={!!bad} title={bad && typeof bad === "string" ? bad : bad ? "Give a reason first" : ""} onClick={() => { onDone(r.trim()); onClose(); }}>{action}</Btn></>}>
       {text && <p className="mb-3 text-[13px] text-ink-soft">{text}</p>}
-      <Field label="Reason" required><TextArea rows={2} value={r} onChange={setR} placeholder="Why — kept in the audit log" /></Field>
+      <Field label="Reason" required><TextArea rows={2} value={r} onChange={setR} placeholder="Why - kept in the audit log" /></Field>
     </Modal>
   );
 }
@@ -109,7 +109,7 @@ function relatedFor(st, kind, r) {
 
 // ---------------------------------------------------------------- comments with @mention (Odoo chatter / ERPNext comments)
 const TEAM = ["Anita Rao", "Vikram Shah", "Meera Iyer", "Rahul Verma", "Sunita Das", "Arjun Nair"];
-const mentionPeople = (st) => [...new Set([currentUser(), ...TEAM, ...(st.audit || []).map((a) => a.by).filter(Boolean)])].filter((n) => n && n !== "—");
+const mentionPeople = (st) => [...new Set([currentUser(), ...TEAM, ...(st.audit || []).map((a) => a.by).filter(Boolean)])].filter((n) => n && n !== "-");
 const mentionsIn = (text, people) => people.filter((p) => text.includes("@" + p));
 function CommentText({ text, people }) {
   const names = people.slice().sort((a, b) => b.length - a.length);
@@ -142,8 +142,8 @@ function RecordComments({ id }) {
     const t = text.trim(); if (!t) return;
     const who = mentionsIn(t, people);
     setState((s) => { s.comments = s.comments || {}; (s.comments[id] = s.comments[id] || []).push({ at: new Date().toISOString(), by: currentUser(), text: t, mentions: who }); },
-      { entity: "Comment", id, action: `Comment${who.length ? ` — mentioned ${who.map((w) => "@" + w).join(", ")}` : ""}: ${t.slice(0, 80)}` });
-    setText(""); setMen(null); toast(who.length ? `Comment posted — ${who.join(", ")} notified` : "Comment posted");
+      { entity: "Comment", id, action: `Comment${who.length ? ` - mentioned ${who.map((w) => "@" + w).join(", ")}` : ""}: ${t.slice(0, 80)}` });
+    setText(""); setMen(null); toast(who.length ? `Comment posted - ${who.join(", ")} notified` : "Comment posted");
   };
   return (
     <div data-comments className="px-6 py-4">
@@ -162,7 +162,7 @@ function RecordComments({ id }) {
       <div className="relative">
         <textarea ref={box} aria-label="Write a comment" rows={2} value={text} onChange={(e) => onType(e.target.value)}
           onKeyDown={(e) => { if (sugg.length && (e.key === "Enter" || e.key === "Tab")) { e.preventDefault(); choose(sugg[0]); } else if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) post(); else if (e.key === "Escape" && men != null) { e.stopPropagation(); setMen(null); } }}
-          placeholder="Write a comment — type @ to mention someone" className={cls(inputCls, "h-auto resize-y py-1.5")} />
+          placeholder="Write a comment - type @ to mention someone" className={cls(inputCls, "h-auto resize-y py-1.5")} />
         {sugg.length > 0 && (
           <ul role="listbox" aria-label="Mention" className="absolute bottom-full left-0 z-10 mb-1 w-[240px] rounded-md border border-line bg-white py-1 shadow-lg">
             {sugg.map((p) => <li key={p} role="option" aria-selected="false" onMouseDown={(e) => { e.preventDefault(); choose(p); }} className="cursor-pointer px-3 py-1.5 text-[13px] hover:bg-gray-50">@{p}</li>)}

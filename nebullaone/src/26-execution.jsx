@@ -17,15 +17,15 @@ function inspectMeasurement(m, pass, ncr) {
       s.ncrs.unshift({ id: ncrId, woId: m.woId, mbId: m.id, category: ncr.category || "Quality", severity: ncr.severity || "Major", desc: ncr.desc.trim(), raisedBy: currentUser(), raisedOn: todayISO(), status: "Open", history: [{ at: new Date().toISOString(), by: currentUser(), what: "Raised", note: "" }] });
       x.qc = { status: "Failed", by: currentUser(), at: new Date().toISOString(), ncrId };
     }
-  }, { entity: "Measurement", id: m.id, action: pass ? "Quality inspection passed" : `Inspection failed — NCR raised` });
-  toast(pass ? `${m.id} passed inspection — billable` : `${ncrId} raised — rework needed before billing`, pass ? "green" : "amber");
+  }, { entity: "Measurement", id: m.id, action: pass ? "Quality inspection passed" : `Inspection failed - NCR raised` });
+  toast(pass ? `${m.id} passed inspection - billable` : `${ncrId} raised - rework needed before billing`, pass ? "green" : "amber");
   return true;
 }
 function raiseNcr(woId, f) {
   if (!tryAct(INSPECTOR_ROLES, [], "raising an NCR")) return false;
   setState((s) => { s.ncrs = s.ncrs || []; const id = nextId("NCR", s.ncrs); s.ncrs.unshift({ id, woId, mbId: null, category: f.category, severity: f.severity, desc: f.desc.trim(), raisedBy: currentUser(), raisedOn: todayISO(), status: "Open", history: [{ at: new Date().toISOString(), by: currentUser(), what: "Raised", note: "" }] }); },
-    { entity: "Work Order", id: woId, action: `${f.category} NCR raised — ${f.desc}` });
-  toast("NCR raised — certification of this work order's bills is paused until it closes", "amber");
+    { entity: "Work Order", id: woId, action: `${f.category} NCR raised - ${f.desc}` });
+  toast("NCR raised - certification of this work order's bills is paused until it closes", "amber");
   return true;
 }
 // Open → Rework Done (contractor) → Closed (re-inspection passed) | back to Open (re-inspection failed)
@@ -36,14 +36,14 @@ function advanceNcr(n, what, note, by) {
     x.status = what === "Rework done" ? "Rework Done" : what === "Closed" ? "Closed" : "Open";
     x.history.push({ at: new Date().toISOString(), by: by || currentUser(), what, note: note || "" });
     if (what === "Closed") { x.closedOn = todayISO(); if (x.mbId) { const m = byId(s.measurements, x.mbId); if (m) m.qc = { status: "Passed", by: currentUser(), at: new Date().toISOString(), afterNcr: x.id }; } }
-  }, { entity: "NCR", id: n.id, action: `${what}${note ? ` — ${note}` : ""}` });
-  toast({ "Rework done": "Rework recorded — waiting for re-inspection", Closed: `${n.id} closed`, "Re-inspection failed": `${n.id} reopened — more rework needed` }[what], what === "Closed" ? "green" : "amber");
+  }, { entity: "NCR", id: n.id, action: `${what}${note ? ` - ${note}` : ""}` });
+  toast({ "Rework done": "Rework recorded - waiting for re-inspection", Closed: `${n.id} closed`, "Re-inspection failed": `${n.id} reopened - more rework needed` }[what], what === "Closed" ? "green" : "amber");
   return true;
 }
 function NcrModal({ woId, mb, onClose }) {
   const [f, setF] = y.useState({ category: "Quality", severity: "Major", desc: "" });
   return (
-    <Modal open onClose={onClose} width={520} title={mb ? `Inspection failed — ${mb.id}` : `Raise NCR on ${woId}`} subtitle="A non-conformance report blocks billing of the item and QS certification until it is closed after re-inspection"
+    <Modal open onClose={onClose} width={520} title={mb ? `Inspection failed - ${mb.id}` : `Raise NCR on ${woId}`} subtitle="A non-conformance report blocks billing of the item and QS certification until it is closed after re-inspection"
       footer={<><Btn onClick={onClose}>Cancel</Btn><Btn variant="danger" disabled={!f.desc.trim()} onClick={() => { if (mb ? inspectMeasurement(mb, false, f) : raiseNcr(woId, f)) onClose(); }}>Raise NCR</Btn></>}>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Category"><Select value={f.category} onChange={(x) => setF({ ...f, category: x })} options={["Quality", "HSE"]} /></Field>
@@ -73,7 +73,7 @@ function NcrTable({ rows, portal, by }) {
           </span>) },
       ]} />
       {act && (
-        <Modal open onClose={() => setAct(null)} width={460} title={`${act.what} — ${act.n.id}`}
+        <Modal open onClose={() => setAct(null)} width={460} title={`${act.what} - ${act.n.id}`}
           footer={<><Btn onClick={() => setAct(null)}>Cancel</Btn><Btn variant={act.what === "Re-inspection failed" ? "danger" : "primary"} disabled={act.what !== "Closed" && !act.note.trim()} onClick={() => { if (advanceNcr(act.n, act.what, act.note.trim(), portal ? by : undefined)) setAct(null); }}>Save</Btn></>}>
           <Field label={act.what === "Rework done" ? "What was reworked" : "Inspection remark"} required={act.what !== "Closed"}><TextArea value={act.note} onChange={(x) => setAct({ ...act, note: x })} /></Field>
         </Modal>
@@ -88,8 +88,8 @@ function contractorJms(m, agree, remark, by) {
     const x = byId(s.measurements, m.id);
     if (agree) x.jms = { ...x.jms, contractorAgreed: { by, at: new Date().toISOString() } };
     else x.jms = { status: "Disputed", remark: `Contractor: ${remark}`, at: new Date().toISOString(), by };
-  }, { entity: "Measurement", id: m.id, action: agree ? `Contractor agreed the measurement in the portal (${by})` : `Contractor disputed in the portal — ${remark}` });
-  toast(agree ? "Agreed — the engineer countersigns the JMS" : "Dispute sent to the site engineer", agree ? "green" : "amber");
+  }, { entity: "Measurement", id: m.id, action: agree ? `Contractor agreed the measurement in the portal (${by})` : `Contractor disputed in the portal - ${remark}` });
+  toast(agree ? "Agreed - the engineer countersigns the JMS" : "Dispute sent to the site engineer", agree ? "green" : "amber");
 }
 
 // ---------------------------------------------------------------- equipment
@@ -113,10 +113,10 @@ function EquipmentRegister({ v, locked, approving }) {
             {e.verify?.status !== "Rejected" && <Btn size="sm" variant="danger" onClick={() => setRej(e)}>Reject</Btn>}
           </span>) }] : []),
       ]} />
-      {rej && <RejectReasonModal title={`Reject — ${rej.name}`} onClose={() => setRej(null)} onReject={(reason) => setEq(rej.id, { verify: { status: "Rejected", remark: reason, by: currentUser(), at: todayISO() } }, `Equipment ${rej.name} rejected — ${reason}`)} />}
+      {rej && <RejectReasonModal title={`Reject - ${rej.name}`} onClose={() => setRej(null)} onReject={(reason) => setEq(rej.id, { verify: { status: "Rejected", remark: reason, by: currentUser(), at: todayISO() } }, `Equipment ${rej.name} rejected - ${reason}`)} />}
       {f && (
         <Modal open onClose={() => setF(null)} width={620} title="Add equipment" footer={<><Btn onClick={() => setF(null)}>Cancel</Btn><Btn variant="primary" disabled={!f.name.trim() || !f.regNo.trim() || !f.fitnessExpiry} onClick={() => {
-          setState((s) => { const x = byId(s.vendors, v.id); x.equipment = x.equipment || []; const all = s.vendors.flatMap((z) => z.equipment || []); x.equipment.push({ ...f, id: nextId("EQ", all), status: "Available" }); }, { entity: "Vendor", id: v.id, action: `Equipment added — ${f.name} (${f.regNo})` });
+          setState((s) => { const x = byId(s.vendors, v.id); x.equipment = x.equipment || []; const all = s.vendors.flatMap((z) => z.equipment || []); x.equipment.push({ ...f, id: nextId("EQ", all), status: "Available" }); }, { entity: "Vendor", id: v.id, action: `Equipment added - ${f.name} (${f.regNo})` });
           toast("Equipment added"); setF(null);
         }}>Save</Btn></>}>
           <div className="grid grid-cols-3 gap-3">
@@ -151,8 +151,8 @@ function WoResources({ wo }) {
   const ncrs = (st.ncrs || []).filter((n) => n.woId === wo.id);
   const deploy = () => {
     const e = reg.find((x) => x.id === eq);
-    if (daysUntil(e.fitnessExpiry) < 0) return toast(`${e.name}: fitness / insurance expired ${fmtDate(e.fitnessExpiry)} — can't deploy`, "red");
-    setState((s) => { const w = byId(s.workOrders, wo.id); w.equipment = [...(w.equipment || []), { eqId: eq, from: todayISO(), to: null }]; }, { entity: "Work Order", id: wo.id, action: `Equipment deployed — ${e.name}` });
+    if (daysUntil(e.fitnessExpiry) < 0) return toast(`${e.name}: fitness / insurance expired ${fmtDate(e.fitnessExpiry)} - can't deploy`, "red");
+    setState((s) => { const w = byId(s.workOrders, wo.id); w.equipment = [...(w.equipment || []), { eqId: eq, from: todayISO(), to: null }]; }, { entity: "Work Order", id: wo.id, action: `Equipment deployed - ${e.name}` });
     setEq("");
   };
   return (
@@ -163,8 +163,8 @@ function WoResources({ wo }) {
             {onSite.length === 0 && <li className="p-3 text-[12.5px] text-ink-mute">No equipment deployed.</li>}
             {onSite.map((d) => (
               <li key={d.eqId} className="flex items-center justify-between gap-2 px-4 py-2 text-[12.5px]">
-                <span><b className="font-medium">{d.e.name}</b> <span className="mono text-ink-mute">{d.e.regNo}</span><span className="block text-[11.5px] text-ink-mute">since {fmtDate(d.from)} · fitness {fmtDate(d.e.fitnessExpiry)}{daysUntil(d.e.fitnessExpiry) < 0 && <b className="text-red-600"> — expired</b>}</span></span>
-                {open && <Btn size="sm" onClick={() => setState((s) => { const w = byId(s.workOrders, wo.id); w.equipment.find((x) => x.eqId === d.eqId && !x.to).to = todayISO(); }, { entity: "Work Order", id: wo.id, action: `Equipment released — ${d.e.name}` })}>Release</Btn>}
+                <span><b className="font-medium">{d.e.name}</b> <span className="mono text-ink-mute">{d.e.regNo}</span><span className="block text-[11.5px] text-ink-mute">since {fmtDate(d.from)} · fitness {fmtDate(d.e.fitnessExpiry)}{daysUntil(d.e.fitnessExpiry) < 0 && <b className="text-red-600"> - expired</b>}</span></span>
+                {open && <Btn size="sm" onClick={() => setState((s) => { const w = byId(s.workOrders, wo.id); w.equipment.find((x) => x.eqId === d.eqId && !x.to).to = todayISO(); }, { entity: "Work Order", id: wo.id, action: `Equipment released - ${d.e.name}` })}>Release</Btn>}
               </li>
             ))}
           </ul>
@@ -176,7 +176,7 @@ function WoResources({ wo }) {
           )}
         </Section>
         <Section title="Workforce" icon={Icon.users}>
-          <KV cols={2} items={[["Workers registered on this WO", workers.length || "—"], ["Latest daily manpower", dprs[0] ? `${dprs[0].manpower} (${fmtDate(dprs[0].date)})` : "—"], ["Skilled / unskilled", workers.length ? `${workers.filter((w) => w.skill !== "Unskilled").length} / ${workers.filter((w) => w.skill === "Unskilled").length}` : "—"], ["Attendance", workers.length ? <RefLink to={`${CL_BASE}/attendance`}>Labour Attendance →</RefLink> : "Not tracked worker-wise"]]} />
+          <KV cols={2} items={[["Workers registered on this WO", workers.length || "-"], ["Latest daily manpower", dprs[0] ? `${dprs[0].manpower} (${fmtDate(dprs[0].date)})` : "-"], ["Skilled / unskilled", workers.length ? `${workers.filter((w) => w.skill !== "Unskilled").length} / ${workers.filter((w) => w.skill === "Unskilled").length}` : "-"], ["Attendance", workers.length ? <RefLink to={`${CL_BASE}/attendance`}>Labour Attendance →</RefLink> : "Not tracked worker-wise"]]} />
         </Section>
       </div>
       <Section title="Material issued to the contractor (recovered through RA bills)" icon={Icon.package} actions={active && <Btn size="sm" icon={Icon.plus} onClick={() => setMi({ material: "", unit: "bag", qty: "", rate: "", date: todayISO() })}>Issue material</Btn>}>
@@ -184,25 +184,25 @@ function WoResources({ wo }) {
           { key: "id", label: "Issue", className: "mono text-[12px]" }, { key: "date", label: "Date", render: (m) => fmtDate(m.date) }, { key: "material", label: "Material" },
           { key: "q", label: "Qty", align: "right", num: true, render: (m) => `${num(m.qty)} ${m.unit}` }, { key: "r", label: "Recovery rate", align: "right", num: true, render: (m) => inr(m.rate) },
           { key: "v", label: "Value", align: "right", num: true, render: (m) => inr(m.qty * m.rate) },
-          { key: "st", label: "From → to", className: "text-[12px]", render: (m) => [m.fromStore, m.toStore].filter(Boolean).join(" → ") || "—" },
+          { key: "st", label: "From → to", className: "text-[12px]", render: (m) => [m.fromStore, m.toStore].filter(Boolean).join(" → ") || "-" },
           { key: "rec", label: "Recovered in", render: (m) => (m.recoveredIn ? <RefLink to={`${CL_BASE}/ra-bills?open=${m.recoveredIn}`}>{m.recoveredIn}</RefLink> : <Status tone="amber">Next RA bill</Status>) },
         ]} />
       </Section>
       <Section title="Daily progress reports" icon={Icon.calendar} actions={open && <Btn size="sm" icon={Icon.plus} onClick={() => setDpr({ date: todayISO(), manpower: "", work: "", hindrance: "", weather: "Clear" })}>Add daily report</Btn>}>
         <DataTable dense rows={dprs} empty={<p className="p-4 text-[13px] text-ink-mute">No daily reports yet.</p>} columns={[
           { key: "date", label: "Date", render: (d) => fmtDate(d.date) }, { key: "manpower", label: "Manpower", align: "right", num: true },
-          { key: "work", label: "Work done", className: "max-w-[360px] whitespace-normal text-[12.5px]" }, { key: "hindrance", label: "Hindrance", className: "whitespace-normal text-[12px] text-amber-700", render: (d) => d.hindrance || "—" },
+          { key: "work", label: "Work done", className: "max-w-[360px] whitespace-normal text-[12.5px]" }, { key: "hindrance", label: "Hindrance", className: "whitespace-normal text-[12px] text-amber-700", render: (d) => d.hindrance || "-" },
           { key: "weather", label: "Weather" }, { key: "by", label: "By", className: "text-[12px] text-ink-soft" },
         ]} />
       </Section>
-      <Section title="Quality & HSE — NCRs" icon={Icon.shieldCheck} actions={open && <Btn size="sm" icon={Icon.plus} onClick={() => setNcr(true)}>Raise NCR</Btn>}>
+      <Section title="Quality & HSE - NCRs" icon={Icon.shieldCheck} actions={open && <Btn size="sm" icon={Icon.plus} onClick={() => setNcr(true)}>Raise NCR</Btn>}>
         <NcrTable rows={ncrs} />
       </Section>
       {ncr && <NcrModal woId={wo.id} onClose={() => setNcr(false)} />}
       {mi && (
-        <Modal open onClose={() => setMi(null)} width={560} title={`Issue material — ${wo.id}`} subtitle="Recovered automatically in the contractor's next RA bill"
+        <Modal open onClose={() => setMi(null)} width={560} title={`Issue material - ${wo.id}`} subtitle="Recovered automatically in the contractor's next RA bill"
           footer={<><Btn onClick={() => setMi(null)}>Cancel</Btn><Btn variant="primary" disabled={!mi.material.trim() || !(Number(mi.qty) > 0) || !(Number(mi.rate) > 0)} onClick={() => {
-            setState((s) => { s.materialIssues = s.materialIssues || []; s.materialIssues.unshift({ id: nextId("MI", s.materialIssues), woId: wo.id, material: mi.material.trim(), unit: mi.unit, qty: Number(mi.qty), rate: Number(mi.rate), date: mi.date, issuedBy: currentUser(), recoveredIn: null, fromStore: mi.fromStore || "", toStore: mi.toStore || "", remarks: mi.remarks || "" }); }, { entity: "Work Order", id: wo.id, action: `Material issued — ${mi.qty} ${mi.unit} ${mi.material}` });
+            setState((s) => { s.materialIssues = s.materialIssues || []; s.materialIssues.unshift({ id: nextId("MI", s.materialIssues), woId: wo.id, material: mi.material.trim(), unit: mi.unit, qty: Number(mi.qty), rate: Number(mi.rate), date: mi.date, issuedBy: currentUser(), recoveredIn: null, fromStore: mi.fromStore || "", toStore: mi.toStore || "", remarks: mi.remarks || "" }); }, { entity: "Work Order", id: wo.id, action: `Material issued - ${mi.qty} ${mi.unit} ${mi.material}` });
             toast("Material issue recorded"); setMi(null);
           }}>Save</Btn></>}>
           <div className="grid grid-cols-3 gap-3">
@@ -211,8 +211,8 @@ function WoResources({ wo }) {
             <Field label="Unit"><Select value={mi.unit} onChange={(x) => setMi({ ...mi, unit: x })} options={["bag", "MT", "kg", "cum", "nos", "ltr", "m"]} /></Field>
             <Field label="Recovery rate (₹)" required><NumInput value={mi.rate} onChange={(x) => setMi({ ...mi, rate: x })} /></Field>
             <Field label="Date"><DateInput value={mi.date} onChange={(x) => setMi({ ...mi, date: x })} /></Field>
-            <Field label="Issue from store"><Select value={mi.fromStore || ""} placeholder="—" onChange={(x) => setMi({ ...mi, fromStore: x })} options={settingsOf(getState()).stores} /></Field>
-            <Field label="Contractor's site store (job worker store)"><TextInput value={mi.toStore || ""} onChange={(x) => setMi({ ...mi, toStore: x })} placeholder={`${vendorName(getState(), wo.vendorId)} — site shed`} /></Field>
+            <Field label="Issue from store"><Select value={mi.fromStore || ""} placeholder="-" onChange={(x) => setMi({ ...mi, fromStore: x })} options={settingsOf(getState()).stores} /></Field>
+            <Field label="Contractor's site store (job worker store)"><TextInput value={mi.toStore || ""} onChange={(x) => setMi({ ...mi, toStore: x })} placeholder={`${vendorName(getState(), wo.vendorId)} - site shed`} /></Field>
             <Field label="Remarks"><TextInput value={mi.remarks || ""} onChange={(x) => setMi({ ...mi, remarks: x })} /></Field>
           </div>
         </Modal>
@@ -225,9 +225,9 @@ function DprModal({ wo, f, setF, by }) {
   const dup = (getState().dprs || []).some((d) => d.woId === wo.id && d.date === f.date);
   const ok = f.date && f.date <= todayISO() && Number(f.manpower) >= 0 && f.manpower !== "" && f.work.trim() && !dup;
   return (
-    <Modal open onClose={() => setF(null)} width={600} title={`Daily progress report — ${wo.id}`}
+    <Modal open onClose={() => setF(null)} width={600} title={`Daily progress report - ${wo.id}`}
       footer={<><Btn onClick={() => setF(null)}>Cancel</Btn><Btn variant="primary" disabled={!ok} onClick={() => {
-        setState((s) => { s.dprs = s.dprs || []; s.dprs.unshift({ id: nextId("DPR", s.dprs), woId: wo.id, date: f.date, manpower: Number(f.manpower), work: f.work.trim(), hindrance: f.hindrance.trim(), weather: f.weather, by }); }, { entity: "Work Order", id: wo.id, action: `Daily report ${fmtDate(f.date)} — ${f.manpower} workers` });
+        setState((s) => { s.dprs = s.dprs || []; s.dprs.unshift({ id: nextId("DPR", s.dprs), woId: wo.id, date: f.date, manpower: Number(f.manpower), work: f.work.trim(), hindrance: f.hindrance.trim(), weather: f.weather, by }); }, { entity: "Work Order", id: wo.id, action: `Daily report ${fmtDate(f.date)} - ${f.manpower} workers` });
         toast("Daily report saved"); setF(null);
       }}>Save</Btn></>}>
       <div className="grid grid-cols-3 gap-3">
@@ -261,7 +261,7 @@ function WbsCostTab() {
       { key: "project", label: "Project", filterOptions: FO.projects, filter: true },
       { key: "wbs", label: "WBS element", className: "font-medium" },
       { key: "wos", label: "WOs", align: "right" },
-      { key: "budget", label: "Budget", align: "right", num: true, render: (r) => (r.budget ? inrShort(r.budget) : "—") },
+      { key: "budget", label: "Budget", align: "right", num: true, render: (r) => (r.budget ? inrShort(r.budget) : "-") },
       { key: "committed", label: "Committed (WO)", align: "right", num: true, render: (r) => <span className={cls(r.budget && r.committed > r.budget && "font-semibold text-red-600")}>{inrShort(r.committed)}</span> },
       { key: "executed", label: "Executed (measured)", align: "right", num: true, render: (r) => inrShort(r.executed) },
       { key: "billed", label: "Billed", align: "right", num: true, render: (r) => inrShort(r.billed) },
@@ -280,7 +280,7 @@ function DprTab() {
       { key: "v", label: "Contractor", filterOptions: FO.contractors, filter: (d) => vendorName(st, byId(st.workOrders, d.woId)?.vendorId), render: (d) => vendorName(st, byId(st.workOrders, d.woId)?.vendorId) },
       { key: "manpower", label: "Manpower", align: "right", num: true },
       { key: "work", label: "Work done", className: "max-w-[360px] whitespace-normal text-[12.5px]" },
-      { key: "hindrance", label: "Hindrance", className: "whitespace-normal text-[12px] text-amber-700", render: (d) => d.hindrance || "—" },
+      { key: "hindrance", label: "Hindrance", className: "whitespace-normal text-[12px] text-amber-700", render: (d) => d.hindrance || "-" },
       { key: "weather", label: "Weather", filterOptions: ["Clear", "Rain", "Heat", "Wind"], filter: true },
       { key: "by", label: "Reported by", className: "text-[12px] text-ink-soft" },
     ]} />

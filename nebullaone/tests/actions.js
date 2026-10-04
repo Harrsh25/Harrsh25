@@ -1,4 +1,4 @@
-// Action audit — clicks every enabled button on every page header / toolbar and in the first record panel of each
+// Action audit - clicks every enabled button on every page header / toolbar and in the first record panel of each
 // list, from a fresh copy of the demo data each time, and records what happened: dialog opened, page changed,
 // data changed (store), toast, download, or on-screen change. A button with no effect = FUNCTIONAL GAP.
 const { chromium } = require('playwright'); const fs = require('fs'), path = require('path');
@@ -26,7 +26,7 @@ const ROUTES = [...fs.readFileSync(path.resolve(__dirname, '../src/90-nav.jsx'),
     const seen = new Set();
     for (const bt of btns) {
       if (!bt.name || seen.has(bt.name) || /^Close$|^Remove /.test(bt.name)) continue; seen.add(bt.name);
-      if (bt.disabled) { R.push({ where, button: bt.name, result: 'DISABLED', effect: bt.why ? 'disabled — ' + bt.why : 'disabled (no reason shown)' }); continue; }
+      if (bt.disabled) { R.push({ where, button: bt.name, result: 'DISABLED', effect: bt.why ? 'disabled - ' + bt.why : 'disabled (no reason shown)' }); continue; }
       await fresh(hash); if (opener) await opener();
       const target = p.locator(scope).locator('button:visible').nth(bt.i);
       const nm = await target.evaluate((x, nm) => new Function('x', 'return (' + nm + ')(x)')(x), NAME.toString()).catch(() => '');
@@ -50,7 +50,7 @@ const ROUTES = [...fs.readFileSync(path.resolve(__dirname, '../src/90-nav.jsx'),
   }
   fs.writeFileSync(path.join(__dirname, 'out/res-actions.json'), JSON.stringify(R, null, 1));
   const c = (k) => R.filter((x) => x.result === k).length;
-  console.log(`\nactions: ${R.length} buttons — ${c('WORKS')} work, ${c('DISABLED')} disabled, ${c('NO EFFECT')} no effect, ${c('ERROR')} error`);
+  console.log(`\nactions: ${R.length} buttons - ${c('WORKS')} work, ${c('DISABLED')} disabled, ${c('NO EFFECT')} no effect, ${c('ERROR')} error`);
   R.filter((x) => x.result === 'NO EFFECT' || x.result === 'ERROR' || /no reason/.test(x.effect)).forEach((x) => console.log(x.result, '|', x.where, '|', x.button, '|', x.effect));
   await b.close();
 })();

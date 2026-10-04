@@ -18,11 +18,11 @@ function useQueryOpen() {
 
 // A receipt can be reversed only if what stays received still covers what is billed, and nothing was returned from it
 function grnReverseBlock(st, po, g) {
-  if ((po.returns || []).some((x) => x.grnId === g.id)) return "Goods from this receipt were returned — reverse the return first";
+  if ((po.returns || []).some((x) => x.grnId === g.id)) return "Goods from this receipt were returned - reverse the return first";
   const after = { ...po, receipts: po.receipts.filter((x) => x.id !== g.id) };
   const rec = poReceived(after);
   const billed = (i) => sum(st.invoices.filter((x) => x.poId === po.id && !x.cancelled).flatMap((x) => x.lines.filter((l) => l.line === i)), (l) => l.qty);
-  if (po.billingPolicy !== "On ordered quantity" && rec.some((l, i) => billed(i) > l.accepted + 1e-9)) return "Already billed — cancel the bill first";
+  if (po.billingPolicy !== "On ordered quantity" && rec.some((l, i) => billed(i) > l.accepted + 1e-9)) return "Already billed - cancel the bill first";
   return "";
 }
 
@@ -76,14 +76,14 @@ function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket, requis
       footer={<><span className="mr-auto text-[13px]">Total <b className="num">{inr(total)}</b>{gstTotal > 0 ? <> + GST {inr(gstTotal)} = <b className="num">{inr(total + gstTotal)}</b></> : " + GST"}</span><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!ok} onClick={() => {
         const id = nextId("PO", st.purchaseOrders);
         const auto = !needsApproval;
-        setState((s) => s.purchaseOrders.unshift({ ...f, id, date: todayISO(), createdAt: new Date().toISOString(), status: auto ? "Issued" : "Draft", rfqId: null, ...(auto ? { approval: { by: currentUser(), at: new Date().toISOString(), decision: "Approved", remark: `Below the ${inrShort(set0.poApprovalMin)} approval threshold — issued directly` } } : {}), receipts: [], returns: [], blanketId: f.blanketId || null,
+        setState((s) => s.purchaseOrders.unshift({ ...f, id, date: todayISO(), createdAt: new Date().toISOString(), status: auto ? "Issued" : "Draft", rfqId: null, ...(auto ? { approval: { by: currentUser(), at: new Date().toISOString(), decision: "Approved", remark: `Below the ${inrShort(set0.poApprovalMin)} approval threshold - issued directly` } } : {}), receipts: [], returns: [], blanketId: f.blanketId || null,
           lines: lines.map((l) => ({ desc: l.desc, unit: l.unit, qty: Number(l.qty), rate: Number(l.rate), ...(l.hsn ? { hsn: String(l.hsn) } : {}), ...(l.gstPct !== undefined && l.gstPct !== "" ? { gstPct: Number(l.gstPct) } : {}), ...(l.needBy ? { needBy: l.needBy } : {}), ...(l.blanketLine !== undefined ? { blanketLine: l.blanketLine } : {}) })),
-          revisions: [{ rev: 0, at: new Date().toISOString(), by: currentUser(), note: bo ? `Call-off against ${bo.id}` : "PO created" }] }), { entity: "PO", id, action: `Created for ${v.name}${bo ? ` (call-off ${bo.id})` : ""} — ${auto ? "issued (below approval threshold)" : "sent for approval"}` });
-        toast(auto ? `${id} issued — below the approval threshold` : `${id} created — approve it in Approval Management`); onClose(); onCreated && onCreated(id);
+          revisions: [{ rev: 0, at: new Date().toISOString(), by: currentUser(), note: bo ? `Call-off against ${bo.id}` : "PO created" }] }), { entity: "PO", id, action: `Created for ${v.name}${bo ? ` (call-off ${bo.id})` : ""} - ${auto ? "issued (below approval threshold)" : "sent for approval"}` });
+        toast(auto ? `${id} issued - below the approval threshold` : `${id} created - approve it in Approval Management`); onClose(); onCreated && onCreated(id);
       }}>{needsApproval ? "Create & send for approval" : "Create & issue"}</Btn></>}>
       <div className="space-y-4">
         <div className="grid grid-cols-3 gap-3">
-          <Field label="Draw from blanket order" hint="Uses the agreed rates"><Select value={f.blanketId} placeholder="— none (standalone PO) —" onChange={(x) => setF({ ...blank(), ...(x ? fromBlanket(x) : {}), project: f.project })} options={activeBlankets.map((b) => ({ value: b.id, label: `${b.id} — ${vendorName(st, b.vendorId)}` }))} /></Field>
+          <Field label="Draw from blanket order" hint="Uses the agreed rates"><Select value={f.blanketId} placeholder="- none (standalone PO) -" onChange={(x) => setF({ ...blank(), ...(x ? fromBlanket(x) : {}), project: f.project })} options={activeBlankets.map((b) => ({ value: b.id, label: `${b.id} - ${vendorName(st, b.vendorId)}` }))} /></Field>
           <Field label="Vendor" required hint="Only spend-authorized, unblocked vendors"><Select value={f.vendorId} disabled={!!bo} placeholder="Select vendor…" onChange={(x) => { const nv = byId(st.vendors, x); setF({ ...f, vendorId: x, details: { ...(f.details || {}), buyer: nv?.defaultBuyer || (f.details || {}).buyer || currentUser(), currency: nv?.currency || "INR", fx: fxRate(nv?.currency), paymentTerms: nv?.paymentTerms, priceList: nv?.priceList || f.details?.priceList, supplierAddress: "", supplierContact: "" } }); }} options={vendors.map((x) => ({ value: x.id, label: x.name }))} /></Field>
           <Field label="Project"><Select value={f.project} onChange={(x) => setF({ ...f, project: x })} options={PROJECTS} /></Field>
           <Field label="Delivery by"><DateInput value={f.deliveryDate} onChange={(x) => setF({ ...f, deliveryDate: x })} /><FieldErr m={poErr.delivery} /></Field>
@@ -91,16 +91,16 @@ function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket, requis
           <Field label="Receipt tolerance (%)" hint="0–20%"><NumInput value={f.tolerance} onChange={(x) => setF({ ...f, tolerance: x })} /><FieldErr m={poErr.tol} /></Field>
         </div>
         {sg.issues.length > 0 && <Note tone={sg.block ? "red" : "amber"}>{v.name}: {sg.issues.join(" · ")}.{sg.block ? " New POs are stopped until this is fixed (Procurement Settings → PO compliance gate)." : ""}</Note>}
-        {gate0.block && <Note tone="red">{v.name} is in the <b>{gate0.standing.name}</b> scorecard standing — new POs are prevented.</Note>}
-        {!gate.block && gate.warn && <Note tone="amber">{v.name} is in the <b>{gate.standing.name}</b> scorecard standing — check performance before ordering.</Note>}
-        {v && complianceOf(v).blocking.length > 0 && <Note tone={settingsOf(st).complianceGate === "Stop" ? "red" : "amber"} icon={Icon.shieldCheck}><b>Compliance:</b> {complianceOf(v).blocking.join(" · ")} — the PO can be issued, but payments {settingsOf(st).complianceGate === "Stop" ? "will be blocked" : "will be flagged"} until this is fixed.</Note>}
-        {isGroupCompany(v) && <Note tone="blue" icon={Icon.building}><b>Group company</b> ({v.parentCompany}) — inter-company purchase: no RFQ or competitive quotes needed.</Note>}
+        {gate0.block && <Note tone="red">{v.name} is in the <b>{gate0.standing.name}</b> scorecard standing - new POs are prevented.</Note>}
+        {!gate.block && gate.warn && <Note tone="amber">{v.name} is in the <b>{gate.standing.name}</b> scorecard standing - check performance before ordering.</Note>}
+        {v && complianceOf(v).blocking.length > 0 && <Note tone={settingsOf(st).complianceGate === "Stop" ? "red" : "amber"} icon={Icon.shieldCheck}><b>Compliance:</b> {complianceOf(v).blocking.join(" · ")} - the PO can be issued, but payments {settingsOf(st).complianceGate === "Stop" ? "will be blocked" : "will be flagged"} until this is fixed.</Note>}
+        {isGroupCompany(v) && <Note tone="blue" icon={Icon.building}><b>Group company</b> ({v.parentCompany}) - inter-company purchase: no RFQ or competitive quotes needed.</Note>}
         {v && v.purchaseWarning && set0.purchaseWarnings && <Note tone="amber" icon={Icon.warning}><b>Purchase warning:</b> {v.purchaseWarning}</Note>}
-        {v && v.frozen && <Note tone="red">{v.name} is frozen — no new POs.</Note>}
+        {v && v.frozen && <Note tone="red">{v.name} is frozen - no new POs.</Note>}
         {overCredit && <Note tone="amber">Credit limit {inrShort(v.creditLimit)}: open POs and unpaid bills ({inrShort(outstanding)}) plus this PO ({inrShort(total)}) go over it.</Note>}
         {tooSoon && <Note tone="amber">Delivery is sooner than the {set0.daysToPurchase} days-to-purchase lead time.</Note>}
-        {dupItem && <Note tone="red">The same item appears twice — combine the lines (Procurement Settings → allow the same item twice).</Note>}
-        {v && v.preferred && !bo && <Note tone="green" icon={Icon.star}>Preferred supplier — pricelist rates from earlier POs are suggested below.</Note>}
+        {dupItem && <Note tone="red">The same item appears twice - combine the lines (Procurement Settings → allow the same item twice).</Note>}
+        {v && v.preferred && !bo && <Note tone="green" icon={Icon.star}>Preferred supplier - pricelist rates from earlier POs are suggested below.</Note>}
         <Section title={bo ? `Lines from ${bo.id} (allowance ${set0.blanketAllowancePct}%)` : "Lines"} actions={!bo && <Btn size="sm" icon={Icon.plus} onClick={() => setF({ ...f, lines: [...f.lines, { desc: "", unit: "nos", qty: "", rate: "" }] })}>Add line</Btn>}>
           <div className="space-y-2 p-3">
             {f.lines.map((l, i) => {
@@ -128,7 +128,7 @@ function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket, requis
         </Section>
         {overBlanket && <Note tone="red">Quantity exceeds what's left on the blanket order plus the {set0.blanketAllowancePct}% allowance.</Note>}
         <DocDetails kind="po" value={f.details} onChange={(d) => setF({ ...f, details: d })} vendor={v} subtotal={total} />
-        <p className="text-[12px] text-ink-mute">{needsApproval ? `At or above ${inrShort(set0.poApprovalMin)} — the PO goes for approval.` : `Below ${inrShort(set0.poApprovalMin)} — the PO is issued directly (Procurement Settings → PO approval minimum).`}</p>
+        <p className="text-[12px] text-ink-mute">{needsApproval ? `At or above ${inrShort(set0.poApprovalMin)} - the PO goes for approval.` : `Below ${inrShort(set0.poApprovalMin)} - the PO is issued directly (Procurement Settings → PO approval minimum).`}</p>
       </div>
     </Modal>
   );
@@ -144,7 +144,7 @@ function GrnModal({ po, onClose }) {
   const tpl0 = set0.inspectionTemplates[0];
   const [qi, setQi] = y.useState(() => ({ reportDate: todayISO(), type: "Incoming", template: "", params: {}, sampleSize: "", batch: "", manual: false, inspectedBy: currentUser(), verifiedBy: "", remarks: "" }));
   const tpl = set0.inspectionTemplates.find((t) => t.name === qi.template);
-  const [f, setF] = y.useState({ date: todayISO(), qc: "Passed", acceptedLocation: `Main store — ${po.project.split(" ")[0]}`, rejectedLocation: `Return bay — ${po.project.split(" ")[0]}`, reason: "", lines: rec.map((l) => ({ qty: Math.max(0, l.qty - l.received), accepted: Math.max(0, l.qty - l.received) })) });
+  const [f, setF] = y.useState({ date: todayISO(), qc: "Passed", acceptedLocation: `Main store - ${po.project.split(" ")[0]}`, rejectedLocation: `Return bay - ${po.project.split(" ")[0]}`, reason: "", lines: rec.map((l) => ({ qty: Math.max(0, l.qty - l.received), accepted: Math.max(0, l.qty - l.received) })) });
   const over0 = rec.some((l, i) => l.received + (Number(f.lines[i].qty) || 0) > l.qty * (1 + (po.tolerance || 0) / 100));
   const over = over0 && set0.overReceiptAction === "Stop";
   // Oracle receiving window: early / late against the PO delivery date
@@ -156,12 +156,12 @@ function GrnModal({ po, onClose }) {
   const accepted = sum(f.lines, (l) => Number(l.accepted) || 0);
   // The inspection result has to agree with the quantities, and rejected goods need a reason
   const grnErr = VX.req(f.date, "Receipt date required") || VX.notFuture(f.date, "Receipt date can't be in the future") || (f.date < po.date ? `Before the PO date (${fmtDate(po.date)})` : "")
-    || (f.qc === "Failed" && accepted > 0 ? "Inspection Failed — accepted quantity must be 0" : "")
-    || (["Passed", "Passed with remarks"].includes(f.qc) && rejected > 0 ? `Inspection says Passed but ${num(rejected)} units are rejected — choose “Partially rejected”` : "")
+    || (f.qc === "Failed" && accepted > 0 ? "Inspection Failed - accepted quantity must be 0" : "")
+    || (["Passed", "Passed with remarks"].includes(f.qc) && rejected > 0 ? `Inspection says Passed but ${num(rejected)} units are rejected - choose “Partially rejected”` : "")
     || (f.qc === "Partially rejected" && rejected <= 0 ? "Enter the rejected quantity (accepted < received)" : "")
     || (rejected > 0 && VX.reason(f.reason) ? "Give the rejection reason (min 5 characters)" : "");
   const qiErr = (qi.reportDate && qi.reportDate > todayISO() ? "Inspection report date can't be in the future" : "") || (qi.sampleSize !== "" && !(Number(qi.sampleSize) > 0) ? "Sample size must be above zero" : "")
-    || (tpl && f.qc !== "Failed" && tpl.params.some((p) => qi.params[p] === "Rejected") && rejected <= 0 ? "A parameter is marked Rejected — record the rejected quantity" : "")
+    || (tpl && f.qc !== "Failed" && tpl.params.some((p) => qi.params[p] === "Rejected") && rejected <= 0 ? "A parameter is marked Rejected - record the rejected quantity" : "")
     || Object.values(docDetailErrors("grn", det)).filter(Boolean)[0] || "";
   const post = () => {
     const grnId = nextId("GRN", st.purchaseOrders.flatMap((p) => p.receipts));
@@ -182,17 +182,17 @@ function GrnModal({ po, onClose }) {
           const excess = Math.min(rj, Math.max(0, billedQty - acceptedTotal));
           if (excess > 0) {
             const dnId = `DN-${String(s.invoices.flatMap((x) => x.notes || []).filter((n) => n.type === "Debit Note").length + 1).padStart(3, "0")}`;
-            inv.notes.push({ id: dnId, type: "Debit Note", amount: round2(excess * p.lines[i].rate * (1 + (inv.gstPct || 0) / 100)), reason: `${num(excess)} ${p.lines[i].unit} rejected at ${grnId} — ${rtv.id}`, date: f.date, auto: true });
+            inv.notes.push({ id: dnId, type: "Debit Note", amount: round2(excess * p.lines[i].rate * (1 + (inv.gstPct || 0) / 100)), reason: `${num(excess)} ${p.lines[i].unit} rejected at ${grnId} - ${rtv.id}`, date: f.date, auto: true });
             rtv.debitNote = dnId; dnInfo = ` · ${dnId} on ${inv.id}`;
           }
         }
         p.returns.push(rtv);
       });
-    }, { entity: "PO", id: po.id, action: `${grnId} received${rejected ? ` — ${num(rejected)} rejected, return raised${dnInfo}` : ""}` });
-    toast(`${grnId} posted${rejected ? " — return to vendor raised" : ""}${dnInfo}`); onClose();
+    }, { entity: "PO", id: po.id, action: `${grnId} received${rejected ? ` - ${num(rejected)} rejected, return raised${dnInfo}` : ""}` });
+    toast(`${grnId} posted${rejected ? " - return to vendor raised" : ""}${dnInfo}`); onClose();
   };
   return (
-    <Modal open onClose={onClose} width={820} title={`Goods receipt — ${po.id}`} subtitle={`Tolerance ±${po.tolerance || 0}% · quality inspection splits accepted and rejected quantity`}
+    <Modal open onClose={onClose} width={820} title={`Goods receipt - ${po.id}`} subtitle={`Tolerance ±${po.tolerance || 0}% · quality inspection splits accepted and rejected quantity`}
       footer={<>{(qiErr || (dateBlock && `Receipt ${dateOut}`)) && <span className="mr-auto text-[12px] text-red-600">{qiErr || `Receipt ${dateOut}`}</span>}<Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={over || bad || !!grnErr || !!qiErr || dateBlock || !f.lines.some((l) => l.qty > 0)} onClick={post}>Post GRN</Btn></>}>
       <div className="space-y-3">
         <div className="grid grid-cols-3 gap-3">
@@ -205,7 +205,7 @@ function GrnModal({ po, onClose }) {
           <tbody>
             {rec.map((l, i) => (
               <tr key={i}>
-                <Td>{l.desc}{blind && <span className="block text-[11px] text-ink-mute">{l.unit} — blind receiving: count what arrived</span>}</Td>{!blind && <><Td align="right" className="num">{num(l.qty)} {l.unit}</Td><Td align="right" className="num">{num(l.received)}</Td></>}
+                <Td>{l.desc}{blind && <span className="block text-[11px] text-ink-mute">{l.unit} - blind receiving: count what arrived</span>}</Td>{!blind && <><Td align="right" className="num">{num(l.qty)} {l.unit}</Td><Td align="right" className="num">{num(l.received)}</Td></>}
                 <Td align="right"><NumInput value={f.lines[i].qty} onChange={(x) => setF({ ...f, lines: f.lines.map((z, j) => (j === i ? { qty: x, accepted: x } : z)) })} /></Td>
                 <Td align="right"><NumInput value={f.lines[i].accepted} onChange={(x) => setF({ ...f, lines: f.lines.map((z, j) => (j === i ? { ...z, accepted: x } : z)) })} /></Td>
                 <Td align="right" className={cls("num", (f.lines[i].qty - f.lines[i].accepted) > 0 && "font-semibold text-red-600")}>{num((Number(f.lines[i].qty) || 0) - (Number(f.lines[i].accepted) || 0))}</Td>
@@ -221,7 +221,7 @@ function GrnModal({ po, onClose }) {
           </div>
         )}
         {over && <Note tone="red">Receipt exceeds the ordered quantity plus {po.tolerance || 0}% tolerance.</Note>}
-        {over0 && !over && set0.overReceiptAction === "Warn" && <Note tone="amber">Over-receipt beyond the {po.tolerance || 0}% tolerance — allowed with a warning (Procurement Settings → over-receipt action).</Note>}
+        {over0 && !over && set0.overReceiptAction === "Warn" && <Note tone="amber">Over-receipt beyond the {po.tolerance || 0}% tolerance - allowed with a warning (Procurement Settings → over-receipt action).</Note>}
         {dateOut && !dateBlock && set0.receiptDateAction === "Warn" && <Note tone="amber">Receipt is {dateOut} against the PO delivery date {fmtDate(po.deliveryDate)}.</Note>}
         <Section title="Quality inspection" icon={Icon.clipboardCheck}>
           <div className="grid grid-cols-4 gap-3 p-3">
@@ -231,7 +231,7 @@ function GrnModal({ po, onClose }) {
             <Field label="Item"><TextInput value={rec.length === 1 ? rec[0].desc : `${rec.length} items`} disabled /></Field>
             <Field label="Batch / serial no."><TextInput value={qi.batch} onChange={(x) => setQi({ ...qi, batch: x })} placeholder="e.g. Heat no. H-4412" /></Field>
             <Field label="Sample size"><NumInput value={qi.sampleSize} onChange={(x) => setQi({ ...qi, sampleSize: x })} /></Field>
-            <Field label="Inspection template"><Select value={qi.template} placeholder="—" onChange={(x) => setQi({ ...qi, template: x, params: {} })} options={set0.inspectionTemplates.map((t) => t.name)} /></Field>
+            <Field label="Inspection template"><Select value={qi.template} placeholder="-" onChange={(x) => setQi({ ...qi, template: x, params: {} })} options={set0.inspectionTemplates.map((t) => t.name)} /></Field>
             <div className="flex items-end pb-1.5"><Check checked={qi.manual} onChange={(b) => setQi({ ...qi, manual: b })} label="Manual inspection" /></div>
             <Field label="Inspected by"><TextInput value={qi.inspectedBy} onChange={(x) => setQi({ ...qi, inspectedBy: x })} /></Field>
             <Field label="Verified by"><TextInput value={qi.verifiedBy} onChange={(x) => setQi({ ...qi, verifiedBy: x })} /></Field>
@@ -275,17 +275,17 @@ function PoDrawer({ id, onClose }) {
         {status === "Partially Received" && <Btn onClick={() => setAsk("close")}>Close (short-close)</Btn>}
         {!["Draft", "Closed", "Cancelled"].includes(po.status) && status !== "Received" && <Btn variant="primary" icon={Icon.truck} disabled={isBlockedFor(v, "All")} onClick={() => setGrn(true)}>Receive goods</Btn>}
         {["Waiting Bills", "Partially Billed"].includes(bstatus) && <Btn icon={Icon.receipt} onClick={() => setBill(true)}>Create bill</Btn>}
-        {!["Closed", "Cancelled"].includes(po.status) && <Btn icon={po.status !== "Draft" && settingsOf(st).lockConfirmedOrders ? Icon.lock : Icon.pencil} title={po.status !== "Draft" && settingsOf(st).lockConfirmedOrders ? "Confirmed orders are locked — the change is recorded as a new revision with a reason" : ""} onClick={() => setAmend({ deliveryDate: po.deliveryDate, lines: po.lines.map((l) => ({ ...l })), note: "" })}>{po.status !== "Draft" && settingsOf(st).lockConfirmedOrders ? "Unlock & amend" : "Edit"}</Btn>}
+        {!["Closed", "Cancelled"].includes(po.status) && <Btn icon={po.status !== "Draft" && settingsOf(st).lockConfirmedOrders ? Icon.lock : Icon.pencil} title={po.status !== "Draft" && settingsOf(st).lockConfirmedOrders ? "Confirmed orders are locked - the change is recorded as a new revision with a reason" : ""} onClick={() => setAmend({ deliveryDate: po.deliveryDate, lines: po.lines.map((l) => ({ ...l })), note: "" })}>{po.status !== "Draft" && settingsOf(st).lockConfirmedOrders ? "Unlock & amend" : "Edit"}</Btn>}
       </>}>
       {ask && ask.grn && <ReasonModal title={`Reverse ${ask.grn}`} text="The receipt is taken back out of stock and the quantities are expected again." action="Reverse receipt" onClose={() => setAsk(null)}
-        onDone={(r) => { setState((s) => { const x = byId(s.purchaseOrders, po.id); const g = x.receipts.find((y) => y.id === ask.grn); x.receipts = x.receipts.filter((y) => y.id !== ask.grn); x.reversedReceipts = [...(x.reversedReceipts || []), { ...g, reversed: { at: new Date().toISOString(), by: currentUser(), reason: r } }]; }, { entity: "PO", id: po.id, action: `${ask.grn} reversed — ${r}` }); toast(`${ask.grn} reversed`); }} />}
+        onDone={(r) => { setState((s) => { const x = byId(s.purchaseOrders, po.id); const g = x.receipts.find((y) => y.id === ask.grn); x.receipts = x.receipts.filter((y) => y.id !== ask.grn); x.reversedReceipts = [...(x.reversedReceipts || []), { ...g, reversed: { at: new Date().toISOString(), by: currentUser(), reason: r } }]; }, { entity: "PO", id: po.id, action: `${ask.grn} reversed - ${r}` }); toast(`${ask.grn} reversed`); }} />}
       {ask === "reject" && <ReasonModal title={`Reject ${po.id}`} action="Reject" onClose={() => setAsk(null)} onDone={(r) => decidePo(po, false, r)} />}
       {ask === "cancel" && <ReasonModal title={`Cancel ${po.id}`} text="Nothing has been received or billed. The vendor is told the order is cancelled." action="Cancel PO" onClose={() => setAsk(null)}
-        onDone={(r) => { setState((s) => { const x = byId(s.purchaseOrders, po.id); x.status = "Cancelled"; x.cancelled = { at: new Date().toISOString(), by: currentUser(), reason: r }; }, { entity: "PO", id: po.id, action: `Cancelled — ${r}` }); toast(`${po.id} cancelled`, "red"); }} />}
+        onDone={(r) => { setState((s) => { const x = byId(s.purchaseOrders, po.id); x.status = "Cancelled"; x.cancelled = { at: new Date().toISOString(), by: currentUser(), reason: r }; }, { entity: "PO", id: po.id, action: `Cancelled - ${r}` }); toast(`${po.id} cancelled`, "red"); }} />}
       {ask === "close" && <ReasonModal title={`Close ${po.id}`} text="The quantity not yet received is no longer expected. What was received can still be billed." action="Close PO" tone="primary" onClose={() => setAsk(null)}
-        onDone={(r) => { setState((s) => { const x = byId(s.purchaseOrders, po.id); x.status = "Closed"; x.closed = { at: new Date().toISOString(), by: currentUser(), reason: r }; }, { entity: "PO", id: po.id, action: `Closed (short-close) — ${r}` }); toast(`${po.id} closed`); }} />}
+        onDone={(r) => { setState((s) => { const x = byId(s.purchaseOrders, po.id); x.status = "Closed"; x.closed = { at: new Date().toISOString(), by: currentUser(), reason: r }; }, { entity: "PO", id: po.id, action: `Closed (short-close) - ${r}` }); toast(`${po.id} closed`); }} />}
       <div className="space-y-4 px-6 py-5">
-        {po.status === "Draft" && (() => { const a = poApprovalState(po, st); return <Note icon={Icon.clipboardCheck}>Approval by value ({inrShort(poValue(po))}): {a.levels.map((l, i) => `${l.level}${a.done[i] ? ` ✓ ${a.done[i].by}` : i === a.i ? " — pending" : ""}`).join(" → ")}</Note>; })()}
+        {po.status === "Draft" && (() => { const a = poApprovalState(po, st); return <Note icon={Icon.clipboardCheck}>Approval by value ({inrShort(poValue(po))}): {a.levels.map((l, i) => `${l.level}${a.done[i] ? ` ✓ ${a.done[i].by}` : i === a.i ? " - pending" : ""}`).join(" → ")}</Note>; })()}
         {(po.reminders || []).length > 0 && <Note icon={Icon.mail}>Receipt reminder sent to the vendor {fmtDateTime(po.reminders[po.reminders.length - 1].at)}{po.reminders[po.reminders.length - 1].auto ? ` (automatic, ${reminderDays(st, v)} days before delivery)` : ""}.</Note>}
         <div className="grid grid-cols-4 gap-3">
           <StatTile tone="blue" label="PO value" value={inrShort(poValue(po))} sub="excl. GST" icon={Icon.package} />
@@ -293,7 +293,7 @@ function PoDrawer({ id, onClose }) {
           <StatTile tone="red" label="Rejected / returned" value={num(sum(rec, (l) => l.rejected))} sub={`${(po.returns || []).length} return(s)`} icon={Icon.fileX} />
           <StatTile tone="purple" label="Billed" value={inrShort(sum(invs, (i) => invoiceTotals(i).taxable))} sub={bstatus} icon={Icon.receipt} />
         </div>
-        <Section title="Lines — ordered vs received vs billed" icon={Icon.boxes}>
+        <Section title="Lines - ordered vs received vs billed" icon={Icon.boxes}>
           <DataTable dense rows={rec.map((l, i) => ({ ...l, billed: sum(invs.flatMap((x) => x.lines.filter((z) => z.line === i)), (z) => z.qty) }))} rowKey={(_, i) => i} columns={[
             { key: "desc", label: "Item", className: "font-medium", render: (l) => <span className="flex flex-col">{l.desc}{(l.hsn || l.gstPct !== undefined || l.needBy) && <span className="text-[11.5px] font-normal text-ink-mute">{[l.hsn && `HSN/SAC ${l.hsn}`, l.gstPct !== undefined && `GST ${l.gstPct}%`, l.needBy && `need by ${fmtDate(l.needBy)}`].filter(Boolean).join(" · ")}</span>}</span> },
             { key: "qty", label: "Ordered", align: "right", num: true, render: (l) => `${num(l.qty)} ${l.unit}` },
@@ -315,8 +315,8 @@ function PoDrawer({ id, onClose }) {
             { key: "q", label: "Received / accepted", render: (r) => `${num(sum(r.lines, (l) => l.qty))} / ${num(sum(r.lines, (l) => l.accepted))}` },
             { key: "loc", label: "Accepted → / rejected →", className: "text-[12px]", render: (r) => <span className="flex flex-col"><span>{r.acceptedLocation || "Main store"}</span>{r.rejectedLocation && <span className="text-red-600">{r.rejectedLocation}</span>}</span> },
             { key: "ot", label: "On time", render: (r) => (new Date(r.date) <= new Date(po.deliveryDate) ? <Status tone="green">On time</Status> : <Status tone="amber">Late</Status>) },
-            { key: "tr", label: "Challan · transport", className: "text-[12px]", render: (r) => [r.details?.deliveryNote, r.details?.transporter, r.details?.vehicleNo].filter(Boolean).join(" · ") || "—" },
-            { key: "qi", label: "Inspection", className: "text-[12px]", render: (r) => (r.inspection ? <span data-tip={[`${r.inspection.type} · ${fmtDate(r.inspection.reportDate)}`, r.inspection.template && `Template: ${r.inspection.template}`, ...Object.entries(r.inspection.params || {}).map(([k, v]) => `${k}: ${v}`), r.inspection.batch && `Batch ${r.inspection.batch}`, r.inspection.sampleSize && `Sample ${r.inspection.sampleSize}`, r.inspection.remarks].filter(Boolean).join("\n")}>{r.inspection.id} · {r.inspection.inspectedBy}{r.inspection.verifiedBy ? ` / ${r.inspection.verifiedBy}` : ""}</span> : "—") },
+            { key: "tr", label: "Challan · transport", className: "text-[12px]", render: (r) => [r.details?.deliveryNote, r.details?.transporter, r.details?.vehicleNo].filter(Boolean).join(" · ") || "-" },
+            { key: "qi", label: "Inspection", className: "text-[12px]", render: (r) => (r.inspection ? <span data-tip={[`${r.inspection.type} · ${fmtDate(r.inspection.reportDate)}`, r.inspection.template && `Template: ${r.inspection.template}`, ...Object.entries(r.inspection.params || {}).map(([k, v]) => `${k}: ${v}`), r.inspection.batch && `Batch ${r.inspection.batch}`, r.inspection.sampleSize && `Sample ${r.inspection.sampleSize}`, r.inspection.remarks].filter(Boolean).join("\n")}>{r.inspection.id} · {r.inspection.inspectedBy}{r.inspection.verifiedBy ? ` / ${r.inspection.verifiedBy}` : ""}</span> : "-") },
             { key: "rv", label: "", align: "right", render: (r) => { const why = grnReverseBlock(st, po, r); return <Btn size="sm" disabled={!!why} title={why || "Reverse this receipt (ERPNext cancel / SAP movement 102)"} onClick={() => setAsk({ grn: r.id })}>Reverse</Btn>; } },
           ]} />
         </Section>
@@ -343,9 +343,9 @@ function PoDrawer({ id, onClose }) {
       {grn && <GrnModal po={po} onClose={() => setGrn(false)} />}
       {bill && <NewBillModal open presetPoId={po.id} onClose={() => setBill(false)} />}
       {amend && (
-        <Modal open onClose={() => setAmend(null)} width={720} title={`Edit ${po.id} — revision ${po.revisions.length}`} subtitle="The original is kept; each change is versioned."
+        <Modal open onClose={() => setAmend(null)} width={720} title={`Edit ${po.id} - revision ${po.revisions.length}`} subtitle="The original is kept; each change is versioned."
           footer={<><Btn onClick={() => setAmend(null)}>Cancel</Btn><Btn variant="primary" disabled={!amend.note || overOrder(amend)} onClick={() => {
-            setState((s) => { const p = byId(s.purchaseOrders, id); p.deliveryDate = amend.deliveryDate; p.lines = amend.lines.map((l) => ({ ...l, qty: Number(l.qty), rate: Number(l.rate) })); p.revisions.push({ rev: p.revisions.length, at: new Date().toISOString(), by: currentUser(), note: amend.note }); }, { entity: "PO", id, action: `Edited — ${amend.note}` });
+            setState((s) => { const p = byId(s.purchaseOrders, id); p.deliveryDate = amend.deliveryDate; p.lines = amend.lines.map((l) => ({ ...l, qty: Number(l.qty), rate: Number(l.rate) })); p.revisions.push({ rev: p.revisions.length, at: new Date().toISOString(), by: currentUser(), note: amend.note }); }, { entity: "PO", id, action: `Edited - ${amend.note}` });
             toast("PO updated"); setAmend(null);
           }}>Save revision</Btn></>}>
           <div className="space-y-3">
@@ -405,7 +405,7 @@ function BlanketOrdersPage() {
     !f.vendorId && "Vendor required", !String(f.title).trim() && "Title required",
     !f.start || !f.deadline ? "Enter start and finish dates" : f.deadline <= f.start ? "Finish must be after start" : f.deadline < todayISO() ? "Agreement has already ended" : "",
     ...f.lines.map((l, i) => !String(l.desc).trim() ? `Line ${i + 1}: item required` : !String(l.unit || "").trim() ? `Line ${i + 1}: unit required` : !(Number(l.qty) > 0) ? `Line ${i + 1}: agreed qty must be greater than 0` : !(Number(l.rate) > 0) ? `Line ${i + 1}: rate must be greater than 0` : ""),
-    f.lines.some((l, i) => l.desc && f.lines.findIndex((x) => normNo(x.desc) === normNo(l.desc)) !== i) && "The same item appears twice — merge the lines",
+    f.lines.some((l, i) => l.desc && f.lines.findIndex((x) => normNo(x.desc) === normNo(l.desc)) !== i) && "The same item appears twice - merge the lines",
     f.details?.orderDate && f.details.orderDate > todayISO() && "Order date can't be in the future",
     f.reference && st.blanketOrders.some((b) => normNo(b.reference) === normNo(f.reference)) && "Agreement reference already used",
     ...Object.values(docDetailErrors("blanket", f.details || {})),
@@ -414,7 +414,7 @@ function BlanketOrdersPage() {
   const value = (b) => sum(b.lines, (l) => l.qty * l.rate);
   const used = (b) => sum(blanketUsage(st, b), (l) => l.ordered * l.rate);
   return (
-    <Page title="Blanket Orders" subtitle="Long-term rate agreements — call-off POs draw down the agreed quantity at the agreed rate" icon={Icon.layers}
+    <Page title="Blanket Orders" subtitle="Long-term rate agreements - call-off POs draw down the agreed quantity at the agreed rate" icon={Icon.layers}
       actions={<Btn variant="primary" icon={Icon.plus} onClick={() => { setF(blank); setCreate(true); }}>New blanket order</Btn>}>
       <DataTable noun="agreements" extraColumns={LIST_EXTRA.blanket(st)} rows={st.blanketOrders} onRow={(b) => setOpen(b.id)} empty={<EmptyState icon={Icon.layers} title="No blanket orders" text="Create one for materials you buy repeatedly from the same vendor." />} columns={[
         { key: "title", label: "Agreement", className: "font-medium" },
@@ -461,7 +461,7 @@ function BlanketOrdersPage() {
         <div className="space-y-3">
           <div className="grid grid-cols-3 gap-3">
             <Field label="Vendor" required><Select value={f.vendorId} placeholder="Select…" onChange={(x) => setF({ ...f, vendorId: x })} options={st.vendors.filter(eligibleForPo).map((v) => ({ value: v.id, label: v.name }))} /></Field>
-            <Field label="Title" required span={2}><TextInput value={f.title} onChange={(x) => setF({ ...f, title: x })} placeholder="e.g. TMT steel — annual rate agreement" /></Field>
+            <Field label="Title" required span={2}><TextInput value={f.title} onChange={(x) => setF({ ...f, title: x })} placeholder="e.g. TMT steel - annual rate agreement" /></Field>
             <Field label="Start"><DateInput value={f.start} onChange={(x) => setF({ ...f, start: x })} /></Field>
             <Field label="Agreement deadline"><DateInput value={f.deadline} onChange={(x) => setF({ ...f, deadline: x })} /></Field>
             <Field label="Agreement no. / vendor reference"><TextInput value={f.reference} onChange={(x) => setF({ ...f, reference: x })} placeholder="e.g. RC/2026/STEEL/04" /></Field>
@@ -491,18 +491,18 @@ function paymentGate(st, inv) {
   if (isBlockedFor(v, "Payments")) stops.push(`Vendor ${v.status.toLowerCase()}${v.hold ? ` (${v.hold.scope})` : ""}`);
   const comp = complianceOf(v);
   if (comp.blocking.length) add(set0.complianceGate, `Compliance: ${comp.blocking.slice(0, 2).join("; ")}${comp.blocking.length > 2 ? ` +${comp.blocking.length - 2} more` : ""}`);
-  if (inv.hold && (!inv.hold.until || daysUntil(inv.hold.until) >= 0)) stops.push(`Invoice on hold — ${inv.hold.reason}${inv.hold.until ? ` until ${fmtDate(inv.hold.until)}` : ""}`);
+  if (inv.hold && (!inv.hold.until || daysUntil(inv.hold.until) >= 0)) stops.push(`Invoice on hold - ${inv.hold.reason}${inv.hold.until ? ` until ${fmtDate(inv.hold.until)}` : ""}`);
   const defB = defaultBank(v);
   if (!defB) stops.push("No default bank account");
   else if (bankStatus(defB) === "Rejected") stops.push("Default bank account failed verification");
-  else if (bankStatus(defB) !== "Verified") stops.push("Default bank account not yet verified — verify it before paying");
+  else if (bankStatus(defB) !== "Verified") stops.push("Default bank account not yet verified - verify it before paying");
   if (defB && defB.disabled) stops.push("Default bank account is disabled");
   else if (defB && defB.paymentsEnabled === false) stops.push("Payments are switched off for the default bank account");
   if (defB && isForeign(v) && !defB.allowIntl) warns.push("International payments not enabled on the default bank account");
   if (v.frozen) stops.push("Vendor is frozen");
-  if (inv.posted === false) stops.push("Draft bill — post it before paying");
-  if (inv.review === "Pending") stops.push("Vendor invoice on hold — waiting for AP review");
-  if (inv.review === "Rejected") stops.push("Vendor invoice on hold — rejected by AP");
+  if (inv.posted === false) stops.push("Draft bill - post it before paying");
+  if (inv.review === "Pending") stops.push("Vendor invoice on hold - waiting for AP review");
+  if (inv.review === "Rejected") stops.push("Vendor invoice on hold - rejected by AP");
   if (inv.source === "Purchase Order") {
     const m = threeWay(st, inv);
     if (m.rows.some((r) => !r.qtyOk) && !m.qtyCovered) add(set0.threeWayQty, "Billed quantity exceeds accepted quantity");
@@ -544,12 +544,12 @@ function PayModal({ invIds, onClose }) {
   const dateErr = VX.req(date) || VX.notFuture(date, "Payment date can't be in the future") || (invs.some((i) => date < i.date) ? `Payment date is before the bill date (${fmtDate(invs.map((i) => i.date).sort().pop())})` : "");
   const netTotal = sum(rows.filter((r) => !r.blocked && r.payNow > 0), (r) => r.net);
   const payErr = (mode === "Cheque" && !pd.refNo.trim() ? "Cheque no. is required" : "") || (mode === "Cheque" && !pd.refDate ? "Cheque date is required" : "")
-    || (pd.refDate && pd.refDate > shiftDays(90) ? "Reference date too far ahead" : "") || (pd.received !== "" && Number(pd.received) < netTotal - 0.5 && pd.paymentType === "Pay" ? "Amount paid can't be less than the bills selected — reduce the selection" : "")
+    || (pd.refDate && pd.refDate > shiftDays(90) ? "Reference date too far ahead" : "") || (pd.received !== "" && Number(pd.received) < netTotal - 0.5 && pd.paymentType === "Pay" ? "Amount paid can't be less than the bills selected - reduce the selection" : "")
     || Object.values(docDetailErrors("payment", pd)).filter(Boolean)[0] || "";
   const unallocated = pd.received !== "" ? round2(Number(pd.received) - netTotal) : 0;
   const ok = dateErr || payErr ? [] : rows.filter((r) => !r.blocked && r.payNow > 0);
   return (
-    <Modal open onClose={onClose} width={920} title={invIds.length > 1 ? `Payment run — ${invIds.length} bills` : `Record payment — ${invs[0].id}`}
+    <Modal open onClose={onClose} width={920} title={invIds.length > 1 ? `Payment run - ${invIds.length} bills` : `Record payment - ${invs[0].id}`}
       subtitle="TDS is withheld at payment for PO bills; RA bills already carry TDS. Pays the next due instalment where a schedule exists."
       footer={<><span className="mr-auto text-[13px]">Paying <b>{ok.length}</b> · net <b className="num">{inr(sum(ok, (r) => r.net))}</b></span><Btn onClick={onClose}>Cancel</Btn>
         <Btn variant="primary" disabled={!ok.length} onClick={() => {
@@ -571,7 +571,7 @@ function PayModal({ invIds, onClose }) {
           <Field label="Vendor bank account (paid to)">{v0 ? <Select value={pd.vendorBank} placeholder="Default account" onChange={(x) => setPd({ ...pd, vendorBank: x })} options={vendorBankOptions(v0).filter((o) => bankPayable(v0.bankAccounts.find((a) => String(a.id) === o.value)))} /> : <span className="flex h-[32px] items-center text-[12.5px] text-ink-mute">Each vendor's default account</span>}</Field>
           <Field label={mode === "Cheque" ? "Cheque no." : "Reference / UTR no."} required={mode === "Cheque"}><TextInput value={pd.refNo} onChange={(x) => setPd({ ...pd, refNo: x })} placeholder={mode === "Cheque" ? "6-digit cheque no." : "Filled from the bank file if blank"} /></Field>
           <Field label={mode === "Cheque" ? "Cheque date" : "Reference date"} required={mode === "Cheque"}><DateInput value={pd.refDate} onChange={(x) => setPd({ ...pd, refDate: x })} /></Field>
-          <Field label="Amount paid (₹)" hint={pd.received !== "" ? `Unallocated ${inr(unallocated)} — kept as an advance` : "Leave blank to pay exactly the bills"}><NumInput value={pd.received} onChange={(x) => setPd({ ...pd, received: x })} /></Field>
+          <Field label="Amount paid (₹)" hint={pd.received !== "" ? `Unallocated ${inr(unallocated)} - kept as an advance` : "Leave blank to pay exactly the bills"}><NumInput value={pd.received} onChange={(x) => setPd({ ...pd, received: x })} /></Field>
           <Field label="Released by"><span className="flex h-[32px] items-center text-[13px]">{actor().name}{canOverride && <span className="ml-2"><Status tone="purple">Can override</Status></span>}</span></Field>
         </div>
         {payErr && <Note tone="red">{payErr}</Note>}
@@ -581,7 +581,7 @@ function PayModal({ invIds, onClose }) {
           <tbody>{rows.map((r) => (
             <tr key={r.inv.id}>
               <Td className="mono text-[12px]">{r.inv.id}{r.next && <span className="block text-[10.5px] text-ink-mute">instalment {r.next.n}</span>}</Td><Td>{r.v.name}</Td><Td align="right" className="num">{inr(r.payNow)}</Td>
-              <Td align="right" className="num">{r.tds ? inr(r.tds) : "—"}</Td><Td align="right" className="num font-semibold">{inr(r.net)}</Td>
+              <Td align="right" className="num">{r.tds ? inr(r.tds) : "-"}</Td><Td align="right" className="num font-semibold">{inr(r.net)}</Td>
               <Td className="max-w-[340px] whitespace-normal">
                 {r.who && <span className="block text-[12px] text-red-600">Stop: {r.who}</span>}
                 {r.gate.all.length === 0 ? (!r.who && <Status tone="green">Clear</Status>) : <>
@@ -633,7 +633,7 @@ function NewBillModal({ open, onClose, presetPoId }) {
   const due = f.due || autoDue;
   const lineErr = f.lines.map((l, i) => mode === "po" ? (Number(l.qty) < 0 ? `Line ${i + 1}: quantity can't be negative` : Number(l.qty) > maxOf(l) + 0.001 ? `Line ${i + 1}: ${num(l.qty)} is more than the ${num(maxOf(l))} received and not yet billed` : Number(l.qty) > 0 && !(Number(l.rate) > 0) ? `Line ${i + 1}: rate must be greater than 0` : "")
     : !String(l.desc || "").trim() ? `Line ${i + 1}: description required` : !(Number(l.qty) > 0) ? `Line ${i + 1}: quantity must be greater than 0` : !(Number(l.rate) > 0) ? `Line ${i + 1}: rate must be greater than 0` : "");
-  const rateWarn = po ? f.lines.filter((l) => Number(l.qty) > 0 && po.lines[l.line] && Number(l.rate) > po.lines[l.line].rate + 0.001).map((l) => `${l.desc}: billed rate ${inr(l.rate)} is above the PO rate ${inr(po.lines[l.line].rate)} — will fail 3-way match`) : [];
+  const rateWarn = po ? f.lines.filter((l) => Number(l.qty) > 0 && po.lines[l.line] && Number(l.rate) > po.lines[l.line].rate + 0.001).map((l) => `${l.desc}: billed rate ${inr(l.rate)} is above the PO rate ${inr(po.lines[l.line].rate)} - will fail 3-way match`) : [];
   const dateErr = VX.req(f.date) || VX.notFuture(f.date, "Invoice date can't be in the future") || (po && f.date < po.date ? `Invoice date is before the PO date (${fmtDate(po.date)})` : "") || VX.dateOrder(f.date, due, "Due date can't be before the invoice date");
   const subtotal = sum(f.lines, (l) => (Number(l.qty) || 0) * (Number(l.rate) || 0));
   const exErr = billExtrasErr(f, subtotal * (1 + (Number(f.gstPct) || 0) / 100)) || Object.values(docDetailErrors("bill", f.details || {})).filter(Boolean)[0] || "";
@@ -644,8 +644,8 @@ function NewBillModal({ open, onClose, presetPoId }) {
     const extra = { details: f.details, tdsSetup: f.tdsSetup || {}, attachment: f.attachment || null, payRef: f.payRef || "", recipientBank: f.recipientBank || "", posted, createdAt: new Date().toISOString() };
     const paidNow = f.isPaid ? [{ id: `PAY-${String(st.invoices.flatMap((i) => i.payments).length + 1).padStart(3, "0")}`, date: f.date, amount: Number(f.paidAmount), tds: 0, mode: f.paidMode || "NEFT", ref: f.payRef || "Paid at entry", paidBy: currentUser(), paidFrom: f.paidFrom, atEntry: true }] : null;
     setState((s) => s.invoices.unshift({ id, vendorId: v.id, ...extra, source: mode === "po" ? "Purchase Order" : "Direct", poId: mode === "po" ? poId : null, number: f.number.trim(), date: f.date, due, dueOverridden: !!f.due, gstPct: Number(f.gstPct), hold: null, notes: [], payments: paidNow || [], schedule: null, enteredBy: currentUser(),
-      lines: f.lines.filter((l) => l.qty > 0).map((l) => ({ line: l.line ?? null, desc: l.desc, qty: Number(l.qty), rate: Number(l.rate) })) }), { entity: "Invoice", id, action: `Bill ${f.number} entered${mode === "po" ? ` against ${poId}` : " without PO"}${posted ? "" : " as draft"}${paidNow ? ` — paid at entry ${inr(f.paidAmount)}` : ""}` });
-    toast(`${id} created${posted ? "" : " as a draft — post it to make it payable"}`); onClose();
+      lines: f.lines.filter((l) => l.qty > 0).map((l) => ({ line: l.line ?? null, desc: l.desc, qty: Number(l.qty), rate: Number(l.rate) })) }), { entity: "Invoice", id, action: `Bill ${f.number} entered${mode === "po" ? ` against ${poId}` : " without PO"}${posted ? "" : " as draft"}${paidNow ? ` - paid at entry ${inr(f.paidAmount)}` : ""}` });
+    toast(`${id} created${posted ? "" : " as a draft - post it to make it payable"}`); onClose();
   };
   return (
     <Modal open={open} onClose={onClose} width={780} title="Enter vendor bill" subtitle={set0.poRequiredForBill ? "PO required for bills (Procurement Settings) unless the vendor is exempt" : "Bills can be entered with or without a PO"}
@@ -658,7 +658,7 @@ function NewBillModal({ open, onClose, presetPoId }) {
         )}
         <div className="grid grid-cols-4 gap-3">
           {mode === "po"
-            ? <Field label="Purchase order" span={2}><Select value={poId} disabled={!!presetPoId} placeholder="Select PO…" onChange={pickPo} options={st.purchaseOrders.filter((p) => !["Draft", "Cancelled"].includes(p.status)).map((p) => ({ value: p.id, label: `${p.id} — ${vendorName(st, p.vendorId)} (${poBillingStatus(st, p)})` }))} /></Field>
+            ? <Field label="Purchase order" span={2}><Select value={poId} disabled={!!presetPoId} placeholder="Select PO…" onChange={pickPo} options={st.purchaseOrders.filter((p) => !["Draft", "Cancelled"].includes(p.status)).map((p) => ({ value: p.id, label: `${p.id} - ${vendorName(st, p.vendorId)} (${poBillingStatus(st, p)})` }))} /></Field>
             : <Field label="Vendor" span={2}><Select value={vendorId} placeholder="Select vendor…" onChange={(x) => { setVendorId(x); setF({ ...f, lines: [{ desc: "", qty: 1, rate: "" }] }); }} options={st.vendors.filter((x) => x.status !== "Blacklisted").map((x) => ({ value: x.id, label: x.name }))} /></Field>}
           <Field label="Vendor invoice no." required><TextInput value={f.number} onChange={(x) => setF({ ...f, number: x })} /></Field>
           <Field label="Invoice date"><DateInput value={f.date} onChange={(x) => setF({ ...f, date: x })} /></Field>
@@ -672,7 +672,7 @@ function NewBillModal({ open, onClose, presetPoId }) {
         {v && isBlockedFor(v, "Invoices") && <Note tone="red">{v.name} is blocked for invoices.</Note>}
         {dup && <Note tone="red">Invoice no. {f.number} from {v.name} is already recorded as {dup.id} ({fmtDate(dup.date)}). Duplicate bills can't be entered.</Note>}
         {mode === "direct" && v && !directAllowed && <Note tone="red">A PO is required for bills. Tick “Allow bills without PO” on this vendor, or change Procurement Settings.</Note>}
-        {receiptBlock && <Note tone="red">Nothing received yet — Procurement Settings require a goods receipt before billing (vendor isn't exempt).</Note>}
+        {receiptBlock && <Note tone="red">Nothing received yet - Procurement Settings require a goods receipt before billing (vendor isn't exempt).</Note>}
         {noReceipt && !receiptBlock && <Note tone="amber">Billing before receipt is allowed for this vendor.</Note>}
         {mode === "po" && po && (
           <table className="w-full"><thead><tr><Th>Item</Th><Th align="right">Qty billed</Th><Th align="right">Rate billed</Th></tr></thead>
@@ -727,17 +727,17 @@ function InvoiceDrawer({ id, onClose }) {
   return (
     <Drawer open related={relatedFor(st, "bill", inv)} comments={inv.id} onClose={onClose} width={920} title={vendorName(st, inv.vendorId)} recordId={inv.id} status={<Status>{status}</Status>} details={[["Source", <span>{inv.source}{inv.poId ? <> <RefLink to={`${VM_BASE}/purchase-orders?open=${inv.poId}`}>{inv.poId}</RefLink></> : inv.raBillId ? <> <RefLink to={`${CL_BASE}/ra-bills?open=${inv.raBillId}`}>{inv.raBillId}</RefLink></> : ""}</span>], ["Vendor bill no.", inv.number], ["Due", fmtDate(inv.due)], status !== "Paid" && ["Should be paid", <b className={cls("font-medium", sbp === "No" ? "text-red-600" : sbp === "Exception" ? "text-amber-700" : "text-green-700")}>{sbp}</b>]]}
      
-      actions={<>{inv.posted === false && <Btn variant="primary" onClick={() => mut((x) => { x.posted = true; x.postedBy = currentUser(); x.postedAt = new Date().toISOString(); }, "Bill posted — now payable")}>Post bill</Btn>}
+      actions={<>{inv.posted === false && <Btn variant="primary" onClick={() => mut((x) => { x.posted = true; x.postedBy = currentUser(); x.postedAt = new Date().toISOString(); }, "Bill posted - now payable")}>Post bill</Btn>}
         {inv.posted !== false && t.balance > 0.5 && inv.review !== "Pending" && !inv.cancelled && <Btn variant="primary" icon={Icon.rupee} onClick={() => setPay(true)}>Record payment</Btn>}
         {!inv.cancelled && inv.source !== "RA Bill" && !inv.payments.some((p) => !p.reversed) && <Btn variant="danger" onClick={() => setAsk({ kind: "cancel" })}>Cancel bill</Btn>}</>}>
       {ask && ask.kind === "cancel" && <ReasonModal title={`Cancel ${inv.id}`} text="The bill stops being payable and its quantities can be billed again. Bills with payments must have them reversed first." action="Cancel bill"
-        onClose={() => setAsk(null)} onDone={(r) => { mut((x) => { x.cancelled = { at: new Date().toISOString(), by: currentUser(), reason: r }; }, `Bill cancelled — ${r}`); toast(`${inv.id} cancelled`, "red"); }} />}
+        onClose={() => setAsk(null)} onDone={(r) => { mut((x) => { x.cancelled = { at: new Date().toISOString(), by: currentUser(), reason: r }; }, `Bill cancelled - ${r}`); toast(`${inv.id} cancelled`, "red"); }} />}
       {ask && ask.kind === "reverse" && <ReasonModal title={`Reverse payment ${ask.p.id}`} text={`${inr(ask.p.amount)}${ask.p.tds ? ` + TDS ${inr(ask.p.tds)}` : ""} goes back on the bill's balance (bounced cheque, wrong account…).`} action="Reverse payment"
         onClose={() => setAsk(null)} onDone={(r) => setState((s) => { const x = byId(s.invoices, id); const p = x.payments.find((q) => q.id === ask.p.id); p.reversed = { at: new Date().toISOString(), by: currentUser(), reason: r };
           // an RA bill that was settled by this payment is open again (back to Approved / payable)
           const b = x.raBillId && byId(s.raBills, x.raBillId);
-          if (b && b.status === "Paid" && invoiceTotals(x).balance > 0.5) { b.status = "Approved"; b.history.push({ status: "Approved", by: currentUser(), at: new Date().toISOString(), remark: `Payment ${p.id} reversed — ${r}` }); }
-        }, { entity: "Invoice", id, action: `Payment ${ask.p.id} reversed — ${r}` })} />}
+          if (b && b.status === "Paid" && invoiceTotals(x).balance > 0.5) { b.status = "Approved"; b.history.push({ status: "Approved", by: currentUser(), at: new Date().toISOString(), remark: `Payment ${p.id} reversed - ${r}` }); }
+        }, { entity: "Invoice", id, action: `Payment ${ask.p.id} reversed - ${r}` })} />}
       <div className="space-y-4 px-6 py-5">
         {inv.review && !(inv.cancelled && inv.review === "Pending") && <VendorInvoiceReview inv={inv} />}
         <div className="grid grid-cols-4 gap-3">
@@ -747,9 +747,9 @@ function InvoiceDrawer({ id, onClose }) {
           <StatTile tone={t.balance > 0 ? "amber" : "green"} label="Balance" value={inr(t.balance)} icon={Icon.wallet} />
         </div>
         {gate.stops.length > 0 && t.balance > 0.5 && <Note tone="red" icon={Icon.lock}><b>Stop:</b> {gate.stops.join(" · ")}</Note>}
-        {gate.warns.length > 0 && t.balance > 0.5 && <Note tone="amber"><b>Exception (warn):</b> {gate.warns.join(" · ")} — payment is allowed per Procurement Settings.</Note>}
+        {gate.warns.length > 0 && t.balance > 0.5 && <Note tone="amber"><b>Exception (warn):</b> {gate.warns.join(" · ")} - payment is allowed per Procurement Settings.</Note>}
         {inv.source === "Purchase Order" && (
-          <Section title={`3-way match — ${m.status}`} icon={Icon.scale}>
+          <Section title={`3-way match - ${m.status}`} icon={Icon.scale}>
             <DataTable dense rows={m.rows} rowKey={(_, i) => i} columns={[
               { key: "desc", label: "Item" },
               { key: "po", label: "PO qty × rate", align: "right", num: true, render: (r) => `${num(r.poQty)} × ${inr(r.poRate)}` },
@@ -759,9 +759,9 @@ function InvoiceDrawer({ id, onClose }) {
             ]} />
           </Section>
         )}
-        {inv.source === "RA Bill" && <Note>Raised automatically from certified RA bill <RefLink to={`${CL_BASE}/ra-bills?open=${inv.raBillId}`}>{inv.raBillId}</RefLink> — retention, advance recovery, TDS and cess are already deducted.</Note>}
-        {inv.source === "Direct" && <Note>Direct bill without PO — allowed by settings / vendor exemption.</Note>}
-        {inv.posted === false && <Note tone="amber">Draft bill — post it to make it payable (auto-post is off in Procurement Settings and for this vendor).</Note>}
+        {inv.source === "RA Bill" && <Note>Raised automatically from certified RA bill <RefLink to={`${CL_BASE}/ra-bills?open=${inv.raBillId}`}>{inv.raBillId}</RefLink> - retention, advance recovery, TDS and cess are already deducted.</Note>}
+        {inv.source === "Direct" && <Note>Direct bill without PO - allowed by settings / vendor exemption.</Note>}
+        {inv.posted === false && <Note tone="amber">Draft bill - post it to make it payable (auto-post is off in Procurement Settings and for this vendor).</Note>}
         {(inv.attachment || inv.payRef || inv.recipientBank || inv.tdsSetup?.category || inv.tdsSetup?.consider === false) && (
           <Section title="Bill copy, payment & TDS" icon={Icon.file}>
             <KV items={[["Bill copy", inv.attachment ? <FileLink name={inv.attachment.name} dataUrl={inv.attachment.dataUrl} /> : null], ["Payment reference", inv.payRef || null],
@@ -777,8 +777,8 @@ function InvoiceDrawer({ id, onClose }) {
             { key: "s", label: "Status", render: (r) => <Status>{r.status}</Status> },
           ]} />
         </Section>
-        {status === "Paid" && <Note tone="green" icon={Icon.check}>Paid in full — nothing left to hold or pay.</Note>}
-        {inv.cancelled && <Note tone="red" icon={Icon.x}>Cancelled on {fmtDate(inv.cancelled.at)} by {inv.cancelled.by} — {inv.cancelled.reason}. Nothing is payable on this bill.</Note>}
+        {status === "Paid" && <Note tone="green" icon={Icon.check}>Paid in full - nothing left to hold or pay.</Note>}
+        {inv.cancelled && <Note tone="red" icon={Icon.x}>Cancelled on {fmtDate(inv.cancelled.at)} by {inv.cancelled.by} - {inv.cancelled.reason}. Nothing is payable on this bill.</Note>}
         {status !== "Paid" && !inv.cancelled && <Section title="Hold" icon={Icon.lock}>
           {holdActive ? (
             <div className="flex items-center justify-between gap-3 p-4">
@@ -790,7 +790,7 @@ function InvoiceDrawer({ id, onClose }) {
               <Field label="Reason code"><Select value={hold.reason} onChange={(x) => setHold({ ...hold, reason: x })} options={HOLD_REASONS} /></Field>
               <Field label="Note"><TextInput value={hold.note} onChange={(x) => setHold({ ...hold, note: x })} /></Field>
               <Field label="Release date"><DateInput value={hold.until} onChange={(x) => setHold({ ...hold, until: x })} /></Field>
-              <Btn disabled={!hold.until || hold.until <= todayISO()} title={!hold.until || hold.until <= todayISO() ? "Release date must be in the future" : ""} onClick={() => mut((x) => (x.hold = { ...hold, at: new Date().toISOString() }), `Put on hold — ${hold.reason} until ${fmtDate(hold.until)}`)}>Put on hold</Btn>
+              <Btn disabled={!hold.until || hold.until <= todayISO()} title={!hold.until || hold.until <= todayISO() ? "Release date must be in the future" : ""} onClick={() => mut((x) => (x.hold = { ...hold, at: new Date().toISOString() }), `Put on hold - ${hold.reason} until ${fmtDate(hold.until)}`)}>Put on hold</Btn>
             </div>
           )}
         </Section>}
@@ -807,7 +807,7 @@ function InvoiceDrawer({ id, onClose }) {
           <DataTable dense rows={inv.payments} empty={<p className="p-4 text-[13px] text-ink-mute">No payments yet.</p>} columns={[
             { key: "id", label: "Ref", className: "mono text-[12px]" }, { key: "date", label: "Date", render: (p) => fmtDate(p.date) }, { key: "mode", label: "Mode" },
             { key: "ref", label: "Reference", className: "mono text-[12px]" },
-            { key: "tds", label: "TDS withheld", align: "right", num: true, render: (p) => (p.tds ? inr(p.tds) : "—") },
+            { key: "tds", label: "TDS withheld", align: "right", num: true, render: (p) => (p.tds ? inr(p.tds) : "-") },
             { key: "amount", label: "Amount", align: "right", num: true, render: (p) => inr(p.amount) },
             { key: "o", label: "", render: (p) => (p.override ? <span title={p.override.reason}><Status tone="purple">Override</Status></span> : null) },
             { key: "rv", label: "", align: "right", render: (p) => (p.reversed ? <span title={p.reversed.reason}><Status tone="red">Reversed</Status></span> : !inv.cancelled && <Btn size="sm" onClick={() => setAsk({ kind: "reverse", p })}>Reverse</Btn>) },
@@ -838,7 +838,7 @@ function InvoiceDrawer({ id, onClose }) {
                 <IconBtn icon={Icon.trash} title="Remove" onClick={() => sched.length > 1 && setSched(sched.filter((_, j) => j !== i))} /></div>
             ))}
             <Btn size="sm" icon={Icon.plus} onClick={() => setSched([...sched, { due: shiftDays(30, sched[sched.length - 1].due), pct: 0 }])}>Add instalment</Btn>
-            <p className={cls("text-[12px]", sum(sched, (x) => x.pct) === 100 ? "text-green-700" : "text-red-600")}>Shares total {sum(sched, (x) => x.pct)}%{sum(sched, (x) => x.pct) !== 100 ? " — must be 100%" : ""}</p>
+            <p className={cls("text-[12px]", sum(sched, (x) => x.pct) === 100 ? "text-green-700" : "text-red-600")}>Shares total {sum(sched, (x) => x.pct)}%{sum(sched, (x) => x.pct) !== 100 ? " - must be 100%" : ""}</p>
             {schedErr(sched).some(Boolean) && <Note tone="red">{schedErr(sched).filter(Boolean).join(" · ")}</Note>}
           </div>
         </Modal>
@@ -855,11 +855,11 @@ function InvoiceDrawer({ id, onClose }) {
         </Modal>
       )}
       {wo && (
-        <Modal open onClose={() => setWo(null)} width={460} title={`Write off ${inr(t.balance)}`} footer={<><Btn onClick={() => setWo(null)}>Cancel</Btn><Btn variant="danger" disabled={!!VX.reason(wo.reason)} onClick={() => { mut((x) => x.payments.push({ id: `WO-${x.id}`, date: todayISO(), amount: t.balance, tds: 0, mode: "Write-off", ref: wo.reason, account: wo.account || "Write-off — small balances", costCentre: wo.costCentre || "" }), `Balance ${inr(t.balance)} written off — ${wo.reason}`); setWo(null); }}>Write off</Btn></>}>
+        <Modal open onClose={() => setWo(null)} width={460} title={`Write off ${inr(t.balance)}`} footer={<><Btn onClick={() => setWo(null)}>Cancel</Btn><Btn variant="danger" disabled={!!VX.reason(wo.reason)} onClick={() => { mut((x) => x.payments.push({ id: `WO-${x.id}`, date: todayISO(), amount: t.balance, tds: 0, mode: "Write-off", ref: wo.reason, account: wo.account || "Write-off - small balances", costCentre: wo.costCentre || "" }), `Balance ${inr(t.balance)} written off - ${wo.reason}`); setWo(null); }}>Write off</Btn></>}>
           <div className="grid gap-3">
             <Field label="Reason"><TextInput value={wo.reason} onChange={(x) => setWo({ ...wo, reason: x })} /></Field>
-            <Field label="Write-off account"><Select value={wo.account || "Write-off — small balances"} onChange={(x) => setWo({ ...wo, account: x })} options={["Write-off — small balances", "Rounding difference", "Discount received"]} /></Field>
-            <Field label="Write-off cost centre"><Select value={wo.costCentre || ""} placeholder="—" onChange={(x) => setWo({ ...wo, costCentre: x })} options={settingsOf(getState()).costCentres} /></Field>
+            <Field label="Write-off account"><Select value={wo.account || "Write-off - small balances"} onChange={(x) => setWo({ ...wo, account: x })} options={["Write-off - small balances", "Rounding difference", "Discount received"]} /></Field>
+            <Field label="Write-off cost centre"><Select value={wo.costCentre || ""} placeholder="-" onChange={(x) => setWo({ ...wo, costCentre: x })} options={settingsOf(getState()).costCentres} /></Field>
           </div>
         </Modal>
       )}
@@ -897,7 +897,7 @@ function InvoicesPage() {
         { key: "id", label: "Bill no.", className: "mono text-[12px]" },
         { key: "v", label: "Vendor", filterOptions: FO.vendors, filter: (x) => vendorName(st, x.vendorId), render: (i) => <span className="font-medium">{vendorName(st, i.vendorId)}</span> },
         { key: "src", label: "Against", opt: true, filterOptions: FO.billType, filterLabel: "Bill type", filter: (i) => (i.source === "RA Bill" ? "RA bill" : i.source === "Direct" ? "Direct bill" : "Purchase order"), render: (i) => { const [a, b] = billAgainst(st, i); return <TwoLine a={a} b={b} />; } },
-        { key: "number", label: "Vendor bill no.", className: "text-[12px]", render: (i) => (i.source === "RA Bill" ? <span className="text-ink-mute">Auto (from RA bill)</span> : i.number || <span className="text-ink-faint">—</span>) },
+        { key: "number", label: "Vendor bill no.", className: "text-[12px]", render: (i) => (i.source === "RA Bill" ? <span className="text-ink-mute">Auto (from RA bill)</span> : i.number || <span className="text-ink-faint">-</span>) },
         { key: "amt", label: "Amount", align: "right", num: true, render: (i) => inr(invoiceTotals(i).payable) },
         { key: "bal", label: "Balance", align: "right", num: true, render: (i) => inr(invoiceTotals(i).balance) },
         { key: "due", label: "Next due", render: (i) => fmtDate((nextInstalment(i) || {}).due || i.due) },
@@ -948,8 +948,8 @@ function ProcurementSettingsPage() {
     </div>
   );
   return (
-    <Page title="Procurement Settings" subtitle="Which checks stop a transaction, which only warn, and who may override — like ERPNext Buying Settings" icon={Icon.settings}
-      actions={<Btn variant="primary" icon={Icon.save} onClick={() => { const e = flowErr(f.vendorFlow, "Vendor") || flowErr(f.contractFlow, "Contract") || poLimitsErr(f.poApprovalLimits || DEFAULT_PO_LIMITS) || benchSettingsErr(f); if (e) return toast(e, "red"); setState((s) => (s.settings = { ...f }), { entity: "Settings", id: "PROCUREMENT", action: `Procurement settings updated — vendor stages ${f.vendorFlow.map((x) => x.name).join(" → ")}; contract stages ${f.contractFlow.map((x) => x.name).join(" → ")}` }); toast("Settings saved"); }}>Save settings</Btn>}>
+    <Page title="Procurement Settings" subtitle="Which checks stop a transaction, which only warn, and who may override - like ERPNext Buying Settings" icon={Icon.settings}
+      actions={<Btn variant="primary" icon={Icon.save} onClick={() => { const e = flowErr(f.vendorFlow, "Vendor") || flowErr(f.contractFlow, "Contract") || poLimitsErr(f.poApprovalLimits || DEFAULT_PO_LIMITS) || benchSettingsErr(f); if (e) return toast(e, "red"); setState((s) => (s.settings = { ...f }), { entity: "Settings", id: "PROCUREMENT", action: `Procurement settings updated - vendor stages ${f.vendorFlow.map((x) => x.name).join(" → ")}; contract stages ${f.contractFlow.map((x) => x.name).join(" → ")}` }); toast("Settings saved"); }}>Save settings</Btn>}>
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "rules", label: "Rules", icon: Icon.sliders }, { id: "gates", label: "Gates & approvals", icon: Icon.clipboardCheck }, { id: "masters", label: "Masters", icon: Icon.layers }, { id: "templates", label: "Templates", icon: Icon.file }]} />
       <div className="grid grid-cols-2 gap-4 p-4">
         {tab === "rules" && <>
@@ -959,10 +959,10 @@ function ProcurementSettingsPage() {
           {yesNo("billRejectedQty", "Bill for rejected quantity", "If No, rejected quantity already billed gets an automatic debit note")}
         </Section>
         <Section title="Payment checks" icon={Icon.shieldCheck}>
-          {mode("threeWayQty", "3-way match — quantity", "Billed quantity above accepted (GRN) quantity")}
+          {mode("threeWayQty", "3-way match - quantity", "Billed quantity above accepted (GRN) quantity")}
           {mode("rateCheck", "Maintain same rate (PO → bill)", "Billed rate differs from PO rate")}
           {mode("complianceGate", "Vendor compliance gate", "Missing or expired statutory documents")}
-          <div className="grid grid-cols-[1fr_260px] items-center gap-4 border-b border-line px-4 py-3"><div><p className="text-[13px] font-medium">Bank change cooling period (days)</p><p className="text-[12px] text-ink-mute">After Finance approves a bank change on an approved vendor, the current account keeps getting paid this long before the new one becomes the default — a fraud check window</p></div><NumInput value={f.bankCoolingDays} onChange={set("bankCoolingDays")} /></div>
+          <div className="grid grid-cols-[1fr_260px] items-center gap-4 border-b border-line px-4 py-3"><div><p className="text-[13px] font-medium">Bank change cooling period (days)</p><p className="text-[12px] text-ink-mute">After Finance approves a bank change on an approved vendor, the current account keeps getting paid this long before the new one becomes the default - a fraud check window</p></div><NumInput value={f.bankCoolingDays} onChange={set("bankCoolingDays")} /></div>
           <div className="grid grid-cols-[1fr_260px] items-center gap-4 px-4 py-3"><div><p className="text-[13px] font-medium">Rate tolerance (%)</p><p className="text-[12px] text-ink-mute">Differences within this % count as a match</p></div><NumInput value={f.rateTolerancePct} onChange={set("rateTolerancePct")} /></div>
         </Section>
         <Section title="Ordering & vendor access" icon={Icon.package}>
@@ -1009,7 +1009,7 @@ function ProcurementSettingsPage() {
   );
 }
 
-// Approval stage list: add, rename, reorder, remove — at least one stage, names unique
+// Approval stage list: add, rename, reorder, remove - at least one stage, names unique
 function poLimitsErr(rows) {
   if (!rows || !rows.length) return "PO approval limits need at least one level";
   if (rows.some((r) => !(r.level || "").trim())) return "Every approval level needs a name";
@@ -1092,7 +1092,7 @@ function ListEditor({ title, icon, hint, items, onChange, placeholder, usage }) 
           <li key={g} className="flex items-center justify-between gap-2 px-4 py-1.5 text-[13px]">
             <span>{g}</span>
             <span className="flex items-center gap-2"><span className="text-[11.5px] text-ink-mute">{usage(g)} vendor(s)</span>
-              <IconBtn icon={Icon.trash} title={usage(g) ? "In use — vendors keep their value" : "Remove"} onClick={() => onChange(items.filter((x) => x !== g))} /></span>
+              <IconBtn icon={Icon.trash} title={usage(g) ? "In use - vendors keep their value" : "Remove"} onClick={() => onChange(items.filter((x) => x !== g))} /></span>
           </li>
         ))}
       </ul>
@@ -1108,7 +1108,7 @@ function VendorInvoiceReview({ inv }) {
   if (inv.review === "Accepted") return <Note tone="green" icon={Icon.check}>Submitted by the vendor in the portal ({inv.submittedBy}); accepted by {inv.reviewedBy} on {fmtDate(inv.reviewedAt)}.{inv.attachment && <> <FileLink name={inv.attachment.name} dataUrl={inv.attachment.dataUrl} /></>}</Note>;
   if (inv.review === "Rejected") return <Note tone="red">Rejected by {inv.reviewedBy}: {inv.reviewRemark}. The vendor can submit a corrected invoice.</Note>;
   return (
-    <Section title="Vendor-submitted invoice — AP review" icon={Icon.clipboardCheck}>
+    <Section title="Vendor-submitted invoice - AP review" icon={Icon.clipboardCheck}>
       <div className="space-y-3 p-4">
         <p className="text-[13px] text-ink-soft">Submitted in the portal by <b>{inv.submittedBy}</b> on {fmtDate(inv.date)}.{inv.attachment && <> Copy: <FileLink name={inv.attachment.name} dataUrl={inv.attachment.dataUrl} /></>} Check it against the PO and goods receipt (3-way match below), then accept or reject.</p>
         <ActNote roles={["Accounts", "Finance Controller"]} involved={[]} what="reviewing vendor invoices" />
@@ -1138,7 +1138,7 @@ function accrualRows(st) {
   }
   for (const w of st.workOrders.filter((x) => x.type === "Lump Sum" && x.status !== "Draft")) {
     const pr = woProgress(st, w), amt = round2(pr.measured - pr.billed);
-    if (amt > 0.5) out.push({ id: w.id + "-ls", src: "Work measured (JMS signed), not billed", ref: w.id, vendorId: w.vendorId, project: w.project, desc: `${w.title} — milestones measured, not billed`, qty: null, unit: "", rate: null, amount: amt, since: null });
+    if (amt > 0.5) out.push({ id: w.id + "-ls", src: "Work measured (JMS signed), not billed", ref: w.id, vendorId: w.vendorId, project: w.project, desc: `${w.title} - milestones measured, not billed`, qty: null, unit: "", rate: null, amount: amt, since: null });
   }
   return out;
 }
@@ -1155,8 +1155,8 @@ function AccrualsTab() {
         { key: "v", label: "Vendor", filterOptions: FO.vendors, filter: (r) => vendorName(st, r.vendorId), render: (r) => vendorName(st, r.vendorId) },
         { key: "project", label: "Project", filterOptions: FO.projects, filter: true },
         { key: "desc", label: "Item", className: "max-w-[280px] truncate" },
-        { key: "q", label: "Unbilled qty", align: "right", num: true, render: (r) => (r.qty == null ? "—" : `${num(r.qty, 3)} ${r.unit}`) },
-        { key: "r", label: "Rate", align: "right", num: true, render: (r) => (r.rate == null ? "—" : inr(r.rate)) },
+        { key: "q", label: "Unbilled qty", align: "right", num: true, render: (r) => (r.qty == null ? "-" : `${num(r.qty, 3)} ${r.unit}`) },
+        { key: "r", label: "Rate", align: "right", num: true, render: (r) => (r.rate == null ? "-" : inr(r.rate)) },
         { key: "amount", label: "Amount", align: "right", num: true, render: (r) => <b>{inr(r.amount)}</b> },
         { key: "since", label: "Since", render: (r) => fmtDate(r.since) },
       ]} />

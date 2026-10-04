@@ -6,7 +6,7 @@
 // every signed-in user may perform every step. The helpers below keep their names so the
 // call sites stay readable (they document which department owns a step), but never block.
 
-// Department that owns each step — shown in labels only
+// Department that owns each step - shown in labels only
 const DEPT_ROLE = { Procurement: "Procurement Head", Legal: "Legal Counsel", Finance: "Finance Controller" };
 const RA_ROLE = { Verified: "Site Engineer", Certified: "Quantity Surveyor", Approved: "Project Manager", Paid: "Accounts" };
 const PAY_ROLES = ["Accounts", "Finance Controller"];
@@ -22,7 +22,7 @@ const ActNote = () => null;
 
 // ---------------------------------------------------------------- vendor approval preconditions
 // Documents that block payment must be verified, the qualification must pass, and a
-// spend-authorized vendor needs a bank account — before the final (Finance) approval.
+// spend-authorized vendor needs a bank account - before the final (Finance) approval.
 const QUAL_PASS = 70;
 function approvalBlockers(v) {
   const out = [];
@@ -59,21 +59,21 @@ function spendAuthBlockers(v) {
 }
 function requestSpendAuth(v, note) {
   const b = spendAuthBlockers(v);
-  if (b.length) { toast(`Can't request yet — ${b.join("; ")}`, "red"); return false; }
+  if (b.length) { toast(`Can't request yet - ${b.join("; ")}`, "red"); return false; }
   setState((s) => { byId(s.vendors, v.id).tierRequest = { status: "Pending", by: currentUser(), at: new Date().toISOString(), note: note || "" }; },
-    { entity: "Vendor", id: v.id, action: "Spend authorization requested — waiting for Finance" });
-  toast("Spend authorization requested — Finance approves it in Approval Management");
+    { entity: "Vendor", id: v.id, action: "Spend authorization requested - waiting for Finance" });
+  toast("Spend authorization requested - Finance approves it in Approval Management");
   return true;
 }
 function decideSpendAuth(v, approve, remark) {
   if (!v.tierRequest || v.tierRequest.status !== "Pending") return false;
   if (!tryAct("Finance Controller", [v.tierRequest.by], "spend authorization")) return false;
-  if (approve) { const b = spendAuthBlockers(v); if (b.length) { toast(`Can't authorize — ${b.join("; ")}`, "red"); return false; } }
+  if (approve) { const b = spendAuthBlockers(v); if (b.length) { toast(`Can't authorize - ${b.join("; ")}`, "red"); return false; } }
   setState((s) => {
     const x = byId(s.vendors, v.id);
     Object.assign(x.tierRequest, { status: approve ? "Approved" : "Rejected", decidedBy: currentUser(), decidedAt: new Date().toISOString(), remark: remark || "" });
     if (approve) x.regTier = "Spend Authorized";
-  }, { entity: "Vendor", id: v.id, action: approve ? "Spend authorization approved — POs, contracts and payments allowed" : `Spend authorization rejected — ${remark}` });
+  }, { entity: "Vendor", id: v.id, action: approve ? "Spend authorization approved - POs, contracts and payments allowed" : `Spend authorization rejected - ${remark}` });
   toast(approve ? `${v.name} is now spend-authorized` : "Spend authorization rejected", approve ? "green" : "red");
   return true;
 }
@@ -84,7 +84,7 @@ function SpendAuthPanel({ v }) {
   const req = v.tierRequest, b = spendAuthBlockers(v);
   if (req && req.status === "Pending") return (
     <div className="space-y-3 border-t border-line p-4">
-      <Note>Spend authorization requested by <b>{req.by}</b> on {fmtDate(req.at)}{req.note ? ` — ${req.note}` : ""}. Waiting for the Finance Controller.</Note>
+      <Note>Spend authorization requested by <b>{req.by}</b> on {fmtDate(req.at)}{req.note ? ` - ${req.note}` : ""}. Waiting for the Finance Controller.</Note>
       {b.length > 0 && <Note tone="amber">Open: {b.join(" · ")}</Note>}
       <ActNote roles="Finance Controller" involved={[req.by]} what="spend authorization" />
       <div className="grid grid-cols-[1fr_auto_auto] items-end gap-2">
@@ -135,8 +135,8 @@ function qualLimitWarn(st, v, value, exceptWoId) {
   if (!v || !v.isContractor || !q.limit) return "";
   const open = sum(st.workOrders.filter((w) => w.vendorId === v.id && w.id !== exceptWoId && !["Draft", "Cancelled", "Closed", "Completed", "Short-closed"].includes(w.status)), (w) => woValue(w));
   const total = open + (Number(value) || 0);
-  if (q.single && (Number(value) || 0) > q.single) return `Over the single-project limit — this work order ${inrShort(Number(value) || 0)} against ${inrShort(q.single)} (${q.status})`;
-  return total > q.limit ? `Over the aggregate qualification limit — open work ${inrShort(open)} + this ${inrShort(Number(value) || 0)} = ${inrShort(total)} against ${inrShort(q.limit)} (${q.status})` : "";
+  if (q.single && (Number(value) || 0) > q.single) return `Over the single-project limit - this work order ${inrShort(Number(value) || 0)} against ${inrShort(q.single)} (${q.status})`;
+  return total > q.limit ? `Over the aggregate qualification limit - open work ${inrShort(open)} + this ${inrShort(Number(value) || 0)} = ${inrShort(total)} against ${inrShort(q.limit)} (${q.status})` : "";
 }
 // Background checks are no longer recorded in the vendor record, so they don't block mobilisation.
 // The earlier rule (clear litigation and watchlist, checked within 12 months) is kept below, switched off.
@@ -157,7 +157,7 @@ function sourcingGate(st, v, what) {
   const issues = [...complianceOf(v).blocking];
   if (requalDue(v)) issues.push("requalification overdue");
   // Close-out evaluation / termination feeds back into sourcing: requalify before the next award
-  const rq = v.requalRequired && set0.requalGate !== "Off" ? `requalification required — ${v.requalRequired.reason}` : "";
+  const rq = v.requalRequired && set0.requalGate !== "Off" ? `requalification required - ${v.requalRequired.reason}` : "";
   const hard = !!rq && set0.requalGate === "Stop";
   if (rq) issues.push(rq);
   return { mode: hard ? "Stop" : mode, issues, block: hard || (mode === "Stop" && issues.length > 0), warn: !hard && (mode === "Warn" || !!rq) && issues.length > 0 };
@@ -191,8 +191,8 @@ function decidePo(p, approve, remark) {
     if (!approve) x.status = "Cancelled";
     else if (last) x.status = "Issued";
     if (!approve || last) x.approval = { by: currentUser(), at: new Date().toISOString(), decision: approve ? "Approved" : "Rejected", remark: remark || "", levels: a.levels.map((l) => l.level) };
-  }, { entity: "PO", id: p.id, action: !approve ? `Rejected by ${lvl} — ${remark}` : last ? `Approved by ${lvl} & issued${a.levels.length > 1 ? ` (${a.levels.length} levels for ${inrShort(val)})` : ""}` : `Approved by ${lvl} (limit ${inrShort(Number(a.next.upTo))}) — ${a.levels[a.i + 1].level} approves next (PO ${inrShort(val)})` });
-  toast(!approve ? `${p.id} rejected` : last ? `${p.id} approved & issued` : `${lvl} approved — above ${inrShort(Number(a.next.upTo))}, ${a.levels[a.i + 1].level} approves next`, approve ? "green" : "red");
+  }, { entity: "PO", id: p.id, action: !approve ? `Rejected by ${lvl} - ${remark}` : last ? `Approved by ${lvl} & issued${a.levels.length > 1 ? ` (${a.levels.length} levels for ${inrShort(val)})` : ""}` : `Approved by ${lvl} (limit ${inrShort(Number(a.next.upTo))}) - ${a.levels[a.i + 1].level} approves next (PO ${inrShort(val)})` });
+  toast(!approve ? `${p.id} rejected` : last ? `${p.id} approved & issued` : `${lvl} approved - above ${inrShort(Number(a.next.upTo))}, ${a.levels[a.i + 1].level} approves next`, approve ? "green" : "red");
   return true;
 }
 
@@ -202,8 +202,8 @@ function decideRelease(r, approve, remark) {
   if (!tryAct("Finance Controller", [r.requestedBy], "retention-release approval")) return false;
   if (!approve && !(remark || "").trim()) { toast("A reason is required to reject", "red"); return false; }
   setState((s) => Object.assign(byId(s.retentionReleases, r.id), { status: approve ? "Approved" : "Rejected", approvedBy: currentUser(), approvedAt: new Date().toISOString(), remark: remark || "" }),
-    { entity: "Retention", id: r.id, action: approve ? `Release of ${inr(r.amount)} approved for ${r.contractId}` : `Release rejected — ${remark}` });
-  toast(approve ? `${r.id} approved — Accounts can release it` : `${r.id} rejected`, approve ? "green" : "red");
+    { entity: "Retention", id: r.id, action: approve ? `Release of ${inr(r.amount)} approved for ${r.contractId}` : `Release rejected - ${remark}` });
+  toast(approve ? `${r.id} approved - Accounts can release it` : `${r.id} rejected`, approve ? "green" : "red");
   return true;
 }
 function releaseRetention(r) {
@@ -221,10 +221,10 @@ const CONTRACT_DEFAULTS = () => ({ project: PROJECTS[0], type: "Item-Rate", star
   dlpMonths: 12, ldPctPerWeek: 0.5, ldCapPct: 5, pbgPct: 5, bgNo: "", bgExpiry: "", owner: currentUser(), paymentDays: 30, noticeDays: 15 });
 // Project → WBS elements (cost breakdown the work orders are booked against)
 const PROJECT_WBS = {
-  "Skyline Towers — Phase 1": ["1.1 Site enabling", "2.1 Tower A — substructure", "2.2 Tower A — superstructure", "2.3 Tower B — substructure", "2.4 Tower B — superstructure", "3.1 Finishes", "4.1 MEP services"],
+  "Skyline Towers - Phase 1": ["1.1 Site enabling", "2.1 Tower A - substructure", "2.2 Tower A - superstructure", "2.3 Tower B - substructure", "2.4 Tower B - superstructure", "3.1 Finishes", "4.1 MEP services"],
   "Metro Line Extension": ["1.1 Station 3", "1.2 Station 4", "1.3 Station 5", "2.1 Viaduct", "3.1 Systems"],
-  "400kV Transmission Line A": ["1.1 Survey & foundations", "1.2 Tower erection — Section 1", "1.3 Stringing — Section 1", "2.1 Section 2"],
-  "Riverside Business Park": ["1.1 Earthworks — Block B", "1.2 Earthworks — Block C", "2.1 Block B structure", "2.2 Block C structure"],
+  "400kV Transmission Line A": ["1.1 Survey & foundations", "1.2 Tower erection - Section 1", "1.3 Stringing - Section 1", "2.1 Section 2"],
+  "Riverside Business Park": ["1.1 Earthworks - Block B", "1.2 Earthworks - Block C", "2.1 Block B structure", "2.2 Block C structure"],
   "Solar Farm Substation": ["1.1 Switchyard civil", "1.2 Inverter stations", "2.1 Electrical & commissioning"],
 };
 const wbsFor = (project) => PROJECT_WBS[project] || [];
@@ -247,14 +247,14 @@ function submitContract(c) {
   if (!(Number(c.value) > 0)) errs.push("contract value");
   if (!(c.end > c.start)) errs.push("completion after start");
   errs.push(...contractorBlockers(st, v));
-  if (errs.length) { toast(`Can't submit — ${errs.join("; ")}`, "red"); return false; }
+  if (errs.length) { toast(`Can't submit - ${errs.join("; ")}`, "red"); return false; }
   const flow = contractFlowFor(contractValue(c), st);
   setState((s) => {
     const x = byId(s.contracts, c.id);
     x.status = "Pending Approval"; x.submittedBy = currentUser(); x.submittedAt = new Date().toISOString();
     x.approval = { stages: flow.map((role, i) => ({ role, status: i === 0 ? "Pending" : "Waiting", by: null, at: null, remark: "", since: i === 0 ? x.submittedAt : null })) };
   }, { entity: "Contract", id: c.id, action: `Submitted for approval (${flow.join(" → ")})` });
-  toast(`${c.id} submitted — ${flow[0]} approves next`);
+  toast(`${c.id} submitted - ${flow[0]} approves next`);
   return true;
 }
 function decideContract(c, approve, remark) {
@@ -264,7 +264,7 @@ function decideContract(c, approve, remark) {
   if (!approve && !(remark || "").trim()) { toast("A reason is required to reject", "red"); return false; }
   if (approve && i === c.approval.stages.length - 1) {
     const b = contractorBlockers(getState(), byId(getState().vendors, c.vendorId));
-    if (b.length) { toast(`Can't approve — ${b.join("; ")}`, "red"); return false; }
+    if (b.length) { toast(`Can't approve - ${b.join("; ")}`, "red"); return false; }
   }
   setState((s) => {
     const x = byId(s.contracts, c.id), sg = x.approval.stages[i];
@@ -272,8 +272,8 @@ function decideContract(c, approve, remark) {
     if (!approve) x.status = "Rejected";
     else if (i + 1 < x.approval.stages.length) Object.assign(x.approval.stages[i + 1], { status: "Pending", since: sg.at });
     else { x.status = "Approved"; x.approvedOn = todayISO(); }
-  }, { entity: "Contract", id: c.id, action: `${approve ? "Approved" : "Rejected"} by ${stg.role}${remark ? ` — ${remark}` : ""}` });
-  toast(approve ? (i + 1 < c.approval.stages.length ? `${stg.role} approved — ${c.approval.stages[i + 1].role} next` : `${c.id} approved — ready to sign`) : `${c.id} rejected — back to the owner`, approve ? "green" : "red");
+  }, { entity: "Contract", id: c.id, action: `${approve ? "Approved" : "Rejected"} by ${stg.role}${remark ? ` - ${remark}` : ""}` });
+  toast(approve ? (i + 1 < c.approval.stages.length ? `${stg.role} approved - ${c.approval.stages[i + 1].role} next` : `${c.id} approved - ready to sign`) : `${c.id} rejected - back to the owner`, approve ? "green" : "red");
   return true;
 }
 // ---------------------------------------------------------------- approval deadlines (SLA) and escalation
@@ -294,14 +294,14 @@ function approvalClock(rec, kind, st) {
   return { i, stage: s, name, since, days, due, left, overdue: left < 0 ? -left : 0, state: left < 0 ? "Overdue" : left === 0 ? "Due today" : "On time", escalated: s.escalated || null, escalateTo: rule.escalateTo || ESCALATE_DEFAULT[kind] };
 }
 const slaTone = (c) => (!c ? undefined : c.state === "Overdue" ? "red" : c.state === "Due today" ? "amber" : "green");
-const slaText = (c) => (!c ? "—" : c.state === "Overdue" ? `Overdue ${c.overdue} day${c.overdue === 1 ? "" : "s"}` : c.state === "Due today" ? "Due today" : `Due in ${c.left} day${c.left === 1 ? "" : "s"}`);
+const slaText = (c) => (!c ? "-" : c.state === "Overdue" ? `Overdue ${c.overdue} day${c.overdue === 1 ? "" : "s"}` : c.state === "Due today" ? "Due today" : `Due in ${c.left} day${c.left === 1 ? "" : "s"}`);
 function escalateApproval(kind, rec, note) {
   const c = approvalClock(rec, kind);
   if (!c) return false;
   setState((s) => {
     const x = byId(kind === "vendor" ? s.vendors : s.contracts, rec.id);
     x.approval.stages[c.i].escalated = { to: c.escalateTo, by: currentUser(), at: new Date().toISOString(), note: note || "" };
-  }, { entity: kind === "vendor" ? "Vendor" : "Contract", id: rec.id, action: `Approval escalated to ${c.escalateTo} — ${c.name} stage ${slaText(c).toLowerCase()} (deadline ${fmtDate(c.due)})${note ? ` — ${note}` : ""}` });
+  }, { entity: kind === "vendor" ? "Vendor" : "Contract", id: rec.id, action: `Approval escalated to ${c.escalateTo} - ${c.name} stage ${slaText(c).toLowerCase()} (deadline ${fmtDate(c.due)})${note ? ` - ${note}` : ""}` });
   toast(`Escalated to ${c.escalateTo}`);
   return true;
 }
@@ -315,12 +315,12 @@ function ApprovalDeadline({ rec, kind }) {
       <span className="flex flex-wrap items-center gap-2">
         <span className="text-ink-soft">{c.name} decision due <b className="font-medium text-ink">{fmtDate(c.due)}</b> ({c.days}-day deadline)</span>
         <Status tone={slaTone(c)}>{slaText(c)}</Status>
-        {c.escalated && <span className="text-ink-soft">· Escalated to <b className="font-medium text-ink">{c.escalated.to}</b> by {c.escalated.by} on {fmtDate(c.escalated.at)}{c.escalated.note ? ` — ${c.escalated.note}` : ""}</span>}
+        {c.escalated && <span className="text-ink-soft">· Escalated to <b className="font-medium text-ink">{c.escalated.to}</b> by {c.escalated.by} on {fmtDate(c.escalated.at)}{c.escalated.note ? ` - ${c.escalated.note}` : ""}</span>}
       </span>
       {c.state === "Overdue" && !c.escalated && <Btn size="sm" icon={Icon.alert} onClick={() => setOpen(true)}>Escalate</Btn>}
       {open && (
         <Modal open width={480} title={`Escalate to ${c.escalateTo}`} onClose={() => setOpen(false)} footer={<><Btn onClick={() => setOpen(false)}>Cancel</Btn><Btn variant="primary" onClick={() => { if (escalateApproval(kind, rec, note.trim())) { setOpen(false); setNote(""); } }}>Escalate</Btn></>}>
-          <p className="mb-3 text-[13px] text-ink-soft">{c.name} has not decided on {rec.id} — {slaText(c).toLowerCase()} (deadline {fmtDate(c.due)}). {c.escalateTo} is told and the escalation is kept in the audit log.</p>
+          <p className="mb-3 text-[13px] text-ink-soft">{c.name} has not decided on {rec.id} - {slaText(c).toLowerCase()} (deadline {fmtDate(c.due)}). {c.escalateTo} is told and the escalation is kept in the audit log.</p>
           <Field label="Note (optional)"><TextArea rows={2} value={note} onChange={setNote} placeholder="e.g. Site mobilisation waits on this vendor" /></Field>
         </Modal>
       )}
@@ -344,9 +344,9 @@ function activateContract(c) {
   if (c.status !== "Approved") return false;
   if (!tryAct(["Procurement Head", "Project Manager"], contractInvolved(c).slice(2), "signing the contract")) return false;
   const b = signBlockers(getState(), c);
-  if (b.length) { toast(`Can't sign — ${b.join("; ")}`, "red"); return false; }
+  if (b.length) { toast(`Can't sign - ${b.join("; ")}`, "red"); return false; }
   setState((s) => { const x = byId(s.contracts, c.id); x.status = "Active"; x.signedOn = todayISO(); x.signedBy = currentUser(); x.signedReceivedOn = x.signedReceivedOn || todayISO(); }, { entity: "Contract", id: c.id, action: "Signed & activated" });
-  toast(`${c.id} signed — work orders can now be issued`);
+  toast(`${c.id} signed - work orders can now be issued`);
   return true;
 }
 function terminateContract(c, reason) {
@@ -354,8 +354,8 @@ function terminateContract(c, reason) {
   setState((s) => {
     const x = byId(s.contracts, c.id);
     x.status = "Terminated"; x.terminated = { by: currentUser(), at: new Date().toISOString(), reason };
-    s.workOrders.filter((w) => w.contractId === c.id && ["Draft", "Issued", "In Progress", "Suspended"].includes(w.status)).forEach((w) => { w.status = w.status === "Draft" ? "Cancelled" : "Short-closed"; w.closedReason = `Contract terminated — ${reason}`; });
-  }, { entity: "Contract", id: c.id, action: `Terminated — ${reason}` });
+    s.workOrders.filter((w) => w.contractId === c.id && ["Draft", "Issued", "In Progress", "Suspended"].includes(w.status)).forEach((w) => { w.status = w.status === "Draft" ? "Cancelled" : "Short-closed"; w.closedReason = `Contract terminated - ${reason}`; });
+  }, { entity: "Contract", id: c.id, action: `Terminated - ${reason}` });
   toast(`${c.id} terminated; open work orders short-closed`, "red");
   return true;
 }
@@ -392,12 +392,12 @@ function closureChecklist(st, c) {
 }
 function closeContract(c) {
   const st = getState(), open = closureChecklist(st, c).filter((i) => !i.ok);
-  if (open.length) { toast(`Can't close — ${open.map((i) => i.label.toLowerCase()).join("; ")}`, "red"); return false; }
+  if (open.length) { toast(`Can't close - ${open.map((i) => i.label.toLowerCase()).join("; ")}`, "red"); return false; }
   if (!tryAct(["Procurement Head", "Project Manager"], [], "closing a contract")) return false;
   setState((s) => {
     const x = byId(s.contracts, c.id); x.closedFrom = x.status; x.status = "Closed"; x.closedOn = todayISO(); x.closedBy = currentUser();
     s.workOrders.filter((w) => w.contractId === c.id).forEach((w) => { if (w.status === "Completed" || w.status === "Short-closed") w.status = "Closed"; });
-  }, { entity: "Contract", id: c.id, action: "Contract closed — work orders and measurement book frozen" });
+  }, { entity: "Contract", id: c.id, action: "Contract closed - work orders and measurement book frozen" });
   toast(`${c.id} closed`);
   return true;
 }
@@ -412,13 +412,13 @@ function woIssueBlockers(st, contractId) {
   const v = byId(st.vendors, c.vendorId);
   out.push(...contractorBlockers(st, v));
   if (v) {
-    const bg = backgroundIssue(v); if (bg) out.push(`${bg} — mobilisation blocked until it is clear`);
+    const bg = backgroundIssue(v); if (bg) out.push(`${bg} - mobilisation blocked until it is clear`);
     const q = qualStatus(v); if (v.isContractor && ["Not qualified", "Not assessed"].includes(q.status)) out.push(`Contractor qualification: ${q.status}`);
   }
   if (settingsOf(st).mobilisationBeforeWo && v && !st.workOrders.some((w) => w.vendorId === v.id && w.status !== "Draft" && w.status !== "Cancelled")) {
     const ck = v.onboarding?.checklist || [];
     const left = ck.filter((x) => !x.done).length;
-    if (!ck.length || left) out.push(`Mobilisation checklist incomplete (${left || ONBOARD_CHECKLIST.length} item${(left || ONBOARD_CHECKLIST.length) === 1 ? "" : "s"} open) — Contractor Onboarding`);
+    if (!ck.length || left) out.push(`Mobilisation checklist incomplete (${left || ONBOARD_CHECKLIST.length} item${(left || ONBOARD_CHECKLIST.length) === 1 ? "" : "s"} open) - Contractor Onboarding`);
   }
   return [...new Set(out)];
 }
@@ -448,7 +448,7 @@ function sweepState(s) {
   for (const po of s.purchaseOrders || []) {
     if (receiptReminderDue(s, po)) {
       po.reminders = [...(po.reminders || []), { at: new Date().toISOString(), for: po.deliveryDate, auto: true }];
-      (s.audit = s.audit || []).unshift({ at: new Date().toISOString(), by: "System", entity: "PO", id: po.id, action: `Receipt reminder e-mailed to the vendor — delivery due ${fmtDate(po.deliveryDate)}` });
+      (s.audit = s.audit || []).unshift({ at: new Date().toISOString(), by: "System", entity: "PO", id: po.id, action: `Receipt reminder e-mailed to the vendor - delivery due ${fmtDate(po.deliveryDate)}` });
       changed = true;
     }
   }
@@ -456,7 +456,7 @@ function sweepState(s) {
     if (v.status === "On Hold" && v.hold && v.hold.until && daysUntil(v.hold.until) < 0) {
       v.holdHistory = [...(v.holdHistory || []), { ...v.hold, endedAt: todayISO(), ended: "Release date passed" }];
       v.status = "Active"; v.hold = null; changed = true;
-      (s.audit = s.audit || []).unshift({ at: new Date().toISOString(), by: "System", entity: "Vendor", id: v.id, action: "Hold ended on its release date — vendor back to Active" });
+      (s.audit = s.audit || []).unshift({ at: new Date().toISOString(), by: "System", entity: "Vendor", id: v.id, action: "Hold ended on its release date - vendor back to Active" });
     }
   }
   return changed;

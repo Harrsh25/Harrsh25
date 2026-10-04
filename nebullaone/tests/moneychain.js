@@ -1,4 +1,4 @@
-// MONEY CHAIN — follows a contract's money end to end and checks that every number agrees with every other one:
+// MONEY CHAIN - follows a contract's money end to end and checks that every number agrees with every other one:
 // contract value + approved change orders → work orders → signed measurements → RA bill lines → deductions → net →
 // payable (invoice) → payments (incl. part-payments and reversals) → retention / advance ledger → final settlement screen.
 // Every figure is recomputed here independently from the stored records, then compared with what the screens show.
@@ -98,7 +98,7 @@ require('./lib')('moneychain', async ({ p, go, dlg, S, mut, T }) => {
     return [bad.length ? bad.slice(0, 4).join('; ') : `${contracts.length} settlement statements agree with the bills`, !bad.length];
   });
 
-  // ---- live chain: part-pay, pay in full, reverse — every screen moves by exactly the amount
+  // ---- live chain: part-pay, pay in full, reverse - every screen moves by exactly the amount
   const bill = s0.raBills.find((b) => b.status === 'Approved' && s0.invoices.some((i) => i.id === b.invoiceId && i.payments.filter((x) => !x.reversed).length === 0));
   if (bill) {
     const cid = bill.contractId, part = Math.min(100000, Math.floor(bill.net / 2));
@@ -121,7 +121,7 @@ require('./lib')('moneychain', async ({ p, go, dlg, S, mut, T }) => {
       await go('vendor-management/invoices?open=' + bill.invoiceId); await p.waitForTimeout(300);
       const s = await S(); const inv = s.invoices.find((i) => i.id === bill.invoiceId); const last = inv.payments.filter((x) => !x.reversed).slice(-1)[0];
       await p.locator('[data-drawer] tr').filter({ hasText: last.id }).locator('button:has-text("Reverse")').click(); await p.waitForTimeout(200);
-      await dlg().locator('textarea').fill('Bounced — wrong beneficiary account'); await dlg().locator('button:has-text("Reverse payment")').click(); await p.waitForTimeout(300);
+      await dlg().locator('textarea').fill('Bounced - wrong beneficiary account'); await dlg().locator('button:has-text("Reverse payment")').click(); await p.waitForTimeout(300);
       const b = (await S()).raBills.find((x) => x.id === bill.id); const st = await statement(cid);
       const moved = r2(-st['Less paid to date'] - -base['Less paid to date']);
       return [`bill ${b.status}; paid to date now ${moved} above the start (the part-payment ${part})`, b.status === 'Approved' && near(moved, part)];

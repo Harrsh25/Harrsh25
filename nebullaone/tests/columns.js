@@ -1,4 +1,4 @@
-// Customize Columns — dynamic tests 1–7 on every list in the app (run in Chromium)
+// Customize Columns - dynamic tests 1–7 on every list in the app (run in Chromium)
 // 1 exactly 5 default data columns · 2 open the panel · 3 enable a column (header + cells appear, header↔data aligned)
 // 4 disable a default column · 5 Cancel discards changes · 6 choice persists after reload · 7 Reset restores the 5 defaults
 const { chromium } = require('playwright'); const fs = require('fs'), path = require('path');

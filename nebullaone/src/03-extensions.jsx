@@ -37,9 +37,9 @@ const DEFAULT_SETTINGS = {
     "Civil Contractors › Structural", "Civil Contractors › Finishing", "EPC Contractors › Transmission", "EPC Contractors › Solar",
     "Labour Contractors", "Specialist Subcontractors", "Equipment & Services",
   ],
-  // Payment terms per vendor group (ERPNext Supplier Group default payment terms) — picking the group fills the vendor's terms
+  // Payment terms per vendor group (ERPNext Supplier Group default payment terms) - picking the group fills the vendor's terms
   vendorGroupTerms: { "Labour Contractors": "Net 15", "Material Suppliers › Cement": "Net 30", "Material Suppliers › Steel": "Net 45" },
-  // Our own group companies — vendors linked to one are inter-company suppliers
+  // Our own group companies - vendors linked to one are inter-company suppliers
   groupCompanies: ["NebullaOne Equipment Pvt Ltd", "NebullaOne Precast Ltd", "NebullaOne Realty Ltd"],
   // Compliance requirements (Procore-style insurance requirements + Ariba/Oracle-style document rules).
   // applies: all | goods | services (non-contractor) | contractor | strategic-contractor
@@ -65,7 +65,7 @@ const DEFAULT_SETTINGS = {
   // ---- masters used by the document "More details" panels (benchmark fields)
   ourCompany: "NebullaOne Infra Pvt Ltd",
   costCentres: ["CC-100 Head office", "CC-210 Skyline Towers", "CC-220 Metro Line Extension", "CC-230 Transmission Line A", "CC-240 Riverside Business Park", "CC-250 Solar Farm Substation"],
-  stores: ["Central store — Chakan", "Site store — Skyline Towers", "Site store — Metro Station 4", "Site store — Riverside Block C", "Yard — Transmission AP 1"],
+  stores: ["Central store - Chakan", "Site store - Skyline Towers", "Site store - Metro Station 4", "Site store - Riverside Block C", "Yard - Transmission AP 1"],
   priceLists: ["Standard Buying", "Rate contract 2026–27", "Emergency purchase"],
   paymentTermTemplates: [
     { name: "Net 30", days: 30, discountDays: 0, discountPct: 0 }, { name: "Net 45", days: 45, discountDays: 0, discountPct: 0 },
@@ -75,16 +75,16 @@ const DEFAULT_SETTINGS = {
   taxTemplates: [{ name: "GST 18%", rate: 18 }, { name: "GST 12%", rate: 12 }, { name: "GST 5%", rate: 5 }, { name: "GST 28%", rate: 28 }, { name: "Nil", rate: 0 }],
   shippingRules: [{ name: "Free delivery", amount: 0 }, { name: "Truck load (local)", amount: 6500 }, { name: "Truck load (outstation)", amount: 18000 }, { name: "Courier", amount: 750 }],
   emailTemplates: [
-    { name: "RFQ — standard", subject: "Request for quotation {rfq}", body: "Dear {vendor},\nPlease quote for the items in {rfq} by {due}." },
-    { name: "RFQ — urgent", subject: "URGENT: quotation needed {rfq}", body: "Dear {vendor},\nWe need your quote for {rfq} by {due}. Please confirm receipt." },
-    { name: "PO — issue", subject: "Purchase order {po}", body: "Dear {vendor},\nPlease find our purchase order {po} attached." },
+    { name: "RFQ - standard", subject: "Request for quotation {rfq}", body: "Dear {vendor},\nPlease quote for the items in {rfq} by {due}." },
+    { name: "RFQ - urgent", subject: "URGENT: quotation needed {rfq}", body: "Dear {vendor},\nWe need your quote for {rfq} by {due}. Please confirm receipt." },
+    { name: "PO - issue", subject: "Purchase order {po}", body: "Dear {vendor},\nPlease find our purchase order {po} attached." },
   ],
-  companyBanks: ["HDFC Bank — Current ••4410 (Operations)", "ICICI Bank — Current ••0923 (Projects)", "SBI — Cash credit ••7781"],
+  companyBanks: ["HDFC Bank - Current ••4410 (Operations)", "ICICI Bank - Current ••0923 (Projects)", "SBI - Cash credit ••7781"],
   tdsCategories: [
-    { code: "194C-1", name: "194C — Contractor (Individual/HUF)", rate: 1, basis: "Gross amount", singleThreshold: 30000, cumulativeThreshold: 100000, roundOff: true, onlyExcess: false, disableCumulative: false, disableTransaction: false },
-    { code: "194C-2", name: "194C — Contractor (Company/Firm)", rate: 2, basis: "Gross amount", singleThreshold: 30000, cumulativeThreshold: 100000, roundOff: true, onlyExcess: false, disableCumulative: false, disableTransaction: false },
-    { code: "194Q", name: "194Q — Purchase of goods", rate: 0.1, basis: "Net total", singleThreshold: 0, cumulativeThreshold: 5000000, roundOff: false, onlyExcess: true, disableCumulative: false, disableTransaction: true },
-    { code: "194J", name: "194J — Professional / technical services", rate: 10, basis: "Net total", singleThreshold: 30000, cumulativeThreshold: 0, roundOff: true, onlyExcess: false, disableCumulative: true, disableTransaction: false },
+    { code: "194C-1", name: "194C - Contractor (Individual/HUF)", rate: 1, basis: "Gross amount", singleThreshold: 30000, cumulativeThreshold: 100000, roundOff: true, onlyExcess: false, disableCumulative: false, disableTransaction: false },
+    { code: "194C-2", name: "194C - Contractor (Company/Firm)", rate: 2, basis: "Gross amount", singleThreshold: 30000, cumulativeThreshold: 100000, roundOff: true, onlyExcess: false, disableCumulative: false, disableTransaction: false },
+    { code: "194Q", name: "194Q - Purchase of goods", rate: 0.1, basis: "Net total", singleThreshold: 0, cumulativeThreshold: 5000000, roundOff: false, onlyExcess: true, disableCumulative: false, disableTransaction: true },
+    { code: "194J", name: "194J - Professional / technical services", rate: 10, basis: "Net total", singleThreshold: 30000, cumulativeThreshold: 0, roundOff: true, onlyExcess: false, disableCumulative: true, disableTransaction: false },
   ],
   inspectionTemplates: [
     { name: "Cement (OPC 53)", params: ["Bag weight 50 kg ± 0.5", "Setting time", "Manufacturing date ≤ 90 days", "Test certificate received"] },
@@ -93,8 +93,8 @@ const DEFAULT_SETTINGS = {
   ],
   customFields: { vendor: [{ label: "Nearest site (km)", type: "Number", options: "" }, { label: "ISO 45001 certified", type: "Dropdown", options: "Yes, No, In progress" }], rfq: [], po: [{ label: "Site in-charge", type: "Text", options: "" }] },
   questionLibrary: [
-    { id: "QL-1", question: "Do you have a written HSE policy signed by a director?", status: "Active", owner: "HSE — Rohit S.", level: "Supplier", responder: "Supplier", required: true, critical: true, attribute: "", responseType: "Yes / No", options: "" },
-    { id: "QL-2", question: "Number of permanent site supervisors", status: "Active", owner: "Procurement — Priya Nair", level: "Supplier", responder: "Supplier", required: false, critical: false, attribute: "", responseType: "Number", options: "" },
+    { id: "QL-1", question: "Do you have a written HSE policy signed by a director?", status: "Active", owner: "HSE - Rohit S.", level: "Supplier", responder: "Supplier", required: true, critical: true, attribute: "", responseType: "Yes / No", options: "" },
+    { id: "QL-2", question: "Number of permanent site supervisors", status: "Active", owner: "Procurement - Priya Nair", level: "Supplier", responder: "Supplier", required: false, critical: false, attribute: "", responseType: "Number", options: "" },
   ],
   // ---- purchasing controls (benchmark: ERPNext Buying Settings, Odoo Purchase Settings, Oracle tolerances)
   defaultSupplierGroup: "",
@@ -141,7 +141,7 @@ function contractFlowFor(value, st) {
   return flow.length ? flow.map((x) => x.name) : CONTRACT_FLOW;
 }
 // Readable descriptions used in list views instead of document codes
-const itemsSummary = (lines) => (lines && lines.length ? `${lines[0].desc}${lines.length > 1 ? ` +${lines.length - 1} more` : ""}` : "—");
+const itemsSummary = (lines) => (lines && lines.length ? `${lines[0].desc}${lines.length > 1 ? ` +${lines.length - 1} more` : ""}` : "-");
 const modeLabel = (m) => (m === "Call for Tenders" ? "Multiple Vendors" : m);
 function poSourceText(st, p) {
   if (p.rfqId) { const r = byId(st.rfqs, p.rfqId); return ["From RFQ", r ? r.title : ""]; }
@@ -232,7 +232,7 @@ const quoteStatus = (rfq, q) => {
 
 // ---------------------------------------------------------------- PO billing status & blanket orders
 function poBillingStatus(st, po) {
-  if (po.status === "Draft" || po.status === "Cancelled") return "—";
+  if (po.status === "Draft" || po.status === "Cancelled") return "-";
   const rec = poReceived(po);
   const billed = (i) => sum(st.invoices.filter((x) => x.poId === po.id && !x.cancelled).flatMap((x) => x.lines.filter((l) => l.line === i)), (l) => l.qty);
   const billable = (l) => (po.billingPolicy === "On ordered quantity" ? l.qty : l.accepted + (settingsOf(st).billRejectedQty ? l.rejected : 0));
@@ -283,22 +283,22 @@ function extendSeed(s) {
     r.items = r.items.map((it) => ({ requiredBy: shiftDays(10, r.createdOn), ...it }));
     r.responses = {};
     for (const vid of r.vendorIds) r.responses[vid] = r.status === "Draft" ? { status: "Not sent" } : r.quotes.some((q) => q.vendorId === vid) ? { status: "Accepted", at: ts(-5) } : { status: "Invited", at: ts(-10) };
-    r.emails = r.status === "Draft" ? [] : r.vendorIds.map((vid) => ({ to: vid, subject: `Request for Quotation ${r.id} — ${r.title}`, at: r.createdOn }));
+    r.emails = r.status === "Draft" ? [] : r.vendorIds.map((vid) => ({ to: vid, subject: `Request for Quotation ${r.id} - ${r.title}`, at: r.createdOn }));
     r.awards = r.awardedTo ? r.items.map((_, i) => ({ line: i, vendorId: r.awardedTo, poId: r.poId })) : [];
     r.quotes = r.quotes.map((q) => ({ quoteNo: `${q.vendorId.slice(-3)}/Q/${r.id.slice(-3)}`, noBid: r.items.map(() => false), leadDays: r.items.map(() => q.deliveryDays), discounts: r.items.map(() => 0), lineFiles: r.items.map(() => null), gstPct: 18, review: "Accepted", ...q }));
   }
   // Blanket order + call-off
   s.blanketOrders = [
-    { id: "BO-001", vendorId: "VEN-004", project: "", title: "OPC 53 cement — annual rate agreement FY 26-27", start: D(-60), deadline: D(300), status: "Active", currency: "INR",
+    { id: "BO-001", vendorId: "VEN-004", project: "", title: "OPC 53 cement - annual rate agreement FY 26-27", start: D(-60), deadline: D(300), status: "Active", currency: "INR",
       lines: [{ desc: "OPC 53 grade cement (50 kg bag)", unit: "bag", qty: 40000, rate: 378 }, { desc: "PPC cement (50 kg bag)", unit: "bag", qty: 15000, rate: 362 }], terms: "Price firm till deadline; delivery within 3 days of call-off." },
   ];
   const cement = s.purchaseOrders.find((p) => p.id === "PO-002");
   if (cement) { cement.blanketId = null; }
   for (const p of s.purchaseOrders) { p.returns = []; p.blanketId = p.blanketId || null; }
   const po1 = s.purchaseOrders.find((p) => p.id === "PO-001");
-  if (po1) { po1.returns = [{ id: "RTV-002", grnId: "GRN-002", line: 1, qty: 1, reason: "Bent bars", location: "Return bay — Skyline", date: shiftDays(-41), debitNote: null }]; po1.receipts[1].rejectedLocation = "Return bay — Skyline"; }
+  if (po1) { po1.returns = [{ id: "RTV-002", grnId: "GRN-002", line: 1, qty: 1, reason: "Bent bars", location: "Return bay - Skyline", date: shiftDays(-41), debitNote: null }]; po1.receipts[1].rejectedLocation = "Return bay - Skyline"; }
   const po2 = s.purchaseOrders.find((p) => p.id === "PO-002");
-  if (po2) { po2.returns = [{ id: "RTV-001", grnId: "GRN-003", line: 0, qty: 40, reason: "Lumps / moisture", location: "Return bay — Riverside", date: D(-29), debitNote: "DN-001" }]; po2.receipts[0].rejectedLocation = "Return bay — Riverside"; }
+  if (po2) { po2.returns = [{ id: "RTV-001", grnId: "GRN-003", line: 0, qty: 40, reason: "Lumps / moisture", location: "Return bay - Riverside", date: D(-29), debitNote: "DN-001" }]; po2.receipts[0].rejectedLocation = "Return bay - Riverside"; }
   // Invoices: instalments + hold release date; vendor advances
   for (const inv of s.invoices) { inv.schedule = null; if (inv.hold) inv.hold.until = D(7); }
   s.vendorAdvances = [{ id: "ADV-001", vendorId: "VEN-003", amount: 250000, date: D(-80), ref: "UTR0098123", note: "Advance against PO-001", allocated: [] }];
@@ -336,7 +336,7 @@ function extendSeed(s) {
   const c1 = s.contracts.find((c) => c.id === "CTR-001");
   if (c1) c1.subcontracts = [
     { id: "SUB-001", vendorId: "VEN-010", scope: "Excavation for footings F1–F40, Tower B", value: 4200000, start: c1.start, end: c1.end, status: "Approved", requestedBy: "Shree Balaji (portal)", requestedAt: ts(-40), decidedBy: "Rohan Kulkarni", decidedAt: ts(-38), remark: "" },
-    { id: "SUB-002", vendorId: "VEN-006", scope: "Scaffolding erection — Tower B façade", value: 1800000, start: c1.start, end: c1.end, status: "Proposed", requestedBy: "Shree Balaji (portal)", requestedAt: ts(-2) },
+    { id: "SUB-002", vendorId: "VEN-006", scope: "Scaffolding erection - Tower B façade", value: 1800000, start: c1.start, end: c1.end, status: "Proposed", requestedBy: "Shree Balaji (portal)", requestedAt: ts(-2) },
   ];
   return s;
 }
@@ -361,7 +361,7 @@ const FO = {
   compliance: ["Compliant", "Expiring", "Non-Compliant"],
   regTier: ["Prospective", "Spend Authorized"],
   vendorType: ["Goods", "Services", "Services · Contractor", "Labor · Contractor"],
-  stage: () => [...new Set([...(settingsOf(getState()).vendorFlow || []).map((x) => x.name), ...getState().vendors.flatMap((v) => (v.approval?.stages || []).map((s) => s.dept))]), "—"],
+  stage: () => [...new Set([...(settingsOf(getState()).vendorFlow || []).map((x) => x.name), ...getState().vendors.flatMap((v) => (v.approval?.stages || []).map((s) => s.dept))]), "-"],
   qualResult: ["Qualified", "Qualified with exceptions", "Not qualified", "Expired", "Requalification required"],
   preferred: ["Preferred", "Not preferred"],
   poStatus: ["Draft", "Issued", "Partially Received", "Received", "Closed", "Cancelled"],
@@ -369,7 +369,7 @@ const FO = {
   poSource: ["From RFQ", "Blanket call-off", "Direct"],
   blanket: ["Draft", "Active", "Accepted", "Fully Consumed", "Expired", "Closed"],
   billType: ["Purchase order", "RA bill", "Direct bill"],
-  match: ["Matched", "Matched (debit note)", "Variance — note raised", "Mismatch", "Awaiting certification", "Direct bill", "No PO"],
+  match: ["Matched", "Matched (debit note)", "Variance - note raised", "Mismatch", "Awaiting certification", "Direct bill", "No PO"],
   shouldPay: ["Yes", "No", "Exception"],
   rfqStatus: ["Draft", "Sent", "Quotes Received", "Partially Awarded", "Awarded", "Closed"],
   rfqMode: ["Multiple Vendors", "Single Vendor"],
@@ -386,7 +386,7 @@ const FO = {
   ncrStatus: ["Open", "Rework Done", "Closed"],
   bgStatus: ["Active", "Expiring", "Expired", "Returned", "Encashed"],
   invReview: ["Pending", "Accepted", "Rejected"],
-  acceptance: ["Pending", "Accepted", "Declined", "—"],
+  acceptance: ["Pending", "Accepted", "Declined", "-"],
   jms: ["Pending", "Signed", "Disputed"],
   billed: ["Billed", "Not billed"],
   release: ["Pending Approval", "Approved", "Released", "Rejected"],

@@ -41,7 +41,7 @@ function buildSeed() {
       insurance: [{ type: "Workmen Compensation", policy: "WC/2026/88121", insurer: "ICICI Lombard", cover: 25000000, expiry: D(210) }, { type: "Contractor's All Risk", policy: "CAR/2026/1142", insurer: "New India Assurance", cover: 50000000, expiry: D(180) }],
       contractor: { labourLicence: "CLRA/PUN/2025/0412", licenceExpiry: D(160), pfCode: "PUPUN1123344000", esiCode: "33000412210001001", workforce: 240, experienceYrs: 14, pastProjects: "Amanora Towers, Magarpatta Phase 3" },
       onboarding: { checklist: checklist(7), startedAt: D(-310) }, createdAt: D(-320),
-      qualification: { ruleSet: "Contractor — High value", score: 88, answers: { years: 14, turnover: 42, iso: "Yes", litigation: "No", workforce: 240, clra: "Yes", lti: 1, hse: "Yes" } },
+      qualification: { ruleSet: "Contractor - High value", score: 88, answers: { years: 14, turnover: 42, iso: "Yes", litigation: "No", workforce: 240, clra: "Yes", lti: 1, hse: "Yes" } },
     }),
     V({
       id: "VEN-002", name: "Apex Electricals & Power", legalName: "Apex Electricals & Power Projects Pvt Ltd", type: "Services", isContractor: true,
@@ -52,7 +52,7 @@ function buildSeed() {
       insurance: [{ type: "Workmen Compensation", policy: "WC/2026/55102", insurer: "Bajaj Allianz", cover: 20000000, expiry: D(95) }],
       contractor: { labourLicence: "CLRA/THN/2024/1180", licenceExpiry: D(75), pfCode: "MHBAN0098712000", esiCode: "31000988120001002", workforce: 165, experienceYrs: 11, pastProjects: "765kV Aurangabad–Padghe (Pkg 3)" },
       onboarding: { checklist: checklist(7), startedAt: D(-280) }, createdAt: D(-290),
-      qualification: { ruleSet: "Contractor — High value", score: 84, answers: { years: 11, turnover: 65, iso: "Yes", litigation: "No", workforce: 165, clra: "Yes", lti: 0, hse: "Yes" } },
+      qualification: { ruleSet: "Contractor - High value", score: 84, answers: { years: 11, turnover: 65, iso: "Yes", litigation: "No", workforce: 165, clra: "Yes", lti: 0, hse: "Yes" } },
     }),
     V({
       id: "VEN-003", name: "Deccan Steel Traders", legalName: "Deccan Steel Traders LLP", type: "Goods", categories: ["Steel"], tier: "Preferred", preferred: true, group: "Material Suppliers › Steel",
@@ -80,7 +80,7 @@ function buildSeed() {
       id: "VEN-006", name: "Rapid Scaffolding Solutions", legalName: "Rapid Scaffolding Solutions", type: "Services", isContractor: true, categories: ["Scaffolding", "Equipment Hire"], tier: "Transactional", status: "On Hold", group: "Specialist Subcontractors",
       gstin: "27AAPFR8812C1Z0", pan: "AAPFR8812C", contact: { name: "Deepak Rao", email: "ops@rapidscaffold.in", phone: "+91 98193 55120" },
       address: "Bhiwandi Logistics Park", city: "Bhiwandi", state: "Maharashtra", tds: "194C-2",
-      hold: { scope: "Payments", until: D(20), reason: "Scorecard below threshold — safety CAP open", placedAt: D(-10), auto: true },
+      hold: { scope: "Payments", until: D(20), reason: "Scorecard below threshold - safety CAP open", placedAt: D(-10), auto: true },
       bankAccounts: [{ id: 1, bank: "Yes Bank", account: "019863300001221", ifsc: "YESB0000198", isDefault: true }],
       insurance: [{ type: "Workmen Compensation", policy: "WC/2025/77110", insurer: "Tata AIG", cover: 5000000, expiry: D(120) }],
       contractor: { labourLicence: "CLRA/BHW/2024/0990", licenceExpiry: D(40), pfCode: "MHBHW0044551000", esiCode: "31000445510001009", workforce: 45, experienceYrs: 6, pastProjects: "" },
@@ -95,7 +95,7 @@ function buildSeed() {
       bankAccounts: [{ id: 1, bank: "HDFC Bank", account: "50200077120045", ifsc: "HDFC0000521", isDefault: true }],
       contractor: { labourLicence: "CLRA/BLR/2026/0311", licenceExpiry: D(330), pfCode: "KNBNG0077210000", esiCode: "53000772100001001", workforce: 80, experienceYrs: 5, pastProjects: "20 MW Pavagada block" },
       onboarding: { checklist: checklist(0), startedAt: D(-9) }, createdAt: D(-9),
-      qualification: { ruleSet: "Contractor — High value", score: 72, answers: { years: 5, turnover: 18, iso: "Yes", litigation: "No", workforce: 80, clra: "Yes", lti: 2, hse: "Yes" } },
+      qualification: { ruleSet: "Contractor - High value", score: 72, answers: { years: 5, turnover: 18, iso: "Yes", litigation: "No", workforce: 80, clra: "Yes", lti: 2, hse: "Yes" } },
     }),
     V({
       id: "VEN-008", name: "Metro Waterproofing Co.", legalName: "Metro Waterproofing Company", type: "Labor", isContractor: true, categories: ["Waterproofing"], tier: "Transactional", status: "Draft", regTier: "Prospective", group: "Specialist Subcontractors",
@@ -112,7 +112,7 @@ function buildSeed() {
     V({
       id: "VEN-009", name: "National Hardware Mart", legalName: "National Hardware Mart", type: "Goods", categories: ["Hardware"], tier: "Transactional", status: "Blacklisted", group: "Material Suppliers › General",
       gstin: "27AAIFN2201E1ZK", pan: "AAIFN2201E", contact: { name: "P. Shah", email: "nhm@gmail.com", phone: "+91 90040 11223" },
-      address: "Lohar Chawl", city: "Mumbai", state: "Maharashtra", tds: "194Q", notes: [{ at: D(-120), by: "M. Iyer", text: "Blacklisted — duplicate invoicing on PO-2025-118 (audit ref AUD/25/14)." }],
+      address: "Lohar Chawl", city: "Mumbai", state: "Maharashtra", tds: "194Q", notes: [{ at: D(-120), by: "M. Iyer", text: "Blacklisted - duplicate invoicing on PO-2025-118 (audit ref AUD/25/14)." }],
     }),
     V({
       id: "VEN-010", name: "Sai Earthmovers", legalName: "Sai Earthmovers & Infra", type: "Services", isContractor: true, categories: ["Excavation", "Equipment Hire"], tier: "Approved", group: "Specialist Subcontractors",
@@ -164,26 +164,26 @@ function buildSeed() {
 
   // ---------------------------------------------------- contracts
   const contracts = [
-    { id: "CTR-001", vendorId: "VEN-001", project: PROJECTS[0], title: "Civil & structural works — Towers A & B", type: "Item-Rate", value: 48500000, start: D(-200), end: D(165), retentionPct: 5, advancePct: 10, advanceAmount: 4850000, advanceRecoveryPct: 10, cessPct: 1, gstPct: 18, dlpMonths: 12, ldPctPerWeek: 0.5, ldCapPct: 5, status: "Active", owner: "Arjun Mehta", signedOn: D(-205), bgNo: "BG/HDFC/2026/1182", bgExpiry: D(210),
+    { id: "CTR-001", vendorId: "VEN-001", project: PROJECTS[0], title: "Civil & structural works - Towers A & B", type: "Item-Rate", value: 48500000, start: D(-200), end: D(165), retentionPct: 5, advancePct: 10, advanceAmount: 4850000, advanceRecoveryPct: 10, cessPct: 1, gstPct: 18, dlpMonths: 12, ldPctPerWeek: 0.5, ldCapPct: 5, status: "Active", owner: "Arjun Mehta", signedOn: D(-205), bgNo: "BG/HDFC/2026/1182", bgExpiry: D(210),
       changeOrders: [
         { id: "CO-001", desc: "Additional podium slab area (Tower A)", amount: 1850000, days: 20, status: "Approved", raisedOn: D(-80), reason: "Client revision R3 to podium layout" },
         { id: "CO-002", desc: "Rebar grade change Fe500 → Fe500D", amount: 620000, days: 0, status: "Pending", raisedOn: D(-6), reason: "Structural consultant instruction SCI-044" },
       ] },
-    { id: "CTR-002", vendorId: "VEN-002", project: PROJECTS[2], title: "Tower erection & stringing — Package 2", type: "Lump Sum", value: 32000000, start: D(-150), end: D(130), retentionPct: 5, advancePct: 5, advanceAmount: 1600000, advanceRecoveryPct: 5, cessPct: 1, gstPct: 18, dlpMonths: 12, ldPctPerWeek: 0.5, ldCapPct: 10, status: "Active", owner: "Rahul Verma", signedOn: D(-155), bgNo: "BG/AXIS/2026/0421", bgExpiry: D(70), changeOrders: [] },
-    { id: "CTR-003", vendorId: "VEN-005", project: PROJECTS[1], title: "Manpower supply — rate contract (Stations 3–5)", type: "Rate Contract", value: 6000000, start: D(-330), end: D(60), retentionPct: 0, advancePct: 0, advanceAmount: 0, advanceRecoveryPct: 0, cessPct: 1, gstPct: 18, dlpMonths: 0, ldPctPerWeek: 0, ldCapPct: 0, status: "Active", owner: "Priya Nair", signedOn: D(-332), changeOrders: [] },
-    { id: "CTR-004", vendorId: "VEN-010", project: PROJECTS[3], title: "Bulk excavation & backfilling — Blocks B/C", type: "Item-Rate", value: 9500000, start: D(-90), end: D(120), retentionPct: 5, advancePct: 0, advanceAmount: 0, advanceRecoveryPct: 0, cessPct: 1, gstPct: 18, dlpMonths: 6, ldPctPerWeek: 0.5, ldCapPct: 5, status: "Active", owner: "Sneha Iyer", signedOn: D(-92), changeOrders: [] },
-    { id: "CTR-005", vendorId: "VEN-006", project: PROJECTS[0], title: "Scaffolding hire & erection — Tower A", type: "Item-Rate", value: 3800000, start: D(-500), end: D(-200), retentionPct: 5, advancePct: 0, advanceAmount: 0, advanceRecoveryPct: 0, cessPct: 1, gstPct: 18, dlpMonths: 6, ldPctPerWeek: 0, ldCapPct: 0, status: "Active", owner: "Arjun Mehta", signedOn: D(-505), changeOrders: [] },
+    { id: "CTR-002", vendorId: "VEN-002", project: PROJECTS[2], title: "Tower erection & stringing - Package 2", type: "Lump Sum", value: 32000000, start: D(-150), end: D(130), retentionPct: 5, advancePct: 5, advanceAmount: 1600000, advanceRecoveryPct: 5, cessPct: 1, gstPct: 18, dlpMonths: 12, ldPctPerWeek: 0.5, ldCapPct: 10, status: "Active", owner: "Rahul Verma", signedOn: D(-155), bgNo: "BG/AXIS/2026/0421", bgExpiry: D(70), changeOrders: [] },
+    { id: "CTR-003", vendorId: "VEN-005", project: PROJECTS[1], title: "Manpower supply - rate contract (Stations 3–5)", type: "Rate Contract", value: 6000000, start: D(-330), end: D(60), retentionPct: 0, advancePct: 0, advanceAmount: 0, advanceRecoveryPct: 0, cessPct: 1, gstPct: 18, dlpMonths: 0, ldPctPerWeek: 0, ldCapPct: 0, status: "Active", owner: "Priya Nair", signedOn: D(-332), changeOrders: [] },
+    { id: "CTR-004", vendorId: "VEN-010", project: PROJECTS[3], title: "Bulk excavation & backfilling - Blocks B/C", type: "Item-Rate", value: 9500000, start: D(-90), end: D(120), retentionPct: 5, advancePct: 0, advanceAmount: 0, advanceRecoveryPct: 0, cessPct: 1, gstPct: 18, dlpMonths: 6, ldPctPerWeek: 0.5, ldCapPct: 5, status: "Active", owner: "Sneha Iyer", signedOn: D(-92), changeOrders: [] },
+    { id: "CTR-005", vendorId: "VEN-006", project: PROJECTS[0], title: "Scaffolding hire & erection - Tower A", type: "Item-Rate", value: 3800000, start: D(-500), end: D(-200), retentionPct: 5, advancePct: 0, advanceAmount: 0, advanceRecoveryPct: 0, cessPct: 1, gstPct: 18, dlpMonths: 6, ldPctPerWeek: 0, ldCapPct: 0, status: "Active", owner: "Arjun Mehta", signedOn: D(-505), changeOrders: [] },
     { id: "CTR-006", vendorId: "VEN-007", project: PROJECTS[4], title: "33kV switchyard & inverter station EPC", type: "Lump Sum", value: 21000000, start: D(20), end: D(260), retentionPct: 5, advancePct: 10, advanceAmount: 2100000, advanceRecoveryPct: 10, cessPct: 1, gstPct: 18, dlpMonths: 12, ldPctPerWeek: 0.5, ldCapPct: 10, status: "Draft", owner: "Karan Shah", changeOrders: [] },
   ];
 
   // ---------------------------------------------------- work orders
   const it = (id, code, desc, unit, qty, rate) => ({ id, code, desc, unit, qty, rate });
   const workOrders = [
-    { id: "WO-001", contractId: "CTR-001", vendorId: "VEN-001", project: PROJECTS[0], title: "Tower A — substructure & superstructure up to L5", type: "Item-Rate", location: "Tower A", start: D(-190), end: D(120), status: "In Progress", issuedOn: D(-192),
-      items: [it("A1", "2.1", "PCC M15 in foundations", "cum", 420, 5850), it("A2", "3.4", "RCC M30 in raft, columns & slabs", "cum", 1650, 7450), it("A3", "4.1", "Reinforcement Fe500D — cut, bend & place (labour only)", "MT", 210, 9800), it("A4", "5.2", "Formwork / shuttering for slabs, beams & columns", "sqm", 9800, 610), it("A5", "6.1", "Brick masonry 230 mm in CM 1:6", "cum", 780, 6150)] },
-    { id: "WO-002", contractId: "CTR-001", vendorId: "VEN-001", project: PROJECTS[0], title: "Tower B — foundations", type: "Item-Rate", location: "Tower B", start: D(-25), end: D(95), status: "Issued", issuedOn: D(-28),
-      items: [it("B1", "2.1", "PCC M15 in foundations", "cum", 300, 5850), it("B2", "3.4", "RCC M30 in raft & pedestals", "cum", 900, 7450), it("B3", "4.1", "Reinforcement Fe500D — cut, bend & place (labour only)", "MT", 110, 9800)] },
-    { id: "WO-003", contractId: "CTR-002", vendorId: "VEN-002", project: PROJECTS[2], title: "Erection & stringing — Section 1 (AP 1–18)", type: "Lump Sum", location: "AP 1 – AP 18", start: D(-145), end: D(120), status: "In Progress", issuedOn: D(-147), lumpSum: 18500000,
+    { id: "WO-001", contractId: "CTR-001", vendorId: "VEN-001", project: PROJECTS[0], title: "Tower A - substructure & superstructure up to L5", type: "Item-Rate", location: "Tower A", start: D(-190), end: D(120), status: "In Progress", issuedOn: D(-192),
+      items: [it("A1", "2.1", "PCC M15 in foundations", "cum", 420, 5850), it("A2", "3.4", "RCC M30 in raft, columns & slabs", "cum", 1650, 7450), it("A3", "4.1", "Reinforcement Fe500D - cut, bend & place (labour only)", "MT", 210, 9800), it("A4", "5.2", "Formwork / shuttering for slabs, beams & columns", "sqm", 9800, 610), it("A5", "6.1", "Brick masonry 230 mm in CM 1:6", "cum", 780, 6150)] },
+    { id: "WO-002", contractId: "CTR-001", vendorId: "VEN-001", project: PROJECTS[0], title: "Tower B - foundations", type: "Item-Rate", location: "Tower B", start: D(-25), end: D(95), status: "Issued", issuedOn: D(-28),
+      items: [it("B1", "2.1", "PCC M15 in foundations", "cum", 300, 5850), it("B2", "3.4", "RCC M30 in raft & pedestals", "cum", 900, 7450), it("B3", "4.1", "Reinforcement Fe500D - cut, bend & place (labour only)", "MT", 110, 9800)] },
+    { id: "WO-003", contractId: "CTR-002", vendorId: "VEN-002", project: PROJECTS[2], title: "Erection & stringing - Section 1 (AP 1–18)", type: "Lump Sum", location: "AP 1 – AP 18", start: D(-145), end: D(120), status: "In Progress", issuedOn: D(-147), lumpSum: 18500000,
       milestones: [
         { id: "M1", name: "Mobilisation & check survey", weight: 5 },
         { id: "M2", name: "Stub setting & foundation handover", weight: 15 },
@@ -191,11 +191,11 @@ function buildSeed() {
         { id: "M4", name: "Stringing & sagging", weight: 30 },
         { id: "M5", name: "Testing & commissioning", weight: 10 },
       ] },
-    { id: "WO-004", contractId: "CTR-004", vendorId: "VEN-010", project: PROJECTS[3], title: "Bulk excavation & backfill — Block C", type: "Item-Rate", location: "Block C", start: D(-85), end: D(110), status: "In Progress", issuedOn: D(-86),
+    { id: "WO-004", contractId: "CTR-004", vendorId: "VEN-010", project: PROJECTS[3], title: "Bulk excavation & backfill - Block C", type: "Item-Rate", location: "Block C", start: D(-85), end: D(110), status: "In Progress", issuedOn: D(-86),
       items: [it("C1", "1.1", "Excavation in ordinary soil up to 3 m", "cum", 18000, 185), it("C2", "1.3", "Excavation in hard rock (controlled blasting)", "cum", 2400, 640), it("C3", "1.6", "Backfilling with approved excavated earth", "cum", 9500, 145), it("C4", "1.8", "Disposal of surplus earth within 5 km lead", "cum", 8000, 120)] },
-    { id: "WO-005", contractId: "CTR-003", vendorId: "VEN-005", project: PROJECTS[1], title: "Manpower supply — Station 4 finishing", type: "Item-Rate", location: "Station 4", start: D(-120), end: D(60), status: "In Progress", issuedOn: D(-121),
+    { id: "WO-005", contractId: "CTR-003", vendorId: "VEN-005", project: PROJECTS[1], title: "Manpower supply - Station 4 finishing", type: "Item-Rate", location: "Station 4", start: D(-120), end: D(60), status: "In Progress", issuedOn: D(-121),
       items: [it("L1", "MP-1", "Skilled mason (8-hr man-day)", "man-day", 1100, 950), it("L2", "MP-2", "Helper / unskilled (8-hr man-day)", "man-day", 1500, 640), it("L3", "MP-3", "Carpenter (8-hr man-day)", "man-day", 350, 980)] },
-    { id: "WO-006", contractId: "CTR-005", vendorId: "VEN-006", project: PROJECTS[0], title: "Scaffolding hire & erection — Tower A core", type: "Item-Rate", location: "Tower A", start: D(-495), end: D(-205), status: "Completed", issuedOn: D(-497),
+    { id: "WO-006", contractId: "CTR-005", vendorId: "VEN-006", project: PROJECTS[0], title: "Scaffolding hire & erection - Tower A core", type: "Item-Rate", location: "Tower A", start: D(-495), end: D(-205), status: "Completed", issuedOn: D(-497),
       items: [it("S1", "SC-1", "Erection & dismantling of cuplock scaffold", "sqm", 12000, 95), it("S2", "SC-2", "Scaffold hire charges", "sqm-month", 36000, 22)] },
   ];
 
@@ -207,7 +207,7 @@ function buildSeed() {
     const qty = dims.qty !== undefined ? dims.qty : round2((nos || 1) * (l || 1) * (b || 1) * (d || 1));
     return {
       id: `MB-${String(mbN).padStart(3, "0")}`, woId, lineId, date: D(date), location, nos: nos ?? null, l: l ?? null, b: b ?? null, d: d ?? null, qty, pct: dims.pct ?? null,
-      recordedBy: "Site Engineer — " + (woId === "WO-003" ? "V. Pillai" : woId === "WO-004" ? "S. Kale" : woId === "WO-005" ? "N. Bhat" : "A. Joshi"),
+      recordedBy: "Site Engineer - " + (woId === "WO-003" ? "V. Pillai" : woId === "WO-004" ? "S. Kale" : woId === "WO-005" ? "N. Bhat" : "A. Joshi"),
       jms: jms === "Signed" ? { status: "Signed", contractorRep: "Contractor rep.", engineer: "Site Engineer", at: ts(date + 1) } : jms === "Disputed" ? { status: "Disputed", remark: extra.remark || "", at: ts(date + 1) } : { status: "Pending" },
       remarks: extra.remarks || "",
     };
@@ -249,12 +249,12 @@ function buildSeed() {
     MB("WO-004", "C1", -20, "Block C grid 7–12", [1, 55, 40, 2.5]),
     MB("WO-004", "C3", -6, "Backfill around footings F1–F24", [1, 60, 40, 1.2], "Pending"),
     // WO-005 (man-days from approved muster rolls)
-    MB("WO-005", "L1", -35, "Muster roll — August", Q(640)),
-    MB("WO-005", "L2", -35, "Muster roll — August", Q(980)),
-    MB("WO-005", "L3", -35, "Muster roll — August", Q(210)),
-    MB("WO-005", "L1", -4, "Muster roll — September (to date)", Q(560), "Pending"),
+    MB("WO-005", "L1", -35, "Muster roll - August", Q(640)),
+    MB("WO-005", "L2", -35, "Muster roll - August", Q(980)),
+    MB("WO-005", "L3", -35, "Muster roll - August", Q(210)),
+    MB("WO-005", "L1", -4, "Muster roll - September (to date)", Q(560), "Pending"),
     // WO-006
-    MB("WO-006", "S1", -300, "Core wall scaffold — full height", Q(12000)),
+    MB("WO-006", "S1", -300, "Core wall scaffold - full height", Q(12000)),
     MB("WO-006", "S2", -210, "Hire Feb–Jul (6 months × 6,000 sqm)", Q(36000)),
   ];
   for (const m of measurements) if (m.pct !== null) m.qty = 0;
@@ -287,7 +287,7 @@ function buildSeed() {
 
   // ---------------------------------------------------- retention releases
   const retentionReleases = [
-    { id: "RR-001", contractId: "CTR-005", amount: round2(st.raBills.find((b) => b.woId === "WO-006").ded.retention), type: "After DLP", status: "Due", requestedOn: D(-2), note: "DLP ended — no defects reported" },
+    { id: "RR-001", contractId: "CTR-005", amount: round2(st.raBills.find((b) => b.woId === "WO-006").ded.retention), type: "After DLP", status: "Due", requestedOn: D(-2), note: "DLP ended - no defects reported" },
   ];
 
   // ---------------------------------------------------- invoices from RA bills
@@ -307,7 +307,7 @@ function buildSeed() {
 
   // ---------------------------------------------------- RFQs
   const rfqs = [
-    { id: "RFQ-001", title: "TMT steel Fe500D — 120 MT", project: PROJECTS[0], mode: "Call for Tenders", status: "Quotes Received", createdOn: D(-12), dueDate: D(4), template: "Steel supply",
+    { id: "RFQ-001", title: "TMT steel Fe500D - 120 MT", project: PROJECTS[0], mode: "Call for Tenders", status: "Quotes Received", createdOn: D(-12), dueDate: D(4), template: "Steel supply",
       items: [{ desc: "TMT Fe500D 12 mm", unit: "MT", qty: 60 }, { desc: "TMT Fe500D 16 mm", unit: "MT", qty: 60 }],
       vendorIds: ["VEN-003", "VEN-011"], weights: { price: 60, quality: 25, delivery: 15 },
       quotes: [
@@ -318,7 +318,7 @@ function buildSeed() {
         { at: ts(-3), vendorId: "VEN-003", by: "Procurement", text: "Requested ₹500/MT reduction to match L1.", amount: null },
         { at: ts(-2), vendorId: "VEN-003", by: "Deccan Steel Traders", from: "vendor", text: "Counter-offer: ₹58,100 / ₹57,600 with 7-day delivery.", amount: null },
       ], awardedTo: null },
-    { id: "RFQ-002", title: "OPC 53 grade cement — 4,000 bags", project: PROJECTS[3], mode: "Call for Tenders", status: "Awarded", createdOn: D(-45), dueDate: D(-38), template: "Cement supply",
+    { id: "RFQ-002", title: "OPC 53 grade cement - 4,000 bags", project: PROJECTS[3], mode: "Call for Tenders", status: "Awarded", createdOn: D(-45), dueDate: D(-38), template: "Cement supply",
       items: [{ desc: "OPC 53 grade cement (50 kg bag)", unit: "bag", qty: 4000 }], vendorIds: ["VEN-004", "VEN-012"], weights: { price: 50, quality: 30, delivery: 20 },
       quotes: [
         { vendorId: "VEN-004", rates: [385], currency: "INR", fx: 1, deliveryDays: 5, validUntil: D(-20), submittedOn: D(-40), note: "" },
@@ -353,7 +353,7 @@ function buildSeed() {
     { id: `INV-${String(++invN).padStart(3, "0")}`, vendorId: "VEN-003", source: "Purchase Order", poId: "PO-001", number: "DST/26-27/0498", date: D(-40), due: D(5), gstPct: 18, hold: { reason: "Price mismatch", note: "Invoiced ₹57,900/MT vs PO ₹57,500/MT", at: ts(-38) }, notes: [],
       lines: [{ line: 1, qty: 27, rate: 57900 }], payments: [] },
     { id: `INV-${String(++invN).padStart(3, "0")}`, vendorId: "VEN-004", source: "Purchase Order", poId: "PO-002", number: "UBD/1187", date: D(-29), due: D(1), gstPct: 18, hold: null,
-      notes: [{ id: "DN-001", type: "Debit Note", amount: round2(40 * 385 * 1.18), reason: "40 bags rejected (lumps / moisture) — returned to vendor (RTV-001)", date: D(-28) }],
+      notes: [{ id: "DN-001", type: "Debit Note", amount: round2(40 * 385 * 1.18), reason: "40 bags rejected (lumps / moisture) - returned to vendor (RTV-001)", date: D(-28) }],
       lines: [{ line: 0, qty: 4000, rate: 385 }], payments: [] }
   );
   // first steel invoice was paid in full with 194Q TDS
@@ -380,7 +380,7 @@ function buildSeed() {
     LR("LR-010", "Mason", "Skilled", "Pune (Zone II)", 690, 900),
     LR("LR-011", "Rigger / Lineman", "Semi-skilled", "Nashik (Zone III)", 600, 780),
     LR("LR-012", "Tower Fitter", "Skilled", "Nashik (Zone III)", 660, 920),
-    // Vendor-specific (Kaveri Manpower) — one below minimum wage to trigger the compliance flag
+    // Vendor-specific (Kaveri Manpower) - one below minimum wage to trigger the compliance flag
     LR("LR-013", "Mason", "Skilled", "Mumbai (Zone I)", 720, 950, "VEN-005"),
     LR("LR-014", "Helper / Unskilled", "Unskilled", "Mumbai (Zone I)", 560, 640, "VEN-005"),
     LR("LR-015", "Carpenter / Shuttering", "Skilled", "Mumbai (Zone I)", 720, 980, "VEN-005"),
@@ -404,18 +404,18 @@ function buildSeed() {
     RT("VEN-010", "WO-004", "Aug 2026", 4, 3, 4, "Dust suppression inadequate on dry days."),
   ];
   const caps = [
-    { id: "CAP-001", vendorId: "VEN-006", issue: "Repeated scaffold safety violations (toe boards, guard rails, tagging)", actions: "Re-train scaffold crew; appoint certified scaffold inspector; weekly tag audit.", issuedOn: D(-10), dueDate: D(11), status: "Open", owner: "HSE — Rohit S." },
+    { id: "CAP-001", vendorId: "VEN-006", issue: "Repeated scaffold safety violations (toe boards, guard rails, tagging)", actions: "Re-train scaffold crew; appoint certified scaffold inspector; weekly tag audit.", issuedOn: D(-10), dueDate: D(11), status: "Open", owner: "HSE - Rohit S." },
     { id: "CAP-002", vendorId: "VEN-005", issue: "Weekend manpower shortfall against deployment plan", actions: "Maintain 10% buffer pool; share daily deployment by 9 AM.", issuedOn: D(-40), dueDate: D(-10), status: "Closed", owner: "Priya Nair" },
   ];
 
   const tickets = [
     { id: "TKT-001", vendorId: "VEN-003", subject: "Payment held on invoice DST/26-27/0498", body: "Rate revision was agreed over phone on 12 Aug; please release.", status: "Open", raisedOn: D(-6), replies: [] },
-    { id: "TKT-002", vendorId: "VEN-001", subject: "RA-3 measurement dispute — Slab L3 shuttering", body: "Drop beam sides not captured in MB-018.", status: "In Review", raisedOn: D(-9), replies: [{ at: ts(-7), by: "A. Joshi", text: "Joint re-measurement scheduled." }] },
+    { id: "TKT-002", vendorId: "VEN-001", subject: "RA-3 measurement dispute - Slab L3 shuttering", body: "Drop beam sides not captured in MB-018.", status: "In Review", raisedOn: D(-9), replies: [{ at: ts(-7), by: "A. Joshi", text: "Joint re-measurement scheduled." }] },
   ];
 
   const audit = [
     { at: ts(-2), by: "A. Joshi", entity: "Measurement", id: "MB-018", action: "JMS disputed by contractor" },
-    { at: ts(-10), by: "System", entity: "Vendor", id: "VEN-006", action: "Auto-hold (payments) — score below threshold" },
+    { at: ts(-10), by: "System", entity: "Vendor", id: "VEN-006", action: "Auto-hold (payments) - score below threshold" },
     { at: ts(-30), by: "A. Joshi", entity: "RA Bill", id: "RA-003", action: "Verified at site" },
     { at: ts(-9), by: "Procurement", entity: "Vendor", id: "VEN-007", action: "Registration submitted for approval" },
   ];
@@ -425,6 +425,6 @@ function buildSeed() {
     laborRates, ratings, caps, tickets, audit,
     scoreConfig: { weights: { quality: 30, timeliness: 30, safety: 20, compliance: 20 }, blockThreshold: 55, capThreshold: 70, autoBlock: true, weighting: "Weighted average", period: { length: "Monthly", start: `${new Date().getMonth() >= 3 ? new Date().getFullYear() : new Date().getFullYear() - 1}-04-01` },
       criteria: [{ name: "Quality", formula: "{quality}", maxScore: 100, weight: 30 }, { name: "On-time delivery", formula: "{timeliness}", maxScore: 100, weight: 30 }, { name: "Safety", formula: "{safety}", maxScore: 100, weight: 20 }, { name: "Compliance", formula: "{compliance}", maxScore: 100, weight: 20 }] },
-    rfqTemplates: ["Steel supply", "Cement supply", "Hardware", "Labour — item rate", "Equipment hire"],
+    rfqTemplates: ["Steel supply", "Cement supply", "Hardware", "Labour - item rate", "Equipment hire"],
   }));
 }

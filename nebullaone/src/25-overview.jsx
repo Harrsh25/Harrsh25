@@ -1,4 +1,4 @@
-// Overview dashboards — one per module: Vendor Management (vendors, compliance, sourcing, POs, payables)
+// Overview dashboards - one per module: Vendor Management (vendors, compliance, sourcing, POs, payables)
 // and Contract & Labor (contracts, work orders, measurement, RA billing, retention, labour). Each reads only its own module.
 
 const DONUT_HEX = { green: "#16a34a", blue: "#2563eb", amber: "#f59e0b", red: "#dc2626", purple: "#7c3aed", gray: "#9ca3af", cyan: "#0891b2" };
@@ -55,7 +55,7 @@ const Chips = ({ items, active, onChange }) => (
     <button key={i.id} type="button" aria-pressed={active === i.id} onClick={() => onChange(i.id)} className={cls("rounded-full px-2 py-0.5 text-[11.5px] font-medium", active === i.id ? "bg-ink text-white" : "bg-gray-100 text-ink-soft hover:bg-gray-200")}>{i.label}{i.n != null ? ` ${i.n}` : ""}</button>
   ))}</span>
 );
-const ageText = (iso) => { const d = daysUntil(iso); return d === null ? "—" : d < 0 ? `${-d} day${d === -1 ? "" : "s"} overdue` : d === 0 ? "today" : `in ${d} day${d === 1 ? "" : "s"}`; };
+const ageText = (iso) => { const d = daysUntil(iso); return d === null ? "-" : d < 0 ? `${-d} day${d === -1 ? "" : "s"} overdue` : d === 0 ? "today" : `in ${d} day${d === 1 ? "" : "s"}`; };
 
 // ---------------------------------------------------------------- data model
 function woHealth(st, wo) {
@@ -113,10 +113,10 @@ function buildVendorOverview(st, f) {
   const A = [];
   for (const i of blocked) A.push({ sev: "critical", title: "Payment blocked", detail: paymentGate(st, i).stops[0], who: vendorName(st, i.vendorId), ref: billAgainst(st, i)[0], amount: invoiceTotals(i).balance, due: i.due, act: "Resolve", to: `${VM_BASE}/invoices?open=${i.id}` });
   for (const i of open$.filter((x) => invoiceStatus(x) === "Overdue" && !blocked.includes(x)))
-    A.push({ sev: "attention", title: "Payment overdue", detail: `Due ${fmtDate(i.due)} — ready to pay`, who: vendorName(st, i.vendorId), ref: billAgainst(st, i)[0], amount: invoiceTotals(i).balance, due: i.due, act: "Pay", to: `${VM_BASE}/invoices?open=${i.id}` });
+    A.push({ sev: "attention", title: "Payment overdue", detail: `Due ${fmtDate(i.due)} - ready to pay`, who: vendorName(st, i.vendorId), ref: billAgainst(st, i)[0], amount: invoiceTotals(i).balance, due: i.due, act: "Pay", to: `${VM_BASE}/invoices?open=${i.id}` });
   for (const v of live) {
     const cp = complianceOf(v);
-    if (cp.blocking.length) A.push({ sev: "critical", title: "Compliance gap — payments held", detail: cp.blocking[0], who: v.name, ref: `${cp.blocking.length} blocking item${cp.blocking.length > 1 ? "s" : ""}`, amount: null, due: null, act: "Review", to: `${VM_BASE}/compliance?open=${v.id}` });
+    if (cp.blocking.length) A.push({ sev: "critical", title: "Compliance gap - payments held", detail: cp.blocking[0], who: v.name, ref: `${cp.blocking.length} blocking item${cp.blocking.length > 1 ? "s" : ""}`, amount: null, due: null, act: "Review", to: `${VM_BASE}/compliance?open=${v.id}` });
     const pend = v.docs.filter((d) => d.status === "Pending").length + (v.insurance || []).filter((p) => p.status === "Pending").length;
     if (pend) A.push({ sev: "pending", title: "Documents to verify", detail: `${pend} upload${pend > 1 ? "s" : ""} waiting in the verification queue`, who: v.name, ref: "Compliance", amount: null, due: null, act: "Verify", to: `${VM_BASE}/compliance?open=${v.id}` });
   }
@@ -129,7 +129,7 @@ function buildVendorOverview(st, f) {
   for (const r of rfqs.filter((x) => x.status === "Draft"))
     A.push({ sev: "pending", title: "RFQ not sent yet", detail: `${r.vendorIds.length} vendor(s) selected`, who: r.title, ref: r.project, amount: null, due: r.createdOn, age: true, act: "Send", to: `${VM_BASE}/rfq?open=${r.id}` });
   for (const r of openRfqs.filter((x) => daysUntil(x.dueDate) < 0))
-    A.push({ sev: "attention", title: "RFQ past due — not awarded", detail: `${r.quotes.length} quote(s) received`, who: r.title, ref: r.project, amount: null, due: r.dueDate, act: "Award", to: `${VM_BASE}/rfq?open=${r.id}` });
+    A.push({ sev: "attention", title: "RFQ past due - not awarded", detail: `${r.quotes.length} quote(s) received`, who: r.title, ref: r.project, amount: null, due: r.dueDate, act: "Award", to: `${VM_BASE}/rfq?open=${r.id}` });
   for (const p of pos.filter((x) => x.status === "Draft"))
     A.push({ sev: "pending", title: "PO awaiting approval", detail: itemsSummary(p.lines), who: vendorName(st, p.vendorId), ref: p.project, amount: poValue(p), due: p.date, age: true, act: "Review", to: `${VM_BASE}/purchase-orders?open=${p.id}` });
   for (const p of latePOs)
@@ -221,7 +221,7 @@ function buildContractOverview(st, f) {
     A.push({ sev: "pending", title: `RA bill awaiting ${next.label.toLowerCase()}`, detail: `RA-${b.seq} · ${byId(st.workOrders, b.woId).title}`, who: vendorName(st, b.vendorId), ref: next.role, amount: b.net, due: b.date, age: true, act: "Review", to: `${CL_BASE}/ra-bills?open=${b.id}` });
   }
   for (const b of raBills.filter((x) => x.status === "Approved"))
-    A.push({ sev: "attention", title: "RA bill approved — payment pending", detail: `RA-${b.seq} · ${byId(st.workOrders, b.woId).title}`, who: vendorName(st, b.vendorId), ref: "Finance", amount: b.net, due: b.date, age: true, act: "View", to: `${CL_BASE}/ra-bills?open=${b.id}` });
+    A.push({ sev: "attention", title: "RA bill approved - payment pending", detail: `RA-${b.seq} · ${byId(st.workOrders, b.woId).title}`, who: vendorName(st, b.vendorId), ref: "Finance", amount: b.net, due: b.date, age: true, act: "View", to: `${CL_BASE}/ra-bills?open=${b.id}` });
   for (const c of st.claims.filter((x) => x.status === "Submitted" && woIds.has(x.woId)))
     A.push({ sev: "pending", title: "Contractor claim to verify", detail: byId(st.workOrders, c.woId).title, who: vendorName(st, c.vendorId), ref: "Site engineer", amount: claimValue(st, c), due: c.date, age: true, act: "Verify", to: `${CL_BASE}/ra-bills` });
   for (const c of contracts) for (const co of (c.changeOrders || []).filter((x) => x.status === "Pending"))
@@ -243,7 +243,7 @@ function buildContractOverview(st, f) {
     if (c.bgExpiry && daysUntil(c.bgExpiry) <= 60) E.push({ name: `Bank guarantee ${c.bgNo || ""}`, who: `${vendorName(st, c.vendorId)} · ${c.title}`, date: c.bgExpiry, text: daysUntil(c.bgExpiry) < 0 ? `Expired ${-daysUntil(c.bgExpiry)} days ago` : `Expires ${ageText(c.bgExpiry)}`, state: daysUntil(c.bgExpiry) < 0 ? "Expired" : "Due soon", to: `${CL_BASE}/contracts?open=${c.id}` });
     const cs = contractStatus(c);
     if (cs === "Expiring") E.push({ name: "Contract end date", who: `${vendorName(st, c.vendorId)} · ${c.title}`, date: c.end, text: `Ends ${ageText(c.end)}`, state: "Due soon", to: `${CL_BASE}/contracts?open=${c.id}` });
-    if (cs === "In DLP") { const dl = shiftDays((c.dlpMonths || 0) * 30, c.end); if (daysUntil(dl) <= 60) E.push({ name: "Defect liability period ends", who: `${vendorName(st, c.vendorId)} · ${c.title}`, date: dl, text: `Ends ${ageText(dl)} — release retention`, state: "Due soon", to: `${CL_BASE}/retention` }); }
+    if (cs === "In DLP") { const dl = shiftDays((c.dlpMonths || 0) * 30, c.end); if (daysUntil(dl) <= 60) E.push({ name: "Defect liability period ends", who: `${vendorName(st, c.vendorId)} · ${c.title}`, date: dl, text: `Ends ${ageText(dl)} - release retention`, state: "Due soon", to: `${CL_BASE}/retention` }); }
   }
   for (const w of liveWOs.filter((x) => { const d = daysUntil(x.end); return d <= 14; }))
     E.push({ name: "Work order finish date", who: `${vendorName(st, w.vendorId)} · ${w.title}`, date: w.end, text: daysUntil(w.end) < 0 ? `Overran by ${-daysUntil(w.end)} days` : `Finishes ${ageText(w.end)}`, state: daysUntil(w.end) < 0 ? "Expired" : "Due soon", to: `${CL_BASE}/work-orders?open=${w.id}` });
@@ -290,8 +290,8 @@ function ActionCenter({ actions, nav }) {
         <DataTable dense rows={rows} rowKey={(a, i) => a.title + a.who + a.ref + i} onRow={(a) => nav(a.to)} empty={<p className="p-6 text-center text-[13px] text-ink-mute">Nothing needs attention.</p>} columns={[
           { key: "t", label: "Action item", render: (a) => <span className="flex min-w-0 flex-col"><span className="flex items-center gap-1.5 font-medium"><span className={cls("h-1.5 w-1.5 shrink-0 rounded-full", DOT[SEV[a.sev].tone])} />{a.title}</span><span className="block max-w-[230px] truncate pl-3 text-[11.5px] text-ink-mute">{a.detail}</span></span> },
           { key: "w", label: "Vendor / reference", render: (a) => <span className="flex flex-col"><span className="block max-w-[160px] truncate">{a.who}</span><span className="block max-w-[160px] truncate text-[11.5px] text-ink-mute">{a.ref}</span></span> },
-          { key: "a", label: "Amount", align: "right", num: true, render: (a) => (a.amount ? inrShort(a.amount) : "—") },
-          { key: "d", label: "Due / age", render: (a) => (!a.due ? "—" : a.age ? <span className="text-ink-soft">{Math.max(0, -daysUntil(a.due))}d old</span> : <span className={cls(daysUntil(a.due) < 0 && "font-medium text-red-600")}>{daysUntil(a.due) < 0 ? `${-daysUntil(a.due)}d overdue` : `in ${daysUntil(a.due)}d`}</span>) },
+          { key: "a", label: "Amount", align: "right", num: true, render: (a) => (a.amount ? inrShort(a.amount) : "-") },
+          { key: "d", label: "Due / age", render: (a) => (!a.due ? "-" : a.age ? <span className="text-ink-soft">{Math.max(0, -daysUntil(a.due))}d old</span> : <span className={cls(daysUntil(a.due) < 0 && "font-medium text-red-600")}>{daysUntil(a.due) < 0 ? `${-daysUntil(a.due)}d overdue` : `in ${daysUntil(a.due)}d`}</span>) },
           { key: "x", label: "", align: "right", render: (a) => <span onClick={(e) => e.stopPropagation()}><Btn size="sm" onClick={() => nav(a.to)}>{a.act}</Btn></span> },
         ]} />
       </div>
@@ -345,7 +345,7 @@ function VendorOverviewPage() {
   const d = y.useMemo(() => buildVendorOverview(st, f), [st, f]);
   const comp = d.vendors.map((v) => complianceOf(v).status);
   const maxAge = Math.max(1, ...d.aging.map((a) => a.v));
-  const pc = (x) => (x == null ? <span className="text-ink-faint">—</span> : <span className={cls("num", x >= 80 ? "text-green-700" : x >= 60 ? "text-amber-700" : "text-red-600")}>{Math.round(x)}%</span>);
+  const pc = (x) => (x == null ? <span className="text-ink-faint">-</span> : <span className={cls("num", x >= 80 ? "text-green-700" : x >= 60 ? "text-amber-700" : "text-red-600")}>{Math.round(x)}%</span>);
   return (
     <Page title="Vendor Overview" subtitle="Vendors, compliance, sourcing, purchase orders and payables at a glance" icon={Icon.grid} actions={<OverviewFilters f={f} setF={setF} st={st} />}>
       <div className="space-y-3 bg-gray-50/70 p-3">
@@ -386,7 +386,7 @@ function VendorOverviewPage() {
               ))}
             </div>
             <div className="grid grid-cols-2 divide-x divide-line border-t border-line">
-              <Metric label="Avg RFQ → PO" value={d.proc.avgDays == null ? "—" : `${d.proc.avgDays} days`} />
+              <Metric label="Avg RFQ → PO" value={d.proc.avgDays == null ? "-" : `${d.proc.avgDays} days`} />
               <Metric label="Conversion" value={`${d.proc.conversion}%`} sub="RFQ → award" />
             </div>
           </DashCard>
@@ -490,7 +490,7 @@ function ContractOverviewPage() {
             { key: "pay", label: "Paid", render: (x) => <Bar value={x.payment} color="bg-green-600" /> },
             { key: "r", label: "Retention held", align: "right", num: true, render: (x) => inrShort(x.led.retentionBalance) },
             { key: "s", label: "Schedule", render: (x) => <Status tone={{ "On track": "green", "At risk": "amber", Delayed: "red", Completed: "blue" }[x.status]}>{x.status}</Status> },
-            { key: "sig", label: "Signals", render: (x) => { const s = signals(x); return s.length ? <span className="flex flex-wrap gap-1">{s.slice(0, 3).map(([t, tone]) => <Status key={t} tone={tone}>{t}</Status>)}{s.length > 3 && <span data-tip={s.slice(3).map((z) => z[0]).join("\n")} className="text-[11px] text-ink-mute">+{s.length - 3}</span>}</span> : <span className="text-ink-faint">—</span>; } },
+            { key: "sig", label: "Signals", render: (x) => { const s = signals(x); return s.length ? <span className="flex flex-wrap gap-1">{s.slice(0, 3).map(([t, tone]) => <Status key={t} tone={tone}>{t}</Status>)}{s.length > 3 && <span data-tip={s.slice(3).map((z) => z[0]).join("\n")} className="text-[11px] text-ink-mute">+{s.length - 3}</span>}</span> : <span className="text-ink-faint">-</span>; } },
           ]} />
         </DashCard>
         <div className="grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-3">

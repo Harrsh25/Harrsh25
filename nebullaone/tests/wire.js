@@ -1,4 +1,4 @@
-// WIRING CHECK — every page loads; clicking a row opens its record; every record link inside a
+// WIRING CHECK - every page loads; clicking a row opens its record; every record link inside a
 // drawer lands on a page that opens that same record; ?open= deep links work for each page.
 const { chromium } = require('playwright'); const fs = require('fs');
 (async () => {
@@ -8,7 +8,7 @@ const { chromium } = require('playwright'); const fs = require('fs');
   const file = 'file://' + require('path').resolve(__dirname, '../../NebullaOne-WFM.html') + '#/productivity/';
   await p.goto(file); await p.evaluate(() => { localStorage.clear(); localStorage.setItem('wfm-demo-user', JSON.stringify({ name: 'demo', email: 'demo@x' })); });
   const go = async (x) => { await p.goto('about:blank'); await p.goto(file + x); await p.waitForTimeout(600); };
-  const R = []; const rec = (area, check, ok, detail) => { R.push({ area, check, result: ok ? 'PASS' : 'FAIL', detail }); console.log((ok ? 'PASS ' : 'FAIL ') + area + ' — ' + check + (ok ? '' : ' → ' + detail)); };
+  const R = []; const rec = (area, check, ok, detail) => { R.push({ area, check, result: ok ? 'PASS' : 'FAIL', detail }); console.log((ok ? 'PASS ' : 'FAIL ') + area + ' - ' + check + (ok ? '' : ' → ' + detail)); };
   const S = () => p.evaluate(() => JSON.parse(localStorage.getItem('nxv-store-v1') || '{}'));
   // 1. every page in the menu
   // make the store persist (it is only written after the first change)

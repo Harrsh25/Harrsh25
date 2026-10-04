@@ -44,11 +44,11 @@ function RfqEvaluation({ rfq }) {
   const top = rank.find((r) => r.qualified);
   return (
     <>
-      <Section title={`Technical evaluation — pass mark ${techPass(rfq)} / 100`} icon={Icon.clipboardCheck} actions={open && <Btn size="sm" icon={Icon.sliders} onClick={() => setCfg({ criteria: cr.map((c) => ({ ...c })), pass: techPass(rfq), tw: techWeight(rfq) })}>Criteria & weights</Btn>}>
-        <DataTable dense plain rows={accepted} rowKey={(q) => q.vendorId} empty={<p className="p-4 text-[13px] text-ink-mute">Accept quotations first — then score them here.</p>} columns={[
+      <Section title={`Technical evaluation - pass mark ${techPass(rfq)} / 100`} icon={Icon.clipboardCheck} actions={open && <Btn size="sm" icon={Icon.sliders} onClick={() => setCfg({ criteria: cr.map((c) => ({ ...c })), pass: techPass(rfq), tw: techWeight(rfq) })}>Criteria & weights</Btn>}>
+        <DataTable dense plain rows={accepted} rowKey={(q) => q.vendorId} empty={<p className="p-4 text-[13px] text-ink-mute">Accept quotations first - then score them here.</p>} columns={[
           { key: "v", label: "Bidder", className: "font-medium", render: (q) => vendorName(st, q.vendorId) },
-          ...cr.map((c, i) => ({ key: `c${i}`, label: `${c.name} (${c.weight}%)`, align: "right", render: (q) => { const e = (rfq.techEval || {})[q.vendorId]; return e ? <span className="num">{e.scores[i]}/10</span> : <span className="text-ink-faint">—</span>; } })),
-          { key: "t", label: "Technical", align: "right", render: (q) => { const s = techScore(rfq, q.vendorId); return s == null ? "—" : <span className="flex flex-col items-end"><b className="num">{s.toFixed(0)}</b><Status tone={s >= techPass(rfq) ? "green" : "red"}>{s >= techPass(rfq) ? "Pass" : "Fail"}</Status></span>; } },
+          ...cr.map((c, i) => ({ key: `c${i}`, label: `${c.name} (${c.weight}%)`, align: "right", render: (q) => { const e = (rfq.techEval || {})[q.vendorId]; return e ? <span className="num">{e.scores[i]}/10</span> : <span className="text-ink-faint">-</span>; } })),
+          { key: "t", label: "Technical", align: "right", render: (q) => { const s = techScore(rfq, q.vendorId); return s == null ? "-" : <span className="flex flex-col items-end"><b className="num">{s.toFixed(0)}</b><Status tone={s >= techPass(rfq) ? "green" : "red"}>{s >= techPass(rfq) ? "Pass" : "Fail"}</Status></span>; } },
           { key: "cmp", label: "Compliance", render: (q) => { const c = complianceResult(st, q.vendorId); return c.ok ? <Status tone="green">Pass</Status> : <span title={c.why}><Status tone="red">Fail</Status><span className="block text-[11px] text-red-600">{c.why}</span></span>; } },
           { key: "a", label: "", align: "right", render: (q) => open && <Btn size="sm" onClick={() => setEv({ vid: q.vendorId, scores: (rfq.techEval || {})[q.vendorId]?.scores?.slice() || cr.map(() => ""), remark: (rfq.techEval || {})[q.vendorId]?.remark || "" })}>{(rfq.techEval || {})[q.vendorId] ? "Re-score" : "Score"}</Btn> },
         ]} />
@@ -67,7 +67,7 @@ function RfqEvaluation({ rfq }) {
         {!rfq.bafo ? <p className="p-4 text-[13px] text-ink-mute">After the technical evaluation, ask the qualified bidders for a final price. Each final offer is kept in the price history.</p> : (
           <DataTable dense plain rows={rfq.bafo.vendors.map((vid) => ({ vid, q: rfq.quotes.find((x) => x.vendorId === vid) }))} rowKey={(r) => r.vid} columns={[
             { key: "v", label: "Bidder", className: "font-medium", render: (r) => vendorName(st, r.vid) },
-            { key: "h", label: "Price history", render: (r) => <span className="text-[12.5px]">{(r.q.priceHistory || []).map((p0) => `${p0.label} ${inrShort(p0.amount)}`).join(" → ") || "—"}{" → "}<b>Now {inrShort(quoteTotal(rfq, r.q))}</b></span> },
+            { key: "h", label: "Price history", render: (r) => <span className="text-[12.5px]">{(r.q.priceHistory || []).map((p0) => `${p0.label} ${inrShort(p0.amount)}`).join(" → ") || "-"}{" → "}<b>Now {inrShort(quoteTotal(rfq, r.q))}</b></span> },
             { key: "s", label: "Final offer", render: (r) => ((r.q.priceHistory || []).some((p0) => p0.round === rfq.bafo.round) ? <Status tone="green">Received</Status> : <Status tone="amber">{`Due ${fmtDate(rfq.bafo.due)}`}</Status>) },
             { key: "a", label: "", align: "right", render: (r) => open && rfq.bafo.status === "Open" && !(r.q.priceHistory || []).some((x) => x.round === rfq.bafo.round) && <Btn size="sm" onClick={() => setOffer({ vid: r.vid, amount: String(Math.round(quoteTotal(rfq, r.q))) })}>Record final offer</Btn> },
           ]} />
@@ -75,32 +75,32 @@ function RfqEvaluation({ rfq }) {
         {rfq.bafo && <p className="border-t border-line px-4 py-2 text-[12px] text-ink-mute">Round {rfq.bafo.round} requested {fmtDate(rfq.bafo.requestedAt)} by {rfq.bafo.by} · {rfq.bafo.status}{rfq.bafo.status === "Open" && open && <> · <button className="font-medium text-brand" onClick={() => log((r) => { r.bafo.status = "Closed"; }, `BAFO round ${rfq.bafo.round} closed`)}>Close round</button></>}</p>}
       </Section>
 
-      <Section title={`Technical + commercial ranking — technical ${techWeight(rfq)}% · price ${100 - techWeight(rfq)}%`} icon={Icon.target}
+      <Section title={`Technical + commercial ranking - technical ${techWeight(rfq)}% · price ${100 - techWeight(rfq)}%`} icon={Icon.target}
         actions={open && top && <Btn size="sm" variant="primary" icon={Icon.sparkles} onClick={() => setRec({ vid: top.q.vendorId, text: rfq.recommend?.justification || "" })}>Recommend award</Btn>}>
         <DataTable dense plain rows={rank} rowKey={(r) => r.q.vendorId} empty={<p className="p-4 text-[13px] text-ink-mute">No quotations to rank yet.</p>} columns={[
-          { key: "n", label: "#", render: (r, i) => (r.qualified ? i + 1 : "—") },
+          { key: "n", label: "#", render: (r, i) => (r.qualified ? i + 1 : "-") },
           { key: "v", label: "Bidder", className: "font-medium", render: (r) => vendorName(st, r.q.vendorId) },
           { key: "a", label: "Price", align: "right", render: (r) => <span className="num">{inrShort(r.amount)}</span> },
-          { key: "t", label: "Technical", align: "right", render: (r) => (r.tech == null ? "—" : <span className="num">{r.tech.toFixed(0)}</span>) },
-          { key: "c", label: "Commercial", align: "right", render: (r) => (r.commercial == null ? "—" : <span className="num">{r.commercial.toFixed(0)}</span>) },
+          { key: "t", label: "Technical", align: "right", render: (r) => (r.tech == null ? "-" : <span className="num">{r.tech.toFixed(0)}</span>) },
+          { key: "c", label: "Commercial", align: "right", render: (r) => (r.commercial == null ? "-" : <span className="num">{r.commercial.toFixed(0)}</span>) },
           { key: "s", label: "Combined", align: "right", render: (r) => (r.total == null ? <span className="text-[12px] text-red-600">{r.techRes !== "Pass" ? `Technical ${r.techRes.toLowerCase()}` : !r.comp.ok ? "Compliance fail" : "Quote expired"}</span> : <b className="num">{r.total.toFixed(1)}</b>) },
           { key: "r", label: "", render: (r) => rfq.recommend?.vendorId === r.q.vendorId && <Status tone="purple">Recommended</Status> },
         ]} />
-        {rfq.recommend && <p className="border-t border-line px-4 py-3 text-[13px] text-ink-soft"><b>Recommendation:</b> award to {vendorName(st, rfq.recommend.vendorId)} — {rfq.recommend.justification} <span className="text-ink-mute">({rfq.recommend.by}, {fmtDate(rfq.recommend.at)})</span></p>}
-        {clar.some((c) => !c.answer) && <p className="border-t border-line px-4 py-2 text-[12px] text-amber-700">{clar.filter((c) => !c.answer).length} clarification(s) still unanswered — close them before recommending.</p>}
+        {rfq.recommend && <p className="border-t border-line px-4 py-3 text-[13px] text-ink-soft"><b>Recommendation:</b> award to {vendorName(st, rfq.recommend.vendorId)} - {rfq.recommend.justification} <span className="text-ink-mute">({rfq.recommend.by}, {fmtDate(rfq.recommend.at)})</span></p>}
+        {clar.some((c) => !c.answer) && <p className="border-t border-line px-4 py-2 text-[12px] text-amber-700">{clar.filter((c) => !c.answer).length} clarification(s) still unanswered - close them before recommending.</p>}
       </Section>
 
       {ev && (() => {
         const bad = ev.scores.some((x) => x === "" || !(Number(x) >= 0 && Number(x) <= 10));
         const s = bad ? null : round2(sum(cr, (c, i) => (Number(ev.scores[i]) / 10) * (Number(c.weight) || 0)) / (sum(cr, (c) => Number(c.weight) || 0) || 1) * 100);
         return (
-          <Modal open width={560} onClose={() => setEv(null)} title={`Technical evaluation — ${vendorName(st, ev.vid)}`} footer={<><Btn onClick={() => setEv(null)}>Cancel</Btn><Btn variant="primary" disabled={bad || (s < techPass(rfq) && ev.remark.trim().length < 5)} title={bad ? "Mark every criterion 0–10" : s < techPass(rfq) && ev.remark.trim().length < 5 ? "Say why the bid fails" : ""} onClick={() => {
-            log((r) => { r.techEval = { ...(r.techEval || {}), [ev.vid]: { scores: ev.scores.map(Number), remark: ev.remark.trim(), by: currentUser(), at: new Date().toISOString() } }; }, `Technical evaluation — ${vendorName(st, ev.vid)} ${s.toFixed(0)}/100 (${s >= techPass(rfq) ? "pass" : "fail"})${ev.remark.trim() ? ` — ${ev.remark.trim()}` : ""}`);
-            toast(`Scored ${s.toFixed(0)} — ${s >= techPass(rfq) ? "technically qualified" : "below the pass mark"}`, s >= techPass(rfq) ? "green" : "red"); setEv(null);
+          <Modal open width={560} onClose={() => setEv(null)} title={`Technical evaluation - ${vendorName(st, ev.vid)}`} footer={<><Btn onClick={() => setEv(null)}>Cancel</Btn><Btn variant="primary" disabled={bad || (s < techPass(rfq) && ev.remark.trim().length < 5)} title={bad ? "Mark every criterion 0–10" : s < techPass(rfq) && ev.remark.trim().length < 5 ? "Say why the bid fails" : ""} onClick={() => {
+            log((r) => { r.techEval = { ...(r.techEval || {}), [ev.vid]: { scores: ev.scores.map(Number), remark: ev.remark.trim(), by: currentUser(), at: new Date().toISOString() } }; }, `Technical evaluation - ${vendorName(st, ev.vid)} ${s.toFixed(0)}/100 (${s >= techPass(rfq) ? "pass" : "fail"})${ev.remark.trim() ? ` - ${ev.remark.trim()}` : ""}`);
+            toast(`Scored ${s.toFixed(0)} - ${s >= techPass(rfq) ? "technically qualified" : "below the pass mark"}`, s >= techPass(rfq) ? "green" : "red"); setEv(null);
           }}>Save</Btn></>}>
             <div className="space-y-2">
               {cr.map((c, i) => <div key={i} className="grid grid-cols-[1fr_110px] items-center gap-3"><span className="text-[13px]">{c.name} <span className="text-ink-mute">({c.weight}%)</span></span><NumInput value={ev.scores[i]} onChange={(x) => setEv({ ...ev, scores: ev.scores.map((v0, j) => (j === i ? x : v0)) })} placeholder="0–10" /></div>)}
-              <p className="text-[12.5px]">Technical score: <b>{s == null ? "—" : `${s.toFixed(0)} / 100`}</b> {s != null && <Status tone={s >= techPass(rfq) ? "green" : "red"}>{s >= techPass(rfq) ? "Pass" : "Fail"}</Status>}</p>
+              <p className="text-[12.5px]">Technical score: <b>{s == null ? "-" : `${s.toFixed(0)} / 100`}</b> {s != null && <Status tone={s >= techPass(rfq) ? "green" : "red"}>{s >= techPass(rfq) ? "Pass" : "Fail"}</Status>}</p>
               <Field label={s != null && s < techPass(rfq) ? "Why it fails (required)" : "Evaluator remark"}><TextInput value={ev.remark} onChange={(x) => setEv({ ...ev, remark: x })} /></Field>
             </div>
           </Modal>
@@ -108,9 +108,9 @@ function RfqEvaluation({ rfq }) {
       })()}
       {cfg && (() => {
         const tw = sum(cfg.criteria, (c) => Number(c.weight) || 0);
-        const err = cfg.criteria.some((c) => !c.name.trim()) ? "Every criterion needs a name" : tw !== 100 ? `Weights add up to ${tw}% — they must total 100%` : !(Number(cfg.pass) > 0 && Number(cfg.pass) <= 100) ? "Pass mark must be 1–100" : !(Number(cfg.tw) >= 0 && Number(cfg.tw) <= 100) ? "Technical weight must be 0–100" : "";
+        const err = cfg.criteria.some((c) => !c.name.trim()) ? "Every criterion needs a name" : tw !== 100 ? `Weights add up to ${tw}% - they must total 100%` : !(Number(cfg.pass) > 0 && Number(cfg.pass) <= 100) ? "Pass mark must be 1–100" : !(Number(cfg.tw) >= 0 && Number(cfg.tw) <= 100) ? "Technical weight must be 0–100" : "";
         return (
-          <Modal open width={600} onClose={() => setCfg(null)} title="Evaluation criteria" footer={<><Btn onClick={() => setCfg(null)}>Cancel</Btn><Btn variant="primary" disabled={!!err} title={err} onClick={() => { log((r) => { r.techCriteria = cfg.criteria.map((c) => ({ name: c.name.trim(), weight: Number(c.weight) })); r.techPass = Number(cfg.pass); r.techWeight = Number(cfg.tw); }, `Evaluation criteria set — pass mark ${cfg.pass}, technical weight ${cfg.tw}%`); setCfg(null); }}>Save</Btn></>}>
+          <Modal open width={600} onClose={() => setCfg(null)} title="Evaluation criteria" footer={<><Btn onClick={() => setCfg(null)}>Cancel</Btn><Btn variant="primary" disabled={!!err} title={err} onClick={() => { log((r) => { r.techCriteria = cfg.criteria.map((c) => ({ name: c.name.trim(), weight: Number(c.weight) })); r.techPass = Number(cfg.pass); r.techWeight = Number(cfg.tw); }, `Evaluation criteria set - pass mark ${cfg.pass}, technical weight ${cfg.tw}%`); setCfg(null); }}>Save</Btn></>}>
             <div className="space-y-2">
               {cfg.criteria.map((c, i) => <div key={i} className="grid grid-cols-[1fr_100px_auto] items-center gap-2"><TextInput value={c.name} onChange={(x) => setCfg({ ...cfg, criteria: cfg.criteria.map((z, j) => (j === i ? { ...z, name: x } : z)) })} /><NumInput value={c.weight} onChange={(x) => setCfg({ ...cfg, criteria: cfg.criteria.map((z, j) => (j === i ? { ...z, weight: x } : z)) })} placeholder="Weight %" /><IconBtn icon={Icon.trash} title="Remove" onClick={() => setCfg({ ...cfg, criteria: cfg.criteria.filter((_, j) => j !== i) })} /></div>)}
               <Btn size="sm" icon={Icon.plus} onClick={() => setCfg({ ...cfg, criteria: [...cfg.criteria, { name: "", weight: 0 }] })}>Add criterion</Btn>
@@ -121,7 +121,7 @@ function RfqEvaluation({ rfq }) {
         );
       })()}
       {cl && (
-        <Modal open width={520} onClose={() => setCl(null)} title="Ask a clarification" footer={<><Btn onClick={() => setCl(null)}>Cancel</Btn><Btn variant="primary" disabled={!cl.vid || cl.text.trim().length < 5} onClick={() => { log((r) => { r.clarifications = [...(r.clarifications || []), { id: Date.now(), vendorId: cl.vid, question: cl.text.trim(), askedBy: currentUser(), askedAt: new Date().toISOString() }]; }, `Clarification asked to ${vendorName(st, cl.vid)} — ${cl.text.trim()}`); toast("Clarification e-mailed to the bidder"); setCl(null); }}>Send</Btn></>}>
+        <Modal open width={520} onClose={() => setCl(null)} title="Ask a clarification" footer={<><Btn onClick={() => setCl(null)}>Cancel</Btn><Btn variant="primary" disabled={!cl.vid || cl.text.trim().length < 5} onClick={() => { log((r) => { r.clarifications = [...(r.clarifications || []), { id: Date.now(), vendorId: cl.vid, question: cl.text.trim(), askedBy: currentUser(), askedAt: new Date().toISOString() }]; }, `Clarification asked to ${vendorName(st, cl.vid)} - ${cl.text.trim()}`); toast("Clarification e-mailed to the bidder"); setCl(null); }}>Send</Btn></>}>
           <div className="space-y-3"><Field label="Bidder"><Select value={cl.vid} placeholder="Select" onChange={(x) => setCl({ ...cl, vid: x })} options={accepted.map((q) => ({ value: q.vendorId, label: vendorName(st, q.vendorId) }))} /></Field>
             <Field label="Question"><TextArea rows={3} value={cl.text} onChange={(x) => setCl({ ...cl, text: x })} placeholder="e.g. Confirm the rate includes unloading at site" /></Field></div>
         </Modal>
@@ -134,7 +134,7 @@ function RfqEvaluation({ rfq }) {
       {bafo && (
         <Modal open width={460} onClose={() => setBafo(null)} title="Request best and final offers" footer={<><Btn onClick={() => setBafo(null)}>Cancel</Btn><Btn variant="primary" disabled={!bafo.due || bafo.due < todayISO()} onClick={() => {
           const vids = rank.filter((r) => r.qualified).map((r) => r.q.vendorId);
-          log((r) => { r.bafo = { round: (r.bafo?.round || 0) + 1, due: bafo.due, vendors: vids, requestedAt: new Date().toISOString(), by: currentUser(), status: "Open" }; }, `BAFO round ${(rfq.bafo?.round || 0) + 1} requested from ${vids.map((v) => vendorName(st, v)).join(", ")} — due ${fmtDate(bafo.due)}`);
+          log((r) => { r.bafo = { round: (r.bafo?.round || 0) + 1, due: bafo.due, vendors: vids, requestedAt: new Date().toISOString(), by: currentUser(), status: "Open" }; }, `BAFO round ${(rfq.bafo?.round || 0) + 1} requested from ${vids.map((v) => vendorName(st, v)).join(", ")} - due ${fmtDate(bafo.due)}`);
           toast(`Final offers requested from ${vids.length} bidder(s)`); setBafo(null);
         }}>Send request</Btn></>}>
           <p className="mb-3 text-[13px] text-ink-soft">Goes to the {rank.filter((r) => r.qualified).length} technically qualified, compliant bidder(s): {rank.filter((r) => r.qualified).map((r) => vendorName(st, r.q.vendorId)).join(", ")}.</p>
@@ -145,23 +145,23 @@ function RfqEvaluation({ rfq }) {
         const q = rfq.quotes.find((x) => x.vendorId === offer.vid), cur = quoteTotal(rfq, q), n = Number(offer.amount);
         const err = !(n > 0) ? "Enter the final offer" : n > cur + 0.5 ? `A final offer can't be above the current price (${inrShort(cur)})` : "";
         return (
-          <Modal open width={460} onClose={() => setOffer(null)} title={`Final offer — ${vendorName(st, offer.vid)}`} footer={<><Btn onClick={() => setOffer(null)}>Cancel</Btn><Btn variant="primary" disabled={!!err} title={err} onClick={() => {
+          <Modal open width={460} onClose={() => setOffer(null)} title={`Final offer - ${vendorName(st, offer.vid)}`} footer={<><Btn onClick={() => setOffer(null)}>Cancel</Btn><Btn variant="primary" disabled={!!err} title={err} onClick={() => {
             const f = n / cur;
-            log((r) => { const x = r.quotes.find((z) => z.vendorId === offer.vid); x.priceHistory = [...(x.priceHistory || []), ...(!(x.priceHistory || []).length ? [{ label: "Original", amount: cur, at: x.submittedOn, round: 0 }] : []), { label: `BAFO ${r.bafo.round}`, amount: n, at: new Date().toISOString(), round: r.bafo.round }]; x.rates = x.rates.map((v0) => (v0 == null || v0 === "" ? v0 : round2(Number(v0) * f))); }, `Final offer from ${vendorName(st, offer.vid)} — ${inrShort(cur)} → ${inrShort(n)} (${((1 - f) * 100).toFixed(1)}% lower)`);
-            toast("Final offer recorded — line rates updated"); setOffer(null);
+            log((r) => { const x = r.quotes.find((z) => z.vendorId === offer.vid); x.priceHistory = [...(x.priceHistory || []), ...(!(x.priceHistory || []).length ? [{ label: "Original", amount: cur, at: x.submittedOn, round: 0 }] : []), { label: `BAFO ${r.bafo.round}`, amount: n, at: new Date().toISOString(), round: r.bafo.round }]; x.rates = x.rates.map((v0) => (v0 == null || v0 === "" ? v0 : round2(Number(v0) * f))); }, `Final offer from ${vendorName(st, offer.vid)} - ${inrShort(cur)} → ${inrShort(n)} (${((1 - f) * 100).toFixed(1)}% lower)`);
+            toast("Final offer recorded - line rates updated"); setOffer(null);
           }}>Save</Btn></>}>
-            <Field label="Final total (taxable, ₹)" hint={`Current ${inrShort(cur)} — line rates are reduced in proportion`}><NumInput value={offer.amount} onChange={(x) => setOffer({ ...offer, amount: x })} /><FieldErr m={err} /></Field>
+            <Field label="Final total (taxable, ₹)" hint={`Current ${inrShort(cur)} - line rates are reduced in proportion`}><NumInput value={offer.amount} onChange={(x) => setOffer({ ...offer, amount: x })} /><FieldErr m={err} /></Field>
           </Modal>
         );
       })()}
       {rec && (() => {
         const isTop = top && rec.vid === top.q.vendorId;
-        const err = clar.some((c) => !c.answer) ? "Unanswered clarifications" : !isTop && rec.text.trim().length < 20 ? "Not the top-ranked bidder — justify the choice (at least 20 characters)" : rec.text.trim().length < 5 ? "Write the recommendation" : "";
+        const err = clar.some((c) => !c.answer) ? "Unanswered clarifications" : !isTop && rec.text.trim().length < 20 ? "Not the top-ranked bidder - justify the choice (at least 20 characters)" : rec.text.trim().length < 5 ? "Write the recommendation" : "";
         return (
-          <Modal open width={560} onClose={() => setRec(null)} title="Award recommendation" footer={<><Btn onClick={() => setRec(null)}>Cancel</Btn><Btn variant="primary" disabled={!!err} title={err} onClick={() => { log((r) => { r.recommend = { vendorId: rec.vid, justification: rec.text.trim(), by: currentUser(), at: new Date().toISOString(), topRanked: isTop }; r.recommendation = `${vendorName(st, rec.vid)} — ${rec.text.trim()}`; }, `Award recommended to ${vendorName(st, rec.vid)}${isTop ? "" : " (not top-ranked)"} — ${rec.text.trim()}`); toast("Recommendation recorded — award by line next"); setRec(null); }}>Save</Btn></>}>
+          <Modal open width={560} onClose={() => setRec(null)} title="Award recommendation" footer={<><Btn onClick={() => setRec(null)}>Cancel</Btn><Btn variant="primary" disabled={!!err} title={err} onClick={() => { log((r) => { r.recommend = { vendorId: rec.vid, justification: rec.text.trim(), by: currentUser(), at: new Date().toISOString(), topRanked: isTop }; r.recommendation = `${vendorName(st, rec.vid)} - ${rec.text.trim()}`; }, `Award recommended to ${vendorName(st, rec.vid)}${isTop ? "" : " (not top-ranked)"} - ${rec.text.trim()}`); toast("Recommendation recorded - award by line next"); setRec(null); }}>Save</Btn></>}>
             <div className="space-y-3">
-              <Field label="Recommend"><Select value={rec.vid} onChange={(x) => setRec({ ...rec, vid: x })} options={rank.filter((r) => r.qualified).map((r) => ({ value: r.q.vendorId, label: `${vendorName(st, r.q.vendorId)} — combined ${r.total.toFixed(1)}` }))} /></Field>
-              {!isTop && <Note tone="amber">{vendorName(st, top.q.vendorId)} ranks first — explain why another bidder is recommended.</Note>}
+              <Field label="Recommend"><Select value={rec.vid} onChange={(x) => setRec({ ...rec, vid: x })} options={rank.filter((r) => r.qualified).map((r) => ({ value: r.q.vendorId, label: `${vendorName(st, r.q.vendorId)} - combined ${r.total.toFixed(1)}` }))} /></Field>
+              {!isTop && <Note tone="amber">{vendorName(st, top.q.vendorId)} ranks first - explain why another bidder is recommended.</Note>}
               <Field label="Justification"><TextArea rows={3} value={rec.text} onChange={(x) => setRec({ ...rec, text: x })} placeholder="e.g. Best combined score; final offer 4% lower; delivery fits the pour schedule" /></Field>
               {err && <FieldErr m={err} />}
             </div>

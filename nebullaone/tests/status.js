@@ -1,4 +1,4 @@
-// Status mapping — for each document in each status, the record panel offers only the moves that status allows.
+// Status mapping - for each document in each status, the record panel offers only the moves that status allows.
 // Invalid transitions must not be offered (or must be disabled with a reason). Runs in Chromium on the built HTML.
 require('./lib')('status', async ({ p, go, S, mut, T }) => {
   const acts = async () => p.locator('[data-drawer]').first().locator('button:visible').evaluateAll((bs) => bs.map((b) => ({ t: b.innerText.replace(/\s+/g, ' ').trim(), d: b.disabled })).filter((x) => x.t));

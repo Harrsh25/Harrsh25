@@ -7,7 +7,7 @@
 // ---------------------------------------------------------------- invitations
 function InviteVendorModal({ onClose }) {
   const st = useStore();
-  const [f, setF] = y.useState({ name: "", email: "", contact: "", category: "", message: "We'd like to add you to our approved vendor list. Please register using the link below — it takes about 10 minutes." });
+  const [f, setF] = y.useState({ name: "", email: "", contact: "", category: "", message: "We'd like to add you to our approved vendor list. Please register using the link below - it takes about 10 minutes." });
   const dupe = f.email && (st.vendors.some((v) => v.contact.email.toLowerCase() === f.email.toLowerCase()) || st.invites.some((i) => i.email.toLowerCase() === f.email.toLowerCase() && i.status === "Invited"));
   const [sent, setSent] = y.useState(null);
   if (sent) return <ShareLinkModal title={`Invitation sent to ${sent.name}`} url={appUrl(`/vendor-register?invite=${sent.id}`)} onClose={onClose}
@@ -49,10 +49,10 @@ function InvitesTable({ onOpenVendor }) {
       <DataTable noun="invitations" placeholder="Search company, e-mail, trade…" filters={<FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Invited", "Registered", "Cancelled"]} />} rows={rows} onRow={(i) => setOpen(i.id)} empty={<EmptyState icon={Icon.mail} title="No invitations yet" text="Use “Invite vendor” to send a personal registration link." />} columns={[
         { key: "name", label: "Company", className: "font-medium" },
         { key: "email", label: "E-mail" },
-        { key: "category", label: "Trade", filterOptions: FO.trades, filter: (i) => i.category, render: (i) => i.category || "—" },
+        { key: "category", label: "Trade", filterOptions: FO.trades, filter: (i) => i.category, render: (i) => i.category || "-" },
         { key: "sent", label: "Sent", sort: (i) => i.sentOn, render: (i) => `${fmtDate(i.sentOn)} · ${i.by}` },
         { key: "rem", label: "Reminders", sort: (i) => (i.reminders || []).length, render: (i) => { const r = i.reminders || []; return r.length ? <span data-tip={r.map((x) => `${fmtDate(x.at)} · ${x.by}`).join("\n")}>{r.length} · last {fmtDate(r[r.length - 1].at)}</span> : <span className="text-ink-faint">None</span>; } },
-        { key: "exp", label: "Link expires", sort: (i) => inviteExpiry(i), render: (i) => (i.status === "Invited" ? <ExpiryCell iso={inviteExpiry(i)} /> : <span className="text-ink-faint">—</span>) },
+        { key: "exp", label: "Link expires", sort: (i) => inviteExpiry(i), render: (i) => (i.status === "Invited" ? <ExpiryCell iso={inviteExpiry(i)} /> : <span className="text-ink-faint">-</span>) },
         { key: "s", label: "Status", render: (i) => <Status>{i.status}</Status> },
         { key: "a", label: "", align: "right", render: (i) => i.vendorId ? <span onClick={stop}><Btn size="sm" onClick={() => onOpenVendor(i.vendorId)}>Open vendor</Btn></span> : i.status === "Invited" ? (
           <span className="flex justify-end gap-1" onClick={stop}>
@@ -62,7 +62,7 @@ function InvitesTable({ onOpenVendor }) {
           </span>) : null },
       ]} />
       {open && <InviteDrawer id={open} onClose={() => setOpen(null)} onShare={setShare} onOpenVendor={(vid) => { setOpen(null); onOpenVendor(vid); }} />}
-      {share && <ShareLinkModal title={`Registration link — ${share.name}`} url={appUrl(`/vendor-register?invite=${share.id}`)} onClose={() => setShare(null)} text="Personal link; the form opens pre-filled for this company." />}
+      {share && <ShareLinkModal title={`Registration link - ${share.name}`} url={appUrl(`/vendor-register?invite=${share.id}`)} onClose={() => setShare(null)} text="Personal link; the form opens pre-filled for this company." />}
     </>
   );
 }
@@ -88,7 +88,7 @@ function InviteDrawer({ id, onClose, onShare, onOpenVendor }) {
       <div className="space-y-4 px-6 py-5">
         <Section title="Progress" icon={Icon.clipboardCheck}><div className="p-5"><Stepper steps={steps} /></div></Section>
         <Section title="Invitation" icon={Icon.mail}>
-          <KV items={[["Company", i.name], ["Contact person", i.contact || "—"], ["E-mail", i.email], ["Trade / category", i.category || "Any"], ["Sent on", fmtDate(i.sentOn)], ["Sent by", i.by],
+          <KV items={[["Company", i.name], ["Contact person", i.contact || "-"], ["E-mail", i.email], ["Trade / category", i.category || "Any"], ["Sent on", fmtDate(i.sentOn)], ["Sent by", i.by],
             ["Reminders", (i.reminders || []).length ? `${i.reminders.length} (last ${fmtDate(i.reminders[i.reminders.length - 1].at)})` : "None"], ["Status", i.status], ["Vendor record", v ? v.name : "Not registered yet"]]} />
           {i.message && <p className="border-t border-line px-4 py-3 text-[13px] text-ink-soft"><span className="mr-1 font-medium text-ink">Message:</span>{i.message}</p>}
         </Section>
@@ -114,7 +114,7 @@ function requestChanges(v, cr) {
     x.status = "Changes Requested";
     x.changeRequest = { ...cr, by: currentUser(), dept: stg?.dept || "Procurement", at: new Date().toISOString(), resolvedAt: null };
     for (const it of cr.items) if (it.doc) { const d = x.docs.find((dd) => dd.name === it.label); if (d && d.status !== "Missing") d.status = "Rejected"; }
-  }, { entity: "Vendor", id: v.id, action: `Changes requested — ${cr.items.map((i) => i.label).join(", ")}` });
+  }, { entity: "Vendor", id: v.id, action: `Changes requested - ${cr.items.map((i) => i.label).join(", ")}` });
   toast("Change request e-mailed to the vendor");
 }
 
@@ -130,7 +130,7 @@ function RequestChangesModal({ v, onClose }) {
     </div>
   );
   return (
-    <Modal open onClose={onClose} width={760} title={`Request changes — ${v.name}`} subtitle="The vendor gets an e-mail listing exactly these items and fixes them in the supplier portal; approvals resume at the same stage"
+    <Modal open onClose={onClose} width={760} title={`Request changes - ${v.name}`} subtitle="The vendor gets an e-mail listing exactly these items and fixes them in the supplier portal; approvals resume at the same stage"
       footer={<><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" icon={Icon.send} disabled={!items.length} onClick={() => { requestChanges(v, { items, message: msg }); onClose(); }}>Send request ({items.length})</Btn></>}>
       <div className="grid grid-cols-2 gap-6">
         <div><p className="mb-1 text-[12px] font-semibold uppercase tracking-wide text-ink-mute">Details</p>{CHANGE_FIELDS.map((fld) => row(fld))}</div>
@@ -145,9 +145,9 @@ function EditRegistrationModal({ v, onClose, owner }) {
   const [f, setF] = y.useState(() => vendorToForm(v));
   const [reason, setReason] = y.useState("");
   return (
-    <Modal open onClose={onClose} width={880} title={`Edit registration — ${v.name}`} subtitle={owner ? `${v.status} — you can change any detail, then submit for approval.` : "Approvers may correct details during review. Bank details are locked; only the vendor can change them."}
+    <Modal open onClose={onClose} width={880} title={`Edit registration - ${v.name}`} subtitle={owner ? `${v.status} - you can change any detail, then submit for approval.` : "Approvers may correct details during review. Bank details are locked; only the vendor can change them."}
       footer={<>{!owner && <Field label=""><TextInput value={reason} onChange={setReason} placeholder="Reason for edit (logged)" /></Field>}<span className="flex-1" /><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!owner && !reason} onClick={() => {
-        setState((s) => applyForm(byId(s.vendors, v.id), f, { lockBank: !owner }), { entity: "Vendor", id: v.id, action: owner ? "Registration details edited" : `Registration edited by approver — ${reason}` });
+        setState((s) => applyForm(byId(s.vendors, v.id), f, { lockBank: !owner }), { entity: "Vendor", id: v.id, action: owner ? "Registration details edited" : `Registration edited by approver - ${reason}` });
         toast("Registration updated"); onClose();
       }}>Save changes</Btn></>}>
       <VendorForm f={f} set={setF} errors={{}} lockBank={!owner} />

@@ -1,4 +1,4 @@
-// Field-level tests on the vendor registration form (full form) — validation, dependent and conditional fields,
+// Field-level tests on the vendor registration form (full form) - validation, dependent and conditional fields,
 // defaults, and that every saved value lands in the vendor record. Runs in Chromium against the built HTML.
 require('./lib')('fields', async ({ p, go, dlg, S, T, pick }) => {
   const open = async () => {

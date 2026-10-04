@@ -48,7 +48,7 @@ function ContractModal({ open, onClose, onCreated, edit }) {
           <Field label="Contractor" required hint="Approved, spend-authorized contractors"><Select value={f.vendorId} placeholder="Select…" disabled={!!edit?.rfqId} onChange={set("vendorId")} options={vendors.map((x) => ({ value: x.id, label: x.name }))} /></Field>
           <Field label="Project"><Select value={f.project} onChange={set("project")} options={PROJECTS} /></Field>
           <Field label="Contract type"><Select value={f.type} onChange={set("type")} options={["Item-Rate", "Lump Sum", "Rate Contract"]} /></Field>
-          <Field label="Contract title / scope" required span={2}><TextInput value={f.title} onChange={set("title")} placeholder="e.g. Civil & structural works — Tower C" /></Field>
+          <Field label="Contract title / scope" required span={2}><TextInput value={f.title} onChange={set("title")} placeholder="e.g. Civil & structural works - Tower C" /></Field>
           <Field label="Contract value (₹, excl. GST)" required hint={f.scope.length ? "Sum of the BOQ lines below" : ""}>{f.scope.length ? <span className="flex h-[32px] items-center font-semibold num">{inr(value)}</span> : <NumInput value={f.value} onChange={set("value")} />}</Field>
           <Field label="Start date"><DateInput value={f.start} onChange={set("start")} /></Field>
           <Field label="Completion date"><DateInput value={f.end} onChange={set("end")} /></Field>
@@ -57,10 +57,10 @@ function ContractModal({ open, onClose, onCreated, edit }) {
           <Field label="Termination notice (days)"><NumInput value={f.noticeDays ?? ""} onChange={set("noticeDays")} placeholder="e.g. 15" /></Field>
         </div>
         {v && blockers.length > 0 && <Note tone="red">{v.name} can't be contracted right now: {blockers.join(" · ")}.</Note>}
-        {v && v.qualification && qualStatus(v).limit > 0 && value > qualStatus(v).limit && <Note tone="amber" icon={Icon.alert}>Contract value {inrShort(value)} is above {v.name}'s qualification limit of {inrShort(qualStatus(v).limit)} ({qualStatus(v).status}) — work orders beyond the limit will show a warning.</Note>}
-        {f.rfqId && <Note>Created from the award of <b>{f.rfqId}</b>{f.awardNote ? ` — ${f.awardNote}` : ""}. Lines and rates come from the winning quotation.</Note>}
+        {v && v.qualification && qualStatus(v).limit > 0 && value > qualStatus(v).limit && <Note tone="amber" icon={Icon.alert}>Contract value {inrShort(value)} is above {v.name}'s qualification limit of {inrShort(qualStatus(v).limit)} ({qualStatus(v).status}) - work orders beyond the limit will show a warning.</Note>}
+        {f.rfqId && <Note>Created from the award of <b>{f.rfqId}</b>{f.awardNote ? ` - ${f.awardNote}` : ""}. Lines and rates come from the winning quotation.</Note>}
         <ContractExtras f={f} setF={setF} />
-        <Section title={`Contract BOQ${f.scope.length ? ` — ${f.scope.length} line(s)` : " (optional)"}`} actions={<Btn size="sm" icon={Icon.plus} onClick={() => setF({ ...f, scope: [...f.scope, { code: String(f.scope.length + 1), desc: "", unit: "cum", qty: "", rate: "" }] })}>Add BOQ line</Btn>}>
+        <Section title={`Contract BOQ${f.scope.length ? ` - ${f.scope.length} line(s)` : " (optional)"}`} actions={<Btn size="sm" icon={Icon.plus} onClick={() => setF({ ...f, scope: [...f.scope, { code: String(f.scope.length + 1), desc: "", unit: "cum", qty: "", rate: "" }] })}>Add BOQ line</Btn>}>
           {f.scope.length === 0 ? <p className="p-3 text-[12.5px] text-ink-mute">Without BOQ lines the contract value is entered directly. With lines, work orders pick from this BOQ and the contract tracks ordered / measured / billed per line.</p> : (
             <div className="space-y-2 p-3">
               <div className="grid grid-cols-[60px_1fr_80px_100px_110px_110px_28px] gap-2 text-[11.5px] font-medium text-ink-mute"><span>Code</span><span>Description</span><span>Unit</span><span>Qty</span><span>Rate (₹)</span><span className="text-right">Amount</span><span /></div>
@@ -113,7 +113,7 @@ function ChangeOrderModal({ c, preset, onClose }) {
       footer={<><span className="mr-auto text-[13px]">Value <b className="num">{inr(amount)}</b>{Number(co.days) ? ` · +${co.days} days` : ""}</span><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!ok} onClick={() => {
         const coId = `CO-${String(c.changeOrders.length + 1).padStart(3, "0")}`;
         setState((s) => byId(s.contracts, c.id).changeOrders.push({ id: coId, desc: co.desc.trim(), reason: co.reason.trim(), amount, days: Number(co.days) || 0, status: "Pending", raisedOn: todayISO(), raisedBy: currentUser(),
-          lines: co.lines.map((l) => ({ woId: l.woId, lineId: l.lineId || null, code: l.code || "", desc: l.desc, unit: l.unit || "nos", qty: Number(l.qty), rate: Number(l.rate) })) }), { entity: "Contract", id: c.id, action: `${coId} raised — ${inr(amount)}${co.days ? `, +${co.days} days` : ""}` });
+          lines: co.lines.map((l) => ({ woId: l.woId, lineId: l.lineId || null, code: l.code || "", desc: l.desc, unit: l.unit || "nos", qty: Number(l.qty), rate: Number(l.rate) })) }), { entity: "Contract", id: c.id, action: `${coId} raised - ${inr(amount)}${co.days ? `, +${co.days} days` : ""}` });
         toast(`${coId} sent for approval`); onClose();
       }}>Submit for approval</Btn></>}>
       <div className="space-y-3">
@@ -161,7 +161,7 @@ function GuaranteeModal({ c, g, mode, onClose }) {
         if (mode === "return") { y2.status = "Returned"; y2.returnedOn = todayISO(); }
         if (mode === "encash") { y2.status = "Encashed"; y2.encashedOn = todayISO(); }
       }
-    }, { entity: "Contract", id: c.id, action: mode === "add" ? `${f.type} BG ${f.number} (${inr(f.amount)}) recorded` : `BG ${g.number} ${mode === "extend" ? `extended to ${fmtDate(f.expiry)}` : mode === "return" ? "returned to contractor" : "encashed"}${f.note ? ` — ${f.note}` : ""}` });
+    }, { entity: "Contract", id: c.id, action: mode === "add" ? `${f.type} BG ${f.number} (${inr(f.amount)}) recorded` : `BG ${g.number} ${mode === "extend" ? `extended to ${fmtDate(f.expiry)}` : mode === "return" ? "returned to contractor" : "encashed"}${f.note ? ` - ${f.note}` : ""}` });
     toast(mode === "add" ? "Guarantee recorded" : `Guarantee ${mode === "extend" ? "extended" : mode === "return" ? "returned" : "encashed"}`); onClose();
   };
   return (
@@ -207,13 +207,13 @@ function ContractDrawer({ id, onClose }) {
       </>}>
       <div className="space-y-4 px-6 py-5">
         {c.status === "Rejected" && <Note tone="red">Rejected by {c.approval?.stages.find((x) => x.status === "Rejected")?.by}: {c.approval?.stages.find((x) => x.status === "Rejected")?.remark}. Edit and resubmit.</Note>}
-        {c.status === "Terminated" && <Note tone="red">Terminated on {fmtDate(c.terminated.at)} by {c.terminated.by} — {c.terminated.reason}. Settle the final account, then close.</Note>}
-        {c.status === "Approved" && (signBlockers(st, c).length ? <Note tone="amber">Approved — before signing: {signBlockers(st, c).join(" · ")}.</Note> : <Note tone="green" icon={Icon.check}>Approved by Legal and Finance — ready to sign. Work orders can be issued once it is active.</Note>)}
+        {c.status === "Terminated" && <Note tone="red">Terminated on {fmtDate(c.terminated.at)} by {c.terminated.by} - {c.terminated.reason}. Settle the final account, then close.</Note>}
+        {c.status === "Approved" && (signBlockers(st, c).length ? <Note tone="amber">Approved - before signing: {signBlockers(st, c).join(" · ")}.</Note> : <Note tone="green" icon={Icon.check}>Approved by Legal and Finance - ready to sign. Work orders can be issued once it is active.</Note>)}
         {status === "Expiring" && <Note tone="amber" icon={Icon.calendarClock}>Completion date {fmtDate(c.end)} is in <b>{daysUntil(c.end)} days</b>. Raise an extension of time or plan close-out.</Note>}
-        {liveGuarantees(c).filter((g) => bgStatus(g) === "Expiring").map((g) => <Note key={g.id} tone="red">{g.type} guarantee {g.number} expires {fmtDate(g.expiry)} — ask the contractor to extend it.</Note>)}
+        {liveGuarantees(c).filter((g) => bgStatus(g) === "Expiring").map((g) => <Note key={g.id} tone="red">{g.type} guarantee {g.number} expires {fmtDate(g.expiry)} - ask the contractor to extend it.</Note>)}
         {c.approval && (
           <Section title="Approval routing" icon={Icon.clipboardCheck}>
-            <div className="p-5"><Stepper steps={[{ label: "Submitted", status: "done", meta: c.submittedBy ? `${c.submittedBy} · ${fmtDateTime(c.submittedAt)}` : "" }, ...c.approval.stages.map((x) => ({ label: x.role, status: x.status === "Approved" ? "done" : x.status === "Rejected" ? "rejected" : x.status === "Pending" ? "current" : "todo", meta: x.by ? `${x.by} · ${fmtDateTime(x.at)}${x.remark ? ` — ${x.remark}` : ""}` : x.status === "Pending" ? "Awaiting decision" : "" })), { label: "Signed", status: c.signedOn ? "done" : "todo", meta: c.signedOn ? `${c.signedBy || ""} · ${fmtDate(c.signedOn)}` : "" }]} /></div>
+            <div className="p-5"><Stepper steps={[{ label: "Submitted", status: "done", meta: c.submittedBy ? `${c.submittedBy} · ${fmtDateTime(c.submittedAt)}` : "" }, ...c.approval.stages.map((x) => ({ label: x.role, status: x.status === "Approved" ? "done" : x.status === "Rejected" ? "rejected" : x.status === "Pending" ? "current" : "todo", meta: x.by ? `${x.by} · ${fmtDateTime(x.at)}${x.remark ? ` - ${x.remark}` : ""}` : x.status === "Pending" ? "Awaiting decision" : "" })), { label: "Signed", status: c.signedOn ? "done" : "todo", meta: c.signedOn ? `${c.signedBy || ""} · ${fmtDate(c.signedOn)}` : "" }]} /></div>
             <ApprovalDeadline rec={c} kind="contract" />
             {c.status === "Pending Approval" && pendingStage && (
               <div className="space-y-3 border-t border-line p-4">
@@ -238,13 +238,13 @@ function ContractDrawer({ id, onClose }) {
         <SubcontractSection c={c} />
         <Section title="Terms" icon={Icon.scale}>
           <KV cols={4} items={[
-            ["Start", fmtDate(c.start)], ["Completion", fmtDate(c.end)], ["Signed on", fmtDate(c.signedOn)], ["Owner", c.owner], ["Payment due", c.paymentDays !== undefined && c.paymentDays !== "" ? `${c.paymentDays} days after certification` : "—"], ["Termination notice", c.noticeDays !== undefined && c.noticeDays !== "" ? `${c.noticeDays} days` : "—"],
+            ["Start", fmtDate(c.start)], ["Completion", fmtDate(c.end)], ["Signed on", fmtDate(c.signedOn)], ["Owner", c.owner], ["Payment due", c.paymentDays !== undefined && c.paymentDays !== "" ? `${c.paymentDays} days after certification` : "-"], ["Termination notice", c.noticeDays !== undefined && c.noticeDays !== "" ? `${c.noticeDays} days` : "-"],
             ["Retention", `${c.retentionPct}%`], ["Mobilisation advance", `${c.advancePct || 0}% · ${inrShort(c.advanceAmount)}`], ["Advance recovery", `${c.advanceRecoveryPct || 0}% per bill`], ["Labour cess", `${c.cessPct}%`],
-            ["GST", `${c.gstPct}%`], ["DLP", `${c.dlpMonths} months${c.handover ? ` from handover ${fmtDate(c.handover.date)}` : ""}`], ["LD", c.ldPctPerWeek ? `${c.ldPctPerWeek}%/week, cap ${c.ldCapPct}%` : "—"], ["Performance BG", c.pbgPct ? `${c.pbgPct}% required` : "Not required"],
+            ["GST", `${c.gstPct}%`], ["DLP", `${c.dlpMonths} months${c.handover ? ` from handover ${fmtDate(c.handover.date)}` : ""}`], ["LD", c.ldPctPerWeek ? `${c.ldPctPerWeek}%/week, cap ${c.ldCapPct}%` : "-"], ["Performance BG", c.pbgPct ? `${c.pbgPct}% required` : "Not required"],
           ]} />
         </Section>
         {boq.length > 0 && (
-          <Section title="Contract BOQ — ordered, measured and billed" icon={Icon.sheet}>
+          <Section title="Contract BOQ - ordered, measured and billed" icon={Icon.sheet}>
             <DataTable dense rows={boq} columns={[
               { key: "code", label: "Code", className: "mono text-[12px]" }, { key: "desc", label: "Item", className: "whitespace-normal" },
               { key: "q", label: "BOQ qty", align: "right", num: true, render: (l) => `${num(l.qty)} ${l.unit}` }, { key: "r", label: "Rate", align: "right", num: true, render: (l) => inr(l.rate) },
@@ -256,7 +256,7 @@ function ContractDrawer({ id, onClose }) {
         <Section title="Work orders" icon={Icon.clipboardList} actions={live ? <RefLink to={`${CL_BASE}/work-orders?contract=${id}`}>+ New work order</RefLink> : <span className="text-[12px] text-ink-mute">{c.status === "Closed" ? "Closed" : "Available once the contract is signed"}</span>}>
           <DataTable dense rows={wos} empty={<p className="p-4 text-[13px] text-ink-mute">No work orders yet.</p>} columns={[
             { key: "id", label: "WO", render: (w) => <RefLink to={`${CL_BASE}/work-orders?open=${w.id}`}>{w.id}</RefLink> },
-            { key: "title", label: "Title" }, { key: "wbs", label: "WBS", className: "text-[12px] text-ink-soft", render: (w) => w.wbs || "—" }, { key: "type", label: "Type" },
+            { key: "title", label: "Title" }, { key: "wbs", label: "WBS", className: "text-[12px] text-ink-soft", render: (w) => w.wbs || "-" }, { key: "type", label: "Type" },
             { key: "v", label: "Value", align: "right", num: true, render: (w) => inrShort(woValue(w)) },
             { key: "p", label: "Progress", render: (w) => <Progress value={Math.round(woProgress(st, w).physical)} /> },
             { key: "s", label: "Status", render: (w) => <Status>{w.status}</Status> },
@@ -266,8 +266,8 @@ function ContractDrawer({ id, onClose }) {
           <DataTable dense rows={c.changeOrders} empty={<p className="p-4 text-[13px] text-ink-mute">No change orders.</p>} columns={[
             { key: "id", label: "CO", className: "mono text-[12px]" }, { key: "desc", label: "Change", className: "whitespace-normal", render: (o) => <span>{o.desc}{(o.lines || []).length > 0 && <span className="block text-[11px] text-ink-mute">{o.lines.map((l) => `${l.woId}: +${num(l.qty)} ${l.unit} ${l.desc}`).join(" · ")}</span>}</span> },
             { key: "reason", label: "Reason", className: "whitespace-normal text-[12px] text-ink-soft" },
-            { key: "amount", label: "Value", align: "right", num: true, render: (o) => inrShort(o.amount) }, { key: "days", label: "Time", align: "right", render: (o) => (o.days ? `+${o.days} d` : "—") },
-            { key: "by", label: "Raised / decided", className: "text-[12px] text-ink-soft", render: (o) => [o.raisedBy, o.decidedBy].filter(Boolean).join(" → ") || "—" },
+            { key: "amount", label: "Value", align: "right", num: true, render: (o) => inrShort(o.amount) }, { key: "days", label: "Time", align: "right", render: (o) => (o.days ? `+${o.days} d` : "-") },
+            { key: "by", label: "Raised / decided", className: "text-[12px] text-ink-soft", render: (o) => [o.raisedBy, o.decidedBy].filter(Boolean).join(" → ") || "-" },
             { key: "s", label: "Status", render: (o) => <Status>{o.status}</Status> },
             { key: "a", label: "", align: "right", render: (o) => o.status === "Pending" && <span className="flex justify-end gap-1">
               <Btn size="sm" variant="success" onClick={() => decideChangeOrder(c.id, o.id, true)}>Approve</Btn>

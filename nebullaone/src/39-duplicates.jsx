@@ -1,5 +1,5 @@
 // Duplicate supplier review: candidate matches with a confidence % and the matched fields, and the reviewer's
-// decision — Different supplier (dismiss), Same supplier (registration rejected as a duplicate) or Merge (the new
+// decision - Different supplier (dismiss), Same supplier (registration rejected as a duplicate) or Merge (the new
 // registration's extra documents, contacts and bank accounts move to the existing vendor). Every decision is audited.
 const NAME_NOISE = /\b(pvt|private|ltd|limited|llp|co|company|and|the|inc|corp|corporation|enterprises?|services?|india)\b/g;
 const nameTokens = (s) => new Set(String(s || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(NAME_NOISE, " ").split(/\s+/).filter((x) => x.length > 1));
@@ -50,8 +50,8 @@ function decideDuplicate(v, m, decision, note) {
       t.addresses = [...(t.addresses || []), ...(x.addresses || []).filter((a) => !(t.addresses || []).some((z) => z.line1 === a.line1))];
       t.mergedFrom = [...(t.mergedFrom || []), { id: x.id, at: new Date().toISOString(), by: currentUser() }];
     }
-  }, { entity: "Vendor", id: v.id, action: `Duplicate review vs ${o.name} (${o.id}, ${m.confidence}% — ${m.fields.join(", ")}): ${decision}${decision === "Merge" ? ` — documents, contacts and bank accounts moved to ${o.id}` : ""} — ${note.trim()}` });
-  if (decision === "Merge") setState(() => {}, { entity: "Vendor", id: o.id, action: `Merged duplicate registration ${v.id} (${v.name}) into this vendor — new bank accounts need verification` });
+  }, { entity: "Vendor", id: v.id, action: `Duplicate review vs ${o.name} (${o.id}, ${m.confidence}% - ${m.fields.join(", ")}): ${decision}${decision === "Merge" ? ` - documents, contacts and bank accounts moved to ${o.id}` : ""} - ${note.trim()}` });
+  if (decision === "Merge") setState(() => {}, { entity: "Vendor", id: o.id, action: `Merged duplicate registration ${v.id} (${v.name}) into this vendor - new bank accounts need verification` });
   toast(decision === "Different supplier" ? "Marked as a different supplier" : decision === "Merge" ? `Merged into ${o.id}` : "Rejected as a duplicate", decision === "Different supplier" ? "green" : "red");
   return true;
 }
@@ -63,7 +63,7 @@ function DuplicateReview({ v, canDecide }) {
   const tone = (c) => (c >= 70 ? "red" : c >= 40 ? "amber" : "blue");
   return (
     <div className="border-b border-line" data-dup>
-      <div className="px-4 pt-3 text-[13px] font-medium">Possible duplicate supplier{ms.some((m) => !m.decision) ? " — check before approving" : ""}</div>
+      <div className="px-4 pt-3 text-[13px] font-medium">Possible duplicate supplier{ms.some((m) => !m.decision) ? " - check before approving" : ""}</div>
       <ListMode.Provider value={false}><DataTable dense plain rows={ms.map((m) => ({ ...m, id: m.other.id }))} columns={[
         { key: "o", label: "Existing vendor", className: "font-medium", render: (m) => <span>{m.other.name} <span className="mono text-[11.5px] text-ink-mute">{m.other.id}</span></span> },
         { key: "c", label: "Match", render: (m) => <Status tone={tone(m.confidence)}>{`${m.confidence}%`}</Status> },
@@ -72,9 +72,9 @@ function DuplicateReview({ v, canDecide }) {
           : canDecide ? <span className="flex justify-end gap-1"><Btn size="sm" onClick={() => setD({ m, decision: "Different supplier", note: "" })}>Different</Btn><Btn size="sm" variant="danger" onClick={() => setD({ m, decision: "Same supplier", note: "" })}>Same</Btn><Btn size="sm" variant="primary" onClick={() => setD({ m, decision: "Merge", note: "" })}>Merge</Btn></span> : <Status tone="amber">To review</Status>) },
       ]} /></ListMode.Provider>
       {d && (
-        <Modal open width={520} onClose={() => setD(null)} title={`${d.decision} — ${d.m.other.name}`} footer={<><Btn onClick={() => setD(null)}>Cancel</Btn><Btn variant={d.decision === "Different supplier" ? "primary" : "danger"} disabled={d.note.trim().length < 5} onClick={() => decideDuplicate(v, d.m, d.decision, d.note) && setD(null)}>Confirm</Btn></>}>
+        <Modal open width={520} onClose={() => setD(null)} title={`${d.decision} - ${d.m.other.name}`} footer={<><Btn onClick={() => setD(null)}>Cancel</Btn><Btn variant={d.decision === "Different supplier" ? "primary" : "danger"} disabled={d.note.trim().length < 5} onClick={() => decideDuplicate(v, d.m, d.decision, d.note) && setD(null)}>Confirm</Btn></>}>
           <p className="mb-3 text-[13px] text-ink-soft">{d.decision === "Different supplier" ? "The warning is dismissed for this pair; the registration continues through approval." : d.decision === "Same supplier" ? `This registration is rejected as a duplicate of ${d.m.other.id}.` : `This registration is rejected and its extra documents, contacts and bank accounts move to ${d.m.other.id} (bank accounts arrive unverified).`}</p>
-          <Field label="Note" required><TextInput value={d.note} onChange={(x) => setD({ ...d, note: x })} placeholder={d.decision === "Different supplier" ? "e.g. Sister company — separate GSTIN and bank" : "e.g. Same PAN and bank — re-registration"} /></Field>
+          <Field label="Note" required><TextInput value={d.note} onChange={(x) => setD({ ...d, note: x })} placeholder={d.decision === "Different supplier" ? "e.g. Sister company - separate GSTIN and bank" : "e.g. Same PAN and bank - re-registration"} /></Field>
         </Modal>
       )}
     </div>

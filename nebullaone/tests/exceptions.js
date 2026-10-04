@@ -1,4 +1,4 @@
-// Exception workflows — return / reject / resubmit paths, driven through the UI (Chromium, built HTML).
+// Exception workflows - return / reject / resubmit paths, driven through the UI (Chromium, built HTML).
 // NCR rework, RA-bill rejection and GRN rejection are covered in fix4.js (G-12b/c, G-16b) and merge.js.
 require('./lib')('exceptions', async ({ p, go, dlg, S, mut, T }) => {
   const s0 = await S();
@@ -12,7 +12,7 @@ require('./lib')('exceptions', async ({ p, go, dlg, S, mut, T }) => {
     await m.locator('textarea').last().fill('Please correct the highlighted items');
     await m.locator('button:has-text("Send request")').click(); await p.waitForTimeout(250);
     const v = (await S()).vendors.find((x) => x.id === pend.id); const rej = v.docs.filter((d) => d.status === 'Rejected').map((d) => d.name);
-    return [`${v.status}; asked for: ${(v.changeRequest?.items || []).map((i) => i.label).join(', ')}; docs rejected: ${rej.join(', ') || '—'}`, v.status === 'Changes Requested' && (v.changeRequest?.items || []).length >= 1];
+    return [`${v.status}; asked for: ${(v.changeRequest?.items || []).map((i) => i.label).join(', ')}; docs rejected: ${rej.join(', ') || '-'}`, v.status === 'Changes Requested' && (v.changeRequest?.items || []).length >= 1];
   });
   await T('EX-02', 'Vendor fixes and resubmits → back to Pending Approval at the same stage', async () => {
     const before = (await S()).vendors.find((x) => x.id === pend.id).approval?.stages?.map((s) => s.dept + ':' + s.status).join(' ');
@@ -40,7 +40,7 @@ require('./lib')('exceptions', async ({ p, go, dlg, S, mut, T }) => {
     await p.locator('[data-drawer] button:text-is("Reject")').first().click(); await p.waitForTimeout(200);
     await dlg().locator('textarea:not([aria-label="Write a comment"])').first().fill('Rate above the agreed blanket rate'); await dlg().locator('button').filter({ hasText: /^Reject/ }).last().click(); await p.waitForTimeout(250);
     const po = (await S()).purchaseOrders.find((x) => x.id === draftPo.id);
-    return [`${po.status}; decision ${po.approval?.decision} — "${po.approval?.remark}" by ${po.approval?.by}`, !['Draft', 'Issued'].includes(po.status) && po.approval?.decision === 'Rejected' && /blanket rate/.test(po.approval?.remark || '')];
+    return [`${po.status}; decision ${po.approval?.decision} - "${po.approval?.remark}" by ${po.approval?.by}`, !['Draft', 'Issued'].includes(po.status) && po.approval?.decision === 'Rejected' && /blanket rate/.test(po.approval?.remark || '')];
   });
   await T('EX-05', 'Vendor-submitted invoice rejected by AP with a remark → vendor can submit a corrected one', async () => {
     const inv = s0.invoices.find((i) => !i.payments.length && i.source !== 'RA Bill');
@@ -67,7 +67,7 @@ require('./lib')('exceptions', async ({ p, go, dlg, S, mut, T }) => {
     await p.locator('[data-drawer] button:text-is("Dispute")').first().click(); await p.waitForTimeout(200);
     await dlg().locator('textarea').first().fill('Depth measured at 1.2 m, not 1.5 m'); await dlg().locator('button:has-text("Mark disputed")').click(); await p.waitForTimeout(250);
     const m1 = (await S()).measurements.find((m) => m.id === m0.id);
-    return [`${m0.id}: JMS ${m1.jms.status} — ${m1.jms.remark}`, m1.jms.status === 'Disputed'];
+    return [`${m0.id}: JMS ${m1.jms.status} - ${m1.jms.remark}`, m1.jms.status === 'Disputed'];
   });
   await T('EX-08', 'Compliance document rejected by the verifier → vendor sees it to re-upload', async () => {
     const v0 = (await S()).vendors.find((x) => x.status === 'Active' && x.docs.some((d) => d.status === 'Verified'));
@@ -79,6 +79,6 @@ require('./lib')('exceptions', async ({ p, go, dlg, S, mut, T }) => {
     await row.locator('button').filter({ hasText: /^Reject/ }).first().click().catch(async () => { await row.click(); }); await p.waitForTimeout(250);
     const box = dlg().locator('textarea:not([aria-label="Write a comment"]), input[type=text]').first(); if (await box.count()) { await box.fill('Certificate is not attested'); await dlg().locator('button').filter({ hasText: /^Reject/ }).last().click(); await p.waitForTimeout(250); }
     const d1 = (await S()).vendors.find((x) => x.id === v.id).docs.find((x) => x.name === d.name);
-    return [`${v.name} · ${d.name}: ${d1.status}${d1.remark ? ' — ' + d1.remark : ''}`, d1.status === 'Rejected'];
+    return [`${v.name} · ${d.name}: ${d1.status}${d1.remark ? ' - ' + d1.remark : ''}`, d1.status === 'Rejected'];
   });
 });

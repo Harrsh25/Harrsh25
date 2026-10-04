@@ -8,14 +8,14 @@ function extendSeed2(s) {
   // Vendors: who submitted the pending registrations
   for (const v of s.vendors) {
     v.country = v.country || "India";
-    (v.bankAccounts || []).forEach((b) => Object.assign(b, { holder: b.holder || v.legalName, status: "Verified", verifiedBy: "Finance — onboarding", verifiedAt: v.createdAt, method: "Penny drop — name matched" }));
-    (v.docs || []).forEach((d) => { if (d.status === "Verified") Object.assign(d, { verifiedBy: "Procurement — onboarding", verifiedAt: d.uploadedAt || v.createdAt }); });
+    (v.bankAccounts || []).forEach((b) => Object.assign(b, { holder: b.holder || v.legalName, status: "Verified", verifiedBy: "Finance - onboarding", verifiedAt: v.createdAt, method: "Penny drop - name matched" }));
+    (v.docs || []).forEach((d) => { if (d.status === "Verified") Object.assign(d, { verifiedBy: "Procurement - onboarding", verifiedAt: d.uploadedAt || v.createdAt }); });
     if (["Pending Approval", "Changes Requested"].includes(v.status)) v.submittedBy = v.source === "Self-registration" ? v.contact.name : "Priya Nair";
     if (v.status === "Active" && v.approval?.stages?.every((x) => x.status === "Approved")) v.approvedOn = (v.approval.stages[2].at || "").slice(0, 10);
   }
   // Contractors assessed later than the seed questionnaires: one qualified with exceptions
-  const qual = (vid, score, exceptions, valueLimit) => { const v = byId(s.vendors, vid); if (v && !v.qualification) v.qualification = { ruleSet: "Contractor — labour & HSE", score, answers: {}, at: D(-90), exceptions, ...(valueLimit ? { valueLimit } : {}) }; };
-  qual("VEN-005", 76, "ISO 45001 certificate pending — renewal due this quarter", 30000000);
+  const qual = (vid, score, exceptions, valueLimit) => { const v = byId(s.vendors, vid); if (v && !v.qualification) v.qualification = { ruleSet: "Contractor - labour & HSE", score, answers: {}, at: D(-90), exceptions, ...(valueLimit ? { valueLimit } : {}) }; };
+  qual("VEN-005", 76, "ISO 45001 certificate pending - renewal due this quarter", 30000000);
   qual("VEN-006", 74, "", 0);
   qual("VEN-010", 80, "", 0);
   // Contracts: approval trail, performance guarantees, WBS
@@ -29,24 +29,24 @@ function extendSeed2(s) {
       c.signedBy = c.owner;
     }
   }
-  const WBS = { "WO-001": "2.2 Tower A — superstructure", "WO-002": "2.3 Tower B — substructure", "WO-003": "1.2 Tower erection — Section 1", "WO-004": "1.2 Earthworks — Block C", "WO-005": "1.2 Station 4", "WO-006": "2.2 Tower A — superstructure" };
+  const WBS = { "WO-001": "2.2 Tower A - superstructure", "WO-002": "2.3 Tower B - substructure", "WO-003": "1.2 Tower erection - Section 1", "WO-004": "1.2 Earthworks - Block C", "WO-005": "1.2 Station 4", "WO-006": "2.2 Tower A - superstructure" };
   for (const w of s.workOrders) { w.wbs = WBS[w.id] || ""; w.issuedBy = byId(s.contracts, w.contractId)?.owner || "Procurement"; }
-  // Scaffolding contract (CTR-005): finished, inspected, handed over, final bill paid — only the retention release is open
+  // Scaffolding contract (CTR-005): finished, inspected, handed over, final bill paid - only the retention release is open
   const c5 = byId(s.contracts, "CTR-005");
   if (c5) {
-    c5.handover = { date: D(-195), by: "Arjun Mehta", takenOverBy: "Project team — Tower A", inspectionId: "FI-001", note: "Scaffold dismantled, area cleared" };
+    c5.handover = { date: D(-195), by: "Arjun Mehta", takenOverBy: "Project team - Tower A", inspectionId: "FI-001", note: "Scaffold dismantled, area cleared" };
     const fb = s.raBills.find((b) => b.woId === "WO-006"); if (fb) fb.final = true;
   }
   s.retentionReleases.forEach((r) => { r.status = "Pending Approval"; r.requestedBy = "Arjun Mehta"; });
-  // WBS budgets (₹) — the cost baseline work orders commit against
+  // WBS budgets (₹) - the cost baseline work orders commit against
   s.wbsBudgets = {
-    "Skyline Towers — Phase 1|2.2 Tower A — superstructure": 32000000, "Skyline Towers — Phase 1|2.3 Tower B — substructure": 16000000,
-    "400kV Transmission Line A|1.2 Tower erection — Section 1": 19000000, "Riverside Business Park|1.2 Earthworks — Block C": 6500000, "Metro Line Extension|1.2 Station 4": 3000000,
+    "Skyline Towers - Phase 1|2.2 Tower A - superstructure": 32000000, "Skyline Towers - Phase 1|2.3 Tower B - substructure": 16000000,
+    "400kV Transmission Line A|1.2 Tower erection - Section 1": 19000000, "Riverside Business Park|1.2 Earthworks - Block C": 6500000, "Metro Line Extension|1.2 Station 4": 3000000,
   };
   // Measurements: signed entries carry a passed quality inspection; the rest wait for one
-  for (const m of s.measurements) m.qc = m.jms.status === "Signed" ? { status: "Passed", by: "QA — S. Kale", at: m.jms.at } : { status: "Pending" };
+  for (const m of s.measurements) m.qc = m.jms.status === "Signed" ? { status: "Passed", by: "QA - S. Kale", at: m.jms.at } : { status: "Pending" };
   s.ncrs = [
-    { id: "NCR-001", woId: "WO-004", mbId: "MB-027", category: "Quality", severity: "Major", desc: "Backfill compaction below 95% MDD at footings F7–F9 (field density test FDT-31)", raisedBy: "QA — S. Kale", raisedOn: D(-4), status: "Open", history: [{ at: ts(-4), by: "QA — S. Kale", what: "Raised", note: "" }] },
+    { id: "NCR-001", woId: "WO-004", mbId: "MB-027", category: "Quality", severity: "Major", desc: "Backfill compaction below 95% MDD at footings F7–F9 (field density test FDT-31)", raisedBy: "QA - S. Kale", raisedOn: D(-4), status: "Open", history: [{ at: ts(-4), by: "QA - S. Kale", what: "Raised", note: "" }] },
     { id: "NCR-002", woId: "WO-001", mbId: null, category: "HSE", severity: "Minor", desc: "Edge protection missing at slab L2 east side", raisedBy: "Rohan Singh", raisedOn: D(-40), status: "Closed", history: [{ at: ts(-40), by: "Rohan Singh", what: "Raised", note: "" }, { at: ts(-38), by: "Contractor", what: "Rework done", note: "Guard rails installed" }, { at: ts(-37), by: "Rohan Singh", what: "Closed", note: "Verified at site" }] },
   ];
   s.punchItems = [
@@ -63,15 +63,15 @@ function extendSeed2(s) {
   dep("WO-001", ["EQ-001", "EQ-002"], -180); dep("WO-004", ["EQ-004", "EQ-005", "EQ-006"], -80); dep("WO-003", ["EQ-007"], -60);
   // Free-issue material to contractors (recovered through RA bills)
   s.materialIssues = [
-    { id: "MI-001", woId: "WO-001", material: "OPC 53 cement (free issue)", unit: "bag", qty: 250, rate: 500, date: D(-95), issuedBy: "Stores — Skyline", recoveredIn: "RA-002" },
-    { id: "MI-002", woId: "WO-001", material: "Binding wire 18 SWG", unit: "kg", qty: 400, rate: 92, date: D(-18), issuedBy: "Stores — Skyline", recoveredIn: null },
+    { id: "MI-001", woId: "WO-001", material: "OPC 53 cement (free issue)", unit: "bag", qty: 250, rate: 500, date: D(-95), issuedBy: "Stores - Skyline", recoveredIn: "RA-002" },
+    { id: "MI-002", woId: "WO-001", material: "Binding wire 18 SWG", unit: "kg", qty: 400, rate: 92, date: D(-18), issuedBy: "Stores - Skyline", recoveredIn: null },
   ];
   // Benchmark fields: requisitions, vendor price lists, contacts / addresses, vendor extras
   s.requisitions = [
-    { id: "MR-001", purpose: "Purchase", date: D(-3), requiredBy: D(12), project: "Skyline Towers — Phase 1", costCentre: "CC-210 Skyline Towers", company: "NebullaOne Infra Pvt Ltd", priceList: "Standard Buying", client: "", sourceStore: "", targetStore: "Site store — Skyline Towers",
+    { id: "MR-001", purpose: "Purchase", date: D(-3), requiredBy: D(12), project: "Skyline Towers - Phase 1", costCentre: "CC-210 Skyline Towers", company: "NebullaOne Infra Pvt Ltd", priceList: "Standard Buying", client: "", sourceStore: "", targetStore: "Site store - Skyline Towers",
       items: [{ desc: "OPC 53 grade cement (50 kg bag)", unit: "bag", qty: 1200, rate: 395 }, { desc: "TMT Fe500D 12 mm", unit: "MT", qty: 18, rate: 56500 }], terms: "", notes: "Slab L4–L5 pour", status: "Approved", requestedBy: "Sneha Iyer", createdAt: ts(-3), decidedBy: "Arjun Mehta", decidedAt: ts(-2), rfqIds: [] },
     { id: "MR-002", purpose: "Manpower (labour)", date: D(-1), requiredBy: D(6), project: "Metro Line Extension", costCentre: "CC-220 Metro Line Extension", company: "NebullaOne Infra Pvt Ltd", priceList: "Standard Buying", client: "", sourceStore: "", targetStore: "",
-      items: [{ desc: "Mason (Skilled) — 12 workers", unit: "man-day", qty: 1080, rate: "" }], terms: "", notes: "Station 4 finishing push", status: "Submitted", requestedBy: "N. Bhat", createdAt: ts(-1), rfqIds: [],
+      items: [{ desc: "Mason (Skilled) - 12 workers", unit: "man-day", qty: 1080, rate: "" }], terms: "", notes: "Station 4 finishing push", status: "Submitted", requestedBy: "N. Bhat", createdAt: ts(-1), rfqIds: [],
       labour: { contingentType: "Daily-rated gang", category: "Mason", labourType: "Skilled", headcount: 12, start: D(6), end: D(96), site: "Metro Line Extension", bu: "NebullaOne Infra Pvt Ltd", costCentre: "CC-220 Metro Line Extension", rateCard: "LR-002", distribution: ["VEN-005", "VEN-001"], rule: "All invited at once", qualifications: "3 years plaster / tiling experience; ID and height pass" } },
   ];
   const vp = (id, vendorId, product, unit, minQty, unitPrice, discount, leadDays, list) => ({ id, vendorId, product, vendorProductName: "", vendorProductCode: "", unit, minQty, unitPrice, currency: "INR", discount, leadDays, validFrom: D(-60), validTo: D(120), priceList: list, company: "NebullaOne Infra Pvt Ltd", updatedBy: "Priya Nair", updatedAt: ts(-60) });
@@ -81,7 +81,7 @@ function extendSeed2(s) {
     vp("VP-005", "VEN-009", "Binding wire 18 SWG", "kg", 50, 92, 0, 2, ""),
   ];
   const v4 = byId(s.vendors, "VEN-004");
-  if (v4) Object.assign(v4, { entityType: "Private limited company", gstTreatment: "Registered — regular", msmeType: "Small", udyamNo: "UDYAM-MH-26-0048812", paymentMethod: "NEFT", priceList: "Rate contract 2026–27", creditLimit: 5000000, billDelivery: "Supplier portal",
+  if (v4) Object.assign(v4, { entityType: "Private limited company", gstTreatment: "Registered - regular", msmeType: "Small", udyamNo: "UDYAM-MH-26-0048812", paymentMethod: "NEFT", priceList: "Rate contract 2026–27", creditLimit: 5000000, billDelivery: "Supplier portal",
     purchaseWarning: "Confirm rake arrival before ordering above 2,000 bags", tags: ["Rate contract", "Cement"],
     contacts: [{ id: "CT-1", salutation: "Mr", firstName: "Rakesh", lastName: "Kulkarni", designation: "Accounts manager", department: "Accounts", email: "accounts@ultrabuild.in", phone: "020-2711 4410", mobile: "9822012345", status: "Active", primary: false }],
     addresses: [{ id: "AD-1", title: "Chakan depot", type: "Warehouse", line1: "Gat 212, Chakan MIDC Phase II", line2: "", city: "Pune", district: "Pune", state: "Maharashtra", pin: "410501", country: "India", purposes: ["Purchasing", "Sourcing only"], bu: "NebullaOne Infra Pvt Ltd", preferredShipping: true }] });

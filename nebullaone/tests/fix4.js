@@ -1,4 +1,4 @@
-// Batch 4 — quantity & execution chain: inspection/NCR, over-quantity, material recovery, equipment, DPR, JMS co-sign, WBS cost
+// Batch 4 - quantity & execution chain: inspection/NCR, over-quantity, material recovery, equipment, DPR, JMS co-sign, WBS cost
 require('./lib')('fix4', async ({ p, go, dlg, S, mut, as, T, pick, toastText }) => {
   const btn = (t) => p.locator(`button:has-text("${t}")`);
   const mb = async (id) => (await S()).measurements.find((m) => m.id === id);
@@ -16,7 +16,7 @@ require('./lib')('fix4', async ({ p, go, dlg, S, mut, as, T, pick, toastText }) 
   });
   await T('G-12a', 'Signed but uninspected measurement is not billable', async () => {
     await go('contract-labor/ra-bills'); await btn('Prepare RA bill').click(); await p.waitForTimeout(200); const t = await dlg().textContent(); await p.keyboard.press('Escape');
-    return [/WO-001/.test(t) ? 'WO-001 offered (unexpected)' : 'WO-001 not offered — MB-016 waits for inspection', !/WO-001 —/.test(t)];
+    return [/WO-001/.test(t) ? 'WO-001 offered (unexpected)' : 'WO-001 not offered - MB-016 waits for inspection', !/WO-001 -/.test(t)];
   });
   await T('G-12b', 'Inspection fails → NCR → QS certification of WO-001 blocked', async () => {
     await as('Rohan Singh'); await go('contract-labor/measurement-book'); await p.waitForTimeout(200);
@@ -87,14 +87,14 @@ require('./lib')('fix4', async ({ p, go, dlg, S, mut, as, T, pick, toastText }) 
   await T('G-09', 'Cost by WBS: budget → committed → executed → billed', async () => {
     await go('contract-labor/performance'); await p.getByText('Cost by WBS', { exact: true }).click(); await p.waitForTimeout(200);
     const t = await p.locator('tbody').first().textContent();
-    return [/2.2 Tower A — superstructure/.test(t) && /₹/.test(t) ? 'WBS rows with budget/committed/executed shown' : t.slice(0, 80), /2.2 Tower A — superstructure/.test(t)];
+    return [/2.2 Tower A - superstructure/.test(t) && /₹/.test(t) ? 'WBS rows with budget/committed/executed shown' : t.slice(0, 80), /2.2 Tower A - superstructure/.test(t)];
   });
   await T('G-09b', 'Work order needs a WBS element', async () => {
     await go('contract-labor/work-orders'); await btn('Create work order').click(); await p.waitForTimeout(200); const d = dlg();
     await pick(d.locator('label:has-text("Contract") [role=combobox]').first(), 'CTR-001'); await d.locator('label:has-text("Title") input').fill('Tower B superstructure');
     const items = d.locator('.grid.grid-cols-\\[70px_1fr_80px_100px_110px_110px_28px\\].items-center input'); await items.nth(1).fill('RCC'); await items.nth(2).fill('10'); await items.nth(3).fill('7450');
     const dis1 = await d.locator('button:has-text("Save draft")').isDisabled();
-    await pick(d.locator('label:has-text("WBS element") [role=combobox]'), '2.4 Tower B — superstructure'); const dis2 = await d.locator('button:has-text("Save draft")').isDisabled(); await p.keyboard.press('Escape');
+    await pick(d.locator('label:has-text("WBS element") [role=combobox]'), '2.4 Tower B - superstructure'); const dis2 = await d.locator('button:has-text("Save draft")').isDisabled(); await p.keyboard.press('Escape');
     return [`save disabled without WBS=${dis1}, with WBS=${dis2}`, dis1 && !dis2];
   });
 });

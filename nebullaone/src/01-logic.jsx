@@ -13,10 +13,10 @@ const TRADES = [
 const TIERS = ["Strategic", "Preferred", "Approved", "Transactional"];
 const PAYMENT_TERMS = ["Advance", "Net 15", "Net 30", "Net 45", "Net 60"];
 const TDS_SECTIONS = [
-  { value: "194C-1", label: "194C — Contractor (Individual/HUF) · 1%", rate: 1 },
-  { value: "194C-2", label: "194C — Contractor (Company/Firm) · 2%", rate: 2 },
-  { value: "194J", label: "194J — Professional / Technical · 10%", rate: 10 },
-  { value: "194Q", label: "194Q — Purchase of goods · 0.1%", rate: 0.1 },
+  { value: "194C-1", label: "194C - Contractor (Individual/HUF) · 1%", rate: 1 },
+  { value: "194C-2", label: "194C - Contractor (Company/Firm) · 2%", rate: 2 },
+  { value: "194J", label: "194J - Professional / Technical · 10%", rate: 10 },
+  { value: "194Q", label: "194Q - Purchase of goods · 0.1%", rate: 0.1 },
   { value: "NONE", label: "No withholding", rate: 0 },
 ];
 // TDS categories are editable in Procurement Settings; the built-in list is the fallback
@@ -50,7 +50,7 @@ function complianceItems(v) {
     const left = d ? daysUntil(d.expiry) : null;
     let level = 0, note = "Verified";
     if (!d || d.status === "Missing" || !d.file && d.status !== "Verified") { level = 2; note = "Missing"; }
-    else if (d.status === "Rejected") { level = 2; note = `Rejected${d.remark ? ` — ${d.remark}` : ""}`; }
+    else if (d.status === "Rejected") { level = 2; note = `Rejected${d.remark ? ` - ${d.remark}` : ""}`; }
     else if (left !== null && left < 0) { level = 2; note = `Expired ${fmtDate(d.expiry)}`; }
     else if (d.status === "Pending") { level = 1; note = "Awaiting verification"; }
     else if (r.expires && !d.expiry) { level = 1; note = "No expiry date recorded"; }
@@ -76,7 +76,7 @@ function complianceOf(v) {
   const worst = Math.max(0, ...items.map((i) => i.level));
   return { status: ["Compliant", "Expiring", "Non-Compliant"][worst], items,
     issues: items.filter((i) => i.level > 0).map((i) => `${i.name}: ${i.note.toLowerCase()}`),
-    blocking: items.filter((i) => i.level === 2 && i.blocks).map((i) => `${i.name} — ${i.note.toLowerCase()}`) };
+    blocking: items.filter((i) => i.level === 2 && i.blocks).map((i) => `${i.name} - ${i.note.toLowerCase()}`) };
 }
 
 const docState = (d) => {
@@ -302,7 +302,7 @@ function threeWay(st, inv) {
   const dn = sum((inv.notes || []).filter((n) => n.type === "Debit Note"), (n) => n.amount);
   const qtyCovered = excess > 0 && dn >= excess - 1;
   const rateOkAll = rows.every((r) => r.rateOk);
-  const status = ok ? "Matched" : qtyCovered && rateOkAll ? "Matched (debit note)" : (inv.notes || []).length ? "Variance — note raised" : "Mismatch";
+  const status = ok ? "Matched" : qtyCovered && rateOkAll ? "Matched (debit note)" : (inv.notes || []).length ? "Variance - note raised" : "Mismatch";
   return { status, rows, qtyCovered };
 }
 
