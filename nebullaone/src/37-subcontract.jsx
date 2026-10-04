@@ -1,6 +1,24 @@
 // Subcontractor management: a main contractor may sublet part of its scope to another approved contractor, only with
 // our approval. Each subcontract carries its own scope, value, dates, checks (approval, compliance, qualification),
 // workers on site and a closing rating that feeds the subcontractor's own scorecard.
+// Demo subcontracts (also added to data saved before this feature existed)
+function seedSubcontracts(s) {
+  const c1 = (s.contracts || []).find((c) => c.id === "CTR-001");
+  if (!c1 || c1.subcontracts) return false;
+  const ago = (d) => new Date(Date.now() - d * DAY).toISOString();
+  c1.subcontracts = [
+    { id: "SUB-001", vendorId: "VEN-010", scope: "Excavation for footings F1–F40, Tower B", value: 4200000, start: c1.start, end: c1.end, status: "Approved", requestedBy: "Shree Balaji (portal)", requestedAt: ago(40), decidedBy: "Rohan Kulkarni", decidedAt: ago(38), remark: "" },
+    { id: "SUB-002", vendorId: "VEN-006", scope: "Scaffolding erection - Tower B façade", value: 1800000, start: c1.start, end: c1.end, status: "Proposed", requestedBy: "Shree Balaji (portal)", requestedAt: ago(2) },
+  ];
+  return true;
+}
+// Bring data saved by an older version of the file up to date: new demo records and fields are added, user data is kept
+function migrateState(s) {
+  let changed = false;
+  if ((s.workers || []).some((w) => w.idRef === undefined)) { seedWorkerDetails(s); changed = true; }
+  if (seedSubcontracts(s)) changed = true;
+  return changed;
+}
 const SUB_STATUS_TONE = { Proposed: "blue", Approved: "green", Rejected: "red", Closed: "gray" };
 const contractSubs = (c) => c?.subcontracts || [];
 const allSubs = (st) => st.contracts.flatMap((c) => contractSubs(c).map((x) => ({ ...x, contract: c })));

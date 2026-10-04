@@ -141,11 +141,14 @@ const STORE_KEY = "nxv-store-v1";
 const listeners = new Set();
 let state = null;
 
+// built from its char code so the build step (which swaps every long dash for "-") leaves it alone
+const LONG_DASH = String.fromCharCode(8212);
 function loadState() {
   try {
     const raw = localStorage.getItem(STORE_KEY);
     if (raw) {
-      const s = JSON.parse(raw);
+      // the long dash is no longer used anywhere - clean it out of data saved by older versions too
+      const s = JSON.parse(raw.split(LONG_DASH).join("-"));
       // "Disabled" vendors are now called "Inactive"; old supplier types map to the current list
       if (s && s.version === SEED_VERSION) { (s.vendors || []).forEach((v) => { if (v.status === "Disabled") v.status = "Inactive"; if (v.supplierType === "Partnership") v.supplierType = "Partnership / LLP"; if (v.supplierType === "Individual") v.supplierType = "Individual / HUF"; }); return s; }
     }
@@ -155,7 +158,7 @@ function loadState() {
 function getState() {
   if (!state) {
     state = loadState();
-    if (sweepState(state)) try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch {}
+    if ((migrateState(state) | sweepState(state)) || (localStorage.getItem(STORE_KEY) || "").includes(LONG_DASH)) try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch {}
   }
   return state;
 }
@@ -325,7 +328,7 @@ function DetailTabs({ tabs, active, onChange }) {
               className={cls("-mb-px flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 pb-3 pt-1 text-[13.5px]",
                 on ? "border-brand font-medium text-brand" : "border-transparent text-ink-soft hover:text-brand")}>
               {t.label}
-              {t.count != null && <span className={cls("rounded-full px-1.5 text-[11px] font-medium", on ? "bg-brand-soft text-brand" : "bg-gray-100 text-ink-mute")}>{t.count}</span>}
+              {/* no counts on tabs (anywhere) */}
             </button>
           );
         })}

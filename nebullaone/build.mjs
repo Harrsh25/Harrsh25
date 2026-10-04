@@ -10,6 +10,9 @@ const HTML = new URL("../NebullaOne-WFM.html", import.meta.url);
 const SRC = new URL("./src/", import.meta.url);
 
 let html = readFileSync(HTML, "utf8");
+// short dash everywhere: the host app's long dashes become "-" (the module source already uses "-"; this runs
+// before the module is injected so its one deliberate long-dash constant, used to clean old saved data, survives)
+html = html.replace(/\u2014/g, "-").replace(/\\u2014/g, "-");
 
 // ---- 1. JS --------------------------------------------------------------
 const files = readdirSync(SRC).filter((f) => f.endsWith(".jsx")).sort();
@@ -200,8 +203,6 @@ const TYPO_CSS =
   ".nx-noscroll{scrollbar-width:none}.nx-noscroll::-webkit-scrollbar{display:none}";
 html = html.slice(0, styleEnd) + C_BEGIN + extraCss + RAW_CSS + TYPO_CSS + C_END + html.slice(styleEnd);
 
-// short dash everywhere: no long em dash in any visible text (host app and module)
-html = html.replace(/\u2014/g, "-").replace(/\\u2014/g, "-");
 writeFileSync(HTML, html);
 console.log(`built: ${files.length} files, js ${(block.length / 1024).toFixed(1)} KB, css +${(extraCss.length / 1024).toFixed(1)} KB`);
 

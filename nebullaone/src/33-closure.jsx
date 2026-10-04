@@ -63,9 +63,8 @@ function SettlementDrawer({ id, onClose }) {
     toast(status === "Sent" ? "Final settlement sent to the contractor" : "Final settlement saved");
   };
   return (
-    <Drawer open onClose={onClose} width={820} title={`Final settlement - ${c.title}`} recordId={c.id} status={<Status>{contractStatus(c)}</Status>} details={[["Vendor", vendorName(st, c.vendorId)], s0 && ["Settlement", <Status tone={locked ? "green" : s0.status === "Disputed" ? "red" : "amber"}>{s0.status}</Status>]]}
+    <Drawer open onClose={onClose} width={820} title={`Final settlement - ${c.title}`} recordId={c.id} status={<Status>{contractStatus(c)}</Status>} details={[["Vendor", vendorName(st, c.vendorId)], ["Close-out", <RefLink to={`${CL_BASE}/closeout?open=${c.id}`}>Open close-out</RefLink>], s0 && ["Settlement", <Status tone={locked ? "green" : s0.status === "Disputed" ? "red" : "amber"}>{s0.status}</Status>]]}
       actions={<>
-        <RefLink to={`${CL_BASE}/closeout?open=${c.id}`}>Close-out →</RefLink>
         {!locked && <Btn disabled={!!adjErr} onClick={() => save("Draft")}>Save draft</Btn>}
         {!locked && <Btn variant="primary" icon={Icon.send} disabled={!!adjErr || blockers.length > 0} title={blockers.join("\n")} onClick={() => save("Sent")}>Send to contractor</Btn>}
         {s0?.status === "Sent" && <><Btn variant="danger" onClick={() => setDispute({ note: "" })}>Record dispute</Btn><Btn variant="success" onClick={() => setAgree({ signatory: byId(st.vendors, c.vendorId)?.contact?.name || "", date: todayISO() })}>Record agreement</Btn></>}

@@ -85,8 +85,7 @@ function CloseoutDrawer({ id, onClose }) {
     w.document.close(); w.print();
   };
   return (
-    <Drawer open onClose={onClose} width={980} title={`Close-out - ${c.title}`} recordId={c.id} status={<Status>{contractStatus(c)}</Status>} details={[["Vendor", v.name], ["Project", c.project]]}
-      actions={<RefLink to={`${CL_BASE}/contracts?open=${id}`}>Open contract →</RefLink>}>
+    <Drawer open onClose={onClose} width={980} title={`Close-out - ${c.title}`} recordId={c.id} status={<Status>{contractStatus(c)}</Status>} details={[["Vendor", v.name], ["Project", c.project], ["Contract", <RefLink to={`${CL_BASE}/contracts?open=${id}`}>Open contract</RefLink>]]}>
       <div className="space-y-4 px-6 py-5">
         <Section><div className="overflow-x-auto p-5"><Stepper steps={CLOSEOUT_STAGES.filter((x) => x !== "Final payment" && x !== "Retention & guarantees" && (c.status === "Terminated" ? !["Punch list", "Final inspection", "Handover", "Defect liability", "Contractor release"].includes(x) : x !== "Blacklist decision")).map((x) => { const i = CLOSEOUT_STAGES.indexOf(x); return { label: x, status: i < si ? "done" : i === si ? (x === "Closed" ? "done" : "current") : "todo" }; })} /></div></Section>
         {c.status === "Terminated" && <Note tone="red">Terminated contract - no handover; settle the final account (bills, retention, guarantees) and close.</Note>}

@@ -333,11 +333,7 @@ function extendSeed(s) {
   // the old lump "September to date" muster entry is replaced by worker-wise attendance
   s.measurements = s.measurements.filter((m) => m.id !== "MB-031");
   // Subcontracts: Shree Balaji has sublet excavation to Sai Earthmovers (approved) and proposed scaffolding to Rapid Scaffolding (on hold)
-  const c1 = s.contracts.find((c) => c.id === "CTR-001");
-  if (c1) c1.subcontracts = [
-    { id: "SUB-001", vendorId: "VEN-010", scope: "Excavation for footings F1–F40, Tower B", value: 4200000, start: c1.start, end: c1.end, status: "Approved", requestedBy: "Shree Balaji (portal)", requestedAt: ts(-40), decidedBy: "Rohan Kulkarni", decidedAt: ts(-38), remark: "" },
-    { id: "SUB-002", vendorId: "VEN-006", scope: "Scaffolding erection - Tower B façade", value: 1800000, start: c1.start, end: c1.end, status: "Proposed", requestedBy: "Shree Balaji (portal)", requestedAt: ts(-2) },
-  ];
+  seedSubcontracts(s);
   return s;
 }
 
