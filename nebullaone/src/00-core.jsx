@@ -241,28 +241,46 @@ function Modal({ open, title, subtitle, onClose, footer, width = 640, children }
   useEscape(open, onClose);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-gray-900/30 px-4 py-10" onMouseDown={onClose}>
-      <div role="dialog" aria-modal="true" aria-label={title} className="w-full rounded-xl bg-white shadow-2xl" style={{ maxWidth: width }}
+    // The dialog always fits the window at 100% zoom: title and buttons stay in view, only the body scrolls
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-gray-900/30 px-4 py-6" onMouseDown={onClose}>
+      <div role="dialog" aria-modal="true" aria-label={title} className="flex w-full flex-col rounded-xl bg-white shadow-2xl" style={{ maxWidth: width, maxHeight: "calc(100vh - 48px)" }}
         onMouseDown={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between gap-3 border-b border-line px-5 py-3">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-line px-5 py-3">
           <div>
             <h2 className="text-[15px] font-semibold">{title}</h2>
             {subtitle && <p className="mt-0.5 text-[12.5px] text-ink-soft">{subtitle}</p>}
           </div>
           <IconBtn icon={Icon.x} title="Close" onClick={onClose} />
         </div>
-        <div className="px-5 py-4">{children}</div>
-        {footer && <div className="sticky z-10 flex items-center justify-end gap-2 rounded-b-xl border-t border-line bg-gray-50 px-5 py-3" style={{ bottom: -40 }}>{footer}</div>}
+        <div data-modal-body className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
+        {footer && <div className="flex shrink-0 items-center justify-end gap-2 rounded-b-xl border-t border-line bg-gray-50 px-5 py-3">{footer}</div>}
       </div>
     </div>
   );
 }
 
 // Detail-panel tabs (Project Center style): plain text, single line, blue when active
-function DetailTabs({ tabs, active, onChange, max = 7 }) {
-  // Tabs beyond `max` go into a "More" menu; the open tab always stays visible
+function DetailTabs({ tabs, active, onChange, max: max0 = 7 }) {
+  // Tabs that do not fit the panel width (or beyond `max`) go into a "More" menu; the open tab always stays visible
   const [more, setMore] = y.useState(false);
-  const ref = y.useRef(null);
+  const ref = y.useRef(null), box = y.useRef(null), meas = y.useRef(null);
+  const [fit, setFit] = y.useState(99);
+  y.useLayoutEffect(() => {
+    const calc = () => {
+      if (!box.current || !meas.current) return;
+      const avail = box.current.clientWidth - 48, GAP = 20, MORE = 76;
+      const ws = [...meas.current.children].map((c) => c.getBoundingClientRect().width);
+      const total = ws.reduce((a, w, i) => a + w + (i ? GAP : 0), 0);
+      if (total <= avail) return setFit(99);
+      let used = 0, n = 0;
+      for (const w of ws) { if (used + w + (n ? GAP : 0) + MORE > avail) break; used += w + (n ? GAP : 0); n++; }
+      setFit(Math.max(1, n));
+    };
+    calc();
+    const ro = new ResizeObserver(calc); if (box.current) ro.observe(box.current);
+    return () => ro.disconnect();
+  }, [tabs.map((t) => t.label).join("|")]);
+  const max = Math.min(max0, fit === 99 ? 99 : fit + 1);
   y.useEffect(() => {
     if (!more) return;
     const off = (e) => { if (ref.current && !ref.current.contains(e.target)) setMore(false); };
@@ -272,7 +290,8 @@ function DetailTabs({ tabs, active, onChange, max = 7 }) {
   if (tabs.length > max) {
     shown = tabs.slice(0, max - 1); extra = tabs.slice(max - 1);
     const cur = extra.find((t) => t.id === active);
-    if (cur) { shown = [...shown, cur]; extra = extra.filter((t) => t !== cur); }
+    // the open tab takes the last visible slot so the row never grows past the width
+    if (cur && shown.length) { const out = shown[shown.length - 1]; shown = [...shown.slice(0, -1), cur]; extra = [out, ...extra.filter((t) => t !== cur)]; }
   }
   const tab = (t) => {
     const on = t.id === active;
@@ -286,7 +305,11 @@ function DetailTabs({ tabs, active, onChange, max = 7 }) {
     );
   };
   return (
-    <div className="flex items-end border-b border-line px-6">
+    <div ref={box} className="relative flex items-end border-b border-line px-6">
+      {/* hidden copy used to measure each tab's width */}
+      <div ref={meas} aria-hidden="true" className="pointer-events-none invisible absolute left-0 top-0 flex gap-5" style={{ height: 0, overflow: "hidden" }}>
+        {tabs.map((t) => <span key={t.id} className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-[14px] font-medium">{t.label}{t.count != null && <span className="rounded-full px-1.5 text-[11px]">{t.count}</span>}</span>)}
+      </div>
       <div role="tablist" className="flex min-w-0 flex-1 gap-5 overflow-x-auto">{shown.map(tab)}</div>
       {extra.length > 0 && (
         <div ref={ref} className="relative ml-4 shrink-0">

@@ -1,18 +1,17 @@
 // ---------------------------------------------------------------- document header: status bar, related documents, comments
 // Related-document buttons with counts (Odoo smart buttons / ERPNext connections): open the linked list, filtered
+// Related-document tiles: one row of equal-width tiles that always fits the panel at 100% zoom
+// (the grid divides the real available width; long labels wrap to a second line instead of pushing a tile to a new row)
 function RelatedButtons({ items }) {
   return (
-    <div data-related className="flex flex-wrap items-center gap-1.5">
+    <div data-related className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
       {items.map((x) => {
         const body = (
-          <>
-            {x.icon && h(x.icon, { size: 14, className: "text-ink-mute" })}
-            <span className="flex flex-col leading-tight">
-              <span className="text-[13px] font-semibold text-ink num">{x.value != null ? x.value : x.count}</span>
-              <span className="text-[11px] text-ink-mute">{x.label}</span>
-            </span>
-          </>);
-        const c = "flex min-w-[76px] items-center gap-1.5 rounded-md border border-line bg-white px-2 py-0.5 text-left hover:border-brand/40 hover:bg-brand-soft/40";
+          <span className="flex min-w-0 flex-col leading-tight">
+            <span className="flex items-center gap-1.5">{x.icon && h(x.icon, { size: 13, className: "shrink-0 text-ink-mute" })}<span className="text-[13px] font-semibold text-ink num">{x.value != null ? x.value : x.count}</span></span>
+            <span className="mt-0.5 text-[11px] leading-[1.2] text-ink-mute">{x.label}</span>
+          </span>);
+        const c = "flex min-w-0 items-start rounded-md border border-line bg-white px-2 py-1 text-left hover:border-brand/40 hover:bg-brand-soft/40";
         return x.to && (x.count || x.value != null)
           ? <RouterLink key={x.label} to={x.to} data-count={x.count} className={c}>{body}</RouterLink>
           : <span key={x.label} data-count={x.count} className={cls(c, "cursor-default opacity-70 hover:border-line hover:bg-white")}>{body}</span>;
