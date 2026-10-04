@@ -740,6 +740,7 @@ function RfqPage() {
   y.useEffect(() => {
     const q = fromReq && (st.requisitions || []).find((x) => x.id === fromReq);
     if (!q) return;
+    if (reqInternal(q) || q.status !== "Approved") { toast(reqInternal(q) ? `${q.id} is an internal stock move - it is completed with a stock entry, not an RFQ` : `${q.id} must be approved before an RFQ`, "red"); return; }
     const man = q.purpose === "Manpower (labour)";
     // quotes must be in before the site needs the material: due 2 days before required-by, at the latest in 7 days, at least tomorrow
     const due = [shiftDays(7), shiftDays(-2, q.requiredBy)].sort()[0];

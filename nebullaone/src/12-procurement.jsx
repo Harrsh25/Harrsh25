@@ -367,7 +367,11 @@ function PoDrawer({ id, onClose }) {
 function PurchaseOrdersPage() {
   const st = useStore();
   const [open, setOpen] = useQueryOpen();
-  const fromReq = new URLSearchParams(Ht().search).get("fromReq");
+  const fromReq0 = new URLSearchParams(Ht().search).get("fromReq");
+  // an internal stock move (transfer / issue / customer-provided) never becomes a PO
+  const req0 = fromReq0 && (st.requisitions || []).find((x) => x.id === fromReq0);
+  const fromReq = req0 && !reqInternal(req0) && ["Approved", "RFQ raised", "Partially ordered"].includes(reqStatus(st, req0)) ? fromReq0 : null;
+  y.useEffect(() => { if (fromReq0 && !fromReq) toast(req0 && reqInternal(req0) ? `${fromReq0} is an internal stock move - no purchase order` : `${fromReq0} is not approved for ordering`, "red"); }, [fromReq0]);
   const [create, setCreate] = y.useState(!!fromReq);
   // cancelled orders stay on the list with their status, as in every platform
   const live = st.purchaseOrders;

@@ -521,7 +521,21 @@ const reqOrdered = (st, r) => {
   const rec = sum(pos.flatMap((p) => (p.receipts || []).flatMap((g) => g.lines || [])), (l) => Number(l.accepted ?? l.qty) || 0);
   return { pctOrdered: want ? Math.min(100, Math.round((got / want) * 100)) : 0, pctReceived: want ? Math.min(100, Math.round((rec / want) * 100)) : 0 };
 };
+// Internal stock moves never go to vendors: they are completed with a stock entry (ERPNext Material Request → Stock Entry)
+const REQ_STOCK = { "Material transfer": { entry: "Material Transfer", done: "Transferred", btn: "Create stock transfer" }, "Material issue": { entry: "Material Issue", done: "Issued", btn: "Create stock issue" }, "Customer provided": { entry: "Material Receipt (customer provided)", done: "Received", btn: "Record customer material receipt" } };
+const reqInternal = (r) => !!REQ_STOCK[r.purpose];
+// Estimated value: lines × estimated rate; a labour request uses its rate card × man-days
+function reqValue(st, r) {
+  if (r.purpose === "Manpower (labour)") { const card = st.laborRates.find((x) => x.id === r.labour?.rateCard); return card ? sum(r.items || [], (i) => (Number(i.qty) || 0) * card.rate) : 0; }
+  return sum(r.items || [], (i) => (Number(i.qty) || 0) * (Number(i.rate) || 0));
+}
+// Approval by value: the same approval limits (delegation of authority) as purchase orders
+function reqApproval(st, r) {
+  const value = reqValue(st, r), levels = poLevels(value, st), done = r.approvals || [];
+  return { value, levels, done, next: levels[done.length] || null, i: done.length };
+}
 function reqStatus(st, r) {
+  if (r.stockEntry) return REQ_STOCK[r.purpose]?.done || "Completed";
   if (["Draft", "Submitted", "Cancelled", "Stopped"].includes(r.status)) return r.status;
   const o = reqOrdered(st, r);
   if (o.pctReceived >= 100) return "Received";
@@ -639,6 +653,18 @@ function RequisitionsPage() {
   const [edit, setEdit] = y.useState(null), [open, setOpen] = useQueryOpen();
   const rows = st.requisitions || [];
   const r = open && rows.find((x) => x.id === open);
+  const approve = (x) => {
+    const a = reqApproval(getState(), x), lvl = a.next?.level || "Procurement Head", last = a.i + 1 >= a.levels.length;
+    setState((s) => { const q = s.requisitions.find((y2) => y2.id === x.id); q.approvals = [...(q.approvals || []), { level: lvl, by: currentUser(), at: new Date().toISOString() }]; if (last) Object.assign(q, { status: "Approved", decidedBy: currentUser(), decidedAt: new Date().toISOString() }); },
+      { entity: "Requisition", id: x.id, action: last ? `Approved by ${lvl}${a.levels.length > 1 ? ` (${a.levels.length} levels for ${inrShort(a.value)})` : ""}` : `Approved by ${lvl} (limit ${inrShort(Number(a.next.upTo))}) - ${a.levels[a.i + 1].level} approves next (estimated ${inrShort(a.value)})` });
+    toast(last ? `${x.id} approved` : `${lvl} approved - ${a.levels[a.i + 1].level} approves next`);
+  };
+  const stockEntry = (x) => {
+    const m = REQ_STOCK[x.purpose], id = `SE-${String(rows.filter((q) => q.stockEntry).length + 1).padStart(3, "0")}`;
+    setState((s) => { const q = s.requisitions.find((y2) => y2.id === x.id); q.stockEntry = { id, type: m.entry, from: x.sourceStore || null, to: x.targetStore || null, at: new Date().toISOString(), by: currentUser() }; },
+      { entity: "Requisition", id: x.id, action: `${m.entry} ${id} posted${x.sourceStore ? ` from ${x.sourceStore}` : ""}${x.targetStore ? ` to ${x.targetStore}` : ""} - no RFQ or PO (internal stock move)` });
+    toast(`${id} posted - ${m.done.toLowerCase()}`);
+  };
   const act = (x, to, what) => { setState((s) => { const q = s.requisitions.find((y2) => y2.id === x.id); q.status = to; q.decidedBy = currentUser(); q.decidedAt = new Date().toISOString(); }, { entity: "Requisition", id: x.id, action: what }); toast(`${x.id} ${what.toLowerCase()}`); };
   return (
     <Page title="Purchase Requisitions" subtitle="Material requests and labour requisitions from sites - approved requests become RFQs" icon={Icon.clipboardList}
@@ -650,24 +676,30 @@ function RequisitionsPage() {
         { key: "project", label: "Project", filterOptions: FO.projects, filter: true },
         { key: "date", label: "Requested", render: (x) => `${fmtDate(x.date)} · ${x.requestedBy}` },
         { key: "rb", label: "Required by", render: (x) => fmtDate(x.requiredBy) },
-        { key: "po", label: "% ordered / received", render: (x) => { const o = reqOrdered(st, x); return <span className="num text-[12px]">{o.pctOrdered}% / {o.pctReceived}%</span>; } },
-        { key: "s", label: "Status", filterOptions: ["Draft", "Submitted", "Approved", "RFQ raised", "Partially ordered", "Ordered", "Partially received", "Received", "Stopped", "Cancelled"], filter: (x) => reqStatus(st, x), render: (x) => <Status>{reqStatus(st, x)}</Status> },
+        { key: "po", label: "% ordered / received", render: (x) => { if (reqInternal(x)) return <span className="text-[12px] text-ink-mute">{x.stockEntry ? x.stockEntry.id : "Stock move"}</span>; const o = reqOrdered(st, x); return <span className="num text-[12px]">{o.pctOrdered}% / {o.pctReceived}%</span>; } },
+        { key: "s", label: "Status", filterOptions: ["Draft", "Submitted", "Approved", "RFQ raised", "Partially ordered", "Ordered", "Partially received", "Received", "Transferred", "Issued", "Stopped", "Cancelled"], filter: (x) => reqStatus(st, x), render: (x) => <Status>{reqStatus(st, x)}</Status> },
       ]} />
       {r && (
         <Drawer open related={relatedFor(st, "req", r)} comments={r.id} onClose={() => setOpen(null)} width={760} title={r.purpose} recordId={r.id} status={<Status>{reqStatus(st, r)}</Status>}
           actions={<>
             {["Draft", "Submitted"].includes(r.status) && <Btn icon={Icon.pencil} onClick={() => setEdit(r)}>Edit</Btn>}
-            {r.status === "Submitted" && <><Btn variant="danger" onClick={() => act(r, "Cancelled", "Rejected")}>Reject</Btn><Btn variant="success" onClick={() => act(r, "Approved", "Approved")}>Approve</Btn></>}
-            {r.status === "Approved" && <Btn onClick={() => act(r, "Stopped", "Stopped")}>Stop</Btn>}
+            {r.status === "Submitted" && (() => { const a = reqApproval(st, r); return <><Btn variant="danger" onClick={() => act(r, "Cancelled", "Rejected")}>Reject</Btn><Btn variant="success" onClick={() => approve(r)}>{a.levels.length > 1 ? `Approve as ${a.next?.level}` : "Approve"}</Btn></>; })()}
+            {r.status === "Approved" && !r.stockEntry && <Btn onClick={() => act(r, "Stopped", "Stopped")}>Stop</Btn>}
             {r.status === "Stopped" && <Btn onClick={() => act(r, "Approved", "Re-opened")}>Re-open</Btn>}
-            {["Approved", "RFQ raised", "Partially ordered"].includes(reqStatus(st, r)) && <Btn onClick={() => nav(`${VM_BASE}/purchase-orders?fromReq=${r.id}`)} icon={Icon.package}>Create PO</Btn>}
-            {r.status === "Approved" && <Btn variant="primary" icon={Icon.send} onClick={() => nav(`${VM_BASE}/rfq?fromReq=${r.id}`)}>Create RFQ</Btn>}
+            {reqInternal(r) ? (r.status === "Approved" && !r.stockEntry && <Btn variant="primary" icon={Icon.package} onClick={() => stockEntry(r)}>{REQ_STOCK[r.purpose].btn}</Btn>) : <>
+              {["Approved", "RFQ raised", "Partially ordered"].includes(reqStatus(st, r)) && <Btn onClick={() => nav(`${VM_BASE}/purchase-orders?fromReq=${r.id}`)} icon={Icon.package}>Create PO</Btn>}
+              {r.status === "Approved" && <Btn variant="primary" icon={Icon.send} onClick={() => nav(`${VM_BASE}/rfq?fromReq=${r.id}`)}>Create RFQ</Btn>}
+            </>}
           </>}>
           <div className="space-y-4 px-6 py-5">
+            {r.status === "Submitted" && (() => { const a = reqApproval(st, r); return <Note icon={Icon.clipboardCheck}>Approval by value ({a.value ? inrShort(a.value) : "no estimate"}): {a.levels.map((l, i) => `${l.level}${a.done[i] ? ` ✓ ${a.done[i].by}` : i === a.i ? " - pending" : ""}`).join(" → ")}{!a.value && !reqInternal(r) ? ". Add estimated rates so the request is routed by its real value." : ""}</Note>; })()}
+            {reqInternal(r) && !r.stockEntry && <Note>Internal stock move - completed with a stock entry, never sent to vendors as an RFQ or PO.</Note>}
+            {r.stockEntry && <Note tone="green" icon={Icon.check}>{r.stockEntry.type} {r.stockEntry.id} posted {fmtDate(r.stockEntry.at)} by {r.stockEntry.by}{r.stockEntry.from ? ` · from ${r.stockEntry.from}` : ""}{r.stockEntry.to ? ` → ${r.stockEntry.to}` : ""}</Note>}
             <Section title="Request" icon={Icon.info}>
               <KV items={[["Purpose", r.purpose], ["Request date", fmtDate(r.date)], ["Required by", fmtDate(r.requiredBy)], ["Company", r.company], ["Project", r.project], ["Cost centre", r.costCentre || "-"], ["Price list", r.priceList || "-"],
-                ["Client", r.client || null], ["Source store", r.sourceStore || null], ["Target store", r.targetStore || null], ["Requested by", r.requestedBy], ["Decided", r.decidedBy ? `${r.decidedBy} · ${fmtDate(r.decidedAt)}` : null],
-                ["% ordered", `${reqOrdered(st, r).pctOrdered}%`], ["% received", `${reqOrdered(st, r).pctReceived}%`], ["RFQs", (r.rfqIds || []).join(", ") || null]]} />
+                ["Client", r.client || null], ["Source store", r.sourceStore || null], ["Target store", r.targetStore || null], ["Requested by", r.requestedBy], ["Estimated value", reqValue(st, r) ? inrShort(reqValue(st, r)) : "-"],
+                ["Approvals", (r.approvals || []).map((a) => `${a.level}: ${a.by} · ${fmtDate(a.at)}`).join("; ") || (r.decidedBy ? `${r.decidedBy} · ${fmtDate(r.decidedAt)}` : null)],
+                ...(reqInternal(r) ? [["Stock entry", r.stockEntry ? `${r.stockEntry.id} · ${r.stockEntry.type}` : "Not posted yet"]] : [["% ordered", `${reqOrdered(st, r).pctOrdered}%`], ["% received", `${reqOrdered(st, r).pctReceived}%`], ["RFQs", (r.rfqIds || []).join(", ") || null]])]} />
             </Section>
             {r.purpose === "Manpower (labour)" && (
               <Section title="Labour requisition" icon={Icon.hardHat}>
