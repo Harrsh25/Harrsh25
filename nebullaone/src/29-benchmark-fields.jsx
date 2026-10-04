@@ -654,7 +654,7 @@ function RequisitionsPage() {
         { key: "s", label: "Status", filterOptions: ["Draft", "Submitted", "Approved", "RFQ raised", "Partially ordered", "Ordered", "Partially received", "Received", "Stopped", "Cancelled"], filter: (x) => reqStatus(st, x), render: (x) => <Status>{reqStatus(st, x)}</Status> },
       ]} />
       {r && (
-        <Drawer open related={relatedFor(st, "req", r)} comments={r.id} onClose={() => setOpen(null)} width={760} title={r.purpose} recordId={r.id} status={<Status>{reqStatus(st, r)}</Status>} details={[["Project", r.project]]}
+        <Drawer open related={relatedFor(st, "req", r)} comments={r.id} onClose={() => setOpen(null)} width={760} title={r.purpose} recordId={r.id} status={<Status>{reqStatus(st, r)}</Status>}
           actions={<>
             {["Draft", "Submitted"].includes(r.status) && <Btn icon={Icon.pencil} onClick={() => setEdit(r)}>Edit</Btn>}
             {r.status === "Submitted" && <><Btn variant="danger" onClick={() => act(r, "Cancelled", "Rejected")}>Reject</Btn><Btn variant="success" onClick={() => act(r, "Approved", "Approved")}>Approve</Btn></>}

@@ -336,9 +336,20 @@ function useContentBox() {
 }
 // Record panel. Header (same on every record): title, then the record ID and its status — nothing else.
 // Any other key facts passed as `details` ([label, value] rows) show in a "Details" card at the top of the first tab.
-function Drawer({ open, title, badge, subtitle, recordId, status, details, onClose, actions, width = 760, tabs, related, comments, children }) {
+function Drawer({ open, title, badge, subtitle, recordId, rowId, status, details, onClose, actions, topActions, width = 760, tabs, related, comments, children }) {
   useEscape(open, onClose);
   const box = useContentBox();
+  // Previous / next record: steps through the rows of the list the panel was opened from (same order, filters and sort)
+  const key = rowId ?? recordId;
+  const [nav, setNav] = y.useState({ prev: null, next: null });
+  y.useLayoutEffect(() => {
+    if (!open || key == null) return setNav({ prev: null, next: null });
+    const rows = [...document.querySelectorAll("main table tbody tr[data-row-key].cursor-pointer")];
+    const i = rows.findIndex((r) => r.getAttribute("data-row-key") === String(key));
+    const n = i < 0 ? { prev: null, next: null } : { prev: rows[i - 1] || null, next: rows[i + 1] || null };
+    if (n.prev !== nav.prev || n.next !== nav.next) setNav(n);
+  });
+  const step = (tr) => { if (tr) { tr.click(); tr.scrollIntoView({ block: "nearest" }); } };
   if (!open) return null;
   return (
     // Side panel (Project Center style): the list stays visible and clickable beside it — pick another row to switch records
@@ -347,17 +358,23 @@ function Drawer({ open, title, badge, subtitle, recordId, status, details, onClo
         className="nx-drawer pointer-events-auto absolute flex flex-col rounded-xl border border-line bg-white shadow-[-8px_0_28px_rgba(16,24,40,0.14)]"
         style={{ ...box, width: `min(${width}px, max(560px, 46vw))`, maxWidth: "calc(100% - 16px)", overflow: "clip" }}>
         <div className={cls("shrink-0", !tabs && "border-b border-line")}>
-          {/* Title keeps the full width; when the action buttons don't fit beside it they move to their own row */}
-          <div className={cls("nx-dhead relative flex flex-wrap items-start gap-x-4 gap-y-3 pl-6 pr-14 pt-5", tabs ? "pb-5" : "pb-4")}>
-            <span className="absolute right-4 top-[18px]"><IconBtn icon={Icon.x} title="Close" onClick={onClose} /></span>
-            <div className="min-w-0" style={{ flex: "1 1 auto", minWidth: 240 }}>
+          {/* Header: [‹ › previous / next] title, then ID + status; small icon actions and close on the right.
+              Action buttons get their own row underneath, starting under the title, so they never wrap unevenly. */}
+          <div className={cls("nx-dhead relative flex items-start gap-3 pr-6 pt-5", nav.prev || nav.next ? "pl-3" : "pl-6", tabs ? "pb-4" : "pb-4")}>
+            {(nav.prev || nav.next) && (
+              <div className="flex shrink-0 flex-col pt-0.5">
+                <IconBtn icon={Icon.chevronDown} className="rotate-180" title="Previous record" disabled={!nav.prev} onClick={() => step(nav.prev)} />
+                <IconBtn icon={Icon.chevronDown} title="Next record" disabled={!nav.next} onClick={() => step(nav.next)} />
+              </div>)}
+            <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
                 <h2 className="min-w-0 text-[17px] font-semibold leading-tight tracking-tight" style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "anywhere" }}>{title}</h2>
                 {badge}
               </div>
               {(recordId || status || subtitle) && <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-ink-soft">{recordId && <span className="mono text-ink-mute">{recordId}</span>}{status}{subtitle}</div>}
+              {actions && <div data-drawer-actions className="mt-3 flex flex-wrap items-center gap-2">{actions}</div>}
             </div>
-            {actions && <div className="-mt-1 ml-auto flex max-w-full flex-wrap items-center justify-end gap-2" style={{ flex: "0 1 auto" }}>{actions}</div>}
+            <div className="-mt-1 flex shrink-0 items-center gap-1">{topActions}<IconBtn icon={Icon.x} title="Close" onClick={onClose} /></div>
           </div>
           {tabs && <DetailTabs {...tabs} />}
         </div>
@@ -849,8 +866,17 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
   // trailing unlabeled columns (row actions) stay at the end
   const lastData = visibleData.reduce((n, c, i) => (!isAct(c) ? i : n), -1);
   const head = visibleData.slice(0, lastData + 1), tail = visibleData.slice(lastData + 1);
-  const columns = !extraColumns || !list ? visibleData : [...head, ...visExtra, ...tail,
+  const columns0 = !extraColumns || !list ? visibleData : [...head, ...visExtra, ...tail,
     { key: "__cols", label: "", width: 48, align: "right", head: <button type="button" aria-label="Customize columns" data-tip="Customize columns" onClick={() => setPicker(true)} className="grid h-7 w-7 place-items-center rounded-md text-ink-mute hover:bg-gray-100 hover:text-ink">{h(Icon.plus, { size: 15 })}</button>, render: () => null }];
+  // A row-action column that is empty in every row (e.g. no actions on a locked record) is left out,
+  // so it doesn't leave a blank column at the right edge of the table
+  const blankNode = (n) => {
+    if (n == null || n === false || n === true || n === "") return true;
+    if (Array.isArray(n)) return n.every(blankNode);
+    if (y.isValidElement(n) && (typeof n.type === "string" || n.type === y.Fragment)) return blankNode(n.props.children);
+    return false;
+  };
+  const columns = columns0.filter((c) => !(isAct(c) && c.render && c.key !== "__cols" && c.key !== "sel" && !c.head && rows.length > 0 && rows.every((r, i) => { try { return blankNode(c.render(r, i)); } catch { return false; } })));
   // First column stays put while the rest scrolls sideways (a leading checkbox column sticks together with it)
   const lead = !dense && columns[0] && !columns[0].label && columns.length > 2 ? 1 : 0;
   const stick = (ci) => (dense || ci > lead ? null : cls("nx-stick", ci === lead && "nx-edge", ci === 1 && lead ? "left-[44px]" : "left-0"));
@@ -945,7 +971,7 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
     if (JSON.stringify(w) !== JSON.stringify(colPx)) setColPx(w);
   });
   const rowEl = (r, i) => (
-    <tr key={rowKey(r, i)} onClick={onRow ? () => onRow(r) : undefined} className={cls("group hover:bg-gray-50", onRow && "cursor-pointer")}>
+    <tr key={rowKey(r, i)} data-row-key={rowKey(r, i)} onClick={onRow ? () => onRow(r) : undefined} className={cls("group hover:bg-gray-50", onRow && "cursor-pointer")}>
       {columns.map((c, ci) => (
         <Td key={c.key} align={c.align} className={cls(c.num && "num", dense && "py-[5px]", c.className, stick(ci) || (ci === columns.length - 1 && "relative"))}>
           {c.render ? c.render(r, i) : r[c.key]}

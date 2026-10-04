@@ -213,7 +213,7 @@ function RaBillDrawer({ id, onClose }) {
   const next = bill.status === "Rejected" ? null : RA_FLOW[idx + 1];
   const reject = () => { rejectBill(id, remark); setRemark(""); };
   return (
-    <Drawer open related={relatedFor(st, "ra", bill)} comments={bill.id} onClose={onClose} width={1000} title={wo.title} recordId={`${bill.id} · RA-${bill.seq}`} status={<Status>{bill.status}</Status>} details={[["Vendor", v.name], ["Work order", `${wo.id} (${wo.type})`], ["Contract", c.id], ["Period", `${fmtDate(bill.periodFrom)} – ${fmtDate(bill.periodTo)}`]]}
+    <Drawer open related={relatedFor(st, "ra", bill)} comments={bill.id} onClose={onClose} width={1000} title={wo.title} recordId={`${bill.id} · RA-${bill.seq}`} rowId={bill.id} status={<Status>{bill.status}</Status>} details={[["Vendor", v.name], ["Work order", `${wo.id} (${wo.type})`], ["Contract", c.id], ["Period", `${fmtDate(bill.periodFrom)} – ${fmtDate(bill.periodTo)}`]]}
      
       actions={<Btn icon={Icon.download} onClick={() => window.print()}>Print certificate</Btn>}>
       <div className="space-y-4 px-6 py-5">

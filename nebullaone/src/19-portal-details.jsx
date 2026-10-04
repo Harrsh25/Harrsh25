@@ -275,7 +275,7 @@ function PortalRaBillDrawer({ id, onClose, open }) {
   const wo = byId(st.workOrders, bill.woId), c = byId(st.contracts, bill.contractId), v = byId(st.vendors, bill.vendorId);
   const idx = RA_FLOW.findIndex((f) => f.status === bill.status);
   return (
-    <Drawer open onClose={onClose} width={1000} title={wo.title} recordId={`${bill.id} · RA-${bill.seq}`} status={<Status>{bill.status}</Status>} details={[["Work order", wo.id], ["Period", `${fmtDate(bill.periodFrom)} – ${fmtDate(bill.periodTo)}`]]}
+    <Drawer open onClose={onClose} width={1000} title={wo.title} recordId={`${bill.id} · RA-${bill.seq}`} rowId={bill.id} status={<Status>{bill.status}</Status>} details={[["Work order", wo.id], ["Period", `${fmtDate(bill.periodFrom)} – ${fmtDate(bill.periodTo)}`]]}
      
       actions={<>{bill.invoiceId && <Btn icon={Icon.rupee} onClick={() => open("inv", bill.invoiceId)}>Payment status</Btn>}<Btn icon={Icon.download} onClick={() => window.print()}>Print</Btn></>}>
       <div className="space-y-4 px-6 py-5">

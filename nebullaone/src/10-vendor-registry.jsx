@@ -406,8 +406,9 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
   ];
   return (
     <Drawer open related={relatedFor(st, "vendor", v)} onClose={onClose} width={880} title={v.name}
-      subtitle={<><span className="mono text-ink-mute">{v.id}</span>{/* view only — status is changed from the Status & flags tab */}<Status>{APPROVAL_STATES.includes(v.status) ? approvalStatus(v) : v.status}</Status></>}
-      actions={<><span className="inline-flex h-8 items-center"><PreferredStar v={v} size={18} always /></span>{canEdit && <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>}</>}
+      recordId={v.id} status={/* view only — status is changed from the Status & flags tab */ <Status>{APPROVAL_STATES.includes(v.status) ? approvalStatus(v) : v.status}</Status>}
+      topActions={<span className="inline-flex h-7 items-center px-0.5"><PreferredStar v={v} size={17} always /></span>}
+      actions={canEdit && <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>}
       tabs={{ tabs, active: tab, onChange: setTab }}>
       {/* tables show as label → value lists, except Documents, Bank and Equipment which keep their tables */}
       <ListMode.Provider value={!["docs", "bank", "equip"].includes(tab)}>
