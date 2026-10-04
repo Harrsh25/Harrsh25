@@ -74,7 +74,9 @@ function findDuplicate(f) {
 }
 // Every possible duplicate of a vendor, for the approver
 function duplicateHints(v) {
-  const d = findDuplicate(v), out = [];
+  const d0 = findDuplicate(v), dec = v.dupDecisions || {}, out = [];
+  // a pair the reviewer has already decided on is no longer a hint; merged-away records don't count
+  const d = Object.fromEntries(Object.entries(d0).map(([k, o]) => [k, o && !dec[o.id] && !o.mergedInto ? o : null]));
   if (d.gstin) out.push(`same GSTIN as ${d.gstin.name} (${d.gstin.id})`);
   if (d.pan) out.push(`same PAN as ${d.pan.name} (${d.pan.id})`);
   if (d.bank) out.push(`same bank account as ${d.bank.name} (${d.bank.id})`);

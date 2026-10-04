@@ -227,7 +227,7 @@ function VendorApproval({ v, mode = "approval" }) {
     <>
       <Section title="Approval routing" icon={Icon.clipboardCheck}>
         {/* possible duplicate supplier — shown to the approver before deciding */}
-        {!lifeStatus(v) && duplicateHints(v).length > 0 && <div className="border-b border-line px-4 py-2"><Note tone="amber" icon={Icon.alert}><b>Possible duplicate supplier:</b> {duplicateHints(v).join(" · ")}. Check before approving.</Note></div>}
+        {!lifeStatus(v) && <DuplicateReview v={v} canDecide={decide && v.status === "Pending Approval"} />}
         {v.noteToApprover && <div className="border-b border-line px-4 py-2"><Note icon={Icon.info}><b>Note to approver:</b> {v.noteToApprover}</Note></div>}
         <div className="p-5">
           <Stepper steps={stages.map((s) => ({
