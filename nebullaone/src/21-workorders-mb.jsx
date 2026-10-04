@@ -66,7 +66,7 @@ function WorkOrderModal({ open, onClose, onCreated, contractId: presetContract }
                 <div key={i} className="grid grid-cols-[70px_1fr_80px_100px_110px_110px_28px] items-center gap-2">
                   <TextInput value={it.code} onChange={(x) => setItem(i, "code", x)} />
                   <TextInput value={it.desc} onChange={(x) => setItem(i, "desc", x)} placeholder="Item description" />
-                  <Select value={it.unit} placeholder="Unit" aria-label="Unit" onChange={(x) => setItem(i, "unit", x)} options={["cum", "sqm", "rmt", "MT", "kg", "nos", "man-day", "LS"]} />
+                  <Select value={it.unit} placeholder="Select unit" aria-label="Unit" onChange={(x) => setItem(i, "unit", x)} options={["cum", "sqm", "rmt", "MT", "kg", "nos", "man-day", "LS"]} />
                   <NumInput value={it.qty} onChange={(x) => setItem(i, "qty", x)} />
                   <NumInput value={it.rate} onChange={(x) => setItem(i, "rate", x)} />
                   <span className="num text-right text-[13px]">{inr((Number(it.qty) || 0) * (Number(it.rate) || 0))}</span>

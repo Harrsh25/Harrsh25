@@ -460,7 +460,7 @@ function Select({ value, onChange, options, placeholder, disabled, className, la
   const [hi, setHi] = y.useState(-1);
   const btn = y.useRef(null), menu = y.useRef(null);
   // a plain "Select…" placeholder is not offered as an option; a meaningful one ("Not grouped", "- none -") is
-  const dashPh = placeholder === undefined || /^\s*(-|–|—|select\b.*)\s*$/i.test(String(placeholder));
+  const dashPh = placeholder === undefined || /^\s*([-–—].*|.*[-–—]|select\b.*|choose\b.*|.*…)\s*$/i.test(String(placeholder));
   const opts = [...(!dashPh ? [{ value: "", label: placeholder, ph: true }] : []), ...options.map((o) => (typeof o === "object" ? o : { value: o, label: o }))];
   const cur = opts.find((o) => String(o.value) === String(value ?? ""));
   const searchable = opts.length > 8;
@@ -502,7 +502,7 @@ function Select({ value, onChange, options, placeholder, disabled, className, la
         onClick={() => setOpen((o) => !o)} onKeyDown={key}
         className={cls(inputCls, "flex items-center gap-2 text-left", open && "border-brand ring-2 ring-brand/15", disabled ? "cursor-not-allowed bg-gray-50 text-ink-mute" : "hover:border-gray-300", className)}>
         {cur && !cur.ph && dotOf(cur)}
-        <span className={cls("min-w-0 flex-1 truncate", (!cur || cur.ph) && "text-ink-mute")}>{cur ? String(cur.label).trim() : dashPh && heading && !/^select\s\S/i.test(String(placeholder || "")) ? `Select ${String(heading).replace(/\s*\*$/, "").replace(/\s*\([^)]*\)\s*$/, "").toLowerCase()}` : placeholder || "Select…"}</span>
+        <span className={cls("min-w-0 flex-1 truncate", (!cur || cur.ph) && "text-ink-mute")}>{cur ? String(cur.label).trim() : dashPh && heading && !/^select\s\S/i.test(String(placeholder || "")) ? `Select ${String(heading).replace(/\s*\*$/, "").replace(/\s*\([^)]*\)\s*$/, "").toLowerCase()}` : String(placeholder || "Select…").replace(/^(select\s.+?)\s*…$/i, "$1")}</span>
         {h(Icon.chevronDown, { size: 14, className: cls("shrink-0 text-ink-mute transition-transform", open && "rotate-180") })}
       </button>
       {open && pos && (

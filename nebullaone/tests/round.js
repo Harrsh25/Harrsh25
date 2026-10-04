@@ -48,4 +48,26 @@ require('./lib')('round', async ({ p, go, dlg, S, T }) => {
     }
     return [bad.join(' | ') || 'clean', !bad.length];
   });
+  await T('RD-07', 'Vendor registry has no row tick boxes and no bulk action bar', async () => {
+    await go('vendor-management/registry'); const cb = await p.locator('main tbody input[type=checkbox]').count();
+    const bar = await p.locator('main').getByText(/\d+ selected|Clear selection|Mark preferred/).count();
+    return [`tick boxes ${cb}; bulk bar ${bar}`, cb === 0 && bar === 0];
+  });
+  await T('RD-08', 'PO form: nothing pre-selected; "Select <field>" placeholders and no "-" or "none" row in the list', async () => {
+    await go('vendor-management/purchase-orders'); await p.locator('main button:has-text("New PO")').first().click(); await p.waitForTimeout(250);
+    const boxes = await dlg().locator('[role=combobox]').evaluateAll((els) => els.map((e) => [e.getAttribute('aria-label'), e.getAttribute('data-value'), e.innerText.trim()]));
+    const pre = boxes.filter((b) => b[1] && !/Price list|Currency|Buyer/.test(b[0])), bad = boxes.filter((b) => !b[1] && !/^Select\s\S/.test(b[2]));
+    await dlg().locator('[role=combobox][aria-label="Draw from blanket order"]').click(); await p.waitForTimeout(150);
+    const opts = await p.locator('[role=listbox] [role=option]').allInnerTexts(); await p.keyboard.press('Escape');
+    const dashRow = opts.filter((o) => /^\s*-|none/i.test(o));
+    return [`bad ${bad.map((b) => b.join("=")).join(", ")}; pre-selected ${pre.map((b) => b.join("=")).join(", ") || "none"}; placeholders ${boxes.slice(0, 4).map((b) => b[2]).join(' / ')}; blanket options ${opts.join(', ')}`, !pre.length && !bad.length && !dashRow.length];
+  });
+  await T('RD-09', 'After a PO is raised from a requisition, the next "New PO" opens blank', async () => {
+    const st = await S(); const r = (st.requisitions || []).find((x) => x.status === 'Approved' && !['Material transfer', 'Material issue', 'Customer provided'].includes(x.purpose));
+    if (!r) return ['no approved purchase requisition in the demo data', true];
+    await go('vendor-management/purchase-orders?fromReq=' + r.id); await p.waitForTimeout(300); const first = await dlg().count();
+    await p.keyboard.press('Escape'); await p.waitForTimeout(200); await p.locator('main button:has-text("New PO")').first().click(); await p.waitForTimeout(250);
+    const proj = await dlg().locator('[role=combobox][aria-label="Project"]').getAttribute('data-value');
+    return [`${r.id}: form opened ${first > 0}; next New PO project "${proj}"`, proj === ''];
+  });
 });

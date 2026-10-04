@@ -79,6 +79,7 @@ require('./lib')('fix23', async ({ fill, p, go, dlg, S, mut, as, T, pick, toastT
     await as('Arjun Mehta'); await go('contract-labor/contracts?open=CTR-004'); await p.waitForTimeout(300); await btn('Raise change order').click(); await p.waitForTimeout(150); const d = dlg();
     await d.locator('label:has-text("Change description") input').fill('Extra excavation - revised footing levels'); await d.locator('label:has-text("Reason") input').fill('Consultant instruction CI-12');
     await d.locator('button:has-text("Add quantity line")').click(); await p.waitForTimeout(100);
+    await d.locator('[role=combobox][aria-label="Work order"]').last().click(); await p.locator('[role=listbox] [role=option]').first().click(); await p.waitForTimeout(80);
     await pick(d.locator('[role=combobox]').nth(1), 'Excavation in ordinary soil'); await d.locator('input[inputmode], input[type=number]').last().fill('500').catch(async () => {});
     const qty = d.locator('.grid.grid-cols-\\[150px_1fr_1fr_70px_90px_100px_28px\\] input').nth(2); await qty.fill('500');
     await d.locator('button:has-text("Submit for approval")').click(); await p.waitForTimeout(200);

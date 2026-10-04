@@ -96,7 +96,7 @@ function CloseoutDrawer({ id, onClose }) {
             { key: "s", label: "Status", render: (w) => <Status>{w.status}</Status> },
           ]} />
         </Section>
-        <Section title={`2 · Punch list (${punch.filter((p) => p.status !== "Closed").length} open)`} icon={Icon.listChecks} actions={c.status === "Active" && !c.handover && <Btn size="sm" icon={Icon.plus} onClick={() => setPf({ desc: "", location: "", severity: "Minor", due: shiftDays(7), woId: wos[0]?.id || "" })}>Add punch item</Btn>}>
+        <Section title={`2 · Punch list (${punch.filter((p) => p.status !== "Closed").length} open)`} icon={Icon.listChecks} actions={c.status === "Active" && !c.handover && <Btn size="sm" icon={Icon.plus} onClick={() => setPf({ desc: "", location: "", severity: "", due: shiftDays(7), woId: "" })}>Add punch item</Btn>}>
           <PunchTable rows={punch} />
         </Section>
         <Section title="3 · Final inspection" icon={Icon.shieldCheck} actions={c.status === "Active" && !c.handover && <Btn size="sm" variant="primary" disabled={inspBlock.length > 0} title={inspBlock.length ? `Needs ${inspBlock.join(", ")}` : ""} onClick={() => setInsp({ result: "Passed", note: "", snags: "" })}>Record final inspection</Btn>}>
@@ -139,12 +139,12 @@ function CloseoutDrawer({ id, onClose }) {
         </Section>
       </div>
       {pf && (
-        <Modal open onClose={() => setPf(null)} width={560} title="Add punch-list item" footer={<><Btn onClick={() => setPf(null)}>Cancel</Btn><Btn variant="primary" disabled={!pf.desc.trim() || !pf.due} onClick={() => { if (addPunch(c, pf)) { toast("Punch item added"); setPf(null); } }}>Save</Btn></>}>
+        <Modal open onClose={() => setPf(null)} width={560} title="Add punch-list item" footer={<><Btn onClick={() => setPf(null)}>Cancel</Btn><Btn variant="primary" disabled={!pf.desc.trim() || !pf.severity || !pf.due} onClick={() => { if (addPunch(c, pf)) { toast("Punch item added"); setPf(null); } }}>Save</Btn></>}>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Snag / defect" required span={2}><TextInput value={pf.desc} onChange={(x) => setPf({ ...pf, desc: x })} placeholder="e.g. Plaster crack at lift lobby L4" /></Field>
             <Field label="Location"><TextInput value={pf.location} onChange={(x) => setPf({ ...pf, location: x })} /></Field>
             <Field label="Work order"><Select value={pf.woId} onChange={(x) => setPf({ ...pf, woId: x })} options={wos.map((w) => ({ value: w.id, label: `${w.id} - ${w.title}` }))} /></Field>
-            <Field label="Severity"><Select value={pf.severity} onChange={(x) => setPf({ ...pf, severity: x })} options={["Minor", "Major", "Critical"]} /></Field>
+            <Field label="Severity" required><Select value={pf.severity} onChange={(x) => setPf({ ...pf, severity: x })} options={["Minor", "Major", "Critical"]} /></Field>
             <Field label="Rectify by" required><DateInput value={pf.due} onChange={(x) => setPf({ ...pf, due: x })} /></Field>
           </div>
         </Modal>
@@ -224,14 +224,14 @@ function PortalInvoiceModal({ v, by, onClose }) {
     const rec = poReceived(p);
     return { p, lines: rec.map((l, i) => ({ line: i, desc: l.desc, unit: l.unit, rate: l.rate, max: Math.max(0, (p.billingPolicy === "On ordered quantity" ? l.qty : l.accepted) - billedOn(p, i)) })) };
   }).filter((x) => x.lines.some((l) => l.max > 0));
-  const [f, setF] = y.useState({ poId: pos[0]?.p.id || "", number: "", date: todayISO(), gstPct: 18, file: null, qty: {} });
+  const [f, setF] = y.useState({ poId: "", number: "", date: todayISO(), gstPct: "", file: null, qty: {} });
   const cur = pos.find((x) => x.p.id === f.poId);
   const lines = cur ? cur.lines.filter((l) => l.max > 0) : [];
   const qtyOf = (l) => (f.qty[l.line] !== undefined ? f.qty[l.line] : l.max);
   const dup = f.number.trim() && st.invoices.some((i) => i.vendorId === v.id && i.review !== "Rejected" && String(i.number).trim().toLowerCase() === f.number.trim().toLowerCase());
   const bad = lines.some((l) => Number(qtyOf(l)) > l.max + 0.001 || Number(qtyOf(l)) < 0);
   const total = sum(lines, (l) => (Number(qtyOf(l)) || 0) * l.rate);
-  const ok = cur && f.number.trim() && !dup && !bad && total > 0 && f.file && f.date <= todayISO();
+  const ok = cur && f.gstPct !== "" && f.number.trim() && !dup && !bad && total > 0 && f.file && f.date <= todayISO();
   return (
     <Modal open onClose={onClose} width={820} title="Submit invoice" subtitle="Invoice against goods / services the buyer has received. Accounts reviews it before it is scheduled for payment."
       footer={<><span className="mr-auto text-[13px]">Taxable <b className="num">{inr(total)}</b> + GST {f.gstPct}%</span><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" icon={Icon.send} disabled={!ok} onClick={() => {
@@ -244,7 +244,7 @@ function PortalInvoiceModal({ v, by, onClose }) {
       {pos.length === 0 ? <EmptyState icon={Icon.receipt} title="Nothing to invoice" text="Invoices can be raised against received (or ordered, where agreed) quantities that aren't billed yet." /> : (
         <div className="space-y-3">
           <div className="grid grid-cols-4 gap-3">
-            <Field label="Purchase order" required span={2}><Select value={f.poId} onChange={(x) => setF({ ...f, poId: x, qty: {} })} options={pos.map((x) => ({ value: x.p.id, label: `${x.p.id} - ${itemsSummary(x.p.lines)}` }))} /></Field>
+            <Field label="Purchase order" required span={2}><Select value={f.poId} onChange={(x) => { const p = pos.find((y2) => y2.p.id === x)?.p; setF({ ...f, poId: x, qty: {}, gstPct: p?.gstPct ?? f.gstPct }); }} options={pos.map((x) => ({ value: x.p.id, label: `${x.p.id} - ${itemsSummary(x.p.lines)}` }))} /></Field>
             <Field label="Your invoice no." required><TextInput value={f.number} onChange={(x) => setF({ ...f, number: x })} /></Field>
             <Field label="Invoice date" required><DateInput value={f.date} onChange={(x) => setF({ ...f, date: x })} /></Field>
           </div>
@@ -256,7 +256,7 @@ function PortalInvoiceModal({ v, by, onClose }) {
                 <Td align="right"><div className="ml-auto w-28"><NumInput value={qtyOf(l)} onChange={(x) => setF({ ...f, qty: { ...f.qty, [l.line]: x } })} /></div>{Number(qtyOf(l)) > l.max + 0.001 && <span className="block text-[10.5px] text-red-600">above billable</span>}</Td>
                 <Td align="right" className="num">{inr((Number(qtyOf(l)) || 0) * l.rate)}</Td></tr>))}</tbody></table>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="GST %"><Select value={String(f.gstPct)} onChange={(x) => setF({ ...f, gstPct: Number(x) })} options={["0", "5", "12", "18", "28"]} /></Field>
+            <Field label="GST %" required><Select value={String(f.gstPct)} onChange={(x) => setF({ ...f, gstPct: Number(x) })} options={["0", "5", "12", "18", "28"]} /></Field>
             <Field label="Invoice copy (PDF)" required>
               <label className={cls("flex h-[32px] cursor-pointer items-center gap-2 truncate rounded-md border border-dashed px-2.5 text-[12.5px]", f.file ? "border-green-300 bg-green-50 text-green-700" : "border-gray-300 text-ink-soft")}>
                 <Icon.upload size={13} /><span className="truncate">{f.file?.name || "Attach invoice"}</span>

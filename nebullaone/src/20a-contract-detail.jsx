@@ -127,13 +127,13 @@ function ChangeOrderModal({ c, preset, onClose }) {
           {(negErr || daysErr) && <div className="col-span-4"><Note tone="red">{negErr || daysErr}</Note></div>}
           <Field label="Reason / instruction ref." required span={4}><TextInput value={co.reason} onChange={(x) => setCo({ ...co, reason: x })} placeholder="e.g. Client revision R3; consultant instruction SCI-044" /></Field>
         </div>
-        <Section title="Quantity lines (optional)" actions={wos.length > 0 && <Btn size="sm" icon={Icon.plus} onClick={() => setCo({ ...co, lines: [...co.lines, { woId: wos[0].id, lineId: "", desc: "", unit: "cum", qty: "", rate: "" }] })}>Add quantity line</Btn>}>
+        <Section title="Quantity lines (optional)" actions={wos.length > 0 && <Btn size="sm" icon={Icon.plus} onClick={() => setCo({ ...co, lines: [...co.lines, { woId: "", lineId: "", desc: "", unit: "", qty: "", rate: "" }] })}>Add quantity line</Btn>}>
           {co.lines.length === 0 ? <p className="p-3 text-[12.5px] text-ink-mute">{wos.length ? "Add lines when the change adds quantity to a work order (extra quantity on an existing item, or a new item). On approval the work order is updated so the extra work can be measured and billed." : "No open item-rate work orders on this contract."}</p> : (
             <div className="space-y-2 p-3">
               <div className="grid grid-cols-[150px_1fr_1fr_70px_90px_100px_28px] gap-2 text-[11.5px] font-medium text-ink-mute"><span>Work order</span><span>Item</span><span>Description</span><span>Unit</span><span>Extra qty</span><span>Rate</span><span /></div>
               {co.lines.map((l, i) => { const w = byId(st.workOrders, l.woId); return (
                 <div key={i} className="grid grid-cols-[150px_1fr_1fr_70px_90px_100px_28px] items-center gap-2">
-                  <Select value={l.woId} onChange={(x) => setL(i, "woId", x)} options={wos.map((x) => ({ value: x.id, label: x.id }))} />
+                  <Select label="Work order" value={l.woId} onChange={(x) => setL(i, "woId", x)} options={wos.map((x) => ({ value: x.id, label: x.id }))} />
                   <Select value={l.lineId || ""} onChange={(x) => setL(i, "lineId", x)} options={[{ value: "", label: "New item" }, ...(w ? w.items.map((it) => ({ value: it.id, label: `${it.code} · ${it.desc}` })) : [])]} />
                   <TextInput value={l.desc} onChange={(x) => setL(i, "desc", x)} disabled={!!l.lineId} placeholder="New item description" />
                   <TextInput value={l.unit} onChange={(x) => setL(i, "unit", x)} disabled={!!l.lineId} />
@@ -150,9 +150,9 @@ function ChangeOrderModal({ c, preset, onClose }) {
 }
 
 function GuaranteeModal({ c, g, mode, onClose }) {
-  const [f, setF] = y.useState(() => (mode === "add" ? { type: "Performance", bank: "", number: "", amount: "", expiry: shiftDays(365), note: "" } : { expiry: shiftDays(180, g.expiry), note: "" }));
+  const [f, setF] = y.useState(() => (mode === "add" ? { type: "", bank: "", number: "", amount: "", expiry: shiftDays(365), note: "" } : { expiry: shiftDays(180, g.expiry), note: "" }));
   const title = { add: "Add bank guarantee", extend: `Extend ${g?.number}`, return: `Return ${g?.number}`, encash: `Encash ${g?.number}` }[mode];
-  const ok = mode === "add" ? f.bank && f.number && Number(f.amount) > 0 && f.expiry : mode === "extend" ? f.expiry > g.expiry : f.note.trim();
+  const ok = mode === "add" ? f.type && f.bank && f.number && Number(f.amount) > 0 && f.expiry : mode === "extend" ? f.expiry > g.expiry : f.note.trim();
   const save = () => {
     if (mode === "encash" && !tryAct("Finance Controller", [], "encashing a guarantee")) return;
     setState((s) => {
@@ -171,7 +171,7 @@ function GuaranteeModal({ c, g, mode, onClose }) {
     <Modal open onClose={onClose} width={560} title={title} footer={<><Btn onClick={onClose}>Cancel</Btn><Btn variant={mode === "encash" ? "danger" : "primary"} disabled={!ok} onClick={save}>{mode === "add" ? "Save" : mode === "extend" ? "Extend" : mode === "return" ? "Return" : "Encash"}</Btn></>}>
       {mode === "add" ? (
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Guarantee type"><Select value={f.type} onChange={(x) => setF({ ...f, type: x })} options={["Performance", "Advance", "Retention"]} /></Field>
+          <Field label="Guarantee type" required><Select value={f.type} onChange={(x) => setF({ ...f, type: x })} options={["Performance", "Advance", "Retention"]} /></Field>
           <Field label="Issuing bank" required><TextInput value={f.bank} onChange={(x) => setF({ ...f, bank: x })} /></Field>
           <Field label="BG number" required><TextInput value={f.number} onChange={(x) => setF({ ...f, number: x })} /></Field>
           <Field label="Amount (₹)" required><NumInput value={f.amount} onChange={(x) => setF({ ...f, amount: x })} /></Field>

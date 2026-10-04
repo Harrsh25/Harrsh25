@@ -83,7 +83,7 @@ function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket, requis
       }}>{needsApproval ? "Create & send for approval" : "Create & issue"}</Btn></>}>
       <div className="space-y-4">
         <div className="grid grid-cols-3 gap-3">
-          <Field label="Draw from blanket order" hint="Uses the agreed rates"><Select value={f.blanketId} placeholder="- none (standalone PO) -" onChange={(x) => setF({ ...blank(), ...(x ? fromBlanket(x) : {}), project: f.project })} options={activeBlankets.map((b) => ({ value: b.id, label: `${b.id} - ${vendorName(st, b.vendorId)}` }))} /></Field>
+          <Field label="Draw from blanket order" hint="Uses the agreed rates"><Select value={f.blanketId} onChange={(x) => setF({ ...blank(), ...(x ? fromBlanket(x) : {}), project: f.project })} options={activeBlankets.map((b) => ({ value: b.id, label: `${b.id} - ${vendorName(st, b.vendorId)}` }))} /></Field>
           <Field label="Vendor" required hint="Only spend-authorized, unblocked vendors"><Select value={f.vendorId} disabled={!!bo} placeholder="Select vendor…" onChange={(x) => { const nv = byId(st.vendors, x); setF({ ...f, vendorId: x, details: { ...(f.details || {}), buyer: nv?.defaultBuyer || (f.details || {}).buyer || currentUser(), currency: nv?.currency || "INR", fx: fxRate(nv?.currency), paymentTerms: nv?.paymentTerms, priceList: nv?.priceList || f.details?.priceList, supplierAddress: "", supplierContact: "" } }); }} options={vendors.map((x) => ({ value: x.id, label: x.name }))} /></Field>
           <Field label="Project" required><Select value={f.project} placeholder="Select" onChange={(x) => setF({ ...f, project: x })} options={PROJECTS} /></Field>
           <Field label="Delivery by"><DateInput value={f.deliveryDate} onChange={(x) => setF({ ...f, deliveryDate: x })} /><FieldErr m={poErr.delivery} /></Field>
@@ -117,7 +117,7 @@ function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket, requis
                   {!bo ? <IconBtn icon={Icon.trash} title="Remove line" onClick={() => f.lines.length > 1 && setF({ ...f, lines: f.lines.filter((_, j) => j !== i) })} /> : <span />}
                   <div className="col-span-5 -mt-1 grid grid-cols-[120px_110px_150px_1fr] items-center gap-2 text-[12px]">
                     <TextInput aria-label={`Line ${i + 1} HSN/SAC`} value={l.hsn || ""} onChange={(x) => setLine(i, "hsn", x.replace(/\D/g, "").slice(0, 8))} placeholder="HSN / SAC" />
-                    <Select aria-label={`Line ${i + 1} GST %`} value={l.gstPct ?? ""} placeholder="GST %" onChange={(x) => setLine(i, "gstPct", x === "" ? "" : Number(x))} options={GST_RATES.map((g) => ({ value: g, label: `GST ${g}%` }))} />
+                    <Select aria-label={`Line ${i + 1} GST %`} value={l.gstPct ?? ""} placeholder="Select GST %" onChange={(x) => setLine(i, "gstPct", x === "" ? "" : Number(x))} options={GST_RATES.map((g) => ({ value: g, label: `GST ${g}%` }))} />
                     <DateInput aria-label={`Line ${i + 1} need-by date`} value={l.needBy || ""} onChange={(x) => setLine(i, "needBy", x)} title="Need-by date for this line" />
                     {lineErr(l) ? <span className="text-red-600">{lineErr(l)}</span> : null}
                   </div>
@@ -372,6 +372,8 @@ function PurchaseOrdersPage() {
   const fromReq = req0 && !reqInternal(req0) && ["Approved", "RFQ raised", "Partially ordered"].includes(reqStatus(st, req0)) ? fromReq0 : null;
   y.useEffect(() => { if (fromReq0 && !fromReq) toast(req0 && reqInternal(req0) ? `${fromReq0} is an internal stock move - no purchase order` : `${fromReq0} is not approved for ordering`, "red"); }, [fromReq0]);
   const [create, setCreate] = y.useState(!!fromReq);
+  // the requisition pre-fill applies only to the PO opened from it - a later "New PO" starts blank
+  const [reqFor, setReqFor] = y.useState(fromReq);
   // cancelled orders stay on the list with their status, as in every platform
   const live = st.purchaseOrders;
   return (
@@ -388,7 +390,7 @@ function PurchaseOrdersPage() {
         { key: "dd", label: "Delivery by", render: (p) => <span className={cls(poStatus(p) !== "Received" && daysUntil(p.deliveryDate) < 0 && "text-red-600")}>{fmtDate(p.deliveryDate)}</span> },
         { key: "b", label: "Billing", filterOptions: FO.poBilling, filter: (p) => poBillingStatus(st, p), render: (p) => <Status>{poBillingStatus(st, p)}</Status> },
       ]} />
-      <NewPoModal open={create} requisitionId={fromReq} onClose={() => setCreate(false)} onCreated={setOpen} />
+      <NewPoModal open={create} requisitionId={reqFor} onClose={() => { setCreate(false); setReqFor(null); }} onCreated={(id) => { setReqFor(null); setOpen(id); }} />
       {open && <PoDrawer id={open} onClose={() => setOpen(null)} />}
     </Page>
   );
@@ -531,8 +533,8 @@ function PayModal({ invIds, onClose }) {
   const payBlock = (inv) => actBlock(PAY_ROLES, [inv.enteredBy, inv.review === "Accepted" ? inv.reviewedBy : null, inv.raBillId ? (byId(st.raBills, inv.raBillId)?.history || []).find((x) => x.status === "Approved")?.by : null], "releasing payment");
   const v0 = invs.length === 1 ? byId(st.vendors, invs[0].vendorId) : null;
   // the vendor's payment method (Oracle / SAP / Odoo) preselects the mode
-  const [mode, setMode] = y.useState(() => (v0 && PAY_MODES.includes(v0.paymentMethod) ? v0.paymentMethod : "NEFT")), [date, setDate] = y.useState(todayISO());
-  const [pd, setPd] = y.useState(() => ({ ...docDefaults("payment", st, v0), paidFrom: set0.companyBanks[0], vendorBank: invs.length === 1 ? invs[0].recipientBank || String(defaultBank(v0)?.id || "") : "", refNo: "", refDate: todayISO(), received: "" }));
+  const [mode, setMode] = y.useState(() => (v0 && PAY_MODES.includes(v0.paymentMethod) ? v0.paymentMethod : "")), [date, setDate] = y.useState(todayISO());
+  const [pd, setPd] = y.useState(() => ({ ...docDefaults("payment", st, v0), paidFrom: "", vendorBank: invs.length === 1 ? invs[0].recipientBank || "" : "", refNo: "", refDate: todayISO(), received: "" }));
   const [override, setOverride] = y.useState({});
   const rows = invs.map((inv) => {
     const t = invoiceTotals(inv), v = byId(st.vendors, inv.vendorId), gate = paymentGate(st, inv);
@@ -550,7 +552,7 @@ function PayModal({ invIds, onClose }) {
     || (pd.refDate && pd.refDate > shiftDays(90) ? "Reference date too far ahead" : "") || (pd.received !== "" && Number(pd.received) < netTotal - 0.5 && pd.paymentType === "Pay" ? "Amount paid can't be less than the bills selected - reduce the selection" : "")
     || Object.values(docDetailErrors("payment", pd)).filter(Boolean)[0] || "";
   const unallocated = pd.received !== "" ? round2(Number(pd.received) - netTotal) : 0;
-  const ok = dateErr || payErr ? [] : rows.filter((r) => !r.blocked && r.payNow > 0);
+  const ok = dateErr || payErr || !mode || !pd.paidFrom ? [] : rows.filter((r) => !r.blocked && r.payNow > 0);
   return (
     <Modal open onClose={onClose} width={920} title={invIds.length > 1 ? `Payment run - ${invIds.length} bills` : `Record payment - ${invs[0].id}`}
       subtitle="TDS is withheld at payment for PO bills; RA bills already carry TDS. Pays the next due instalment where a schedule exists."
@@ -568,9 +570,9 @@ function PayModal({ invIds, onClose }) {
         }}>Release payment</Btn></>}>
       <div className="space-y-3">
         <div className="grid grid-cols-3 gap-3">
-          <Field label="Payment mode"><Select value={mode} onChange={setMode} options={PAY_MODES} /></Field>
+          <Field label="Payment mode" required><Select value={mode} onChange={setMode} options={PAY_MODES} /></Field>
           <Field label="Value date"><DateInput value={date} onChange={setDate} /><FieldErr m={dateErr} /></Field>
-          <Field label="Company bank account (paid from)"><Select value={pd.paidFrom} onChange={(x) => setPd({ ...pd, paidFrom: x })} options={set0.companyBanks} /></Field>
+          <Field label="Company bank account (paid from)" required><Select value={pd.paidFrom} onChange={(x) => setPd({ ...pd, paidFrom: x })} options={set0.companyBanks} /></Field>
           <Field label="Vendor bank account (paid to)">{v0 ? <Select value={pd.vendorBank} placeholder="Default account" onChange={(x) => setPd({ ...pd, vendorBank: x })} options={vendorBankOptions(v0).filter((o) => bankPayable(v0.bankAccounts.find((a) => String(a.id) === o.value)))} /> : <span className="flex h-[32px] items-center text-[12.5px] text-ink-mute">Each vendor's default account</span>}</Field>
           <Field label={mode === "Cheque" ? "Cheque no." : "Reference / UTR no."} required={mode === "Cheque"}><TextInput value={pd.refNo} onChange={(x) => setPd({ ...pd, refNo: x })} placeholder={mode === "Cheque" ? "6-digit cheque no." : "Filled from the bank file if blank"} /></Field>
           <Field label={mode === "Cheque" ? "Cheque date" : "Reference date"} required={mode === "Cheque"}><DateInput value={pd.refDate} onChange={(x) => setPd({ ...pd, refDate: x })} /></Field>
@@ -610,16 +612,16 @@ function NewBillModal({ open, onClose, presetPoId }) {
   const [mode, setMode] = y.useState("po");
   const [poId, setPoId] = y.useState(presetPoId || "");
   const [vendorId, setVendorId] = y.useState("");
-  const [f, setF] = y.useState({ number: "", date: todayISO(), gstPct: 18, lines: [] });
+  const [f, setF] = y.useState({ number: "", date: todayISO(), gstPct: "", lines: [] });
   const po = byId(st.purchaseOrders, poId);
   // Default lines = billable (accepted or ordered) minus already billed
   const linesFor = (id) => {
     const p0 = byId(getState().purchaseOrders, id);
-    if (!p0) return { gstPct: 18, lines: [] };
+    if (!p0) return { gstPct: "", lines: [] };
     const all = getState().invoices;
     const billed = (i) => sum(all.filter((x) => x.poId === id).flatMap((x) => x.lines.filter((l) => l.line === i)), (l) => l.qty);
     const base = (l) => (p0.billingPolicy === "On ordered quantity" ? l.qty : l.accepted + (set0.billRejectedQty ? l.rejected : 0));
-    return { gstPct: p0.gstPct ?? 18, lines: poReceived(p0).map((l, i) => ({ line: i, desc: l.desc, qty: Math.max(0, base(l) - billed(i)), rate: l.rate })) };
+    return { gstPct: p0.gstPct ?? "", lines: poReceived(p0).map((l, i) => ({ line: i, desc: l.desc, qty: Math.max(0, base(l) - billed(i)), rate: l.rate })) };
   };
   const detFrom = (id, vid) => { const p0 = byId(getState().purchaseOrders, id); const vv = byId(getState().vendors, vid || p0?.vendorId); return { ...docDefaults("bill", getState(), vv), ...(p0?.details ? { currency: p0.details.currency, fx: p0.details.fx, costCentre: p0.details.costCentre, project: p0.details.project || p0.project, taxCategory: p0.details.taxCategory, taxTemplate: p0.details.taxTemplate, incoterm: p0.details.incoterm, namedPlace: p0.details.namedPlace, shipTo: p0.details.shipTo, supplierAddress: p0.details.supplierAddress, supplierContact: p0.details.supplierContact, discPct: p0.details.discPct, discAmt: p0.details.discAmt, shippingRule: p0.details.shippingRule, paymentTerms: p0.details.paymentTerms } : p0 ? { project: p0.project } : {}) }; };
   const pickPo = (id) => { setPoId(id); setF((ff) => ({ ...ff, ...linesFor(id), details: detFrom(id) })); };
@@ -640,7 +642,7 @@ function NewBillModal({ open, onClose, presetPoId }) {
   const dateErr = VX.req(f.date) || VX.notFuture(f.date, "Invoice date can't be in the future") || (po && f.date < po.date ? `Invoice date is before the PO date (${fmtDate(po.date)})` : "") || VX.dateOrder(f.date, due, "Due date can't be before the invoice date");
   const subtotal = sum(f.lines, (l) => (Number(l.qty) || 0) * (Number(l.rate) || 0));
   const exErr = billExtrasErr(f, subtotal * (1 + (Number(f.gstPct) || 0) / 100)) || Object.values(docDetailErrors("bill", f.details || {})).filter(Boolean)[0] || "";
-  const ok = !exErr && f.number.trim() && !dup && !dateErr && !lineErr.some(Boolean) && v && !isBlockedFor(v, "Invoices") && (mode === "po" ? po && f.lines.some((l) => l.qty > 0) && !receiptBlock : directAllowed && f.lines.some((l) => l.desc && l.qty > 0 && l.rate > 0));
+  const ok = !exErr && f.gstPct !== "" && f.number.trim() && !dup && !dateErr && !lineErr.some(Boolean) && v && !isBlockedFor(v, "Invoices") && (mode === "po" ? po && f.lines.some((l) => l.qty > 0) && !receiptBlock : directAllowed && f.lines.some((l) => l.desc && l.qty > 0 && l.rate > 0));
   const save = () => {
     const id = nextId("INV", st.invoices);
     const posted = !!(set0.autoPostBills || v.autoPostBills);
@@ -695,7 +697,7 @@ function NewBillModal({ open, onClose, presetPoId }) {
             <Btn size="sm" icon={Icon.plus} onClick={() => setF({ ...f, lines: [...f.lines, { desc: "", qty: 1, rate: "" }] })}>Add line</Btn>
           </div>
         )}
-        <div className="w-40"><Field label="GST %"><Select value={String(f.gstPct)} onChange={(x) => setF({ ...f, gstPct: Number(x) })} options={["0", "5", "12", "18", "28"]} /></Field></div>
+        <div className="w-40"><Field label="GST %" required><Select value={String(f.gstPct)} onChange={(x) => setF({ ...f, gstPct: Number(x) })} options={["0", "5", "12", "18", "28"]} /></Field></div>
         {v && <BillExtras f={f} setF={setF} v={v} />}
         {v && <DocDetails kind="bill" value={f.details} onChange={(d) => setF({ ...f, details: d })} vendor={v} subtotal={subtotal} />}
       </div>
@@ -797,7 +799,7 @@ function InvoiceDrawer({ id, onClose }) {
             </div>
           )}
         </Section>}
-        <Section title="Credit / debit notes" icon={Icon.file} actions={<Btn size="sm" icon={Icon.plus} onClick={() => setNote({ type: "Debit Note", amount: "", reason: "" })}>Add note</Btn>}>
+        <Section title="Credit / debit notes" icon={Icon.file} actions={<Btn size="sm" icon={Icon.plus} onClick={() => setNote({ type: "", amount: "", reason: "" })}>Add note</Btn>}>
           <DataTable dense rows={inv.notes} empty={<p className="p-4 text-[13px] text-ink-mute">None.</p>} columns={[
             { key: "id", label: "No.", className: "mono text-[12px]" }, { key: "type", label: "Type", render: (n) => <span>{n.type}{n.auto && <span className="ml-1 text-[11px] text-ink-mute">(auto from return)</span>}</span> }, { key: "reason", label: "Reason", className: "whitespace-normal" },
             { key: "amount", label: "Amount", align: "right", num: true, render: (n) => inr(n.amount) },
@@ -819,12 +821,12 @@ function InvoiceDrawer({ id, onClose }) {
       </div>
       {pay && <PayModal invIds={[id]} onClose={() => setPay(false)} />}
       {note && (
-        <Modal open onClose={() => setNote(null)} width={520} title="Credit / debit note" footer={<><Btn onClick={() => setNote(null)}>Cancel</Btn><Btn variant="primary" disabled={!(note.amount > 0) || !!VX.reason(note.reason) || (note.type === "Debit Note" && Number(note.amount) > t.balance + 0.5)} onClick={() => {
+        <Modal open onClose={() => setNote(null)} width={520} title="Credit / debit note" footer={<><Btn onClick={() => setNote(null)}>Cancel</Btn><Btn variant="primary" disabled={!note.type || !(note.amount > 0) || !!VX.reason(note.reason) || (note.type === "Debit Note" && Number(note.amount) > t.balance + 0.5)} onClick={() => {
           mut((x) => x.notes.push({ id: `${note.type === "Debit Note" ? "DN" : "CN"}-${String(st.invoices.flatMap((i) => i.notes).length + 1).padStart(3, "0")}`, ...note, amount: Number(note.amount), date: todayISO() }), `${note.type} added`);
           setNote(null);
         }}>Save</Btn></>}>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Type"><Select value={note.type} onChange={(x) => setNote({ ...note, type: x })} options={["Debit Note", "Credit Note"]} /></Field>
+            <Field label="Type" required><Select value={note.type} onChange={(x) => setNote({ ...note, type: x })} options={["Debit Note", "Credit Note"]} /></Field>
             <Field label="Amount (₹, incl. GST)" required><NumInput value={note.amount} onChange={(x) => setNote({ ...note, amount: x })} /><FieldErr m={note.type === "Debit Note" && Number(note.amount) > t.balance + 0.5 ? `Debit note can't exceed the outstanding ${inr(t.balance)}` : note.amount !== "" && !(note.amount > 0) ? "Enter a non-zero value" : ""} /></Field>
             <Field label="Reason" span={2} required><TextInput value={note.reason} onChange={(x) => setNote({ ...note, reason: x })} /><FieldErr m={note.reason && VX.reason(note.reason)} /></Field>
           </div>
@@ -1031,7 +1033,7 @@ function PoLimitsEditor({ rows, onChange }) {
         {rows.map((r, i) => (
           <div key={i} className="grid grid-cols-[28px_1fr_170px_auto] items-center gap-2 px-4 py-2">
             <span className="num text-[12px] text-ink-mute">L{i + 1}</span>
-            <Select value={r.level} placeholder="Level" onChange={(x) => upd(i, { level: x })} options={[...new Set([...ROLES, "Managing Director", r.level].filter(Boolean))]} />
+            <Select value={r.level} placeholder="Select level" onChange={(x) => upd(i, { level: x })} options={[...new Set([...ROLES, "Managing Director", r.level].filter(Boolean))]} />
             <NumInput value={r.upTo} onChange={(x) => upd(i, { upTo: x })} placeholder={i === rows.length - 1 ? "No limit" : "Up to (₹)"} aria-label="Approval limit" />
             <Btn size="sm" variant="danger" disabled={rows.length <= 1} onClick={() => onChange(rows.filter((_, j) => j !== i))}>Remove</Btn>
           </div>

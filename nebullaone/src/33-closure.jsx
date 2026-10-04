@@ -167,7 +167,7 @@ function DlpWarrantyPage() {
           { key: "bg", label: "Guarantees live", render: (r) => liveGuarantees(r.c).length || "-" },
           { key: "s", label: "Status", render: (r) => <Status tone={daysUntil(r.end) >= 0 ? "purple" : "green"}>{daysUntil(r.end) >= 0 ? "In DLP" : "DLP ended"}</Status> },
           { key: "a", label: "", align: "right", render: (r) => <span className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-            <Btn size="sm" onClick={() => setDefect({ c: r.c, desc: "", location: "", severity: "Major", due: shiftDays(14) })}>Log defect</Btn>
+            <Btn size="sm" onClick={() => setDefect({ c: r.c, desc: "", location: "", severity: "", due: shiftDays(14) })}>Log defect</Btn>
             {daysUntil(r.end) >= 0 && <Btn size="sm" onClick={() => setExt({ c: r.c, months: 3, reason: "" })}>Extend DLP</Btn>}</span> },
         ]} />
       ) : (
@@ -185,7 +185,7 @@ function DlpWarrantyPage() {
       )}
       {defect && (
         <Modal open onClose={() => setDefect(null)} width={540} title={`Log defect - ${defect.c.id}`} subtitle="Goes on the punch list; the contract can't close until it is rectified and verified"
-          footer={<><Btn onClick={() => setDefect(null)}>Cancel</Btn><Btn variant="primary" disabled={defect.desc.trim().length < 5 || !defect.due} onClick={() => {
+          footer={<><Btn onClick={() => setDefect(null)}>Cancel</Btn><Btn variant="primary" disabled={defect.desc.trim().length < 5 || !defect.severity || !defect.due} onClick={() => {
             setState((s) => { s.punchItems = s.punchItems || []; s.punchItems.unshift({ id: nextId("PL", s.punchItems), contractId: defect.c.id, woId: null, desc: defect.desc.trim(), location: defect.location.trim(), severity: defect.severity, due: defect.due, status: "Open", dlp: true, raisedBy: currentUser(), raisedOn: todayISO(), history: [{ at: new Date().toISOString(), by: currentUser(), what: "Raised in DLP" }] }); },
               { entity: "Contract", id: defect.c.id, action: `DLP defect logged - ${defect.desc.trim()}` });
             toast("Defect logged - the contractor is notified to rectify"); setDefect(null);
@@ -193,7 +193,7 @@ function DlpWarrantyPage() {
           <div className="grid grid-cols-2 gap-3">
             <Field label="Defect" required span={2}><TextInput value={defect.desc} onChange={(x) => setDefect({ ...defect, desc: x })} placeholder="e.g. Seepage at basement retaining wall" /></Field>
             <Field label="Location"><TextInput value={defect.location} onChange={(x) => setDefect({ ...defect, location: x })} /></Field>
-            <Field label="Severity"><Select value={defect.severity} onChange={(x) => setDefect({ ...defect, severity: x })} options={["Minor", "Major", "Critical"]} /></Field>
+            <Field label="Severity" required><Select value={defect.severity} onChange={(x) => setDefect({ ...defect, severity: x })} options={["Minor", "Major", "Critical"]} /></Field>
             <Field label="Rectify by" required><DateInput value={defect.due} onChange={(x) => setDefect({ ...defect, due: x })} /></Field>
           </div>
         </Modal>

@@ -21,15 +21,15 @@ module.exports = async function run(name, body) {
   // make the store persist (it only saves after a mutation)
   await go('vendor-management/registry'); const s = p.locator('tr:has-text("Konkan Steel") button[title*="preferred" i]'); await s.click(); await p.waitForTimeout(80); await s.click(); await p.waitForTimeout(80);
   // forms open with nothing pre-selected: pick the first option in every empty required dropdown (and tick a supply type)
-  const fill = async (scope, skip = []) => {
+  const fill = async (scope, skip = [], noTypes = false) => {
     const sc = scope || dlg();
-    const types = sc.locator('button[role=checkbox]'); if ((await types.count()) && !(await sc.locator('button[role=checkbox][aria-checked=true]').count())) await types.first().click().catch(() => {});
+    const types = sc.locator('button[role=checkbox]'); if (!noTypes && (await types.count()) && !(await sc.locator('button[role=checkbox][aria-checked=true]').count())) await types.first().click().catch(() => {});
     for (let n = 0; n < 25; n++) {
       const boxes = sc.locator('label:has(> span > span.text-red-500) [role=combobox][data-value=""]:not([disabled])');
       let i = 0, c = await boxes.count(); while (i < c && skip.includes(await boxes.nth(i).getAttribute('aria-label'))) i++;
       if (i >= c) break;
       const boxEl = boxes.nth(i); await boxEl.click(); await p.waitForTimeout(60);
-      const PREF = { Country: 'India', Currency: 'INR', 'Supplier type': 'Company', 'Payment terms': 'Net 30', 'Supplier tier': 'Approved', 'Registration tier': 'Spend Authorized', Project: 'Skyline Towers', 'Sourcing mode': 'Multiple Vendors', 'Bill control': 'On received quantity', 'Contract type': 'Item-Rate', 'GST (%)': '18', Trade: 'Mason', Skill: 'Skilled', 'Labour type': 'Skilled', 'ID proof': 'Aadhaar', Company: 'NebullaOne Infra', 'Request purpose / type': 'Purchase', Type: 'Mobilisation advance', 'Skill category': 'Skilled' };
+      const PREF = { Country: 'India', Currency: 'INR', 'Supplier type': 'Company', 'Payment terms': 'Net 30', 'Supplier tier': 'Approved', 'Registration tier': 'Spend Authorized', Project: 'Skyline Towers', 'Sourcing mode': 'Multiple Vendors', 'Bill control': 'On received quantity', 'Contract type': 'Item-Rate', 'GST (%)': '18', Trade: 'Mason', Skill: 'Skilled', 'Labour type': 'Skilled', 'ID proof': 'Aadhaar', Company: 'NebullaOne Infra', 'Request purpose / type': 'Purchase', Type: 'Mobilisation advance', 'Skill category': 'Skilled', 'GST %': '18', 'Payment mode': 'NEFT', Severity: 'Major', 'Guarantee type': 'Performance', Category: 'Quality' };
       const lab = await boxEl.getAttribute('aria-label'); const want = PREF[lab];
       let opt = want ? p.locator('[role=listbox] [role=option]').filter({ hasText: want }).first() : null;
       if (!opt || !(await opt.count())) opt = p.locator('[role=listbox] [role=option]').filter({ hasNotText: /^(Select|Select…|-|Unit)$/ }).first();
@@ -37,6 +37,18 @@ module.exports = async function run(name, body) {
       await p.waitForTimeout(60);
     }
   };
+  // a save button that is disabled only because a required dropdown is still empty: pick it first, as a user would
+  const LP = Object.getPrototypeOf(p.locator('body')), lclick = LP.click;
+  LP.click = async function (opts) {
+    try {
+      if ((await this.count()) === 1 && (await this.evaluate((el) => el.tagName === 'BUTTON' && el.disabled))) {
+        const inDlg = await this.evaluate((el) => !!el.closest('[role=dialog]'));
+        await fill(inDlg ? dlg() : p.locator('main, body').first(), [], !inDlg);
+      }
+    } catch (e) {}
+    return lclick.call(this, opts);
+  };
+  const pclick = p.click.bind(p); p.click = (sel, opts) => p.locator(sel).first().click(opts);
   await body({ p, go, dlg, S, mut, as, T, pick: (c, v) => pick(p, c, v), toastText, fill });
   console.log(`\n${name}: ${pass} passed, ${fail} failed${errs.length ? '\n' + errs.join('\n') : ''}`);
   require('fs').writeFileSync(`${__dirname}/out/res-${name}.json`, JSON.stringify({ R, errs }, null, 1));

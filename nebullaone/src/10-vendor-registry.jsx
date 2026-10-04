@@ -810,23 +810,6 @@ function AuditList({ items }) {
 function CalmStatus({ children }) {
   return <Status>{children}</Status>;
 }
-// Bulk actions for ticked vendors
-function BulkBar({ sel, onClear, onHold }) {
-  const st = useStore(), vs = sel.map((id) => byId(st.vendors, id)).filter(Boolean);
-  const bulk = (fn, action) => { setState((s) => sel.forEach((id) => fn(byId(s.vendors, id))), { entity: "Vendor", id: sel.join(", "), action }); toast(`${action} - ${sel.length} vendor${sel.length > 1 ? "s" : ""}`); };
-  const due = vs.flatMap((v) => complianceItems(v).filter((i) => i.level > 0).map((item) => ({ v, item })));
-  return (
-    <div className="flex flex-wrap items-center gap-2 border-b border-brand/20 bg-brand-soft/50 px-4 py-2 text-[13px]">
-      <b className="text-brand">{sel.length} selected</b><span className="mx-1 h-4 w-px bg-brand/20" />
-      <Btn size="sm" icon={Icon.star} onClick={() => bulk((v) => (v.preferred = true), "Marked preferred")}>Mark preferred</Btn>
-      <Btn size="sm" onClick={() => bulk((v) => (v.preferred = false), "Preferred removed")}>Remove preferred</Btn>
-      <div className="w-[170px]"><Select label="Change tier" value="" placeholder="Change tier…" options={TIERS} onChange={(t) => t && bulk((v) => (v.tier = t), `Tier changed to ${t}`)} className="h-[28px]" /></div>
-      <Btn size="sm" icon={Icon.mail} disabled={!due.length} onClick={() => sendReminders(due)}>Send compliance reminders{due.length ? ` (${due.length})` : ""}</Btn>
-      <Btn size="sm" icon={Icon.lock} onClick={onHold}>Put on hold</Btn>
-      <button type="button" className="ml-auto text-[12.5px] text-brand hover:underline" onClick={onClear}>Clear selection</button>
-    </div>
-  );
-}
 // Placing a hold: a real reason, and a release date (if given) in the future, at most a year out
 function holdErr(h) {
   if ((h.reason || "").trim().length < 5) return "Enter a reason (at least 5 characters)";
@@ -929,8 +912,7 @@ function VendorRegistryPage() {
   const st = useStore();
   const [type, setType] = y.useState("All"), [status, setStatus] = y.useState("All"), [appr, setAppr] = y.useState("All"), [tier, setTier] = y.useState("All"), [grp, setGrp] = y.useState("All");
   const [open, setOpen] = useQueryOpen(), [reg, setReg] = y.useState(false), [share, setShare] = y.useState(false), [invite, setInvite] = y.useState(false), [view, setView] = y.useState("vendors");
-  const [sel, setSel] = y.useState([]), [holdFor, setHoldFor] = y.useState(null);
-  const rows = st.vendors.filter((v) =>
+    const rows = st.vendors.filter((v) =>
     (type === "All" || hasType(v, type)) && selMatch(status, lifeStatus(v)) && selMatch(appr, approvalStatus(v)) && selMatch(tier, v.tier) &&
     (grp === "All" || (grp === "__intra" ? isGroupCompany(v) : grp === "__none" ? !v.group : inGroup(v, grp))) &&
     true);
@@ -945,7 +927,6 @@ function VendorRegistryPage() {
       <TabBar active={view} onChange={setView} tabs={[{ id: "vendors", label: "Vendors", icon: Icon.building }, { id: "invites", label: "Invitations", icon: Icon.mail }]} />
       {view === "invites" && <InvitesTable onOpenVendor={setOpen} />}
       {view === "vendors" && <>
-      {sel.length > 0 && <BulkBar sel={sel} onClear={() => setSel([])} onHold={() => setHoldFor(sel)} />}
       <DataTable columnsId="vendor-registry-3" defaultCols={["name", "type", "cat", "status", "approval"]} extraColumns={VENDOR_EXTRA_COLUMNS(st)} noun="vendors" exportName="vendor-master" placeholder="Search vendors…"
         onClearFilters={() => { setType("All"); setStatus("All"); setTier("All"); }}
         summary={(r) => [{ value: r.filter((v) => v.preferred).length, label: "preferred", color: "text-amber-600" }]}
@@ -955,7 +936,6 @@ function VendorRegistryPage() {
         <FilterSelect label="Tier" value={tier} onChange={setTier} options={[{ value: "All", label: "All tiers" }, ...TIERS]} />
       </>}
         rows={rows} onRow={(v) => setOpen(v.id)} columns={[
-        { key: "sel", label: "", render: (v) => <input type="checkbox" aria-label={`Select ${v.name}`} className="h-4 w-4 accent-[#0b5ed7]" checked={sel.includes(v.id)} onClick={(e) => e.stopPropagation()} onChange={(e) => setSel(e.target.checked ? [...sel, v.id] : sel.filter((x) => x !== v.id))} /> },
         { key: "name", label: "Vendor", filterOptions: FO.preferred, filterLabel: "Preferred", filterAll: "All vendors", filter: (v) => (v.preferred ? "Preferred" : "Not preferred"), render: (v) => <span className="flex items-center justify-between gap-2 font-medium"><span className="truncate">{v.name}</span><PreferredStar v={v} size={14} /></span> },
         { key: "type", label: "Supplies", filterOptions: ["Goods", "Services", "Labour"], filter: (v) => vTypes(v).map((t) => (t === "Labor" ? "Labour" : t)), render: (v) => <span className="flex flex-wrap items-center gap-1.5 text-ink-soft">{typeLabel(v)}<GroupCoTag v={v} /></span> },
         { key: "cat", label: "Trades", filterOptions: TRADES, filter: (v) => v.categories, filterLabel: "Trade", sort: (v) => v.categories[0] || "", render: (v) => <CategoryChips list={v.categories} /> },
@@ -973,7 +953,6 @@ function VendorRegistryPage() {
       {share && <ShareLinkModal title="Vendor self-registration link" url={appUrl("/vendor-register")} onClose={() => setShare(false)}
         text="Send this link to prospective vendors. They fill in their company, tax and bank details and upload documents themselves - no login needed. Submissions arrive in Approval Management under “Vendor Registration”." />}
       {open && <VendorDrawer vendorId={open} initialTab={new URLSearchParams(window.location.hash.split("?")[1] || "").get("tab") || "overview"} onClose={() => setOpen(null)} />}
-      {holdFor && <BulkHoldModal ids={holdFor} onClose={() => setHoldFor(null)} onDone={() => { setHoldFor(null); setSel([]); }} />}
     </Page>
   );
 }

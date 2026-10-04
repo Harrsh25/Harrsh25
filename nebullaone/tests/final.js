@@ -184,7 +184,7 @@ require('./lib')('final', async ({ fill, p, go, dlg, S, mut, as, T, pick, toastT
   await T('C12', 'Variation: extra quantity via change order (Project Manager approval)', async () => {
     await as('Arjun Mehta'); await go('contract-labor/contracts?open=' + chain.contractor.contract); await p.waitForTimeout(300); await btn('Raise change order').click(); await p.waitForTimeout(150); const d = dlg();
     await d.locator('label:has-text("Change description") input').fill('Extra excavation - revised levels'); await d.locator('label:has-text("Reason") input').fill('Architect instruction AI-07');
-    await d.locator('button:has-text("Add quantity line")').click(); await p.waitForTimeout(100); await pick(d.locator('[role=combobox]').nth(1), 'Excavation'); await d.locator('.grid.grid-cols-\\[150px_1fr_1fr_70px_90px_100px_28px\\] input').nth(2).fill('400');
+    await d.locator('button:has-text("Add quantity line")').click(); await p.waitForTimeout(100); await pick(d.locator('[role=combobox][aria-label="Work order"]').last(), chain.contractor.wo); await pick(d.locator('[role=combobox]').nth(1), 'Excavation'); await d.locator('.grid.grid-cols-\\[150px_1fr_1fr_70px_90px_100px_28px\\] input').nth(2).fill('400');
     await d.locator('button:has-text("Submit for approval")').click(); await p.waitForTimeout(200);
     await as('Vikram Rao'); await go('approvals/approval-management?module=Change%20Orders'); await p.waitForTimeout(300); await p.locator('tr:has-text("Extra excavation") button:has-text("Approve")').click(); await p.waitForTimeout(200); await as(null);
     const w = (await S()).workOrders.find((x) => x.id === chain.contractor.wo); return [`WO qty now ${w.items[0].qty} (CO +${w.items[0].coQty})`, w.items[0].qty === 3400];

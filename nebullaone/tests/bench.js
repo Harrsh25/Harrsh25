@@ -74,7 +74,7 @@ require('./lib')('bench', async ({ fill, p, go, dlg, S, mut, T, pick, toastText 
   await T('BF-08', 'RFQ requirement question must be answered with the quote', async () => {
     await mut((s) => { const r = s.rfqs.find((x) => x.id === 'RFQ-001'); r.questions = [{ text: 'Mill test certificate with each lot?', type: 'Yes / No', options: '', required: true }]; });
     await go('vendor-management/rfq?open=RFQ-001'); await p.waitForTimeout(300); await btn("Record quote on vendor's behalf").click(); await p.waitForTimeout(300);
-    const d = dlg(); const t = await d.textContent();
+    const d = dlg(); await d.locator('[role=combobox][aria-label="Vendor"]').click(); await p.locator('[role=listbox] [role=option]').first().click(); await p.waitForTimeout(300); const t = await d.textContent();
     return [`question shown: ${/Mill test certificate/.test(t)}; error: ${/Answer question 1/.test(t)}`, /Mill test certificate/.test(t) && /Answer question 1/.test(t)];
   });
   await T('BF-09', 'Vendor price list: a price is suggested on a new PO for that vendor and item', async () => {

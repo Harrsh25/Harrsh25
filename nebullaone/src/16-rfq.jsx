@@ -244,7 +244,7 @@ function QuoteForm({ rfq, vendorId, mode = "vendor", onDone }) {
   const prev = rfq.quotes.find((q) => q.vendorId === vendorId);
   const n = rfq.items.length;
   const init = () => ({
-    quoteNo: prev?.quoteNo || "", currency: prev?.currency || "INR", fx: prev?.fx || 1, gstPct: prev?.gstPct ?? 18,
+    quoteNo: prev?.quoteNo || "", currency: prev?.currency || byId(getState().vendors, vendorId)?.currency || "", fx: prev?.fx || DEFAULT_FX[byId(getState().vendors, vendorId)?.currency] || 1, gstPct: prev?.gstPct ?? "",
     rates: prev ? prev.rates.map((r) => (r == null ? "" : String(r))) : Array(n).fill(""),
     noBid: prev?.noBid ? [...prev.noBid] : Array(n).fill(false), discounts: prev?.discounts ? [...prev.discounts] : Array(n).fill(0),
     leadDays: prev?.leadDays ? [...prev.leadDays] : Array(n).fill(prev?.deliveryDays || 7), lineFiles: prev?.lineFiles ? [...prev.lineFiles] : Array(n).fill(null),
@@ -261,7 +261,8 @@ function QuoteForm({ rfq, vendorId, mode = "vendor", onDone }) {
   const qErr = [
     ...rfq.items.map((_, i) => f.noBid[i] ? "" : !(Number(f.rates[i]) > 0) ? `Line ${i + 1}: rate must be greater than 0` : VX.pct(f.discounts[i]) ? `Line ${i + 1}: discount must be 0–100%` : VX.num(f.leadDays[i], { min: 0, max: 365, int: true }) ? `Line ${i + 1}: lead days must be a whole number 0–365` : ""),
     !f.validUntil ? "Validity date required" : f.validUntil < todayISO() ? "Validity date is in the past" : f.validUntil < rfq.dueDate ? `Must be valid at least until the RFQ closes (${fmtDate(rfq.dueDate)})` : "",
-    f.currency !== "INR" && !(Number(f.fx) > 0) ? "Enter the exchange rate" : "",
+    !f.currency ? "Select currency" : f.currency !== "INR" && !(Number(f.fx) > 0) ? "Enter the exchange rate" : "",
+    f.gstPct === "" ? "Select GST %" : "",
     rfqAnswerErr(rfq, f.answers),
     ...Object.values(docDetailErrors("quote", f.details || {})),
     mode === "vendor" && prev && rfq.multiResponse === false ? "This RFQ accepts one response only - contact the buyer to revise" : "",
@@ -342,9 +343,9 @@ function QuoteForm({ rfq, vendorId, mode = "vendor", onDone }) {
       </div>
       <div className="grid grid-cols-6 gap-3">
         <Field label="Your quotation no."><TextInput value={f.quoteNo} onChange={(x) => setF({ ...f, quoteNo: x })} placeholder="e.g. DST/Q/0412" /></Field>
-        <Field label="Currency"><Select value={f.currency} onChange={(x) => setF({ ...f, currency: x, fx: DEFAULT_FX[x] || 1 })} options={CURRENCIES} /></Field>
+        <Field label="Currency" required><Select value={f.currency} onChange={(x) => setF({ ...f, currency: x, fx: DEFAULT_FX[x] || 1 })} options={CURRENCIES} /></Field>
         {f.currency !== "INR" && <Field label={`Exchange rate (₹ per ${f.currency})`} hint="Used to compare and award in INR"><NumInput value={f.fx} onChange={(x) => setF({ ...f, fx: x })} /></Field>}
-        <Field label="GST %"><Select value={String(f.gstPct)} onChange={(x) => setF({ ...f, gstPct: Number(x) })} options={GST_RATES.map(String)} /></Field>
+        <Field label="GST %" required><Select value={String(f.gstPct)} onChange={(x) => setF({ ...f, gstPct: Number(x) })} options={GST_RATES.map(String)} /></Field>
         <Field label="Valid until" required><DateInput value={f.validUntil} onChange={(x) => setF({ ...f, validUntil: x })} /></Field>
         <Field label="Quotation document">
           <label className={cls("flex h-[32px] cursor-pointer items-center gap-2 truncate rounded-md border border-dashed px-2.5 text-[12.5px]", f.attachment ? "border-green-300 bg-green-50 text-green-700" : "border-gray-300 text-ink-soft hover:border-brand hover:text-brand")}>
@@ -564,7 +565,7 @@ function RfqDrawer({ id, onClose, compose }) {
         {open && <Btn icon={Icon.layers} onClick={() => setAlt(true)}>Alternative RFQ</Btn>}
         {rfq.status === "Draft" && <Btn variant="primary" icon={Icon.send} onClick={() => setSend({ all: true })}>Compose & send</Btn>}
         {open && !(rfq.awards || []).length && <Btn variant="danger" onClick={() => setCancelAsk(true)}>Cancel RFQ</Btn>}
-        {open && rfq.status !== "Draft" && <Btn icon={Icon.plus} onClick={() => setRecord(rfq.vendorIds.find((v) => !rfq.quotes.some((q) => q.vendorId === v)) || rfq.vendorIds[0])}>Record quote on vendor's behalf</Btn>}
+        {open && rfq.status !== "Draft" && <Btn icon={Icon.plus} onClick={() => setRecord("?")}>Record quote on vendor's behalf</Btn>}
       </>}>
       {cancelAsk && <ReasonModal title={`Cancel ${rfq.id}`} text="Invited vendors are told the RFQ is withdrawn; quotes received stay on record." action="Cancel RFQ" onClose={() => setCancelAsk(false)}
         onDone={(r) => { setState((s) => { const x = byId(s.rfqs, rfq.id); x.status = "Cancelled"; x.cancelled = { at: new Date().toISOString(), by: currentUser(), reason: r }; }, { entity: "RFQ", id: rfq.id, action: `Cancelled - ${r}` }); toast(`${rfq.id} cancelled`, "red"); }} />}
@@ -713,8 +714,8 @@ function RfqDrawer({ id, onClose, compose }) {
       {send && <SendRfqModal rfq={rfq} resendTo={send.to} onClose={() => setSend(null)} />}
       {record && (
         <Modal open onClose={() => setRecord(null)} width={1000} title={`Record quotation on vendor's behalf - ${rfq.id}`} subtitle="For quotes received by e-mail or on paper (Zoho 'surrogate bid')">
-          <div className="mb-3 w-72"><Field label="Vendor"><Select value={record} onChange={setRecord} options={rfq.vendorIds.map((v) => ({ value: v, label: vendorName(st, v) }))} /></Field></div>
-          <QuoteForm key={record} rfq={rfq} vendorId={record} mode="buyer" onDone={() => setRecord(null)} />
+          <div className="mb-3 w-72"><Field label="Vendor"><Select value={record === "?" ? "" : record} onChange={setRecord} options={rfq.vendorIds.map((v) => ({ value: v, label: vendorName(st, v) }))} /></Field></div>
+          {record !== "?" && <QuoteForm key={record} rfq={rfq} vendorId={record} mode="buyer" onDone={() => setRecord(null)} />}
         </Modal>
       )}
       {award && <SplitAwardModal rfq={rfq} onClose={() => setAward(null)} />}

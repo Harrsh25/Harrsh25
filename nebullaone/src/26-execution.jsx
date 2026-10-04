@@ -41,13 +41,13 @@ function advanceNcr(n, what, note, by) {
   return true;
 }
 function NcrModal({ woId, mb, onClose }) {
-  const [f, setF] = y.useState({ category: "Quality", severity: "Major", desc: "" });
+  const [f, setF] = y.useState({ category: "", severity: "", desc: "" });
   return (
     <Modal open onClose={onClose} width={520} title={mb ? `Inspection failed - ${mb.id}` : `Raise NCR on ${woId}`} subtitle="A non-conformance report blocks billing of the item and QS certification until it is closed after re-inspection"
-      footer={<><Btn onClick={onClose}>Cancel</Btn><Btn variant="danger" disabled={!f.desc.trim()} onClick={() => { if (mb ? inspectMeasurement(mb, false, f) : raiseNcr(woId, f)) onClose(); }}>Raise NCR</Btn></>}>
+      footer={<><Btn onClick={onClose}>Cancel</Btn><Btn variant="danger" disabled={!f.category || !f.severity || !f.desc.trim()} onClick={() => { if (mb ? inspectMeasurement(mb, false, f) : raiseNcr(woId, f)) onClose(); }}>Raise NCR</Btn></>}>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Category"><Select value={f.category} onChange={(x) => setF({ ...f, category: x })} options={["Quality", "HSE"]} /></Field>
-        <Field label="Severity"><Select value={f.severity} onChange={(x) => setF({ ...f, severity: x })} options={["Minor", "Major", "Critical"]} /></Field>
+        <Field label="Category" required><Select value={f.category} onChange={(x) => setF({ ...f, category: x })} options={["Quality", "HSE"]} /></Field>
+        <Field label="Severity" required><Select value={f.severity} onChange={(x) => setF({ ...f, severity: x })} options={["Minor", "Major", "Critical"]} /></Field>
         <Field label="Non-conformance" required span={2}><TextArea value={f.desc} onChange={(x) => setF({ ...f, desc: x })} placeholder="e.g. Honeycombing at slab soffit, grid A4–A6" /></Field>
       </div>
     </Modal>
@@ -179,7 +179,7 @@ function WoResources({ wo }) {
           <KV cols={2} items={[["Workers registered on this WO", workers.length || "-"], ["Latest daily manpower", dprs[0] ? `${dprs[0].manpower} (${fmtDate(dprs[0].date)})` : "-"], ["Skilled / unskilled", workers.length ? `${workers.filter((w) => w.skill !== "Unskilled").length} / ${workers.filter((w) => w.skill === "Unskilled").length}` : "-"], ["Attendance", workers.length ? <RefLink to={`${CL_BASE}/attendance`}>Labour Attendance →</RefLink> : "Not tracked worker-wise"]]} />
         </Section>
       </div>
-      <Section title="Material issued to the contractor (recovered through RA bills)" icon={Icon.package} actions={active && <Btn size="sm" icon={Icon.plus} onClick={() => setMi({ material: "", unit: "bag", qty: "", rate: "", date: todayISO() })}>Issue material</Btn>}>
+      <Section title="Material issued to the contractor (recovered through RA bills)" icon={Icon.package} actions={active && <Btn size="sm" icon={Icon.plus} onClick={() => setMi({ material: "", unit: "", qty: "", rate: "", date: todayISO() })}>Issue material</Btn>}>
         <DataTable dense rows={issues} empty={<p className="p-4 text-[13px] text-ink-mute">No free-issue material.</p>} columns={[
           { key: "id", label: "Issue", className: "mono text-[12px]" }, { key: "date", label: "Date", render: (m) => fmtDate(m.date) }, { key: "material", label: "Material" },
           { key: "q", label: "Qty", align: "right", num: true, render: (m) => `${num(m.qty)} ${m.unit}` }, { key: "r", label: "Recovery rate", align: "right", num: true, render: (m) => inr(m.rate) },
@@ -188,7 +188,7 @@ function WoResources({ wo }) {
           { key: "rec", label: "Recovered in", render: (m) => (m.recoveredIn ? <RefLink to={`${CL_BASE}/ra-bills?open=${m.recoveredIn}`}>{m.recoveredIn}</RefLink> : <Status tone="amber">Next RA bill</Status>) },
         ]} />
       </Section>
-      <Section title="Daily progress reports" icon={Icon.calendar} actions={open && <Btn size="sm" icon={Icon.plus} onClick={() => setDpr({ date: todayISO(), manpower: "", work: "", hindrance: "", weather: "Clear" })}>Add daily report</Btn>}>
+      <Section title="Daily progress reports" icon={Icon.calendar} actions={open && <Btn size="sm" icon={Icon.plus} onClick={() => setDpr({ date: todayISO(), manpower: "", work: "", hindrance: "", weather: "" })}>Add daily report</Btn>}>
         <DataTable dense rows={dprs} empty={<p className="p-4 text-[13px] text-ink-mute">No daily reports yet.</p>} columns={[
           { key: "date", label: "Date", render: (d) => fmtDate(d.date) }, { key: "manpower", label: "Manpower", align: "right", num: true },
           { key: "work", label: "Work done", className: "max-w-[360px] whitespace-normal text-[12.5px]" }, { key: "hindrance", label: "Hindrance", className: "whitespace-normal text-[12px] text-amber-700", render: (d) => d.hindrance || "-" },
@@ -201,14 +201,14 @@ function WoResources({ wo }) {
       {ncr && <NcrModal woId={wo.id} onClose={() => setNcr(false)} />}
       {mi && (
         <Modal open onClose={() => setMi(null)} width={560} title={`Issue material - ${wo.id}`} subtitle="Recovered automatically in the contractor's next RA bill"
-          footer={<><Btn onClick={() => setMi(null)}>Cancel</Btn><Btn variant="primary" disabled={!mi.material.trim() || !(Number(mi.qty) > 0) || !(Number(mi.rate) > 0)} onClick={() => {
+          footer={<><Btn onClick={() => setMi(null)}>Cancel</Btn><Btn variant="primary" disabled={!mi.material.trim() || !mi.unit || !(Number(mi.qty) > 0) || !(Number(mi.rate) > 0)} onClick={() => {
             setState((s) => { s.materialIssues = s.materialIssues || []; s.materialIssues.unshift({ id: nextId("MI", s.materialIssues), woId: wo.id, material: mi.material.trim(), unit: mi.unit, qty: Number(mi.qty), rate: Number(mi.rate), date: mi.date, issuedBy: currentUser(), recoveredIn: null, fromStore: mi.fromStore || "", toStore: mi.toStore || "", remarks: mi.remarks || "" }); }, { entity: "Work Order", id: wo.id, action: `Material issued - ${mi.qty} ${mi.unit} ${mi.material}` });
             toast("Material issue recorded"); setMi(null);
           }}>Save</Btn></>}>
           <div className="grid grid-cols-3 gap-3">
             <Field label="Material" required span={3}><TextInput value={mi.material} onChange={(x) => setMi({ ...mi, material: x })} placeholder="e.g. OPC 53 cement (free issue)" /></Field>
             <Field label="Quantity" required><NumInput value={mi.qty} onChange={(x) => setMi({ ...mi, qty: x })} /></Field>
-            <Field label="Unit"><Select value={mi.unit} onChange={(x) => setMi({ ...mi, unit: x })} options={["bag", "MT", "kg", "cum", "nos", "ltr", "m"]} /></Field>
+            <Field label="Unit" required><Select value={mi.unit} onChange={(x) => setMi({ ...mi, unit: x })} options={["bag", "MT", "kg", "cum", "nos", "ltr", "m"]} /></Field>
             <Field label="Recovery rate (₹)" required><NumInput value={mi.rate} onChange={(x) => setMi({ ...mi, rate: x })} /></Field>
             <Field label="Date"><DateInput value={mi.date} onChange={(x) => setMi({ ...mi, date: x })} /></Field>
             <Field label="Issue from store"><Select value={mi.fromStore || ""} placeholder="-" onChange={(x) => setMi({ ...mi, fromStore: x })} options={settingsOf(getState()).stores} /></Field>

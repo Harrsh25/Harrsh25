@@ -177,7 +177,7 @@ function PortalWoDrawer({ id, onClose, open, onAccept, onDecline, onClaim }) {
         )}
         {tab === "ncr" && <Section title="Non-conformance reports" icon={Icon.shieldCheck}><NcrTable rows={ncrs} portal by={me} /></Section>}
         {tab === "dpr" && (
-          <Section title="Daily progress reports" icon={Icon.calendar} actions={canWork && <Btn size="sm" icon={Icon.plus} onClick={() => setDpr({ date: todayISO(), manpower: "", work: "", hindrance: "", weather: "Clear" })}>Submit daily report</Btn>}>
+          <Section title="Daily progress reports" icon={Icon.calendar} actions={canWork && <Btn size="sm" icon={Icon.plus} onClick={() => setDpr({ date: todayISO(), manpower: "", work: "", hindrance: "", weather: "" })}>Submit daily report</Btn>}>
             <DataTable dense rows={dprs} empty={<EmptyRow text="No daily reports yet." />} columns={[
               { key: "date", label: "Date", render: (d) => fmtDate(d.date) }, { key: "manpower", label: "Manpower", align: "right", num: true },
               { key: "work", label: "Work done", className: "max-w-[380px] whitespace-normal text-[12.5px]" }, { key: "hindrance", label: "Hindrance", className: "text-[12px]", render: (d) => d.hindrance || "-" }, { key: "by", label: "By", className: "text-[12px] text-ink-soft" },
