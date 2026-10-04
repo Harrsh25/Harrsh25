@@ -172,7 +172,7 @@ function RequirementsEditor() {
     <div className="space-y-4 p-4">
       <Note>Requirements decide what every vendor must hold. Changes apply immediately to all vendors - statuses, the payment gate and reminders are recalculated.</Note>
       <Section title="Document requirements" icon={Icon.folderCheck} actions={<Btn size="sm" icon={Icon.plus} onClick={() => setDocs([...docs, { name: "", applies: "all", expires: false, blocks: false }])}>Add document</Btn>}>
-        <table className="w-full"><thead><tr><Th>Document</Th><Th>Required for</Th><Th align="center">Has expiry</Th><Th align="center">Blocks payment</Th><Th align="right">Vendors</Th><Th /></tr></thead>
+        <table className="w-full"><thead><tr><Th>Document</Th><Th>Required for</Th><Th align="center">Has expiry</Th><Th align="center">Blocks payment</Th><Th align="right">Vendors</Th><Th align="right">Actions</Th></tr></thead>
           <tbody>{docs.map((d, i) => (
             <tr key={i}><Td className="w-[38%]"><TextInput value={d.name} onChange={(x) => upd(docs, setDocs, i, "name", x)} /></Td>
               <Td className="w-[26%]"><Select value={d.applies} onChange={(x) => upd(docs, setDocs, i, "applies", x)} options={APPLIES} /></Td>

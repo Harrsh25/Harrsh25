@@ -409,7 +409,7 @@ function Drawer({ open, title, badge, subtitle, recordId, rowId, status, details
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">{related && related.length > 0 && <div className="pt-4"><DocBar related={related} /></div>}
           {details && details.filter(Boolean).length > 0 && (!tabs || tabs.active === tabs.tabs[0]?.id) && <div className="px-6 pt-4"><InfoCard title="Details" icon={Icon.info} rows={details} /></div>}
-          {children}{comments && <RecordComments id={comments} />}</div>
+          <InDrawerCtx.Provider value>{children}</InDrawerCtx.Provider>{comments && <RecordComments id={comments} />}</div>
       </div>
     </div>
   );
@@ -460,7 +460,8 @@ function Select({ value, onChange, options, placeholder, disabled, className, la
   const [hi, setHi] = y.useState(-1);
   const btn = y.useRef(null), menu = y.useRef(null);
   // a plain "Select…" placeholder is not offered as an option; a meaningful one ("Not grouped", "- none -") is
-  const opts = [...(placeholder !== undefined && !/^select\b/i.test(String(placeholder)) ? [{ value: "", label: placeholder, ph: true }] : []), ...options.map((o) => (typeof o === "object" ? o : { value: o, label: o }))];
+  const dashPh = placeholder === undefined || /^\s*(-|–|—|select\b.*)\s*$/i.test(String(placeholder));
+  const opts = [...(!dashPh ? [{ value: "", label: placeholder, ph: true }] : []), ...options.map((o) => (typeof o === "object" ? o : { value: o, label: o }))];
   const cur = opts.find((o) => String(o.value) === String(value ?? ""));
   const searchable = opts.length > 8;
   const ql = q.trim().toLowerCase();
@@ -501,7 +502,7 @@ function Select({ value, onChange, options, placeholder, disabled, className, la
         onClick={() => setOpen((o) => !o)} onKeyDown={key}
         className={cls(inputCls, "flex items-center gap-2 text-left", open && "border-brand ring-2 ring-brand/15", disabled ? "cursor-not-allowed bg-gray-50 text-ink-mute" : "hover:border-gray-300", className)}>
         {cur && !cur.ph && dotOf(cur)}
-        <span className={cls("min-w-0 flex-1 truncate", (!cur || cur.ph) && "text-ink-mute")}>{cur ? String(cur.label).trim() : placeholder || "Select…"}</span>
+        <span className={cls("min-w-0 flex-1 truncate", (!cur || cur.ph) && "text-ink-mute")}>{cur ? String(cur.label).trim() : dashPh && heading && !/^select\s\S/i.test(String(placeholder || "")) ? `Select ${String(heading).replace(/\s*\*$/, "").replace(/\s*\([^)]*\)\s*$/, "").toLowerCase()}` : placeholder || "Select…"}</span>
         {h(Icon.chevronDown, { size: 14, className: cls("shrink-0 text-ink-mute transition-transform", open && "rotate-180") })}
       </button>
       {open && pos && (
@@ -1087,7 +1088,7 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
           <thead>
             <tr>
               {columns.map((c, ci) => (
-                <Th key={c.key} align={c.align} className={cls(c.thClass, stick(ci))}>{c.head || (canSort(c) ? (
+                <Th key={c.key} align={c.align} className={cls(c.thClass, stick(ci))}>{c.head || (!c.label ? (c.key === "sel" ? "" : "Actions") : canSort(c) ? (
                   <button type="button" onClick={() => toggleSort(c)} aria-label={`Sort by ${c.label}`} className={cls("group/s inline-flex items-center gap-1 hover:text-ink", c.align === "right" && "flex-row-reverse", sort?.key === c.key && "text-ink")}>
                     {c.label}{h(Icon.chevronDown, { size: 12, className: cls("shrink-0 transition", sort?.key === c.key ? (sort.dir === "asc" ? "rotate-180 opacity-100" : "opacity-100") : "opacity-0 group-hover/s:opacity-40") })}
                   </button>) : c.label)}</Th>
@@ -1199,7 +1200,16 @@ const CARD_TONE = {
   cyan: "border-cyan-200 bg-cyan-50/70 text-cyan-700", gray: "border-slate-200 bg-slate-50/80 text-slate-700",
 };
 const CARD_DOT = { blue: "bg-blue-500", purple: "bg-violet-500", amber: "bg-amber-500", green: "bg-green-500", red: "bg-red-500", orange: "bg-orange-500", cyan: "bg-cyan-500", gray: "bg-slate-500" };
+const InDrawerCtx = y.createContext(false);
 function StatTile({ label, value, sub, icon, tone = "blue" }) {
+  // on a detail page the figures use the same plain white tile as the related-document row (number, then icon + label)
+  if (y.useContext(InDrawerCtx)) return (
+    <div data-stat className="flex min-w-0 items-start rounded-md border border-line bg-white px-2.5 py-1.5">
+      <span className="flex min-w-0 flex-col leading-tight">
+        <span className="flex min-w-0 items-baseline gap-1.5"><span className="num whitespace-nowrap text-[13px] font-semibold text-ink">{value}</span>{sub && <span className="truncate text-[11px] text-ink-mute">{sub}</span>}</span>
+        <span className="mt-0.5 flex items-start gap-1 text-[11px] leading-[1.2] text-ink-mute">{icon && h(icon, { size: 11, className: "mt-px shrink-0" })}<span className="truncate">{label}</span></span>
+      </span>
+    </div>);
   return (
     <div className={cls("flex min-w-0 items-start justify-between rounded-xl border px-4 py-3", CARD_TONE[tone] || CARD_TONE.blue)}>
       <div className="min-w-0">

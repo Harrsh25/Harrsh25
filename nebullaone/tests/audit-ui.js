@@ -16,6 +16,19 @@ const BANNED = [[/—/, 'long dash —'], [/\binsurance\b/i, 'insurance'], [/Act
   await p.evaluate(() => { const s = JSON.parse(localStorage.getItem('nxv-store-v1')); let t = JSON.stringify(s).replace(/ - /g, ' — ');
     const o = JSON.parse(t); o.workers.forEach((w) => { delete w.idRef; delete w.uan; delete w.esic; delete w.medicalValidTill; delete w.certificates; }); o.contracts.forEach((c) => delete c.subcontracts); localStorage.setItem('nxv-store-v1', JSON.stringify(o)); });
   const out = [];
+  // a column whose cells hold text or buttons must have a header
+  const headless = async (scope) => p.locator(scope).evaluate((root) => {
+    const out = [];
+    for (const t of root.querySelectorAll('table')) {
+      const ths = [...t.querySelectorAll('thead tr:first-child th')]; const rows = [...t.querySelectorAll('tbody tr')];
+      ths.forEach((th, i) => {
+        if (th.innerText.trim() || th.querySelector('input,button,svg')) return;
+        const filled = rows.some((r) => { const td = r.children[i]; return td && (td.innerText.trim() || td.querySelector('button')) && !td.querySelector('input[type=checkbox]'); });
+        if (filled) out.push(`column ${i + 1} of "${(ths[0]?.innerText || '').trim()}" table`);
+      });
+    }
+    return out;
+  }).catch(() => []);
   const check = async (where) => {
     const t = await p.locator('body').innerText();
     for (const [re, name] of BANNED) if (re.test(t)) out.push(`${where}: ${name} — "${(t.match(new RegExp(`.{0,30}${re.source}.{0,20}`, re.flags)) || [''])[0].replace(/\n/g, ' ')}"`);
@@ -23,6 +36,7 @@ const BANNED = [[/—/, 'long dash —'], [/\binsurance\b/i, 'insurance'], [/Act
   for (const r of ROUTES) {
     await p.goto('about:blank'); await p.goto(FILE + r.hash); await p.waitForTimeout(350);
     await check(r.label);
+    for (const x of await headless('main')) out.push(`${r.label}: no header on ${x}`);
     const head = await p.locator('main table thead').first().innerText().catch(() => '');
     if (/(^|\n|\t)\s*ID\s*($|\n|\t)/.test(head)) out.push(`${r.label}: ID column on list`);
     if (await p.locator('main table tbody tr button[aria-label*="More" i], main table tbody tr button:has-text("⋯")').count()) out.push(`${r.label}: ⋯ menu on list rows`);
@@ -32,6 +46,7 @@ const BANNED = [[/—/, 'long dash —'], [/\binsurance\b/i, 'insurance'], [/Act
       const d = p.locator('[data-drawer]');
       if (await d.count()) {
         await check(`${r.label} › panel`);
+        for (const x of await headless('[data-drawer]')) out.push(`${r.label} › panel: no header on ${x}`);
         const tabs = await d.locator('[role=tab]').allInnerTexts();
         const counted = tabs.filter((x) => /\s\d+\s*$/.test(x.trim()) && !/360$/.test(x.trim()));
         if (counted.length) out.push(`${r.label} › panel: tab counts ${counted.join(', ')}`);
