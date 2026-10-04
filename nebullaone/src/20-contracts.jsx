@@ -46,7 +46,7 @@ function OnboardingDrawer({ vendorId, onClose, onFull }) {
     x.onboarding.checklist[i].done = !x.onboarding.checklist[i].done;
   }, { entity: "Vendor", id: vendorId, action: `Onboarding: ${ck[i].item} ${ck[i].done ? "reopened" : "done"}` });
   return (
-    <Drawer open onClose={onClose} width={720} title={v.name} subtitle={<><span className="mono">{v.id}</span><Status>{stage}</Status><Status>{complianceOf(v).status}</Status></>}
+    <Drawer open onClose={onClose} width={720} title={v.name} recordId={v.id} status={<Status>{stage}</Status>} details={[["Compliance", <Status>{complianceOf(v).status}</Status>]]}
       actions={<Btn icon={Icon.eye} onClick={() => onFull("overview")}>Full vendor record</Btn>}>
       <div className="space-y-4 px-6 py-5">
         <Section><div className="p-5"><Stepper steps={ONBOARD_STAGES.map((s, i) => ({ label: s, status: stage === "Rejected" ? (i === 1 ? "rejected" : i < 1 ? "done" : "todo") : i < idx ? "done" : i === idx ? (s === "Onboarded" ? "done" : "current") : "todo" }))} /></div></Section>

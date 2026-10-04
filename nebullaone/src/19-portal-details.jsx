@@ -24,8 +24,8 @@ function PortalPoDrawer({ id, onClose, open }) {
     { id: "rev", label: "Revisions", count: po.revisions.length },
   ];
   return (
-    <Drawer open onClose={onClose} width={920} title={`Purchase order ${po.id}`} tabs={{ tabs, active: tab, onChange: setTab }}
-      subtitle={<><Status>{poStatus(po)}</Status><Status tone="blue">{poBillingStatus(st, po)}</Status><span>Deliver to {po.project}</span><span>· by {fmtDate(po.deliveryDate)}</span><span>· issued {fmtDate(po.date)}</span></>}>
+    <Drawer open onClose={onClose} width={920} title={po.project} recordId={po.id} status={<Status>{poStatus(po)}</Status>} details={[["Billing", <Status tone="blue">{poBillingStatus(st, po)}</Status>], ["Deliver to", po.project], ["Delivery by", fmtDate(po.deliveryDate)], ["Issued", fmtDate(po.date)]]} tabs={{ tabs, active: tab, onChange: setTab }}
+     >
       <div className="space-y-4 px-6 py-5">
         <div className="grid grid-cols-4 gap-3">
           <StatTile tone="blue" label="Order value" value={inrShort(poValue(po))} sub="excl. GST" icon={Icon.package} />
@@ -126,8 +126,8 @@ function PortalWoDrawer({ id, onClose, open, onAccept, onDecline, onClaim }) {
     { id: "terms", label: "Contract terms" },
   ];
   return (
-    <Drawer open onClose={onClose} width={980} title={wo.title} tabs={{ tabs, active: tab, onChange: setTab }}
-      subtitle={<><span className="mono">{wo.id}</span><Status>{wo.status}</Status><span>{wo.type}</span><span>· {wo.location}</span><span>· {fmtDate(wo.start)} → {fmtDate(wo.end)}</span></>}
+    <Drawer open onClose={onClose} width={980} title={wo.title} recordId={wo.id} status={<Status>{wo.status}</Status>} details={[["Type", wo.type], ["Location", wo.location], ["Period", `${fmtDate(wo.start)} → ${fmtDate(wo.end)}`]]} tabs={{ tabs, active: tab, onChange: setTab }}
+     
       actions={wo.acceptance?.status === "Pending" ? <><Btn variant="danger" onClick={() => onDecline(wo)}>Decline</Btn><Btn variant="success" icon={Icon.check} onClick={() => onAccept(wo)}>Accept work order</Btn></>
         : woAccepted(wo) && ["Issued", "In Progress"].includes(wo.status) ? <Btn variant="primary" icon={Icon.receipt} onClick={() => onClaim(wo.id)}>Submit RA claim</Btn> : null}>
       <div className="space-y-4 px-6 py-5">
@@ -233,8 +233,8 @@ function PortalClaimDrawer({ id, onClose, open, onRevise }) {
   const ls = wo.type === "Lump Sum";
   const last = c.history[c.history.length - 1];
   return (
-    <Drawer open onClose={onClose} width={900} title={`RA claim ${c.id}`}
-      subtitle={<><Status tone={{ Submitted: "blue", Verified: "green", Returned: "red" }[c.status]}>{c.status}</Status><span>{wo.id} · {wo.title}</span><span>· period {fmtDate(c.periodFrom)} – {fmtDate(c.periodTo)}</span></>}
+    <Drawer open onClose={onClose} width={900} title={wo.title} recordId={c.id} status={<Status tone={{ Submitted: "blue", Verified: "green", Returned: "red" }[c.status]}>{c.status}</Status>} details={[["Work order", wo.id], ["Period", `${fmtDate(c.periodFrom)} – ${fmtDate(c.periodTo)}`]]}
+     
       actions={c.status === "Returned" ? <Btn variant="primary" onClick={() => onRevise(c)}>Revise & resubmit</Btn> : c.raBillId ? <Btn icon={Icon.eye} onClick={() => open("bill", c.raBillId)}>View RA bill {c.raBillId}</Btn> : null}>
       <div className="space-y-4 px-6 py-5">
         {c.status === "Returned" && <Note tone="red">Returned by {last.by}: {last.remark}</Note>}
@@ -275,8 +275,8 @@ function PortalRaBillDrawer({ id, onClose, open }) {
   const wo = byId(st.workOrders, bill.woId), c = byId(st.contracts, bill.contractId), v = byId(st.vendors, bill.vendorId);
   const idx = RA_FLOW.findIndex((f) => f.status === bill.status);
   return (
-    <Drawer open onClose={onClose} width={1000} title={`RA bill ${bill.id} · RA-${bill.seq}`}
-      subtitle={<><Status>{bill.status}</Status><span>{wo.id} · {wo.title}</span><span>· period {fmtDate(bill.periodFrom)} – {fmtDate(bill.periodTo)}</span></>}
+    <Drawer open onClose={onClose} width={1000} title={wo.title} recordId={`${bill.id} · RA-${bill.seq}`} status={<Status>{bill.status}</Status>} details={[["Work order", wo.id], ["Period", `${fmtDate(bill.periodFrom)} – ${fmtDate(bill.periodTo)}`]]}
+     
       actions={<>{bill.invoiceId && <Btn icon={Icon.rupee} onClick={() => open("inv", bill.invoiceId)}>Payment status</Btn>}<Btn icon={Icon.download} onClick={() => window.print()}>Print</Btn></>}>
       <div className="space-y-4 px-6 py-5">
         <Section title="Certification progress" icon={Icon.clipboardCheck}>
@@ -312,8 +312,8 @@ function PortalInvoiceDrawer({ id, onClose, open }) {
   const po = inv.poId && byId(st.purchaseOrders, inv.poId);
   const holdActive = inv.hold && (!inv.hold.until || daysUntil(inv.hold.until) >= 0);
   return (
-    <Drawer open onClose={onClose} width={900} title={`Bill ${inv.number}`}
-      subtitle={<><Status>{status}</Status><span className="mono">{inv.id}</span><span>· {inv.source}</span>{inv.poId && <button className="font-medium text-brand hover:underline" onClick={() => open("po", inv.poId)}>{inv.poId}</button>}{inv.raBillId && <button className="font-medium text-brand hover:underline" onClick={() => open("bill", inv.raBillId)}>{inv.raBillId}</button>}<span>· billed {fmtDate(inv.date)}</span><span>· due {fmtDate(inv.due)}</span></>}>
+    <Drawer open onClose={onClose} width={900} title={`Bill ${inv.number}`} recordId={inv.id} status={<Status>{status}</Status>} details={[["Source", <span className="flex items-center gap-1.5">{inv.source}{inv.poId && <button className="font-medium text-brand hover:underline" onClick={() => open("po", inv.poId)}>{inv.poId}</button>}{inv.raBillId && <button className="font-medium text-brand hover:underline" onClick={() => open("bill", inv.raBillId)}>{inv.raBillId}</button>}</span>], ["Billed", fmtDate(inv.date)], ["Due", fmtDate(inv.due)]]}
+     >
       <div className="space-y-4 px-6 py-5">
         <div className="grid grid-cols-4 gap-3">
           <StatTile tone="blue" label="Bill amount" value={inr(t.gross)} sub={inv.source === "RA Bill" ? "net of deductions" : `incl. GST ${inv.gstPct}%`} icon={Icon.receipt} />
@@ -370,7 +370,7 @@ function PortalDocDrawer({ vid, name, onClose, onUpload }) {
   const needs = ["Missing", "Expired", "Expiring", "Rejected"].includes(state);
   const hist = st.audit.filter((a) => a.id === vid && a.action.includes(name));
   return (
-    <Drawer open onClose={onClose} width={640} title={name} subtitle={<><Status>{state}</Status>{d.expiry && <span>valid till {fmtDate(d.expiry)}</span>}</>}
+    <Drawer open onClose={onClose} width={640} title={name} status={<Status>{state}</Status>} details={[d.expiry && ["Valid till", fmtDate(d.expiry)]]}
       actions={<Btn variant={needs ? "primary" : "secondary"} icon={Icon.upload} onClick={() => onUpload(d)}>{d.file ? "Upload new version" : "Upload"}</Btn>}>
       <div className="space-y-4 px-6 py-5">
         {state === "Rejected" && <Note tone="red">The buyer rejected this document{d.remark ? `: ${d.remark}` : ""}. Please upload a corrected copy.</Note>}
@@ -401,7 +401,7 @@ function PortalTicketDrawer({ id, author, onClose }) {
     setText(""); toast("Reply sent");
   };
   return (
-    <Drawer open onClose={onClose} width={640} title={t.subject} subtitle={<><span className="mono">{t.id}</span><Status>{t.status}</Status><span>raised {fmtDate(t.raisedOn)}</span></>}>
+    <Drawer open onClose={onClose} width={640} title={t.subject} recordId={t.id} status={<Status>{t.status}</Status>} details={[["Raised", fmtDate(t.raisedOn)]]}>
       <div className="space-y-3 px-6 py-5">
         <div className="rounded-lg border border-line bg-brand-soft/40 p-3 text-[13px]"><p className="mb-1 text-[11.5px] text-ink-mute">You · {fmtDate(t.raisedOn)}</p>{t.body}</div>
         {t.replies.map((r, i) => (

@@ -550,8 +550,8 @@ function RfqDrawer({ id, onClose, compose }) {
   const review = (vid, status, reason) => setState((s) => { const q = byId(s.rfqs, id).quotes.find((x) => x.vendorId === vid); q.review = status; q.returnReason = reason || ""; },
     { entity: "RFQ", id, action: `Quotation from ${vendorName(st, vid)} ${status === "Accepted" ? "accepted for evaluation" : `returned — ${reason}`}` });
   return (
-    <Drawer open related={relatedFor(st, "rfq", rfq).filter((x) => !/Vendors|Quotations/.test(x.label))} comments={rfq.id} onClose={onClose} width={1040} title={rfq.title}
-      badge={<Status>{rfq.status}</Status>}
+    <Drawer open related={relatedFor(st, "rfq", rfq).filter((x) => !/Vendors|Quotations/.test(x.label))} comments={rfq.id} onClose={onClose} width={1040} title={rfq.title} recordId={rfq.id} status={<Status>{rfq.status}</Status>}
+     
       tabs={{ active: tab, onChange: setTab, tabs: [
         { id: "overview", label: "Overview" }, { id: "items", label: "BOQ Items", count: rfq.items.length }, { id: "vendors", label: "Vendors", count: rfq.vendorIds.length },
         { id: "quotes", label: "Quotations", count: rfq.quotes.length }, { id: "compare", label: "Comparison" }, { id: "eval", label: "Evaluation" }, { id: "approval", label: "Approval" },

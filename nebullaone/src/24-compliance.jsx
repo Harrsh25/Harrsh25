@@ -127,9 +127,8 @@ function ComplianceDrawer({ vendorId, onClose }) {
     ...st.audit.filter((a) => a.id === v.id && /upload|verif|reject|policy|document|insurance|licence|certificate/i.test(a.action))].sort((a, b) => b.at.localeCompare(a.at));
   const due = c.items.filter((i) => reminderDue(v, i));
   return (
-    <Drawer open onClose={onClose} width={980} title={v.name}
-      subtitle={<><span className="mono">{v.id}</span><VendorTypeTag v={v} /><Status>{c.status}</Status>
-        {c.blocking.length ? <Status tone={gate === "Stop" ? "red" : "amber"}>{gate === "Stop" ? "Payments blocked" : gate === "Warn" ? "Payments flagged" : "Gate off"}</Status> : <Status tone="green">Payments open</Status>}</>}
+    <Drawer open onClose={onClose} width={980} title={v.name} recordId={v.id} status={<Status>{c.status}</Status>} details={[["Supplies", <VendorTypeTag v={v} />], ["Payment gate", c.blocking.length ? <Status tone={gate === "Stop" ? "red" : "amber"}>{gate === "Stop" ? "Payments blocked" : gate === "Warn" ? "Payments flagged" : "Gate off"}</Status> : <Status tone="green">Payments open</Status>]]}
+     
       actions={<Btn icon={Icon.mail} disabled={!c.items.some((i) => i.level > 0)} title={c.items.some((i) => i.level > 0) ? "" : "Nothing is expired or expiring — no reminder needed"} onClick={() => sendReminders(c.items.filter((i) => i.level > 0).map((item) => ({ v, item })))}>Send reminder{due.length ? ` (${due.length} due)` : ""}</Btn>}
       tabs={{ tabs: [{ id: "check", label: "Checklist" }, { id: "docs", label: "Documents" }, { id: "hist", label: "Reminders & history", count: hist.length || null }], active: tab, onChange: setTab }}>
       <div className="space-y-4 px-6 py-5">

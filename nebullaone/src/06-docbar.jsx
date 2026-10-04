@@ -8,8 +8,8 @@ function RelatedButtons({ items }) {
       {items.map((x) => {
         const body = (
           <span className="flex min-w-0 flex-col leading-tight">
-            <span className="flex items-center gap-1.5">{x.icon && h(x.icon, { size: 13, className: "shrink-0 text-ink-mute" })}<span className="text-[13px] font-semibold text-ink num">{x.value != null ? x.value : x.count}</span></span>
-            <span className="mt-0.5 text-[11px] leading-[1.2] text-ink-mute">{x.label}</span>
+            <span className="whitespace-nowrap text-[13px] font-semibold text-ink num">{x.value != null ? x.value : x.count}</span>
+            <span className="mt-0.5 flex items-start gap-1 text-[11px] leading-[1.2] text-ink-mute">{x.icon && h(x.icon, { size: 11, className: "mt-px shrink-0" })}<span>{x.label}</span></span>
           </span>);
         const c = "flex min-w-0 items-start rounded-md border border-line bg-white px-2 py-1 text-left hover:border-brand/40 hover:bg-brand-soft/40";
         return x.to && (x.count || x.value != null)

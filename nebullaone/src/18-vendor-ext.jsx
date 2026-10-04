@@ -79,8 +79,8 @@ function InviteDrawer({ id, onClose, onShare, onOpenVendor }) {
     { label: "Approved", status: v && v.status === "Active" ? "done" : v ? "current" : "todo", meta: v ? v.status : "" },
   ];
   return (
-    <Drawer open onClose={onClose} width={720} title={i.name}
-      subtitle={<><span className="mono">{i.id}</span><Status>{i.status}</Status><span>{i.email}</span>{i.category && <span>· {i.category}</span>}</>}
+    <Drawer open onClose={onClose} width={720} title={i.name} recordId={i.id} status={<Status>{i.status}</Status>} details={[["E-mail", i.email], i.category && ["Category", i.category]]}
+     
       actions={v ? <Btn variant="primary" onClick={() => onOpenVendor(v.id)}>Open vendor</Btn> : i.status === "Invited" ? <>
         <Btn variant="ghost" onClick={() => cancelInvite(i)}>Cancel invitation</Btn>
         <Btn icon={Icon.mail} onClick={() => remindInvite(i)}>Send reminder</Btn>

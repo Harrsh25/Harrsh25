@@ -267,7 +267,7 @@ function PoDrawer({ id, onClose }) {
     return am.lines.some((l) => { const it = rfq.items.find((x) => x.desc === l.desc); return it && Number(l.qty) > it.qty * allow + 1e-6; });
   };
   return (
-    <Drawer open related={relatedFor(st, "po", po)} comments={po.id} onClose={onClose} width={940} title={`${po.id} · ${v.name}`} subtitle={<><Status>{status}</Status><Status tone="blue">{bstatus}</Status><span>{po.project}</span><span>· delivery by {fmtDate(po.deliveryDate)}</span>{po.rfqId && <span>· from <RefLink to={`${VM_BASE}/rfq?open=${po.rfqId}`}>{po.rfqId}</RefLink></span>}{po.blanketId && <span>· call-off {po.blanketId}</span>}{po.quoteNo && <span>· vendor quote {po.quoteNo}</span>}</>}
+    <Drawer open related={relatedFor(st, "po", po)} comments={po.id} onClose={onClose} width={940} title={v.name} recordId={po.id} status={<Status>{status}</Status>} details={[["Billing", <Status tone="blue">{bstatus}</Status>], ["Project", po.project], ["Delivery by", fmtDate(po.deliveryDate)], po.rfqId && ["From RFQ", <RefLink to={`${VM_BASE}/rfq?open=${po.rfqId}`}>{po.rfqId}</RefLink>], po.blanketId && ["Call-off of", po.blanketId], po.quoteNo && ["Vendor quote", po.quoteNo]]}
       actions={<>
         {po.status === "Draft" && <><Btn variant="danger" onClick={() => setAsk("reject")}>Reject</Btn><Btn variant="primary" onClick={() => decidePo(po, true)}>Approve & issue</Btn></>}
         {/* Cancel while nothing is received or billed; close (short-close) once part is received and no more is expected */}
@@ -425,7 +425,7 @@ function BlanketOrdersPage() {
         { key: "s", label: "Status", filterOptions: FO.blanket, filter: (b) => blanketStatus(st, b), render: (b) => <Status>{blanketStatus(st, b)}</Status> },
       ]} />
       {bo && (
-        <Drawer open related={relatedFor(st, "blanket", bo)} comments={bo.id} onClose={() => setOpen(null)} width={880} title={bo.title} subtitle={<><span className="mono">{bo.id}</span><Status>{blanketStatus(st, bo)}</Status><span>{vendorName(st, bo.vendorId)}</span><span>· {fmtDate(bo.start)} → {fmtDate(bo.deadline)}</span></>}
+        <Drawer open related={relatedFor(st, "blanket", bo)} comments={bo.id} onClose={() => setOpen(null)} width={880} title={bo.title} recordId={bo.id} status={<Status>{blanketStatus(st, bo)}</Status>} details={[["Vendor", vendorName(st, bo.vendorId)], ["Period", `${fmtDate(bo.start)} → ${fmtDate(bo.deadline)}`]]}
           actions={<>{blanketStatus(st, bo) === "Active" && <Btn variant="primary" icon={Icon.plus} onClick={() => setCalloff(bo.id)}>Create call-off PO</Btn>}
             {bo.status !== "Closed" && <Btn onClick={() => setState((s) => (byId(s.blanketOrders, bo.id).status = "Closed"), { entity: "Blanket Order", id: bo.id, action: "Closed" })}>Close agreement</Btn>}</>}>
           <div className="space-y-4 px-6 py-5">
@@ -724,8 +724,8 @@ function InvoiceDrawer({ id, onClose }) {
   const holdActive = inv.hold && (!inv.hold.until || daysUntil(inv.hold.until) >= 0);
   const schedErr = (sc) => sc.map((z, i) => !z.due ? `#${i + 1}: due date required` : z.due < inv.date ? `#${i + 1}: due before the bill date (${fmtDate(inv.date)})` : i > 0 && sc[i - 1].due && z.due <= sc[i - 1].due ? `#${i + 1}: must fall after instalment #${i}` : !(Number(z.pct) > 0) ? `#${i + 1}: share must be greater than 0` : "");
   return (
-    <Drawer open related={relatedFor(st, "bill", inv)} comments={inv.id} onClose={onClose} width={920} title={`${inv.id} · ${vendorName(st, inv.vendorId)}`}
-      subtitle={<><Status>{status}</Status><span>{inv.source}{inv.poId ? <> <RefLink to={`${VM_BASE}/purchase-orders?open=${inv.poId}`}>{inv.poId}</RefLink></> : inv.raBillId ? <> <RefLink to={`${CL_BASE}/ra-bills?open=${inv.raBillId}`}>{inv.raBillId}</RefLink></> : ""}</span><span>· vendor ref {inv.number}</span><span>· due {fmtDate(inv.due)}</span>{status !== "Paid" && <span>· should be paid: <b className={cls(sbp === "No" ? "text-red-600" : sbp === "Exception" ? "text-amber-700" : "text-green-700")}>{sbp}</b></span>}</>}
+    <Drawer open related={relatedFor(st, "bill", inv)} comments={inv.id} onClose={onClose} width={920} title={vendorName(st, inv.vendorId)} recordId={inv.id} status={<Status>{status}</Status>} details={[["Source", <span>{inv.source}{inv.poId ? <> <RefLink to={`${VM_BASE}/purchase-orders?open=${inv.poId}`}>{inv.poId}</RefLink></> : inv.raBillId ? <> <RefLink to={`${CL_BASE}/ra-bills?open=${inv.raBillId}`}>{inv.raBillId}</RefLink></> : ""}</span>], ["Vendor bill no.", inv.number], ["Due", fmtDate(inv.due)], status !== "Paid" && ["Should be paid", <b className={cls("font-medium", sbp === "No" ? "text-red-600" : sbp === "Exception" ? "text-amber-700" : "text-green-700")}>{sbp}</b>]]}
+     
       actions={<>{inv.posted === false && <Btn variant="primary" onClick={() => mut((x) => { x.posted = true; x.postedBy = currentUser(); x.postedAt = new Date().toISOString(); }, "Bill posted — now payable")}>Post bill</Btn>}
         {inv.posted !== false && t.balance > 0.5 && inv.review !== "Pending" && !inv.cancelled && <Btn variant="primary" icon={Icon.rupee} onClick={() => setPay(true)}>Record payment</Btn>}
         {!inv.cancelled && inv.source !== "RA Bill" && !inv.payments.some((p) => !p.reversed) && <Btn variant="danger" onClick={() => setAsk({ kind: "cancel" })}>Cancel bill</Btn>}</>}>

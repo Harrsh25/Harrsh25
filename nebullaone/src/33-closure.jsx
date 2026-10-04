@@ -63,7 +63,7 @@ function SettlementDrawer({ id, onClose }) {
     toast(status === "Sent" ? "Final settlement sent to the contractor" : "Final settlement saved");
   };
   return (
-    <Drawer open onClose={onClose} width={820} title={`Final settlement — ${c.title}`} subtitle={<><span className="mono">{c.id}</span><Status>{contractStatus(c)}</Status><span>{vendorName(st, c.vendorId)}</span>{s0 && <Status tone={locked ? "green" : s0.status === "Disputed" ? "red" : "amber"}>{s0.status}</Status>}</>}
+    <Drawer open onClose={onClose} width={820} title={`Final settlement — ${c.title}`} recordId={c.id} status={<Status>{contractStatus(c)}</Status>} details={[["Vendor", vendorName(st, c.vendorId)], s0 && ["Settlement", <Status tone={locked ? "green" : s0.status === "Disputed" ? "red" : "amber"}>{s0.status}</Status>]]}
       actions={<>
         <RefLink to={`${CL_BASE}/closeout?open=${c.id}`}>Close-out →</RefLink>
         {!locked && <Btn disabled={!!adjErr} onClick={() => save("Draft")}>Save draft</Btn>}
@@ -307,7 +307,7 @@ function ContractorReleasePage() {
         { key: "r", label: "Release", filterOptions: ["Issued", "Ready", "Waiting"], filter: (r) => (r.c.release ? "Issued" : r.open.length ? "Waiting" : "Ready"), render: (r) => (r.c.release ? <Status tone="green">{r.c.release.no}</Status> : <Status tone={r.open.length ? "amber" : "blue"}>{r.open.length ? "Waiting" : "Ready"}</Status>) },
       ]} />
       {c && row && (
-        <Drawer open onClose={() => setOpen(null)} width={760} title={`Contractor release — ${c.title}`} subtitle={<><span className="mono">{c.id}</span><Status>{contractStatus(c)}</Status><span>{vendorName(st, c.vendorId)}</span></>}
+        <Drawer open onClose={() => setOpen(null)} width={760} title={`Contractor release — ${c.title}`} recordId={c.id} status={<Status>{contractStatus(c)}</Status>} details={[["Vendor", vendorName(st, c.vendorId)]]}
           actions={<>{c.release ? <Btn icon={Icon.download} onClick={() => printRelease(c)}>Print certificate</Btn> : <Btn variant="primary" disabled={row.open.length > 0} title={row.open.map((i) => i.label).join("\n")} onClick={() => setF({ date: todayISO(), signatory: byId(st.vendors, c.vendorId).contact?.name || "", ev: evalBlank(false) })}>Issue release certificate</Btn>}
             {c.release && c.status !== "Closed" && <Btn variant="success" disabled={closureChecklist(st, c).some((i) => !i.ok)} title={closureChecklist(st, c).filter((i) => !i.ok).map((i) => i.label).join("\n")} onClick={() => closeContract(c)}>Close contract</Btn>}</>}>
           <div className="space-y-4 px-6 py-5">
@@ -367,7 +367,7 @@ function TerminationsPage() {
         { key: "s", label: "Step", filterOptions: TERM_STEPS, filter: (r) => TERM_STEPS[r.step], render: (r) => <Status tone={r.step === 4 ? "gray" : "amber"}>{TERM_STEPS[r.step]}</Status> },
       ]} />
       {c && (
-        <Drawer open onClose={() => setOpen(null)} width={860} title={`Termination — ${c.title}`} subtitle={<><span className="mono">{c.id}</span><Status>{contractStatus(c)}</Status><span>{vendorName(st, c.vendorId)}</span></>}
+        <Drawer open onClose={() => setOpen(null)} width={860} title={`Termination — ${c.title}`} recordId={c.id} status={<Status>{contractStatus(c)}</Status>} details={[["Vendor", vendorName(st, c.vendorId)]]}
           actions={<>{c.status !== "Closed" && <Btn variant="success" disabled={closureChecklist(st, c).some((i) => !i.ok)} title={closureChecklist(st, c).filter((i) => !i.ok).map((i) => i.label).join("\n")} onClick={() => closeContract(c)}>Close contract</Btn>}</>}>
           <div className="space-y-4 px-6 py-5">
             <Section><div className="overflow-x-auto p-5"><Stepper steps={TERM_STEPS.map((x, i) => { const k = terminationStep(st, c); return { label: x, status: i < k || (i === 4 && c.status === "Closed") ? "done" : i === k ? "current" : "todo" }; })} /></div></Section>

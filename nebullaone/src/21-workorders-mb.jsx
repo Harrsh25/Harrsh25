@@ -117,7 +117,7 @@ function WorkOrderDrawer({ id, onClose }) {
   };
   const lastLog = (wo.log || []).slice(-1)[0];
   return (
-    <Drawer open related={relatedFor(st, "wo", wo)} comments={wo.id} onClose={onClose} width={960} title={wo.title} subtitle={<><span className="mono">{wo.id}</span><Status>{wo.status}</Status><span>{wo.type}</span><span>· {vendorName(st, wo.vendorId)}</span><span>· {wo.contractId}</span><span>· {wo.location}</span></>}
+    <Drawer open related={relatedFor(st, "wo", wo)} comments={wo.id} onClose={onClose} width={960} title={wo.title} recordId={wo.id} status={<Status>{wo.status}</Status>} details={[["Type", wo.type], ["Vendor", vendorName(st, wo.vendorId)], ["Contract", wo.contractId], ["Location", wo.location]]}
       actions={<>
         {["Draft", "Issued"].includes(wo.status) && !st.measurements.some((m) => m.woId === wo.id) && <Btn variant="danger" onClick={() => setCancelAsk(true)}>Cancel WO</Btn>}
         {wo.status === "Draft" && <Btn variant="primary" onClick={() => mut("Issued")}>Issue</Btn>}
@@ -350,8 +350,8 @@ function MeasurementBookPage() {
         const m = byId(st.measurements, openMb); if (!m) return null;
         const w = byId(st.workOrders, m.woId);
         return (
-          <Drawer open onClose={() => setOpenMb(null)} width={720} title={lineName(m)}
-            subtitle={<><span className="mono">{m.id}</span><Status>{m.jms.status}</Status><span>{w.title}</span><span>· {vendorName(st, w.vendorId)}</span></>}
+          <Drawer open onClose={() => setOpenMb(null)} width={720} title={lineName(m)} recordId={m.id} status={<Status>{m.jms.status}</Status>} details={[["Work order", w.title], ["Vendor", vendorName(st, w.vendorId)]]}
+           
             actions={m.jms.status !== "Signed" && <>
               {!m.billedIn && <Btn onClick={() => setWithdraw(m)}>Withdraw</Btn>}
               {m.jms.status === "Pending" && <Btn variant="danger" onClick={() => setSign({ ids: [m.id], dispute: true, remark: "" })}>Dispute</Btn>}

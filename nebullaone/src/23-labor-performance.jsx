@@ -122,8 +122,8 @@ function LaborRatesPage() {
         const r = byId(st.laborRates, openR); if (!r) return null;
         const versions = st.laborRates.filter((x) => rateKey(x) === rateKey(r)).sort((a, b) => b.version - a.version);
         return (
-          <Drawer open onClose={() => setOpenR(null)} width={760} title={`${r.trade} — ${r.skill}`}
-            subtitle={<><span className="mono">{r.id}</span><Status>{r.status}</Status><span>{r.region}</span><span>· {r.vendorId ? vendorName(st, r.vendorId) : "Standard rate"}</span><span>· v{r.version}</span></>}
+          <Drawer open onClose={() => setOpenR(null)} width={760} title={`${r.trade} — ${r.skill}`} recordId={r.id} status={<Status>{r.status}</Status>} details={[["Region", r.region], ["Vendor", r.vendorId ? vendorName(st, r.vendorId) : "Standard rate"], ["Version", `v${r.version}`]]}
+           
             actions={r.status === "Pending Approval" ? <><Btn variant="danger" onClick={() => approveRate(r, false)}>Reject</Btn><Btn variant="success" icon={Icon.check} onClick={() => approveRate(r, true)}>Approve</Btn></>
               : r.status === "Active" && <Btn icon={Icon.pencil} onClick={() => { setOpenR(null); setEdit(r); }}>Revise</Btn>}>
             <div className="space-y-4 px-6 py-5">

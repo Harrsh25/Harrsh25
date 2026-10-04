@@ -10,7 +10,7 @@ const Card = B, PageHeader = H, Toolbar = se, Th = S, Td = g;
 // Page tabs — same look as the host tab bar, plus tab roles so keyboards, screen readers and tests can find them
 // A row of tabs that never wraps or hides tabs: when they don't fit, the row scrolls sideways
 // (mouse wheel, drag on touch, or the ‹ › arrows that appear at the ends) and the open tab is scrolled into view
-function ScrollTabs({ className, gap = "gap-1", active, children }) {
+function ScrollTabs({ className, gap = "gap-1", active, arrowClass = "", children }) {
   const ref = y.useRef(null);
   const [edge, setEdge] = y.useState({ l: false, r: false });
   const upd = () => { const e = ref.current; if (!e) return; setEdge({ l: e.scrollLeft > 2, r: e.scrollLeft + e.clientWidth < e.scrollWidth - 2 }); };
@@ -23,14 +23,15 @@ function ScrollTabs({ className, gap = "gap-1", active, children }) {
   const wheel = (ev) => { const e = ref.current; if (e && e.scrollWidth > e.clientWidth && Math.abs(ev.deltaY) > Math.abs(ev.deltaX)) { e.scrollLeft += ev.deltaY; } };
   const go = (d) => ref.current?.scrollBy({ left: d * Math.max(120, ref.current.clientWidth * 0.6), behavior: "smooth" });
   const arrow = (d) => (
+    // the arrows take their own space beside the tabs (never drawn over a tab) and line up with the tab text
     <button type="button" aria-label={d < 0 ? "Scroll tabs left" : "Scroll tabs right"} onClick={() => go(d)}
-      className={cls("absolute top-0 z-10 grid h-full w-7 place-items-center bg-white/95 text-ink-mute hover:text-ink", d < 0 ? "left-0 shadow-[6px_0_8px_-6px_rgba(16,24,40,0.25)]" : "right-0 shadow-[-6px_0_8px_-6px_rgba(16,24,40,0.25)]")}>
+      className={cls("flex w-7 shrink-0 items-center justify-center self-stretch rounded-md text-ink-mute hover:bg-gray-100 hover:text-ink", d < 0 ? "mr-1" : "ml-1", arrowClass)}>
       {h(Icon.chevronRight, { size: 15, className: d < 0 ? "rotate-180" : "" })}
     </button>);
   return (
-    <div className={cls("relative min-w-0", className)}>
+    <div className={cls("flex min-w-0 items-stretch", className)}>
       {edge.l && arrow(-1)}
-      <div ref={ref} role="tablist" onScroll={upd} onWheel={wheel} className={cls("nx-noscroll flex min-w-0 overflow-x-auto", gap)}>{children}</div>
+      <div ref={ref} role="tablist" onScroll={upd} onWheel={wheel} className={cls("nx-noscroll flex min-w-0 flex-1 overflow-x-auto", gap)}>{children}</div>
       {edge.r && arrow(1)}
     </div>
   );
@@ -291,7 +292,7 @@ function Modal({ open, title, subtitle, onClose, footer, width = 640, children }
 function DetailTabs({ tabs, active, onChange }) {
   return (
     <div className="border-b border-line px-6">
-      <ScrollTabs gap="gap-5" active={active}>
+      <ScrollTabs gap="gap-5" active={active} arrowClass="mb-2">
         {tabs.map((t) => {
           const on = t.id === active;
           return (
@@ -333,7 +334,9 @@ function useContentBox() {
   y.useLayoutEffect(() => { const u = () => setB(get()); u(); window.addEventListener("resize", u); return () => window.removeEventListener("resize", u); }, []);
   return b;
 }
-function Drawer({ open, title, badge, subtitle, onClose, actions, width = 760, tabs, related, comments, children }) {
+// Record panel. Header (same on every record): title, then the record ID and its status — nothing else.
+// Any other key facts passed as `details` ([label, value] rows) show in a "Details" card at the top of the first tab.
+function Drawer({ open, title, badge, subtitle, recordId, status, details, onClose, actions, width = 760, tabs, related, comments, children }) {
   useEscape(open, onClose);
   const box = useContentBox();
   if (!open) return null;
@@ -352,13 +355,15 @@ function Drawer({ open, title, badge, subtitle, onClose, actions, width = 760, t
                 <h2 className="min-w-0 text-[17px] font-semibold leading-tight tracking-tight" style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "anywhere" }}>{title}</h2>
                 {badge}
               </div>
-              {subtitle && <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-ink-soft">{subtitle}</div>}
+              {(recordId || status || subtitle) && <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-ink-soft">{recordId && <span className="mono text-ink-mute">{recordId}</span>}{status}{subtitle}</div>}
             </div>
             {actions && <div className="-mt-1 ml-auto flex max-w-full flex-wrap items-center justify-end gap-2" style={{ flex: "0 1 auto" }}>{actions}</div>}
           </div>
           {tabs && <DetailTabs {...tabs} />}
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto">{related && related.length > 0 && <div className="pt-4"><DocBar related={related} /></div>}{children}{comments && <RecordComments id={comments} />}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto">{related && related.length > 0 && <div className="pt-4"><DocBar related={related} /></div>}
+          {details && details.filter(Boolean).length > 0 && (!tabs || tabs.active === tabs.tabs[0]?.id) && <div className="px-6 pt-4"><InfoCard title="Details" icon={Icon.info} rows={details} /></div>}
+          {children}{comments && <RecordComments id={comments} />}</div>
       </div>
     </div>
   );
