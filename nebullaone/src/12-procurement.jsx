@@ -732,7 +732,11 @@ function InvoiceDrawer({ id, onClose }) {
       {ask && ask.kind === "cancel" && <ReasonModal title={`Cancel ${inv.id}`} text="The bill stops being payable and its quantities can be billed again. Bills with payments must have them reversed first." action="Cancel bill"
         onClose={() => setAsk(null)} onDone={(r) => { mut((x) => { x.cancelled = { at: new Date().toISOString(), by: currentUser(), reason: r }; }, `Bill cancelled — ${r}`); toast(`${inv.id} cancelled`, "red"); }} />}
       {ask && ask.kind === "reverse" && <ReasonModal title={`Reverse payment ${ask.p.id}`} text={`${inr(ask.p.amount)}${ask.p.tds ? ` + TDS ${inr(ask.p.tds)}` : ""} goes back on the bill's balance (bounced cheque, wrong account…).`} action="Reverse payment"
-        onClose={() => setAsk(null)} onDone={(r) => mut((x) => { const p = x.payments.find((q) => q.id === ask.p.id); p.reversed = { at: new Date().toISOString(), by: currentUser(), reason: r }; }, `Payment ${ask.p.id} reversed — ${r}`)} />}
+        onClose={() => setAsk(null)} onDone={(r) => setState((s) => { const x = byId(s.invoices, id); const p = x.payments.find((q) => q.id === ask.p.id); p.reversed = { at: new Date().toISOString(), by: currentUser(), reason: r };
+          // an RA bill that was settled by this payment is open again (back to Approved / payable)
+          const b = x.raBillId && byId(s.raBills, x.raBillId);
+          if (b && b.status === "Paid" && invoiceTotals(x).balance > 0.5) { b.status = "Approved"; b.history.push({ status: "Approved", by: currentUser(), at: new Date().toISOString(), remark: `Payment ${p.id} reversed — ${r}` }); }
+        }, { entity: "Invoice", id, action: `Payment ${ask.p.id} reversed — ${r}` })} />}
       <div className="space-y-4 px-6 py-5">
         {inv.review && !(inv.cancelled && inv.review === "Pending") && <VendorInvoiceReview inv={inv} />}
         <div className="grid grid-cols-4 gap-3">

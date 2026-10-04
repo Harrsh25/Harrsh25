@@ -17,6 +17,18 @@ function auditLink(a) {
     Requisition: `${VM_BASE}/requisitions?open=`, "Blanket Order": `${VM_BASE}/blanket-orders?open=`, Contract: `${CL_BASE}/contracts?open=`, "Work Order": `${CL_BASE}/work-orders?open=`, "RA Bill": `${CL_BASE}/ra-bills?open=` };
   return map[a.entity] && /^[A-Z]+-\d+/.test(id) ? map[a.entity] + id : null;
 }
+// The action, plus each changed field as "old → new"
+function AuditAction({ a }) {
+  return (
+    <span className="block">
+      {a.action}
+      {(a.changes || []).length > 0 && (
+        <span className="mt-1 block space-y-0.5 text-[12px] text-ink-mute">
+          {a.changes.map((c) => <span key={c.field} className="block"><span className="text-ink-soft">{c.field}:</span> <span className="line-through decoration-ink-faint/70">{c.from}</span> → <span className="text-ink">{c.to}</span></span>)}
+        </span>)}
+    </span>
+  );
+}
 function AuditLogPage() {
   const st = useStore(), nav = useNavigate();
   const [from, setFrom] = y.useState(""), [to, setTo] = y.useState("");
@@ -30,7 +42,7 @@ function AuditLogPage() {
           { key: "by", label: "Who", filterOptions: () => uniqSorted(getState().audit.map((a) => a.by)), filter: (r) => r.by },
           { key: "entity", label: "Entity", filterOptions: () => uniqSorted(getState().audit.map((a) => a.entity)), filter: (r) => r.entity },
           { key: "rec", label: "Record", sort: (r) => auditName(r), render: (r) => <span className={cls("text-[12.5px]", auditLink(r) && "text-brand")}>{auditName(r)}</span> },
-          { key: "desc", label: "Activity", sort: (r) => r.action, className: "max-w-[520px] whitespace-normal text-[12.5px]", render: (r) => r.action },
+          { key: "desc", label: "Activity", sort: (r) => r.action, className: "max-w-[520px] whitespace-normal text-[12.5px]", render: (r) => <AuditAction a={r} /> },
         ]} />
     </Page>
   );

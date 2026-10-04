@@ -161,10 +161,35 @@ function getState() {
 }
 // Settings without forcing a load — safe to call while the seed is being built
 const currentSettings = () => settingsOf(state || {});
+// Audit "old → new": for the record an action is about, the sensitive fields are compared before and after the change
+// and every difference is stored with the entry (bank details, tax IDs, values, terms, status…)
+const AUDIT_FIELDS = {
+  Vendor: ["vendors", (v) => ({ "Name": v.name, "Legal name": v.legalName, "GSTIN": v.gstin, "PAN": v.pan, "Tax ID": v.taxId, "Status": v.status, "Tier": v.tier,
+    "Registration tier": v.regTier, "Supplier type": v.supplierType, "TDS": v.tds, "Payment terms": v.paymentTerms, "Currency": v.currency, "Vendor group": v.group,
+    "E-mail": v.contact?.email, "Phone": v.contact?.phone, "Address": [v.address, v.city, v.state, v.pin].filter(Boolean).join(", "),
+    "Frozen": v.frozen ? "Yes" : "No", "Bills without PO": v.allowBillWithoutPO ? "Yes" : "No", "Bills before receipt": v.allowBillWithoutReceipt ? "Yes" : "No",
+    "Bank accounts": (v.bankAccounts || []).map((b) => `${b.bank || ""} ••${String(b.account || "").slice(-4)} ${b.ifsc || b.swift || ""} (${b.status || "Unverified"}${b.isDefault ? ", default" : ""}${b.disabled ? ", disabled" : ""})`).join("; ") })],
+  Contract: ["contracts", (c) => ({ "Status": c.status, "Contract value": typeof contractValue === "function" ? String(contractValue(c)) : String(c.value), "Start": c.start, "End": c.end,
+    "Retention %": c.retentionPct, "Advance %": c.advancePct, "LD % per week": c.ldPctPerWeek, "LD cap %": c.ldCapPct, "DLP months": c.dlpMonths, "Payment terms": c.paymentTerms, "BG no.": c.bgNo, "BG expiry": c.bgExpiry })],
+  PO: ["purchaseOrders", (p) => ({ "Status": p.status, "PO value": typeof poValue === "function" ? String(poValue(p)) : "", "Delivery by": p.deliveryDate, "Payment terms": p.paymentTerms })],
+  "Work Order": ["workOrders", (w) => ({ "Status": w.status, "End": w.end, "Value": typeof woValue === "function" ? String(woValue(w)) : "" })],
+  Invoice: ["invoices", (i) => ({ "Bill no.": i.number, "Due": i.due, "Cancelled": i.cancelled ? "Yes" : "No", "Review": i.review, "Paid": String((i.payments || []).reduce((a, p) => a + (Number(p.amount) || 0), 0)) })],
+};
+function auditChanges(prev, next, audit) {
+  const spec = audit && AUDIT_FIELDS[audit.entity]; if (!spec || !audit.id) return null;
+  const [coll, snap] = spec, id = String(audit.id).split(",")[0].trim();
+  const a = (prev[coll] || []).find((r) => r.id === id), b = (next[coll] || []).find((r) => r.id === id);
+  if (!b) return null;
+  let sa = {}, sb = {}; try { sa = a ? snap(a) : {}; sb = snap(b); } catch { return null; }
+  const norm = (x) => (x == null || x === "" ? "" : String(x));
+  const out = Object.keys(sb).filter((k) => norm(sa[k]) !== norm(sb[k])).map((k) => ({ field: k, from: norm(sa[k]) || "—", to: norm(sb[k]) || "—" }));
+  return out.length ? out : null;
+}
 function setState(mutator, audit) {
-  const next = structuredClone(getState());
+  const prev = getState();
+  const next = structuredClone(prev);
   mutator(next);
-  if (audit) next.audit.unshift({ at: new Date().toISOString(), by: currentUser(), ...audit });
+  if (audit) { const changes = auditChanges(prev, next, audit); next.audit.unshift({ at: new Date().toISOString(), by: currentUser(), ...audit, ...(changes ? { changes } : {}) }); }
   next.audit = next.audit.slice(0, 400);
   state = next;
   try {

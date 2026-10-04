@@ -57,11 +57,30 @@ const emptyVendor = () => ({
 });
 
 // Another vendor with the same GSTIN (same registration → blocked) or the same PAN (same company, maybe another state → warning)
+// Duplicate supplier check: GSTIN (blocks), bank account no. + IFSC (blocks — a payment destination may belong to one vendor only),
+// and PAN / e-mail / phone (warnings: a sister branch or shared contact can be legitimate, the approver decides)
+const digits10 = (x) => String(x || "").replace(/\D/g, "").slice(-10);
+const acctKey = (b) => (b && b.account ? `${String(b.account).replace(/\s/g, "").toUpperCase()}|${String(b.ifsc || b.swift || "").toUpperCase()}` : "");
 function findDuplicate(f) {
   const g = (f.gstin || "").trim().toUpperCase(), pn = (f.pan || "").trim().toUpperCase();
+  const em = String(f.contact?.email || "").trim().toLowerCase(), ph = digits10(f.contact?.phone);
+  const accts = [f.bank, ...(f.bankAccounts || [])].map(acctKey).filter((k) => k.length > 6);
   const others = getState().vendors.filter((v) => v.id !== f.id);
   return { gstin: g.length === 15 ? others.find((v) => (v.gstin || "").toUpperCase() === g) : null,
-    pan: pn.length === 10 ? others.find((v) => (v.pan || "").toUpperCase() === pn && (v.gstin || "").toUpperCase() !== g) : null };
+    pan: pn.length === 10 ? others.find((v) => (v.pan || "").toUpperCase() === pn && (v.gstin || "").toUpperCase() !== g) : null,
+    bank: accts.length ? others.find((v) => (v.bankAccounts || []).some((b) => accts.includes(acctKey(b)))) : null,
+    email: em ? others.find((v) => String(v.contact?.email || "").toLowerCase() === em) : null,
+    phone: ph.length === 10 ? others.find((v) => digits10(v.contact?.phone) === ph || digits10(v.contact?.mobile) === ph) : null };
+}
+// Every possible duplicate of a vendor, for the approver
+function duplicateHints(v) {
+  const d = findDuplicate(v), out = [];
+  if (d.gstin) out.push(`same GSTIN as ${d.gstin.name} (${d.gstin.id})`);
+  if (d.pan) out.push(`same PAN as ${d.pan.name} (${d.pan.id})`);
+  if (d.bank) out.push(`same bank account as ${d.bank.name} (${d.bank.id})`);
+  if (d.email) out.push(`same e-mail as ${d.email.name} (${d.email.id})`);
+  if (d.phone) out.push(`same phone as ${d.phone.name} (${d.phone.id})`);
+  return out;
 }
 function validateVendor(f) {
   const e = {};
@@ -83,6 +102,8 @@ function validateVendor(f) {
   const pn = VX.pin(f.pin, f.country || "India"); if (pn) e.pin = pn;
   const w = VX.url(f.website); if (w) e.website = w;
   if (!f.categories.length) e.categories = "Pick at least one category";
+  const bdup = findDuplicate(f).bank;
+  if (bdup) e.bank_account = `This bank account is already registered to ${bdup.name} (${bdup.id})`;
   // Bank details are optional at registration, but if any is entered the set must be complete and valid
   const b = f.bank || {};
   if (["holder", "bank", "account", "ifsc", "swift"].some((k) => !VX.blank(b[k]))) {
@@ -239,8 +260,8 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
         <div className="grid grid-cols-3 gap-x-3 gap-y-3">
           <Field label="Contact person" required><TextInput value={f.contact.name} onChange={(v) => updC("name", v)} placeholder="Full name" />{err("contactName")}</Field>
           <Field label="Designation"><TextInput value={f.contact.designation || ""} onChange={(v) => updC("designation", v)} placeholder="e.g. Sales manager" /></Field>
-          <Field label="Email" required><TextInput type="email" value={f.contact.email} onChange={(v) => updC("email", v)} placeholder="name@company.com" />{err("email")}</Field>
-          <Field label="Phone / mobile"><TextInput value={f.contact.phone} onChange={(v) => updC("phone", v)} placeholder="+91 98xxx xxxxx" />{err("phone")}</Field>
+          <Field label="Email" required><TextInput type="email" value={f.contact.email} onChange={(v) => updC("email", v)} placeholder="name@company.com" />{err("email") || dupNote(dup.email, "Same e-mail as")}</Field>
+          <Field label="Phone / mobile"><TextInput value={f.contact.phone} onChange={(v) => updC("phone", v)} placeholder="+91 98xxx xxxxx" />{err("phone") || dupNote(dup.phone, "Same phone as")}</Field>
           <Field label="Website"><TextInput value={f.website || ""} onChange={(v) => upd("website", v)} placeholder="www.example.com" />{err("website")}</Field>
           <Field label="Address"><TextInput value={f.address} onChange={(v) => upd("address", v)} placeholder="Building, street, area" /></Field>
           <Field label="City"><TextInput value={f.city} onChange={(v) => upd("city", v)} placeholder="City" /></Field>
@@ -614,6 +635,7 @@ function VendorBanks({ v, locked, approving }) {
   const foreign = isForeign(v);
   const er = { ...bankErrors(f, v, v.bankAccounts) };
   { const x = vendorExtraErrors({ bank: f }); if (f.accountConfirm !== f.account) er.confirm = "Account numbers don't match"; if (x.bank_iban) er.iban = x.bank_iban; }
+  { const k = acctKey(f), o = k.length > 6 && getState().vendors.find((z) => z.id !== v.id && (z.bankAccounts || []).some((b) => acctKey(b) === k)); if (o) er.account = `This bank account is already registered to ${o.name} (${o.id})`; }
   const [ed, setEd] = y.useState(null), [adding, setAdding] = y.useState(false);
   const tail = (a) => "••" + String(a.account).slice(-4);
   const verify = (a) => {
@@ -726,7 +748,7 @@ function AuditList({ items }) {
     <ul className="divide-y divide-line">
       {items.slice(0, 40).map((a, i) => (
         <li key={i} className="flex items-center justify-between gap-3 px-4 py-2 text-[13px]">
-          <span><span className="mono mr-2 text-[11.5px] text-ink-mute">{a.id}</span>{a.action}</span>
+          <span><span className="mono mr-2 text-[11.5px] text-ink-mute">{a.id}</span><AuditAction a={a} /></span>
           <span className="shrink-0 text-[12px] text-ink-mute">{a.by} · {fmtDateTime(a.at)}</span>
         </li>
       ))}

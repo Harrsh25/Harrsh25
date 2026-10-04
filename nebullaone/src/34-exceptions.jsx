@@ -1,0 +1,62 @@
+// Exception Center: one list of everything that is wrong right now, across vendors, purchasing and contracts.
+// Each row says what is wrong, on which record, how serious it is and since when; clicking opens the record.
+function exceptionRows(st) {
+  const out = [], today = todayISO();
+  const add = (type, sev, entity, id, name, detail, since, to) => out.push({ key: `${type}|${id}|${out.length}`, type, sev, entity, id, name, detail, since, to });
+  const age = (d) => (d ? Math.max(0, -daysUntil(d)) : null);
+  for (const v of st.vendors) {
+    if (!lifeStatus(v)) continue;
+    const c = complianceOf(v);
+    if (c.status === "Non-Compliant") add("Compliance failing", c.blocking.length ? "High" : "Medium", "Vendor", v.id, v.name, c.issues.join(" · "), null, `${VM_BASE}/registry?open=${v.id}`);
+    for (const b of v.bankAccounts || []) if (b.isDefault && bankStatus(b) !== "Verified") add("Default bank account not verified", "High", "Vendor", v.id, v.name, `${b.bank || "Bank"} ••${String(b.account).slice(-4)} — ${bankStatus(b)}`, b.addedAt, `${VM_BASE}/registry?open=${v.id}`);
+  }
+  for (const v of st.vendors.filter((x) => x.status === "Pending Approval")) {
+    const hints = duplicateHints(v); if (hints.length) add("Possible duplicate supplier", "High", "Vendor", v.id, v.name, hints.join(" · "), v.createdAt, `${VM_BASE}/approvals?open=${v.id}`);
+  }
+  for (const r of st.rfqs) if (r.status === "Sent" && r.dueDate && r.dueDate < today) add("RFQ quotes overdue", "Medium", "RFQ", r.id, r.title, `Quotes were due ${fmtDate(r.dueDate)} — none received`, r.dueDate, `${VM_BASE}/rfq?open=${r.id}`);
+  for (const po of st.purchaseOrders) {
+    const s = poStatus(po);
+    if (["Issued", "Partially Received"].includes(s) && po.deliveryDate && po.deliveryDate < today) add("PO delivery overdue", "Medium", "PO", po.id, vendorName(st, po.vendorId), `${s} — delivery was due ${fmtDate(po.deliveryDate)}`, po.deliveryDate, `${VM_BASE}/purchase-orders?open=${po.id}`);
+  }
+  for (const inv of st.invoices) {
+    if (inv.cancelled) continue;
+    const s = invoiceStatus(inv), m = threeWay(st, inv).status;
+    if (m === "Mismatch" && s !== "Paid") add("Invoice mismatch (3-way)", "High", "Invoice", inv.id, vendorName(st, inv.vendorId), `Bill ${inv.number} does not match the PO / goods receipt`, inv.date, `${VM_BASE}/invoices?open=${inv.id}`);
+    if (s === "Overdue") add("Payment overdue", "Medium", "Invoice", inv.id, vendorName(st, inv.vendorId), `Bill ${inv.number} — balance ${inr(invoiceTotals(inv).balance)} was due ${fmtDate(inv.due)}`, inv.due, `${VM_BASE}/invoices?open=${inv.id}`);
+  }
+  for (const c of st.contracts) {
+    const s = contractStatus(c);
+    if (s === "Expiring" && daysUntil(c.end) <= 30) add("Contract ending soon", "Medium", "Contract", c.id, c.title, `Ends ${fmtDate(c.end)} (${daysUntil(c.end)} days)`, null, `${CL_BASE}/contracts?open=${c.id}`);
+    if (c.bgExpiry && !["Closed", "Terminated", "Draft", "Rejected"].includes(c.status) && daysUntil(c.bgExpiry) <= 30) add(daysUntil(c.bgExpiry) < 0 ? "Bank guarantee expired" : "Bank guarantee expiring", daysUntil(c.bgExpiry) < 0 ? "High" : "Medium", "Contract", c.id, c.title, `${c.bgNo || "BG"} ${daysUntil(c.bgExpiry) < 0 ? "expired" : "expires"} ${fmtDate(c.bgExpiry)}`, daysUntil(c.bgExpiry) < 0 ? c.bgExpiry : null, `${CL_BASE}/contracts?open=${c.id}`);
+  }
+  for (const w of st.workOrders) if (["Issued", "In Progress"].includes(w.status) && w.end && w.end < today) add("Work order overdue", "Medium", "Work Order", w.id, w.title, `Should have finished ${fmtDate(w.end)}`, w.end, `${CL_BASE}/work-orders?open=${w.id}`);
+  for (const m of st.measurements) if (m.jms?.status === "Disputed") { const w = byId(st.workOrders, m.woId); add("Measurement disputed", "High", "Measurement", m.id, w ? w.title : m.woId, m.jms.remark || "Contractor and engineer don't agree on the quantity", m.date, `${CL_BASE}/measurement-book?open=${m.id}`); }
+  for (const b of st.raBills) if (b.status === "Rejected") { const w = byId(st.workOrders, b.woId); add("RA bill rejected", "Medium", "RA Bill", b.id, w ? w.title : b.woId, b.rejection?.reason || b.remark || "Returned to the contractor", b.periodTo, `${CL_BASE}/ra-bills?open=${b.id}`); }
+  const rank = { High: 0, Medium: 1 };
+  return out.map((r) => ({ ...r, age: age(r.since) })).sort((a, b) => rank[a.sev] - rank[b.sev] || (b.age || 0) - (a.age || 0));
+}
+function ExceptionCenterPage() {
+  const st = useStore(), nav = useNavigate();
+  const rows = exceptionRows(st);
+  const high = rows.filter((r) => r.sev === "High").length;
+  return (
+    <Page title="Exception Center" subtitle="Everything that needs attention right now — across vendors, purchasing and contracts" icon={Icon.alert}>
+      <div className="grid grid-cols-3 gap-3 px-4 pt-4">
+        <StatTile tone="red" label="High" value={high} sub="act now" icon={Icon.alert} />
+        <StatTile tone="amber" label="Medium" value={rows.length - high} sub="plan this week" icon={Icon.clock} />
+        <StatTile tone="blue" label="Records affected" value={new Set(rows.map((r) => r.id)).size} sub={`${new Set(rows.map((r) => r.type)).size} kinds of exception`} icon={Icon.layers} />
+      </div>
+      <DataTable noun="exceptions" rows={rows} rowKey={(r) => r.key} onRow={(r) => nav(r.to)} exportName="exceptions"
+        defaultCols={["type", "rec", "detail", "sev", "age"]}
+        empty={<p className="p-6 text-center text-[13px] text-ink-mute">No open exceptions.</p>}
+        columns={[
+          { key: "type", label: "Exception", className: "font-medium", filterOptions: () => uniqSorted(exceptionRows(getState()).map((r) => r.type)), filter: (r) => r.type },
+          { key: "rec", label: "Record", sort: (r) => r.name, render: (r) => <span className="text-brand">{r.name}</span> },
+          { key: "detail", label: "What's wrong", className: "max-w-[420px] whitespace-normal text-[12.5px]", render: (r) => r.detail },
+          { key: "sev", label: "Severity", filterOptions: () => ["High", "Medium"], filter: (r) => r.sev, render: (r) => <Status tone={r.sev === "High" ? "red" : "amber"}>{r.sev}</Status> },
+          { key: "age", label: "Open for", sort: (r) => r.age ?? -1, render: (r) => (r.age == null ? <span className="text-ink-mute">—</span> : `${r.age} day${r.age === 1 ? "" : "s"}`) },
+          { key: "entity", label: "Area", filterOptions: () => uniqSorted(exceptionRows(getState()).map((r) => r.entity)), filter: (r) => r.entity },
+        ]} />
+    </Page>
+  );
+}

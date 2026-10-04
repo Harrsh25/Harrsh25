@@ -206,7 +206,8 @@ function contractLedger(st, c) {
   return {
     bills, releases,
     gross: sum(bills, (b) => b.gross),
-    paid: sum(bills.filter((b) => b.status === "Paid"), (b) => b.net),
+    // paid to date = what was actually paid against each RA bill's payable (part-payments count; reversed payments don't)
+    paid: sum(bills, (b) => { const inv = b.invoiceId && byId(st.invoices, b.invoiceId); return inv ? Math.min(b.net, invoiceTotals(inv).paid) : b.status === "Paid" ? b.net : 0; }),
     retentionHeld, released, retentionBalance: retentionHeld - released,
     advanceGiven: Number(c.advanceAmount) || 0, recovered, advanceBalance: (Number(c.advanceAmount) || 0) - recovered,
     tds: sum(bills, (b) => b.ded.tds), cess: sum(bills, (b) => b.ded.cess),

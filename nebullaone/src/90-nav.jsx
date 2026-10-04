@@ -32,6 +32,7 @@ const NXV_PAGES = [
   { group: "Contract & Labor", base: CL_BASE, path: "dlp-warranty", label: "DLP & Warranty", icon: Icon.shieldCheck, el: DlpWarrantyPage },
   { group: "Contract & Labor", base: CL_BASE, path: "contractor-release", label: "Contractor Release", icon: Icon.handshake, el: ContractorReleasePage },
   { group: "Contract & Labor", base: CL_BASE, path: "terminations", label: "Termination & Final Account", icon: Icon.ban, el: TerminationsPage },
+  { group: "Administration", base: ADMIN_BASE, path: "exceptions", label: "Exception Center", icon: Icon.alert, el: ExceptionCenterPage },
   { group: "Administration", base: ADMIN_BASE, path: "audit-log", label: "Audit Log", icon: Icon.fileClock, el: AuditLogPage },
 ];
 
