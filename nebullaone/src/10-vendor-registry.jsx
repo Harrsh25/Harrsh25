@@ -424,6 +424,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
     { id: "bank", label: "Bank" },
     { id: "qual", label: "Qualification" },
     ...(v.isContractor || hasType(v, "Labor") ? [{ id: "equip", label: "Equipment" }] : []),
+    ...(lifeStatus(v) ? [{ id: "risk", label: "Risk" }] : []),
     { id: "approval", label: "Approvals" },
   ];
   return (
@@ -433,7 +434,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
       actions={canEdit && <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>}
       tabs={{ tabs, active: tab, onChange: setTab }}>
       {/* tables show as label → value lists, except Documents, Bank and Equipment which keep their tables */}
-      <ListMode.Provider value={!["docs", "bank", "equip"].includes(tab)}>
+      <ListMode.Provider value={!["docs", "bank", "equip", "risk"].includes(tab)}>
       <div className="space-y-4 px-6 py-4">
         {tab === "overview" && <VendorOverview v={v} comp={comp} />}
         {/* Classification is editable only while the registration is editable; flags stay editable in every status */}
@@ -446,6 +447,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
         </fieldset>
         {/* bank details of an approved vendor are not edited — a change is requested, verified, then made default (cooling period applies) */}
         {tab === "bank" && <div className="space-y-4"><VendorBanks v={v} locked={locked} approving={approving} control={locked && mode === "registry" && !!lifeStatus(v)} /><BankHistory v={v} /></div>}
+        {tab === "risk" && <VendorRiskTab v={v} canAct={mode === "registry"} />}
         {tab === "approval" && <><VendorApproval v={v} mode={mode} /><VendorActivity v={v} /></>}
       </div>
       </ListMode.Provider>
@@ -935,6 +937,7 @@ function VendorRegistryPage() {
         { key: "reg", label: "Registration", sort: (v) => v.regTier, render: (v) => <CalmStatus>{v.regTier}</CalmStatus> },
         { key: "comp", label: "Compliance", sort: (v) => complianceOf(v).status, render: (v) => <CalmStatus>{complianceOf(v).status}</CalmStatus> },
         { key: "approval", label: "Approval", sort: (v) => approvalStatus(v), render: (v) => <VendorStatusMenu v={v} approval /> },
+        { key: "risk", label: "Risk", filterOptions: RISK_LEVELS.map((l) => l.name).reverse(), filter: (v) => (lifeStatus(v) ? vendorRisk(st, v).level.name : ""), sort: (v) => (lifeStatus(v) ? vendorRisk(st, v).score : -1), render: (v) => (lifeStatus(v) ? <RiskBadge r={vendorRisk(st, v)} /> : <span className="text-ink-faint">—</span>) },
         { key: "score", label: "Score", sort: (v) => vendorScore(st, v.id).score ?? -1, render: (v) => { const sc = vendorScore(st, v.id).score; return sc == null ? <span data-tip="No orders, work orders or ratings yet" className="text-[12.5px] text-ink-faint">New</span> : <ScoreBadge value={sc} />; } },
       ]} />
       </>}
@@ -942,7 +945,7 @@ function VendorRegistryPage() {
       <RegisterVendorModal open={reg} onClose={() => setReg(false)} onCreated={(id) => setOpen(id)} />
       {share && <ShareLinkModal title="Vendor self-registration link" url={appUrl("/vendor-register")} onClose={() => setShare(false)}
         text="Send this link to prospective vendors. They fill in their company, tax and bank details and upload documents themselves — no login needed. Submissions arrive in Approval Management under “Vendor Registration”." />}
-      {open && <VendorDrawer vendorId={open} onClose={() => setOpen(null)} />}
+      {open && <VendorDrawer vendorId={open} initialTab={new URLSearchParams(window.location.hash.split("?")[1] || "").get("tab") || "overview"} onClose={() => setOpen(null)} />}
       {holdFor && <BulkHoldModal ids={holdFor} onClose={() => setHoldFor(null)} onDone={() => { setHoldFor(null); setSel([]); }} />}
     </Page>
   );

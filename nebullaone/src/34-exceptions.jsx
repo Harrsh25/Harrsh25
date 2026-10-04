@@ -11,6 +11,12 @@ function exceptionRows(st) {
     for (const b of v.bankAccounts || []) if (b.isDefault && bankStatus(b) !== "Verified") add("Default bank account not verified", "High", "Vendor", v.id, v.name, `${b.bank || "Bank"} ••${String(b.account).slice(-4)} — ${bankStatus(b)}`, b.addedAt, `${VM_BASE}/registry?open=${v.id}`);
     for (const b of v.bankAccounts || []) if (b.isDefault && bankCooling(b)) add("Bank account changed — payments held", "Medium", "Vendor", v.id, v.name, `${b.bank || "Bank"} ••${String(b.account).slice(-4)} changed ${fmtDate(b.changedAt)} — cooling period until ${fmtDate(b.coolingUntil)}`, b.changedAt, `${VM_BASE}/registry?open=${v.id}`);
   }
+  for (const v of st.vendors) {
+    if (!lifeStatus(v)) continue;
+    const r = vendorRisk(st, v), to = `${VM_BASE}/registry?open=${v.id}&tab=risk`;
+    if (["High", "Critical"].includes(r.level.name) && !r.open.length) add(`${r.level.name} supplier risk — no action`, "High", "Vendor", v.id, v.name, `Score ${r.score}: ${r.drivers.slice(0, 2).map((d) => d.why).join(" · ")}`, null, to);
+    for (const a of r.overdue) add("Risk action overdue", "Medium", "Vendor", v.id, v.name, `${a.title} — ${a.owner}, due ${fmtDate(a.due)}`, a.due, to);
+  }
   for (const v of st.vendors.filter((x) => x.status === "Pending Approval")) {
     const hints = duplicateHints(v); if (hints.length) add("Possible duplicate supplier", "High", "Vendor", v.id, v.name, hints.join(" · "), v.createdAt, `${VM_BASE}/approvals?open=${v.id}`);
   }
