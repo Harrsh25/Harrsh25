@@ -119,7 +119,7 @@ function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket, requis
                     <TextInput aria-label={`Line ${i + 1} HSN/SAC`} value={l.hsn || ""} onChange={(x) => setLine(i, "hsn", x.replace(/\D/g, "").slice(0, 8))} placeholder="HSN / SAC" />
                     <Select aria-label={`Line ${i + 1} GST %`} value={l.gstPct ?? ""} placeholder="GST %" onChange={(x) => setLine(i, "gstPct", x === "" ? "" : Number(x))} options={GST_RATES.map((g) => ({ value: g, label: `GST ${g}%` }))} />
                     <DateInput aria-label={`Line ${i + 1} need-by date`} value={l.needBy || ""} onChange={(x) => setLine(i, "needBy", x)} title="Need-by date for this line" />
-                    {lineErr(l) ? <span className="text-red-600">{lineErr(l)}</span> : <span className="text-ink-mute">HSN / SAC · GST · need-by (optional)</span>}
+                    {lineErr(l) ? <span className="text-red-600">{lineErr(l)}</span> : null}
                   </div>
                 </div>
               );
@@ -128,7 +128,6 @@ function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket, requis
         </Section>
         {overBlanket && <Note tone="red">Quantity exceeds what's left on the blanket order plus the {set0.blanketAllowancePct}% allowance.</Note>}
         <DocDetails kind="po" value={f.details} onChange={(d) => setF({ ...f, details: d })} vendor={v} subtotal={total} />
-        <p className="text-[12px] text-ink-mute">{needsApproval ? `At or above ${inrShort(set0.poApprovalMin)} - the PO goes for approval.` : `Below ${inrShort(set0.poApprovalMin)} - the PO is issued directly (Procurement Settings → PO approval minimum).`}</p>
       </div>
     </Modal>
   );
@@ -575,7 +574,7 @@ function PayModal({ invIds, onClose }) {
           <Field label="Vendor bank account (paid to)">{v0 ? <Select value={pd.vendorBank} placeholder="Default account" onChange={(x) => setPd({ ...pd, vendorBank: x })} options={vendorBankOptions(v0).filter((o) => bankPayable(v0.bankAccounts.find((a) => String(a.id) === o.value)))} /> : <span className="flex h-[32px] items-center text-[12.5px] text-ink-mute">Each vendor's default account</span>}</Field>
           <Field label={mode === "Cheque" ? "Cheque no." : "Reference / UTR no."} required={mode === "Cheque"}><TextInput value={pd.refNo} onChange={(x) => setPd({ ...pd, refNo: x })} placeholder={mode === "Cheque" ? "6-digit cheque no." : "Filled from the bank file if blank"} /></Field>
           <Field label={mode === "Cheque" ? "Cheque date" : "Reference date"} required={mode === "Cheque"}><DateInput value={pd.refDate} onChange={(x) => setPd({ ...pd, refDate: x })} /></Field>
-          <Field label="Amount paid (₹)" hint={pd.received !== "" ? `Unallocated ${inr(unallocated)} - kept as an advance` : "Leave blank to pay exactly the bills"}><NumInput value={pd.received} onChange={(x) => setPd({ ...pd, received: x })} /></Field>
+          <Field label="Amount paid (₹)" info={pd.received !== "" ? `Unallocated ${inr(unallocated)}` : ""}><NumInput value={pd.received} onChange={(x) => setPd({ ...pd, received: x })} /></Field>
           <Field label="Released by"><span className="flex h-[32px] items-center text-[13px]">{actor().name}{canOverride && <span className="ml-2"><Status tone="purple">Can override</Status></span>}</span></Field>
         </div>
         {payErr && <Note tone="red">{payErr}</Note>}
@@ -666,7 +665,7 @@ function NewBillModal({ open, onClose, presetPoId }) {
             : <Field label="Vendor" span={2}><Select value={vendorId} placeholder="Select vendor…" onChange={(x) => { setVendorId(x); setF({ ...f, lines: [{ desc: "", qty: 1, rate: "" }] }); }} options={st.vendors.filter((x) => x.status !== "Blacklisted").map((x) => ({ value: x.id, label: x.name }))} /></Field>}
           <Field label="Vendor invoice no." required><TextInput value={f.number} onChange={(x) => setF({ ...f, number: x })} /></Field>
           <Field label="Invoice date"><DateInput value={f.date} onChange={(x) => setF({ ...f, date: x })} /></Field>
-          <Field label="Due date" hint={f.due ? `Overridden (terms give ${fmtDate(autoDue)})` : v ? `${v.paymentTerms} from invoice date` : ""}><DateInput value={due} onChange={(x) => setF({ ...f, due: x === autoDue ? "" : x })} /></Field>
+          <Field label="Due date" info={v ? `${v.paymentTerms}${f.due ? `, terms give ${fmtDate(autoDue)}` : ""}` : ""}><DateInput value={due} onChange={(x) => setF({ ...f, due: x === autoDue ? "" : x })} /></Field>
         </div>
         {dateErr && <Note tone="red">{dateErr}</Note>}
         {exErr && <Note tone="red">{exErr}</Note>}

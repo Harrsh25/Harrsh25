@@ -34,8 +34,11 @@ const RA_FLOW = [
 const HOLD_REASONS = ["Price mismatch", "Quantity mismatch", "Missing GRN / receipt", "Quality issue", "Missing approval", "Compliance document expired"];
 const PAY_MODES = ["NEFT", "RTGS", "Cheque", "UPI", "Wire (SWIFT)"];
 
+// insurance policies are not asked for (insurance was removed everywhere), even if older saved settings still list them
+const INSURANCE_DOC = /policy|indemnity|insurance/i;
+const docRules = () => currentSettings().complianceDocs.filter((r) => !INSURANCE_DOC.test(r.name));
 function requiredDocs(v) {
-  return currentSettings().complianceDocs.filter((r) => appliesTo(r, v)).map((r) => r.name);
+  return docRules().filter((r) => appliesTo(r, v)).map((r) => r.name);
 }
 
 // Compliance status engine: rolls every document + insurance check into one status
@@ -45,7 +48,7 @@ const INSURANCE_CHECKS = false;
 function complianceItems(v) {
   const set = currentSettings(), warn = set.expiryWarnDays;
   const items = [];
-  for (const r of set.complianceDocs.filter((x) => appliesTo(x, v))) {
+  for (const r of set.complianceDocs.filter((x) => appliesTo(x, v) && !INSURANCE_DOC.test(x.name))) {
     const d = (v.docs || []).find((x) => x.name === r.name);
     const left = d ? daysUntil(d.expiry) : null;
     let level = 0, note = "Verified";

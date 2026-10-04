@@ -97,7 +97,7 @@ function WorkerForm({ w0, onClose }) {
       </div>
       <div className="mt-4 rounded-lg border border-line">
         <div className="flex items-center justify-between border-b border-line px-3 py-2"><span className="text-[13px] font-medium">Certificates & licences</span><Btn size="sm" icon={Icon.plus} onClick={() => setF({ ...f, certificates: [...f.certificates, { name: WORKER_CERTS[0], no: "", validTill: "" }] })}>Add certificate</Btn></div>
-        {f.certificates.length === 0 ? <p className="px-3 py-2 text-[12.5px] text-ink-mute">None - add trade licences or competency cards the work needs.</p> : f.certificates.map((c, i) => (
+        {f.certificates.length === 0 ? null : f.certificates.map((c, i) => (
           <div key={i} className="grid grid-cols-[1.4fr_1fr_150px_auto] items-center gap-2 px-3 py-2">
             <Select value={c.name} onChange={(x) => setC(i, { name: x })} options={WORKER_CERTS} />
             <TextInput value={c.no || ""} onChange={(x) => setC(i, { no: x })} placeholder="Certificate no." />

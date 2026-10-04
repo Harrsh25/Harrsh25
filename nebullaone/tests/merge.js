@@ -18,7 +18,7 @@ require('./lib')('merge', async ({ fill, p, go, dlg, S, mut, T, pick, toastText 
   await mut(`(s) => { s.vendors.find((y) => y.id === 'VEN-011').status = 'Draft'; }`);
   await T('M-01', 'Bank account added from the Bank tab starts Unverified; Verify stamps who and when', async () => {
     await go('vendor-management/registry?open=VEN-011'); await p.waitForTimeout(300); await dlg().locator('[role=tab]:has-text("Bank")').click(); await p.waitForTimeout(150);
-    const d = dlg(); await d.locator('button:has-text("Add bank account")').click(); await p.waitForTimeout(100); await d.locator('label:has-text("Account holder name") input').fill((await S()).vendors.find((x) => x.id === 'VEN-011').legalName); await d.locator('label:has-text("Bank") input').nth(1).fill('Axis Bank');
+    const d = dlg(); await d.locator('button:has-text("Add bank account")').click(); await p.waitForTimeout(100); await d.locator('label:has-text("Account holder name") input').fill((await S()).vendors.find((x) => x.id === 'VEN-011').legalName); await d.locator('label:has(> span:text-is("Bank")) input').first().fill('Axis Bank');
     await d.locator('label:has-text("Account no.") input').first().fill('918020012345678'); await d.locator('label:has-text("Re-enter account no.") input').fill('918020012345678'); await d.locator('label:has-text("IFSC") input').fill('UTIB0000123'); await d.locator('button:has-text("Add")').last().click(); await p.waitForTimeout(200);
     let v = (await S()).vendors.find((x) => x.id === 'VEN-011'); const a = v.bankAccounts.find((b) => b.account === '918020012345678'); const st0 = a?.status;
     await d.locator(`tr:has-text("5678") button:has-text("Verify")`).click(); await p.waitForTimeout(200);
@@ -26,7 +26,7 @@ require('./lib')('merge', async ({ fill, p, go, dlg, S, mut, T, pick, toastText 
     return [`added ${st0}; after verify ${a2?.status} by ${a2?.verifiedBy}`, st0 === 'Unverified' && a2?.status === 'Verified' && !!a2.verifiedAt];
   });
   await T('M-02', 'Bank form rejects a bad IFSC', async () => {
-    const d = dlg(); await d.locator('button:has-text("Add bank account")').click(); await p.waitForTimeout(100); await d.locator('label:has-text("Account holder name") input').fill('Konkan Steel'); await d.locator('label:has-text("Bank") input').nth(1).fill('HDFC');
+    const d = dlg(); await d.locator('button:has-text("Add bank account")').click(); await p.waitForTimeout(100); await d.locator('label:has-text("Account holder name") input').fill('Konkan Steel'); await d.locator('label:has(> span:text-is("Bank")) input').first().fill('HDFC');
     await d.locator('label:has-text("Account no.") input').first().fill('50200099887766'); await d.locator('label:has-text("Re-enter account no.") input').fill('50200099887766'); await d.locator('label:has-text("IFSC") input').fill('HDFC123'); await d.locator('button:has-text("Add")').last().click(); await p.waitForTimeout(150);
     const t = await d.textContent(); const n = (await S()).vendors.find((x) => x.id === 'VEN-011').bankAccounts.filter((b) => b.account === '50200099887766').length; await esc();
     return [`IFSC error shown: ${/IFSC/i.test(t) && /11|format|valid/i.test(t)}; saved ${n}`, n === 0];

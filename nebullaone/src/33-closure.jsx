@@ -234,7 +234,7 @@ function DlpWarrantyPage() {
         }}>Raise claim</Btn></>}>
           <div className="space-y-3">
             <Field label="Issue" required><TextInput value={claim.issue} onChange={(x) => setClaim({ ...claim, issue: x })} placeholder="e.g. Motor burnt out after 3 weeks" /></Field>
-            <Field label="Date found" required hint={`Within the warranty (until ${fmtDate(claim.w.end)})`}><DateInput value={claim.date} onChange={(x) => setClaim({ ...claim, date: x })} /></Field>
+            <Field label="Date found" required info={`Warranty until ${fmtDate(claim.w.end)}`}><DateInput value={claim.date} onChange={(x) => setClaim({ ...claim, date: x })} /></Field>
           </div>
         </Modal>
       )}

@@ -49,11 +49,9 @@ const DEFAULT_SETTINGS = {
     { name: "Cancelled Cheque / Bank Letter", applies: "all", expires: false, blocks: true },
     { name: "Company Registration / MSME", applies: "all", expires: false, blocks: false },
     { name: "ISO / Quality Certificate", applies: "goods", expires: true, blocks: false },
-    { name: "Professional Indemnity / CAR Policy", applies: "services", expires: true, blocks: false },
     { name: "Labour Licence (CLRA)", applies: "contractor", expires: true, blocks: true },
     { name: "PF Registration", applies: "contractor", expires: false, blocks: true },
     { name: "ESI Registration", applies: "contractor", expires: false, blocks: true },
-    { name: "Workmen Compensation Policy", applies: "contractor", expires: true, blocks: true },
     { name: "HSE / Safety Plan", applies: "contractor", expires: false, blocks: false },
   ],
   complianceIns: [

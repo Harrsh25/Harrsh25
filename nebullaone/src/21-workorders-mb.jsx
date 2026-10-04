@@ -245,7 +245,7 @@ function MeasurementModal({ preset = {}, onClose }) {
         </div>
         {wo && wo.type === "Lump Sum" ? (
           <div className="grid grid-cols-3 gap-3">
-            <Field label="Cumulative % complete" hint={posLine ? `Last signed: ${posLine.measured}%` : ""}><NumInput value={f.pct} onChange={(x) => setF({ ...f, pct: x })} /></Field>
+            <Field label="Cumulative % complete" info={posLine ? `Last signed: ${posLine.measured}%` : ""}><NumInput value={f.pct} onChange={(x) => setF({ ...f, pct: x })} /></Field>
             {lsBad && <div className="col-span-2 self-end"><Note tone="red">Must be above the last signed {posLine.measured}% and at most 100%.</Note></div>}
           </div>
         ) : (

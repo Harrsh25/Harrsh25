@@ -64,7 +64,7 @@ function ContractModal({ open, onClose, onCreated, edit }) {
         {f.rfqId && <Note>Created from the award of <b>{f.rfqId}</b>{f.awardNote ? ` - ${f.awardNote}` : ""}. Lines and rates come from the winning quotation.</Note>}
         <ContractExtras f={f} setF={setF} />
         <Section title={`Contract BOQ${f.scope.length ? ` - ${f.scope.length} line(s)` : " (optional)"}`} actions={<Btn size="sm" icon={Icon.plus} onClick={() => setF({ ...f, scope: [...f.scope, { code: String(f.scope.length + 1), desc: "", unit: "cum", qty: "", rate: "" }] })}>Add BOQ line</Btn>}>
-          {f.scope.length === 0 ? <p className="p-3 text-[12.5px] text-ink-mute">Without BOQ lines the contract value is entered directly. With lines, work orders pick from this BOQ and the contract tracks ordered / measured / billed per line.</p> : (
+          {f.scope.length === 0 ? null : (
             <div className="space-y-2 p-3">
               <div className="grid grid-cols-[60px_1fr_80px_100px_110px_110px_28px] gap-2 text-[11.5px] font-medium text-ink-mute"><span>Code</span><span>Description</span><span>Unit</span><span>Qty</span><span>Rate (₹)</span><span className="text-right">Amount</span><span /></div>
               {f.scope.map((l, i) => (
@@ -179,7 +179,7 @@ function GuaranteeModal({ c, g, mode, onClose }) {
         </div>
       ) : (
         <div className="space-y-3">
-          {mode === "extend" && <Field label="New validity date" hint={`Currently ${fmtDate(g.expiry)}`}><DateInput value={f.expiry} onChange={(x) => setF({ ...f, expiry: x })} /></Field>}
+          {mode === "extend" && <Field label="New validity date" info={`Currently ${fmtDate(g.expiry)}`}><DateInput value={f.expiry} onChange={(x) => setF({ ...f, expiry: x })} /></Field>}
           <Field label={mode === "encash" ? "Reason (default / non-performance)" : "Note"} required={mode !== "extend"}><TextInput value={f.note} onChange={(x) => setF({ ...f, note: x })} placeholder={mode === "return" ? "e.g. DLP completed, no defects" : ""} /></Field>
         </div>
       )}

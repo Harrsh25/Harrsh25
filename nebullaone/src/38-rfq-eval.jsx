@@ -150,7 +150,7 @@ function RfqEvaluation({ rfq }) {
             log((r) => { const x = r.quotes.find((z) => z.vendorId === offer.vid); x.priceHistory = [...(x.priceHistory || []), ...(!(x.priceHistory || []).length ? [{ label: "Original", amount: cur, at: x.submittedOn, round: 0 }] : []), { label: `BAFO ${r.bafo.round}`, amount: n, at: new Date().toISOString(), round: r.bafo.round }]; x.rates = x.rates.map((v0) => (v0 == null || v0 === "" ? v0 : round2(Number(v0) * f))); }, `Final offer from ${vendorName(st, offer.vid)} - ${inrShort(cur)} → ${inrShort(n)} (${((1 - f) * 100).toFixed(1)}% lower)`);
             toast("Final offer recorded - line rates updated"); setOffer(null);
           }}>Save</Btn></>}>
-            <Field label="Final total (taxable, ₹)" hint={`Current ${inrShort(cur)} - line rates are reduced in proportion`}><NumInput value={offer.amount} onChange={(x) => setOffer({ ...offer, amount: x })} /><FieldErr m={err} /></Field>
+            <Field label="Final total (taxable, ₹)" info={`Current ${inrShort(cur)}`}><NumInput value={offer.amount} onChange={(x) => setOffer({ ...offer, amount: x })} /><FieldErr m={err} /></Field>
           </Modal>
         );
       })()}

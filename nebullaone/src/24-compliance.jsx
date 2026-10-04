@@ -157,7 +157,7 @@ function ComplianceDrawer({ vendorId, onClose }) {
 function RequirementsEditor() {
   const st = useStore();
   const s0 = settingsOf(st);
-  const [docs, setDocs] = y.useState(() => s0.complianceDocs.map((d) => ({ ...d })));
+  const [docs, setDocs] = y.useState(() => s0.complianceDocs.filter((d) => !INSURANCE_DOC.test(d.name)).map((d) => ({ ...d })));
   const [ins, setIns] = y.useState(() => s0.complianceIns.map((d) => ({ ...d })));
   const [warn, setWarn] = y.useState(s0.expiryWarnDays), [rem, setRem] = y.useState(s0.reminderDays.join(", "));
   const upd = (list, set, i, k, val) => set(list.map((x, j) => (j === i ? { ...x, [k]: val } : x)));

@@ -182,15 +182,17 @@ const TYPE_INFO = {
   Labor: { icon: Icon.hardHat, text: "Supplies workers / manpower for site work" },
 };
 
-function FormSection({ n, title, desc, done, right, children }) {
+function FormSection({ n, title, desc, done, right, optional, children }) {
+  // optional sections start folded; only the important fields are visible until opened
+  const [shut, setShut] = y.useState(!!optional);
   return (
     <section data-vf={title} data-done={done ? "1" : ""} className="scroll-mt-16 rounded-xl border border-line bg-white">
-      <header className="flex items-center gap-3 border-b border-line px-4 py-3">
+      <header className={cls("flex items-center gap-3 px-4 py-3", !shut && "border-b border-line", optional && "cursor-pointer")} onClick={optional ? () => setShut(!shut) : undefined}>
         <span className={cls("grid h-6 w-6 shrink-0 place-items-center rounded-full text-[12px] font-semibold", done ? "bg-green-100 text-green-700" : "bg-brand-soft text-brand")}>{done ? h(Icon.check, { size: 13 }) : n}</span>
-        <div className="min-w-0 flex-1"><p className="text-[14px] font-semibold text-ink">{title}</p>{desc && <p className="text-[12px] text-ink-mute">{desc}</p>}</div>
-        {right}
+        <div className="min-w-0 flex-1"><p className="text-[14px] font-semibold text-ink">{title}</p></div>
+        {right}{optional && h(Icon.chevronDown, { size: 15, className: cls("shrink-0 text-ink-mute transition-transform", !shut && "rotate-180") })}
       </header>
-      <div className="p-4">{children}</div>
+      <div className={cls("p-4", shut && "hidden")}>{children}</div>
     </section>
   );
 }
@@ -239,7 +241,7 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
           <Field label="Company / trade name" required><TextInput value={f.name} onChange={(v) => upd("name", v)} placeholder="e.g. Shree Balaji Infra" />{err("name")}</Field>
           <Field label="Registered legal name" hint="As on the GST certificate - leave empty if same"><TextInput value={f.legalName} onChange={(v) => upd("legalName", v)} placeholder={f.name || "Legal name"} /></Field>
         </div>
-        <p className="mb-1.5 mt-3 text-[12px] font-medium text-ink-soft">What they supply <span className="text-red-500">*</span> <span className="font-normal text-ink-mute">- tick all that apply</span></p>
+        <p className="mb-1.5 mt-3 text-[12px] font-medium text-ink-soft">What they supply <span className="text-red-500">*</span></p>
         <div className="flex flex-wrap gap-2">
           {VENDOR_TYPES.map((t) => {
             const on = hasType(f, t), I = TYPE_INFO[t];
@@ -286,7 +288,7 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
         </div>
       </FormSection>
 
-      {!publicMode && <FormSection n={++n} title="Purchasing & payment" desc="Defaults used on this vendor's POs and bills - only your team sees these" done>
+      {!publicMode && <FormSection n={++n} title="Purchasing & payment" optional done>
         <VendorMoreFields f={f} set={set} errors={errors} publicMode={publicMode} foreign={foreign} />
       </FormSection>}
 
@@ -893,14 +895,14 @@ function VendorStatusMenu({ v, approval, caret }) {
         {approval ? <Status>{approvalStatus(v)}</Status> : lifeStatus(v) ? <Status>{v.status}</Status> : <span className="text-ink-faint" data-tip="Not active until the registration is approved">-</span>}{h(Icon.chevronDown, { size: 12, className: caret ? "text-ink-mute" : "text-ink-faint opacity-0 group-hover/st:opacity-100" })}
       </button>
       {open && pos && (
-        <div ref={menu} role="menu" className="fixed z-[80] w-[260px] overflow-hidden whitespace-normal rounded-lg border border-line bg-white py-1 shadow-lg" style={{ left: pos.left, top: pos.top, bottom: pos.bottom }}>
+        <div ref={menu} role="menu" className="fixed z-[80] w-max max-w-[300px] overflow-hidden rounded-lg border border-line bg-white py-1 shadow-lg" style={{ left: pos.left, top: pos.top, bottom: pos.bottom }}>
           <p className="px-3 pb-1 pt-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-ink-mute">{approval ? "Approval status" : "Status"}</p>
           {(approval ? [...APPROVAL_STATES, "Approved"] : VSTATUS).map((o) => {
             const cur = approval ? o === approvalStatus(v) : o === v.status, can = !approval ? opts.includes(o) && !APPROVAL_STATES.includes(v.status) : o === "Pending Approval" && opts.includes(o);
             const label = can && o === "Pending Approval" ? (v.status === "Draft" ? "Submit for approval" : "Resubmit for approval") : o;
             return (
               <button key={o} type="button" role="menuitem" aria-current={cur || undefined} disabled={cur || !can} onClick={() => pick(o)} data-tip={!cur && !can ? (approval ? "Set by the approval flow" : "Available once the registration is approved") : undefined}
-                className={cls("flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px]", cur ? "font-medium text-brand" : can ? "text-ink hover:text-brand" : "cursor-default text-ink-mute")}>
+                className={cls("flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-[13px]", cur ? "font-medium text-brand" : can ? "text-ink hover:text-brand" : "cursor-default text-ink-mute")}>
                 <span className={cls("h-2 w-2 shrink-0 rounded-full", DOT[TONE[o.toLowerCase()] || "gray"])} /><span className="flex-1">{label}</span><OptTick on={cur} />
               </button>
             );

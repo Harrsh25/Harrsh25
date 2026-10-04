@@ -294,8 +294,8 @@ function AttendanceSheet({ vendorId, portal }) {
             <Field label="E-mail"><TextInput value={nw.email || ""} onChange={(x) => setNw({ ...nw, email: x })} /><FieldErr m={e.email} /></Field>
             <Field label="Residential status" hint="Inter-state migrant workers need ISMW registration"><Select value={nw.residential || ""} placeholder="Select" onChange={(x) => setNw({ ...nw, residential: x })} options={["Local", "Inter-state migrant", "Intra-state migrant"]} /></Field>
             <Field label="Address" span={2}><TextInput value={nw.address || ""} onChange={(x) => setNw({ ...nw, address: x })} placeholder="Permanent address" /></Field>
-            <Field label="Pay rate / day (₹)" hint={card ? `Rate card ${card.id}: min wage ₹${card.minWage || "-"}` : ""}><NumInput value={nw.payRate ?? ""} onChange={(x) => setNw({ ...nw, payRate: x })} /></Field>
-            <Field label="Bill rate / day (₹)" hint={card ? `Rate card ₹${card.rate}` : ""}><NumInput value={nw.billRate ?? (card ? card.rate : "")} onChange={(x) => setNw({ ...nw, billRate: x })} /><FieldErr m={e.rates} /></Field>
+            <Field label="Pay rate / day (₹)" info={card ? `Min wage ₹${card.minWage || "-"}` : ""}><NumInput value={nw.payRate ?? ""} onChange={(x) => setNw({ ...nw, payRate: x })} /></Field>
+            <Field label="Bill rate / day (₹)" info={card ? `Rate card ₹${card.rate}` : ""}><NumInput value={nw.billRate ?? (card ? card.rate : "")} onChange={(x) => setNw({ ...nw, billRate: x })} /><FieldErr m={e.rates} /></Field>
             <Field label="Available from"><DateInput value={nw.availableFrom || ""} onChange={(x) => setNw({ ...nw, availableFrom: x })} /><FieldErr m={e.available} /></Field>
             <Field label="Skill rating (1–5)"><Select value={String(nw.skillRating || "")} placeholder="-" onChange={(x) => setNw({ ...nw, skillRating: Number(x) })} options={["1", "2", "3", "4", "5"]} /></Field>
             <Field label="ID proof / CV" span={2}>

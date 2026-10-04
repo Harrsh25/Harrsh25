@@ -8,7 +8,7 @@ require('./lib')('bank', async ({ fill, p, go, dlg, S, mut, T }) => {
   await T('BK-01', 'Approved vendor: no free editing - "Request bank change" adds an Unverified account; no Make default / Settings / Remove', async () => {
     await bankTab(); const v = (await S()).vendors.find((x) => x.id === VID); const d = dlg();
     await d.locator('button:has-text("Request bank change")').click(); await p.waitForTimeout(100);
-    await d.locator('label:has-text("Account holder name") input').fill(v.legalName); await d.locator('label:has-text("Bank") input').nth(1).fill('Axis Bank');
+    await d.locator('label:has-text("Account holder name") input').fill(v.legalName); await d.locator('label:has(> span:text-is("Bank")) input').first().fill('Axis Bank');
     await d.locator('label:has-text("Account no.") input').first().fill(ACC); await d.locator('label:has-text("Re-enter account no.") input').fill(ACC); await d.locator('label:has-text("IFSC") input').fill('UTIB0000123');
     await d.locator('button:has-text("Add")').last().click(); await p.waitForTimeout(200);
     const a = (await acc()).find((b) => b.account === ACC);

@@ -32,4 +32,20 @@ require('./lib')('round', async ({ p, go, dlg, S, T }) => {
     const gone = ['Price list', 'Notes', 'Contingent type', 'Business unit', 'Site / location', 'Distribution rule', 'Qualifications required'].filter((k) => t.includes(k));
     return [`pre-selected ${pre}; still shown: ${gone.join(', ') || 'none'}`, pre === 0 && !gone.length];
   });
+  await T('RD-05', 'Menus: no helper text, no tick, and only as wide as their text', async () => {
+    await go('vendor-management/registry'); await p.waitForTimeout(300);
+    await p.locator('main button[aria-label="Status"]').first().click(); await p.waitForTimeout(150);
+    const m1 = p.locator('[role=listbox]').first(); const txt = await m1.innerText(); const w1 = (await m1.boundingBox()).width; const ticks = await m1.locator('svg').count();
+    await p.keyboard.press('Escape'); await p.locator('main table tbody tr').nth(1).locator('button[aria-haspopup=menu]').first().click(); await p.waitForTimeout(150);
+    const w2 = (await p.locator('[role=menu]').boundingBox()).width; await p.keyboard.press('Escape');
+    return [`helper text ${/pick one or more/i.test(txt)}; ticks ${ticks}; filter menu ${Math.round(w1)}px; status menu ${Math.round(w2)}px`, !/pick one or more/i.test(txt) && ticks === 0 && w1 < 220 && w2 < 220];
+  });
+  await T('RD-06', 'Forms show only labels, inputs and errors: no hints, subtitles or info notes', async () => {
+    let bad = []; for (const [r, b] of [['vendor-management/registry', 'Register vendor'], ['vendor-management/purchase-orders', 'New PO'], ['contract-labor/contracts', 'Create contract'], ['vendor-management/requisitions', 'New requisition']]) {
+      await go(r); await p.locator(`main button:has-text("${b}")`).first().click(); await p.waitForTimeout(250);
+      const t = await dlg().innerText(); for (const k of ['e.g. As on', 'As on the GST certificate', 'Saving creates a draft', 'tick all that apply', 'Who the vendor is', 'is issued directly', 'Without BOQ lines', 'Used to filter']) if (t.includes(k)) bad.push(`${b}: ${k}`);
+      await p.keyboard.press('Escape');
+    }
+    return [bad.join(' | ') || 'clean', !bad.length];
+  });
 });

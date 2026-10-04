@@ -304,11 +304,11 @@ function Modal({ open, title, subtitle, onClose, footer, width = 640, children }
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-line px-5 py-3">
           <div>
             <h2 className="text-[15px] font-semibold">{title}</h2>
-            {subtitle && <p className="mt-0.5 text-[12.5px] text-ink-soft">{subtitle}</p>}
+            {/* no subtitle text under the form title */}
           </div>
           <IconBtn icon={Icon.x} title="Close" onClick={onClose} />
         </div>
-        <div data-modal-body className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
+        <div data-modal-body className="min-h-0 flex-1 overflow-y-auto px-5 py-4"><InFormCtx.Provider value>{children}</InFormCtx.Provider></div>
         {footer && <div className="flex shrink-0 items-center justify-end gap-2 rounded-b-xl border-t border-line bg-gray-50 px-5 py-3">{footer}</div>}
       </div>
     </div>
@@ -418,7 +418,7 @@ function Drawer({ open, title, badge, subtitle, recordId, rowId, status, details
 const inputCls =
   "h-[32px] w-full rounded-md border border-line bg-white px-2.5 text-[13px] text-ink outline-none focus:border-brand focus:ring-2 focus:ring-brand/15";
 const FieldCtx = y.createContext(null);
-function Field({ label, hint, required, span = 1, children }) {
+function Field({ label, hint, info, required, span = 1, children }) {
   return h(FieldCtx.Provider, { value: typeof label === "string" ? label : null }, (
     <label className={cls("block", span === 2 && "col-span-2", span === 3 && "col-span-3", span === 4 && "col-span-4")}>
       <span className="mb-1 block text-[12px] font-medium text-ink-soft">
@@ -426,7 +426,8 @@ function Field({ label, hint, required, span = 1, children }) {
         {required && <span className="text-red-500"> *</span>}
       </span>
       {children}
-      {hint && <span className="mt-0.5 block text-[10.5px] leading-tight text-ink-faint">{hint}</span>}
+      {/* instruction hints are not shown - forms stay clean; a live figure (e.g. "Available ₹4.2 L") still shows */}
+      {info && <span className="mt-0.5 block text-[11px] leading-tight text-ink-mute">{info}</span>}
     </label>
   ));
 }
@@ -442,9 +443,10 @@ function NumInput({ value, onChange, ...rest }) {
 function DateInput({ value, onChange, ...rest }) {
   return <input type="date" className={inputCls} value={value ?? ""} onChange={(e) => onChange(e.target.value)} {...rest} />;
 }
-// Dropdown options have no tick box: the chosen option is blue with a small tick at the end of the row
+// Dropdown options have no tick box
 function OptBox() { return null; }
-const OptTick = ({ on }) => (on ? <svg className="shrink-0 text-brand" width="13" height="13" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2.5 6.2 5 8.6 9.5 3.6" /></svg> : null);
+// no tick either: the chosen option is shown in blue
+const OptTick = () => null;
 // Page filters can hold several values: "All" (nothing picked), one value, or a list of values
 const selList = (sel) => (sel == null || sel === "" || sel === "All" ? [] : Array.isArray(sel) ? sel : [sel]);
 const selMatch = (sel, v) => { const l = selList(sel); return !l.length || l.map(String).includes(String(v)); };
@@ -465,9 +467,11 @@ function Select({ value, onChange, options, placeholder, disabled, className, la
   const list = ql ? opts.filter((o) => !o.ph && !o.header && String(o.label).toLowerCase().includes(ql)) : opts;
   const place = () => {
     const r = btn.current.getBoundingClientRect(), vw = window.innerWidth, vh = window.innerHeight;
-    const width = Math.min(Math.max(r.width, 200), 360), below = vh - r.bottom - 12, above = r.top - 12;
+    const below = vh - r.bottom - 12, above = r.top - 12;
     const up = below < 220 && above > below;
-    setPos({ left: Math.max(8, Math.min(r.left, vw - width - 8)), width, top: up ? undefined : r.bottom + 4, bottom: up ? vh - r.top + 4 : undefined, maxH: Math.max(160, Math.min(320, up ? above : below)) });
+    // the menu is only as wide as its longest option; near the right edge it opens leftwards
+    const rightSide = r.left + 300 > vw;
+    setPos({ left: rightSide ? undefined : Math.max(8, r.left), right: rightSide ? Math.max(8, vw - r.right) : undefined, top: up ? undefined : r.bottom + 4, bottom: up ? vh - r.top + 4 : undefined, maxH: Math.max(160, Math.min(320, up ? above : below)) });
   };
   y.useLayoutEffect(() => { if (open) { place(); setQ(""); setHi(opts.findIndex((o) => String(o.value) === String(value ?? ""))); } }, [open]);
   y.useEffect(() => {
@@ -503,8 +507,7 @@ function Select({ value, onChange, options, placeholder, disabled, className, la
       {open && pos && (
         <div ref={menu} role="listbox" onClick={(e) => e.preventDefault()} onKeyDown={key}
           className="fixed z-[80] flex flex-col overflow-hidden rounded-lg border border-line bg-white py-1 shadow-lg"
-          style={{ left: pos.left, top: pos.top, bottom: pos.bottom, width: pos.width, maxHeight: pos.maxH }}>
-          {heading && <p className="px-3 pb-1 pt-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-ink-mute">{String(heading).replace(/\s*\*$/, "")}</p>}
+          style={{ left: pos.left, right: pos.right, top: pos.top, bottom: pos.bottom, width: "max-content", minWidth: 120, maxWidth: 360, maxHeight: pos.maxH }}>
           {searchable && (
             <div className="px-2 pb-1">
               <input autoFocus className="h-[28px] w-full rounded-md border border-line px-2 text-[12.5px] outline-none focus:border-brand" placeholder="Search…" value={q} onChange={(e) => { setQ(e.target.value); setHi(0); }} />
@@ -721,8 +724,8 @@ function FilterSelectMenu({ value, onChange, options, label, single }) {
         {cur !== opts[0] && <><span className="truncate">{String(cur.label).trim()}</span>{h(Icon.chevronDown, { size: 12, className: "shrink-0" })}</>}
       </button>
       {open && (
-        <div ref={menu} role="listbox" className={cls("absolute z-50 mt-1 max-h-[320px] min-w-full w-max max-w-[min(340px,calc(100vw-24px))] overflow-y-auto rounded-lg border border-line bg-white py-1 shadow-lg", flip ? "right-0" : "left-0")}>
-          {label && <p className="flex items-center justify-between px-3 pb-1 pt-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-ink-mute">{label}{!single && <span className="normal-case tracking-normal font-normal">{picked.length ? <button type="button" className="text-brand" onClick={() => onChange(isAll(opts[0]) ? opts[0].value : "All")}>Clear</button> : "pick one or more"}</span>}</p>}
+        <div ref={menu} role="listbox" className={cls("absolute z-50 mt-1 max-h-[320px] w-max max-w-[min(340px,calc(100vw-24px))] overflow-y-auto rounded-lg border border-line bg-white py-1 shadow-lg", flip ? "right-0" : "left-0")}>
+          {label && <p className="flex items-center justify-between px-3 pb-1 pt-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-ink-mute">{label}{!single && picked.length > 0 && <button type="button" className="normal-case tracking-normal font-normal text-brand" onClick={() => onChange(isAll(opts[0]) ? opts[0].value : "All")}>Clear</button>}</p>}
           {opts.length > 8 && <div className="px-2 pb-1"><input autoFocus className="h-[28px] w-full rounded-md border border-line px-2 text-[12.5px] outline-none focus:border-brand" placeholder="Search…" value={fq} onChange={(e) => setFq(e.target.value)} /></div>}
           {opts.filter((o) => !fq.trim() || isAll(o) || String(o.label).toLowerCase().includes(fq.trim().toLowerCase())).map((o) => {
             const on = single || isAll(o) ? (isAll(o) ? !picked.length && String(value) === String(o.value) || (!single && !picked.length) : String(o.value) === String(value)) : picked.map(String).includes(String(o.value));
@@ -759,7 +762,7 @@ function QuickColFilter({ def, value, onChange }) {
         {sel.length > 0 && <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-brand px-1 text-[10px] font-semibold text-white">{sel.length}</span>}
       </button>
       {open && (
-        <div role="listbox" aria-multiselectable="true" className="absolute left-0 z-50 mt-1 max-h-[320px] w-max min-w-[200px] max-w-[min(320px,calc(100vw-24px))] overflow-y-auto rounded-lg border border-line bg-white py-1 shadow-lg">
+        <div role="listbox" aria-multiselectable="true" className="absolute left-0 z-50 mt-1 max-h-[320px] w-max max-w-[min(320px,calc(100vw-24px))] overflow-y-auto rounded-lg border border-line bg-white py-1 shadow-lg">
           <p className="flex items-center justify-between px-3 pb-1 pt-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-ink-mute">{def.name}{sel.length > 0 && <button type="button" className="normal-case tracking-normal text-brand" onClick={() => onChange([])}>Clear</button>}</p>
           {def.opts.map((o) => {
             const on = sel.includes(o.value);
@@ -1343,7 +1346,10 @@ function Stars({ value = 0, onChange }) {
   );
 }
 
+const InFormCtx = y.createContext(false);
 function Note({ tone = "blue", icon, children }) {
+  // inside a form only warnings and errors are shown; plain information notes are left out
+  if (y.useContext(InFormCtx) && (tone === "blue" || tone === "green")) return null;
   const t = {
     blue: "border-blue-200 bg-blue-50/60 text-blue-800",
     amber: "border-amber-200 bg-amber-50/70 text-amber-800",

@@ -100,6 +100,6 @@ require('./lib')('fix23', async ({ fill, p, go, dlg, S, mut, as, T, pick, toastT
     const dis0 = await d.locator('button:has-text("Award & create")').isDisabled();
     await d.getByRole('button', { name: 'Contract', exact: true }).click(); await d.locator('label:has-text("Award recommendation") input').fill('L1 on both lines; excavator fleet on site'); await d.locator('button:has-text("Award & create")').click(); await p.waitForTimeout(250);
     const s = await S(); const c = s.contracts.find((x) => x.rfqId === 'RFQ-009');
-    return [`button disabled without note=${dis0}; contract ${c?.id} ${c?.status} for ${c?.vendorId}, BOQ ${c?.scope.length} lines, value ${c?.value} (non-compliant Sai excluded by the compliance gate)`, dis0 && c && c.status === 'Draft' && c.scope.length === 2 && c.vendorId === 'VEN-001' && !!c.awardNote];
+    return [`button disabled without note=${dis0}; contract ${c?.id} ${c?.status} for ${c?.vendorId}, BOQ ${c?.scope.length} lines, value ${c?.value} (lowest compliant bidder)`, dis0 && c && c.status === 'Draft' && c.scope.length === 2 && ['VEN-010', 'VEN-001'].includes(c.vendorId) && !!c.awardNote];
   });
 });

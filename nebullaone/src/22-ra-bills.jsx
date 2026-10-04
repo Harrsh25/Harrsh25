@@ -389,7 +389,7 @@ function RetentionPage() {
             <div className="grid grid-cols-2 gap-3">
               <Field label="Contract" span={2}><Select value={rel.contractId} placeholder="Select…" onChange={(x) => setRel({ ...rel, contractId: x })} options={contracts.map((x) => ({ value: x.id, label: `${x.id} - ${vendorName(st, x.vendorId)} (${inrShort(contractLedger(st, x).retentionBalance)} held)` }))} /></Field>
               <Field label="Basis"><Select value={rel.type} onChange={(x) => setRel({ ...rel, type: x })} options={["After DLP", "Against bank guarantee", "50% on completion"]} /></Field>
-              <Field label="Amount (₹)" hint={c ? `Available ${inr(max)}` : ""}><NumInput value={rel.amount} onChange={(x) => setRel({ ...rel, amount: x })} /><FieldErr m={c && Number(rel.amount) > max + 0.5 ? `Exceeds available retention (${inr(max)})` : ""} /></Field>
+              <Field label="Amount (₹)" info={c ? `Available ${inr(max)}` : ""}><NumInput value={rel.amount} onChange={(x) => setRel({ ...rel, amount: x })} /><FieldErr m={c && Number(rel.amount) > max + 0.5 ? `Exceeds available retention (${inr(max)})` : ""} /></Field>
               {rel.type === "Against bank guarantee" && <Field label="Retention BG reference" required span={2}><Select value={rel.bgRef || ""} placeholder="Select the guarantee…" onChange={(x) => setRel({ ...rel, bgRef: x })} options={c ? liveGuarantees(c, "Retention").map((g) => ({ value: g.number, label: `${g.number} · ${g.bank} · ${inrShort(g.amount)} till ${fmtDate(g.expiry)}` })) : []} /></Field>}
               <Field label="Note" span={2}><TextInput value={rel.note} onChange={(x) => setRel({ ...rel, note: x })} placeholder="e.g. BG/ICICI/2026/551 received" /></Field>
             </div>

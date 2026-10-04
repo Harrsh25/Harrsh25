@@ -141,8 +141,8 @@ function DocDetails({ kind, value, onChange, vendor, subtotal, open: openInit = 
   return (
     <section className="rounded-lg border border-line" data-docdetails={kind}>
       <button type="button" onClick={() => setOpen(!open)} className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[13px] font-medium text-ink hover:bg-gray-50">
-        <span className="flex items-center gap-2">{h(open ? Icon.chevronDown : Icon.chevronRight, { size: 14 })}More details <span className="font-normal text-ink-mute">company, currency, taxes, addresses, accounting, printing</span></span>
-        <span className="text-[11.5px] font-normal text-ink-mute">{filled} filled{adj && adj.total !== adj.base ? ` · adjusted total ${inr(adj.total)}` : ""}</span>
+        <span className="flex items-center gap-2">{h(open ? Icon.chevronDown : Icon.chevronRight, { size: 14 })}More details</span>
+        <span className="text-[11.5px] font-normal text-ink-mute">{adj && adj.total !== adj.base ? `Adjusted total ${inr(adj.total)}` : ""}</span>
       </button>
       {open && (
         <div className="space-y-3 border-t border-line p-3">
@@ -724,7 +724,7 @@ function RfqExtras({ f, setF }) {
   return (
     <div className="space-y-3">
       <Section title="Requirement questions (vendors answer with their quote)" icon={Icon.listChecks} actions={<Btn size="sm" icon={Icon.plus} onClick={() => setF({ ...f, questions: [...qs, { text: "", type: "Yes / No", options: "", required: true }] })}>Add question</Btn>}>
-        {qs.length === 0 ? <p className="p-3 text-[12.5px] text-ink-mute">None - add questions such as "Can you deliver in two lots?" or "Mill test certificate with each lot?"</p> : (
+        {qs.length === 0 ? null : (
           <div className="space-y-2 p-3">
             {qs.map((q, i) => (
               <div key={i} className="grid grid-cols-[1fr_130px_180px_90px_28px] items-center gap-2">
