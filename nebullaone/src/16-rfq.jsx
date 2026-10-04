@@ -411,7 +411,7 @@ function SplitAwardModal({ rfq, onClose, preset }) {
   const eligible = rfq.quotes.filter((q) => q.review !== "Returned" && q.review !== "Under review" && daysUntil(q.validUntil) >= 0);
   const already = new Set((rfq.awards || []).map((a) => a.line));
   const best = (i) => { const c = eligible.filter((q) => lineRate(q, i) != null && canPo(q.vendorId)); c.sort((a, b) => lineRate(a, i) - lineRate(b, i)); return c[0]?.vendorId || ""; };
-  function canPo(vid) { const v = byId(st.vendors, vid); return v && eligibleForPo(v) && !scorecardGate(st, vid, "po").block && !sourcingGate(st, v, "po").block; }
+  function canPo(vid) { const v = byId(st.vendors, vid); return v && !techBlocked(rfq, vid) && eligibleForPo(v) && !scorecardGate(st, vid, "po").block && !sourcingGate(st, v, "po").block; }
   const [pick, setPick] = y.useState(() => rfq.items.map((_, i) => (already.has(i) ? "" : preset ? (eligible.find((q) => q.vendorId === preset && lineRate(q, i) != null) ? preset : "") : best(i))));
   const [keepOpen, setKeepOpen] = y.useState(false);
   const [note, setNote] = y.useState("");
@@ -656,8 +656,9 @@ function RfqDrawer({ id, onClose, compose }) {
         </Section>
         </>}
         {tab === "eval" && <>
+        <RfqEvaluation rfq={rfq} />
         {ranked.length > 0 && (
-          <Section title={`Weighted scoring — price ${rfq.weights.price}% · quality ${rfq.weights.quality}% · delivery ${rfq.weights.delivery}% (partial bids scaled by coverage)`} icon={Icon.target}>
+          <Section title={`Supplier score — price ${rfq.weights.price}% · quality ${rfq.weights.quality}% · delivery ${rfq.weights.delivery}% (partial bids scaled by coverage)`} icon={Icon.target}>
             <DataTable dense rows={ranked} rowKey={(r) => r.q.vendorId} columns={[
               { key: "rank", label: "#", render: (_, i) => i + 1 },
               { key: "v", label: "Vendor", render: (r) => <span className="font-medium">{vendorName(st, r.q.vendorId)}</span> },
