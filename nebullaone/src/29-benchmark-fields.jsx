@@ -432,7 +432,7 @@ function benchSettingsErr(f) {
     if (c.type === "Dropdown" && !String(c.options || "").trim()) return `Custom field "${c.label}": list the dropdown options`;
   }
   for (const q of f.questionLibrary || []) if (!String(q.question || "").trim()) return "Question library: every question needs text";
-  for (const k of ["poApprovalMin", "invoiceQtyTolPct", "invoiceAmtTolPct", "earlyReceiptDays", "lateReceiptDays", "receiptReminderDays", "daysToPurchase"]) if (Number(f[k]) < 0) return "Purchasing controls: values can't be negative";
+  for (const k of ["poApprovalMin", "invoiceQtyTolPct", "invoiceAmtTolPct", "earlyReceiptDays", "lateReceiptDays", "receiptReminderDays", "dispatchGraceDays", "daysToPurchase"]) if (Number(f[k]) < 0) return "Purchasing controls: values can't be negative";
   if (f.rfqSenderEmail && !EMAIL_RE.test(f.rfqSenderEmail)) return "RFQ sender e-mail is not valid";
   return "";
 }
@@ -455,6 +455,7 @@ function BenchmarkSettings({ f, setF, mode, yesNo, part }) {
         <div className="grid grid-cols-3 gap-3 p-4">
           {num("poApprovalMin", "PO approval - minimum amount (₹)", "At or above this a PO needs approval (double validation)")}
           {num("receiptReminderDays", "Receipt reminder (days before delivery)")}
+          {num("dispatchGraceDays", "Dispatch not received - flag after (days)")}
           {num("daysToPurchase", "Days to purchase", "Added to the vendor lead time")}
           {num("invoiceQtyTolPct", "Invoice quantity tolerance (%)")}
           {num("invoiceAmtTolPct", "Invoice amount tolerance (%)")}

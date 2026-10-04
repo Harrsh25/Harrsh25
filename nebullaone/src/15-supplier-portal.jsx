@@ -211,7 +211,7 @@ function PortalBody({ vid, vendorMode }) {
           { key: "r", label: "Delivered", render: (p) => { const r = poReceived(p); return <Progress value={Math.round(pct(sum(r, (x) => x.received), sum(r, (x) => x.qty)))} />; } },
           { key: "ret", label: "Returned", align: "right", render: (p) => (p.returns?.length ? <span className="text-red-600">{num(sum(p.returns, (x) => x.qty))}</span> : "-") },
           { key: "b", label: "Billing", filterOptions: FO.poBilling, filter: (p) => poBillingStatus(st, p), render: (p) => <Status tone="blue">{poBillingStatus(st, p)}</Status> },
-          { key: "s", label: "Status", filterOptions: FO.poStatus, filter: (p) => poStatus(p), render: (p) => <Status>{poStatus(p)}</Status> },
+          { key: "s", label: "Status", filterOptions: FO.poStatus, filter: (p) => poStatus(p), render: (p) => <span className="flex flex-wrap gap-1"><Status>{poStatus(p)}</Status><PoDispatchChip st={st} po={p} /></span> },
         ]} />}
         {tab === "wo" && <DataTable rows={wos} onRow={(w) => open("wo", w.id)} empty={<EmptyState icon={Icon.clipboardList} title="No work orders" />} columns={[
           { key: "id", label: "WO", className: "mono text-[12px]" }, { key: "title", label: "Scope", className: "font-medium" }, { key: "type", label: "Type", filterOptions: FO.woType, filter: true },

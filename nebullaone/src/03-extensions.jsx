@@ -102,6 +102,7 @@ const DEFAULT_SETTINGS = {
   poApprovalMin: 500000,          // POs at or above this need approval; below it "Approve & issue" is one step
   lockConfirmedOrders: true,      // issued POs can't be edited (use a change / cancel)
   purchaseWarnings: true,         // show the vendor's purchase warning on RFQ / PO
+  dispatchGraceDays: 2,           // a dispatch notice not received this many days after the expected arrival is flagged
   receiptReminderDays: 2,         // remind the vendor this many days before the delivery date
   allowZeroQty: false,            // RFQ / quote / PO lines with zero quantity
   allowDuplicateItems: false,     // same item twice on one PO

@@ -9,14 +9,16 @@ const EmptyRow = ({ text }) => <p className="p-4 text-[13px] text-ink-mute">{tex
 function PortalPoDrawer({ id, onClose, open }) {
   const st = useStore();
   const po = byId(st.purchaseOrders, id);
-  const [tab, setTab] = y.useState("lines");
+  const [tab, setTab] = y.useState("lines"), [send, setSend] = y.useState(false);
   if (!po) return null;
-  const rec = poReceived(po);
+  const rec = poReceived(po), v = byId(st.vendors, po.vendorId);
+  const canSend = !["Draft", "Closed", "Cancelled"].includes(po.status) && !isBlockedFor(v, "All") && rec.some((_, i) => dispatchRoom(po, i) > 0);
   const invs = st.invoices.filter((i) => i.poId === po.id);
   const billedQty = (i) => sum(invs.flatMap((x) => x.lines.filter((z) => z.line === i)), (z) => z.qty);
   const gst = sum(invs, (i) => invoiceTotals(i).gst);
   const tabs = [
     { id: "lines", label: "Items" },
+    { id: "dsp", label: "Dispatch notices" },
     { id: "grn", label: "Deliveries", count: po.receipts.length },
     ...((po.returns || []).length ? [{ id: "ret", label: "Returns", count: po.returns.length }] : []),
     { id: "bills", label: "Bills", count: invs.length },
@@ -24,8 +26,8 @@ function PortalPoDrawer({ id, onClose, open }) {
     { id: "rev", label: "Revisions", count: po.revisions.length },
   ];
   return (
-    <Drawer open onClose={onClose} width={920} title={po.project} recordId={po.id} status={<Status>{poStatus(po)}</Status>} details={[["Billing", <Status tone="blue">{poBillingStatus(st, po)}</Status>], ["Deliver to", po.project], ["Delivery by", fmtDate(po.deliveryDate)], ["Issued", fmtDate(po.date)]]} tabs={{ tabs, active: tab, onChange: setTab }}
-     >
+    <Drawer open onClose={onClose} width={920} title={po.project} recordId={po.id} status={<Status>{poStatus(po)}</Status>} details={[poDispatchState(st, po) && ["Delivery", <PoDispatchChip st={st} po={po} />], ["Billing", <Status tone="blue">{poBillingStatus(st, po)}</Status>], ["Deliver to", po.project], ["Delivery by", fmtDate(po.deliveryDate)], ["Issued", fmtDate(po.date)]]} tabs={{ tabs, active: tab, onChange: setTab }}
+      actions={canSend && <Btn variant="primary" icon={Icon.truck} onClick={() => setSend(true)}>Send dispatch notice</Btn>}>
       <div className="space-y-4 px-6 py-5">
         <div className="grid grid-cols-4 gap-3">
           <StatTile tone="blue" label="Order value" value={inrShort(poValue(po))} sub="excl. GST" icon={Icon.package} />
@@ -48,6 +50,7 @@ function PortalPoDrawer({ id, onClose, open }) {
             ]} />
           </Section>
         )}
+        {tab === "dsp" && <DispatchSection po={po} portal />}
         {tab === "grn" && (
           <Section title="Goods receipts at site" icon={Icon.truck}>
             <DataTable dense rows={po.receipts} empty={<EmptyRow text="Nothing delivered yet." />} columns={[
@@ -94,6 +97,7 @@ function PortalPoDrawer({ id, onClose, open }) {
           </Section>
         )}
       </div>
+      {send && <DispatchModal po={po} by={`${v.name} (portal)`} onClose={() => { setSend(false); setTab("dsp"); }} />}
     </Drawer>
   );
 }

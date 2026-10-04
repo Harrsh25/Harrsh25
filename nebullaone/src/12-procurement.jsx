@@ -144,6 +144,20 @@ function GrnModal({ po, onClose }) {
   const [qi, setQi] = y.useState(() => ({ reportDate: todayISO(), type: "Incoming", template: "", params: {}, sampleSize: "", batch: "", manual: false, inspectedBy: currentUser(), verifiedBy: "", remarks: "" }));
   const tpl = set0.inspectionTemplates.find((t) => t.name === qi.template);
   const [f, setF] = y.useState({ date: todayISO(), qc: "Passed", acceptedLocation: `Main store - ${po.project.split(" ")[0]}`, rejectedLocation: `Return bay - ${po.project.split(" ")[0]}`, reason: "", lines: rec.map((l) => ({ qty: Math.max(0, l.qty - l.received), accepted: Math.max(0, l.qty - l.received) })) });
+  // against the vendor's dispatch notice: its quantities and challan details are the starting point
+  const opens = openDispatches(po);
+  const [dsp, setDsp] = y.useState("");
+  const fromNotice = (id) => {
+    const d = opens.find((x) => x.id === id); setDsp(id);
+    if (!d) return;
+    const q = rec.map((_, i) => sum(d.lines.filter((l) => l.line === i), (l) => l.qty));
+    setF((ff) => ({ ...ff, lines: q.map((x) => ({ qty: x, accepted: x })) }));
+    setDet((dd) => ({ ...dd, deliveryNote: d.challan || dd.deliveryNote, vehicleNo: d.vehicleNo || dd.vehicleNo, ewayBill: d.ewayBill || dd.ewayBill }));
+  };
+  y.useEffect(() => { if (opens.length === 1) fromNotice(opens[0].id); }, []);
+  const notice = opens.find((x) => x.id === dsp);
+  const sentOn = (i) => (notice ? sum(notice.lines.filter((l) => l.line === i), (l) => l.qty) : null);
+  const noticeDiff = notice ? rec.map((_, i) => (Number(f.lines[i].qty) || 0) - sentOn(i)).filter((x) => Math.abs(x) > 1e-9) : [];
   const over0 = rec.some((l, i) => l.received + (Number(f.lines[i].qty) || 0) > l.qty * (1 + (po.tolerance || 0) / 100));
   const over = over0 && set0.overReceiptAction === "Stop";
   // Oracle receiving window: early / late against the PO delivery date
@@ -167,7 +181,8 @@ function GrnModal({ po, onClose }) {
     let dnInfo = "";
     setState((s) => {
       const p = byId(s.purchaseOrders, po.id);
-      p.receipts.push({ id: grnId, date: f.date, createdAt: new Date().toISOString(), qc: f.qc, acceptedLocation: f.acceptedLocation, rejectedLocation: rejected ? f.rejectedLocation : "", details: det, dateException: dateOut || null, overReceipt: over0 || false,
+      if (notice) { const dx = (p.dispatches || []).find((x) => x.id === notice.id); if (dx) { dx.grnId = grnId; dx.receivedOn = f.date; } }
+      p.receipts.push({ id: grnId, dispatchId: notice ? notice.id : null, receivedBy: (f.receivedBy || "").trim(), date: f.date, createdAt: new Date().toISOString(), qc: f.qc, acceptedLocation: f.acceptedLocation, rejectedLocation: rejected ? f.rejectedLocation : "", details: det, dateException: dateOut || null, overReceipt: over0 || false,
         inspection: { ...qi, id: `QI-${grnId.slice(4)}`, refType: "Purchase receipt", refName: grnId, status: f.qc, template: qi.template || null, params: tpl ? Object.fromEntries(tpl.params.map((pp) => [pp, qi.params[pp] || "Accepted"])) : {} }, lines: f.lines.map((l, i) => ({ line: i, qty: Number(l.qty) || 0, accepted: Number(l.accepted) || 0 })).filter((l) => l.qty > 0) });
       p.returns = p.returns || [];
       f.lines.forEach((l, i) => {
@@ -187,7 +202,7 @@ function GrnModal({ po, onClose }) {
         }
         p.returns.push(rtv);
       });
-    }, { entity: "PO", id: po.id, action: `${grnId} received${rejected ? ` - ${num(rejected)} rejected, return raised${dnInfo}` : ""}` });
+    }, { entity: "PO", id: po.id, action: `${grnId} received${notice ? ` against ${notice.id}${noticeDiff.length ? ` - differs from the vendor's notice` : ""}` : ""}${rejected ? ` - ${num(rejected)} rejected, return raised${dnInfo}` : ""}` });
     toast(`${grnId} posted${rejected ? " - return to vendor raised" : ""}${dnInfo}`); onClose();
   };
   return (
@@ -198,13 +213,16 @@ function GrnModal({ po, onClose }) {
           <Field label="Receipt date"><DateInput value={f.date} onChange={(x) => setF({ ...f, date: x })} /></Field>
           <Field label="Quality inspection"><Select value={f.qc} onChange={(x) => setF({ ...f, qc: x })} options={["Passed", "Passed with remarks", "Partially rejected", "Failed"]} /></Field>
           <Field label="Accepted into"><TextInput value={f.acceptedLocation} onChange={(x) => setF({ ...f, acceptedLocation: x })} /></Field>
+          {opens.length > 0 && <Field label="Dispatch notice"><Select value={dsp} onChange={fromNotice} options={opens.map((d) => ({ value: d.id, label: `${d.id} - challan ${d.challan}, sent ${fmtDate(d.date)}` }))} /></Field>}
+          <Field label="Received by"><TextInput value={f.receivedBy || ""} onChange={(x) => setF({ ...f, receivedBy: x })} /></Field>
         </div>
         <table className="w-full">
-          <thead><tr><Th>Item</Th>{!blind && <><Th align="right">Ordered</Th><Th align="right">Received so far</Th></>}<Th align="right">Receiving now</Th><Th align="right">Accepted</Th><Th align="right">Rejected</Th></tr></thead>
+          <thead><tr><Th>Item</Th>{!blind && <><Th align="right">Ordered</Th><Th align="right">Received so far</Th></>}{notice && <Th align="right">Vendor sent</Th>}<Th align="right">Receiving now</Th><Th align="right">Accepted</Th><Th align="right">Rejected</Th></tr></thead>
           <tbody>
             {rec.map((l, i) => (
               <tr key={i}>
                 <Td>{l.desc}{blind && <span className="block text-[11px] text-ink-mute">{l.unit} - blind receiving: count what arrived</span>}</Td>{!blind && <><Td align="right" className="num">{num(l.qty)} {l.unit}</Td><Td align="right" className="num">{num(l.received)}</Td></>}
+                {notice && <Td align="right" className="num">{num(sentOn(i))}</Td>}
                 <Td align="right"><NumInput value={f.lines[i].qty} onChange={(x) => setF({ ...f, lines: f.lines.map((z, j) => (j === i ? { qty: x, accepted: x } : z)) })} /></Td>
                 <Td align="right"><NumInput value={f.lines[i].accepted} onChange={(x) => setF({ ...f, lines: f.lines.map((z, j) => (j === i ? { ...z, accepted: x } : z)) })} /></Td>
                 <Td align="right" className={cls("num", (f.lines[i].qty - f.lines[i].accepted) > 0 && "font-semibold text-red-600")}>{num((Number(f.lines[i].qty) || 0) - (Number(f.lines[i].accepted) || 0))}</Td>
@@ -219,6 +237,7 @@ function GrnModal({ po, onClose }) {
             <p className="col-span-2 text-[12px] text-red-700">{num(rejected)} units will go on a return-to-vendor. If they were already billed, a debit note is added to the bill automatically.</p>
           </div>
         )}
+        {notice && noticeDiff.length > 0 && <Note tone="amber">This differs from the vendor's dispatch notice {notice.id} - {rec.map((l, i) => { const d = (Number(f.lines[i].qty) || 0) - sentOn(i); return Math.abs(d) > 1e-9 ? `${l.desc}: sent ${num(sentOn(i))}, receiving ${num(Number(f.lines[i].qty) || 0)} (${num(Math.abs(d))} ${d < 0 ? "short" : "excess"})` : ""; }).filter(Boolean).join(" · ")}. It is flagged on the PO and shown to the vendor.</Note>}
         {over && <Note tone="red">Receipt exceeds the ordered quantity plus {po.tolerance || 0}% tolerance.</Note>}
         {over0 && !over && set0.overReceiptAction === "Warn" && <Note tone="amber">Over-receipt beyond the {po.tolerance || 0}% tolerance - allowed with a warning (Procurement Settings → over-receipt action).</Note>}
         {dateOut && !dateBlock && set0.receiptDateAction === "Warn" && <Note tone="amber">Receipt is {dateOut} against the PO delivery date {fmtDate(po.deliveryDate)}.</Note>}
@@ -266,7 +285,7 @@ function PoDrawer({ id, onClose }) {
     return am.lines.some((l) => { const it = rfq.items.find((x) => x.desc === l.desc); return it && Number(l.qty) > it.qty * allow + 1e-6; });
   };
   return (
-    <Drawer open related={relatedFor(st, "po", po)} comments={po.id} onClose={onClose} width={940} title={v.name} recordId={po.id} status={<Status>{status}</Status>} details={[["Billing", <Status tone="blue">{bstatus}</Status>], ["Project", po.project], ["Delivery by", fmtDate(po.deliveryDate)], po.rfqId && ["From RFQ", <RefLink to={`${VM_BASE}/rfq?open=${po.rfqId}`}>{po.rfqId}</RefLink>], po.blanketId && ["Call-off of", po.blanketId], po.quoteNo && ["Vendor quote", po.quoteNo]]}
+    <Drawer open related={relatedFor(st, "po", po)} comments={po.id} onClose={onClose} width={940} title={v.name} recordId={po.id} status={<Status>{status}</Status>} details={[poDispatchState(st, po) && ["Delivery", <PoDispatchChip st={st} po={po} />], ["Billing", <Status tone="blue">{bstatus}</Status>], ["Project", po.project], ["Delivery by", fmtDate(po.deliveryDate)], po.rfqId && ["From RFQ", <RefLink to={`${VM_BASE}/rfq?open=${po.rfqId}`}>{po.rfqId}</RefLink>], po.blanketId && ["Call-off of", po.blanketId], po.quoteNo && ["Vendor quote", po.quoteNo]]}
       actions={<>
         {po.status === "Draft" && <><Btn variant="danger" onClick={() => setAsk("reject")}>Reject</Btn><Btn variant="primary" onClick={() => decidePo(po, true)}>{poApprovalState(po, st).levels.length - poApprovalState(po, st).i > 1 ? `Approve as ${poApprovalState(po, st).next?.level}` : "Approve & issue"}</Btn></>}
         {/* Cancel while nothing is received or billed; close (short-close) once part is received and no more is expected */}
@@ -306,10 +325,12 @@ function PoDrawer({ id, onClose }) {
         </Section>
         <DocDetailsView kind="po" value={po.details} vendor={byId(st.vendors, po.vendorId)} />
         {po.details && docAdjust(po.details, poValue(po)).total !== poValue(po) && <Note>Adjusted total after discount / freight / rounding: <b className="num">{inr(docAdjust(po.details, poValue(po)).total)}</b> (lines {inr(poValue(po))}).</Note>}
+        <DispatchSection po={po} />
         <Section title="Goods receipts" icon={Icon.truck}>
           {(po.reversedReceipts || []).length > 0 && <p className="border-b border-line px-4 py-2 text-[12px] text-ink-mute">Reversed: {po.reversedReceipts.map((g) => `${g.id} (${g.reversed.reason})`).join(" · ")}</p>}
           <DataTable dense rows={po.receipts} empty={<p className="p-4 text-[13px] text-ink-mute">Nothing received yet.</p>} columns={[
             { key: "id", label: "GRN", className: "mono text-[12px]" }, { key: "date", label: "Date", render: (r) => fmtDate(r.date) },
+            { key: "rb", label: "Received by", className: "text-[12px]", render: (r) => <span className="flex flex-col"><span>{r.receivedBy || "-"}</span>{r.dispatchId && <span className="text-ink-mute">against {r.dispatchId}</span>}</span> },
             { key: "qc", label: "Quality inspection", render: (r) => <Status tone={r.qc === "Passed" ? "green" : r.qc === "Failed" ? "red" : "amber"}>{r.qc}</Status> },
             { key: "q", label: "Received / accepted", render: (r) => `${num(sum(r.lines, (l) => l.qty))} / ${num(sum(r.lines, (l) => l.accepted))}` },
             { key: "loc", label: "Accepted → / rejected →", className: "text-[12px]", render: (r) => <span className="flex flex-col"><span>{r.acceptedLocation || "Main store"}</span>{r.rejectedLocation && <span className="text-red-600">{r.rejectedLocation}</span>}</span> },
@@ -382,7 +403,7 @@ function PurchaseOrdersPage() {
       <DataTable noun="purchase orders" extraColumns={LIST_EXTRA.po(st)} calendar={{ label: "Delivery dates", date: (p) => p.deliveryDate, title: (p) => vendorName(st, p.vendorId) }} rows={st.purchaseOrders} onRow={(p) => setOpen(p.id)} columns={[
         { key: "id", label: "PO no.", className: "mono text-[12px]" },
         { key: "v", label: "Vendor", filterOptions: FO.vendors, filter: (x) => vendorName(st, x.vendorId), render: (p) => <span className="font-medium">{vendorName(st, p.vendorId)}</span> },
-        { key: "s", label: "Status", filterOptions: FO.poStatus, filter: (p) => poStatus(p), render: (p) => <Status>{poStatus(p)}</Status> },
+        { key: "s", label: "Status", filterOptions: FO.poStatus, filter: (p) => poStatus(p), render: (p) => <span className="flex flex-wrap gap-1"><Status>{poStatus(p)}</Status><PoDispatchChip st={st} po={p} /></span> },
         { key: "items", label: "Items · project", filterOptions: FO.projects, filter: (p) => p.project, filterLabel: "Project", render: (p) => <TwoLine a={itemsSummary(p.lines)} b={p.project} /> },
         { key: "src", label: "Source", opt: true, filterOptions: FO.poSource, filter: (p) => poSourceText(st, p)[0], render: (p) => { const [a, b] = poSourceText(st, p); return <TwoLine a={a} b={b} />; } },
         { key: "val", label: "Value", align: "right", num: true, render: (p) => inrShort(poValue(p)) },

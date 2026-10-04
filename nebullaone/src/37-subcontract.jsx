@@ -17,6 +17,7 @@ function migrateState(s) {
   let changed = false;
   if ((s.workers || []).some((w) => w.idRef === undefined)) { seedWorkerDetails(s); changed = true; }
   if (seedSubcontracts(s)) changed = true;
+  if (seedDispatches(s)) changed = true;
   return changed;
 }
 const SUB_STATUS_TONE = { Proposed: "blue", Approved: "green", Rejected: "red", Closed: "gray" };
