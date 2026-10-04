@@ -1,5 +1,5 @@
 // Batch 5 - close-out (punch → final inspection → handover → final bill → retention → closure) and portal invoices
-require('./lib')('fix5', async ({ p, go, dlg, S, mut, as, T, pick, toastText }) => {
+require('./lib')('fix5', async ({ fill, p, go, dlg, S, mut, as, T, pick, toastText }) => {
   const btn = (t) => p.locator(`button:has-text("${t}")`);
   const portalAs = async (name) => { await go('vendor-management/portal'); await pick(p.locator('label:has-text("Viewing as") [role=combobox]'), name); await p.waitForTimeout(200); };
   await mut((s) => { const po = s.purchaseOrders.find((x) => x.id === 'PO-003'); po.receipts.push({ id: 'GRN-091', date: new Date().toISOString().slice(0, 10), lines: po.lines.map((l, i) => ({ line: i, qty: 10, accepted: 10 })) }); });

@@ -1,6 +1,6 @@
 // Vendor edit rules: Draft / Changes Requested / Rejected → Edit details; Pending Approval → locked;
 // approved (Active / Inactive / On Hold) and Blacklisted → no editing at all
-require('./lib')('editflow', async ({ p, go, S, mut, T }) => {
+require('./lib')('editflow', async ({ fill, p, go, S, mut, T }) => {
   const s0 = await S(); const byStatus = (st) => s0.vendors.find((v) => v.status === st);
   const hasEdit = async (id) => { await go(`vendor-management/registry?open=${id}`); await p.waitForTimeout(300); return (await p.locator('[data-drawer] button:has-text("Edit details")').count()) > 0; };
   for (const [stt, want] of [['Draft', true], ['Pending Approval', false], ['Active', false], ['On Hold', false], ['Blacklisted', false]]) {

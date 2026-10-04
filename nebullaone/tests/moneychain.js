@@ -2,7 +2,7 @@
 // contract value + approved change orders → work orders → signed measurements → RA bill lines → deductions → net →
 // payable (invoice) → payments (incl. part-payments and reversals) → retention / advance ledger → final settlement screen.
 // Every figure is recomputed here independently from the stored records, then compared with what the screens show.
-require('./lib')('moneychain', async ({ p, go, dlg, S, mut, T }) => {
+require('./lib')('moneychain', async ({ fill, p, go, dlg, S, mut, T }) => {
   const r2 = (x) => Math.round(x * 100) / 100, near = (a, b, tol = 1) => Math.abs(a - b) <= tol;
   const sum = (a, f) => a.reduce((n, x) => n + (Number(f(x)) || 0), 0);
   const money = (t) => { const neg = /^[−-]/.test(t.trim()); const n = Number(String(t).replace(/[^0-9.]/g, '')); return neg ? -n : n; };

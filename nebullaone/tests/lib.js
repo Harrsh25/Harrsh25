@@ -20,7 +20,24 @@ module.exports = async function run(name, body) {
   };
   // make the store persist (it only saves after a mutation)
   await go('vendor-management/registry'); const s = p.locator('tr:has-text("Konkan Steel") button[title*="preferred" i]'); await s.click(); await p.waitForTimeout(80); await s.click(); await p.waitForTimeout(80);
-  await body({ p, go, dlg, S, mut, as, T, pick: (c, v) => pick(p, c, v), toastText });
+  // forms open with nothing pre-selected: pick the first option in every empty required dropdown (and tick a supply type)
+  const fill = async (scope, skip = []) => {
+    const sc = scope || dlg();
+    const types = sc.locator('button[role=checkbox]'); if ((await types.count()) && !(await sc.locator('button[role=checkbox][aria-checked=true]').count())) await types.first().click().catch(() => {});
+    for (let n = 0; n < 25; n++) {
+      const boxes = sc.locator('label:has(> span > span.text-red-500) [role=combobox][data-value=""]:not([disabled])');
+      let i = 0, c = await boxes.count(); while (i < c && skip.includes(await boxes.nth(i).getAttribute('aria-label'))) i++;
+      if (i >= c) break;
+      const boxEl = boxes.nth(i); await boxEl.click(); await p.waitForTimeout(60);
+      const PREF = { Country: 'India', Currency: 'INR', 'Supplier type': 'Company', 'Payment terms': 'Net 30', 'Supplier tier': 'Approved', 'Registration tier': 'Spend Authorized', Project: 'Skyline Towers', 'Sourcing mode': 'Multiple Vendors', 'Bill control': 'On received quantity', 'Contract type': 'Item-Rate', 'GST (%)': '18', Trade: 'Mason', Skill: 'Skilled', 'Labour type': 'Skilled', 'ID proof': 'Aadhaar', Company: 'NebullaOne Infra', 'Request purpose / type': 'Purchase', Type: 'Mobilisation advance', 'Skill category': 'Skilled' };
+      const lab = await boxEl.getAttribute('aria-label'); const want = PREF[lab];
+      let opt = want ? p.locator('[role=listbox] [role=option]').filter({ hasText: want }).first() : null;
+      if (!opt || !(await opt.count())) opt = p.locator('[role=listbox] [role=option]').filter({ hasNotText: /^(Select|Select…|-|Unit)$/ }).first();
+      if (await opt.count()) await opt.click(); else await p.keyboard.press('Escape');
+      await p.waitForTimeout(60);
+    }
+  };
+  await body({ p, go, dlg, S, mut, as, T, pick: (c, v) => pick(p, c, v), toastText, fill });
   console.log(`\n${name}: ${pass} passed, ${fail} failed${errs.length ? '\n' + errs.join('\n') : ''}`);
   require('fs').writeFileSync(`${__dirname}/out/res-${name}.json`, JSON.stringify({ R, errs }, null, 1));
   await b.close();

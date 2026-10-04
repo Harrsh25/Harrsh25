@@ -442,10 +442,13 @@ function NumInput({ value, onChange, ...rest }) {
 function DateInput({ value, onChange, ...rest }) {
   return <input type="date" className={inputCls} value={value ?? ""} onChange={(e) => onChange(e.target.value)} {...rest} />;
 }
-// Tick box shown in front of every dropdown option (checked = selected); options have no background highlight
-function OptBox({ on }) {
-  return <span className={cls("grid h-4 w-4 shrink-0 place-items-center rounded border", on ? "border-brand bg-brand text-white" : "border-gray-300 bg-white")}>{on && <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2.5 6.2 5 8.6 9.5 3.6" /></svg>}</span>;
-}
+// Dropdown options have no tick box: the chosen option is blue with a small tick at the end of the row
+function OptBox() { return null; }
+const OptTick = ({ on }) => (on ? <svg className="shrink-0 text-brand" width="13" height="13" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2.5 6.2 5 8.6 9.5 3.6" /></svg> : null);
+// Page filters can hold several values: "All" (nothing picked), one value, or a list of values
+const selList = (sel) => (sel == null || sel === "" || sel === "All" ? [] : Array.isArray(sel) ? sel : [sel]);
+const selMatch = (sel, v) => { const l = selList(sel); return !l.length || l.map(String).includes(String(v)); };
+const selAny = (sel, fn) => { const l = selList(sel); return !l.length || l.some(fn); };
 // Form dropdown - same popover menu as the list filters (heading, dots, tick), positioned on screen
 function Select({ value, onChange, options, placeholder, disabled, className, label, ...rest }) {
   const fieldLabel = y.useContext(FieldCtx);
@@ -454,7 +457,8 @@ function Select({ value, onChange, options, placeholder, disabled, className, la
   const [q, setQ] = y.useState("");
   const [hi, setHi] = y.useState(-1);
   const btn = y.useRef(null), menu = y.useRef(null);
-  const opts = [...(placeholder !== undefined ? [{ value: "", label: placeholder, ph: true }] : []), ...options.map((o) => (typeof o === "object" ? o : { value: o, label: o }))];
+  // a plain "Select…" placeholder is not offered as an option; a meaningful one ("Not grouped", "- none -") is
+  const opts = [...(placeholder !== undefined && !/^select\b/i.test(String(placeholder)) ? [{ value: "", label: placeholder, ph: true }] : []), ...options.map((o) => (typeof o === "object" ? o : { value: o, label: o }))];
   const cur = opts.find((o) => String(o.value) === String(value ?? ""));
   const searchable = opts.length > 8;
   const ql = q.trim().toLowerCase();
@@ -508,11 +512,11 @@ function Select({ value, onChange, options, placeholder, disabled, className, la
           <div className="min-h-0 overflow-y-auto">
             {list.length ? list.map((o, i) => {
               if (o.header) return <p key={"h" + i} className="px-3 pb-0.5 pt-2 text-[10.5px] font-semibold uppercase tracking-wider text-ink-faint">{o.label}</p>;
-              const on = String(o.value) === String(value ?? "");
+              const on = !o.ph && String(o.value) === String(value ?? "");
               return (
                 <button key={String(o.value) + i} type="button" role="option" aria-selected={on} disabled={o.disabled} onMouseEnter={() => setHi(i)} onClick={() => !o.disabled && pick(o)}
                   className={cls("flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-[13px]", o.disabled ? "cursor-not-allowed text-ink-faint" : on ? "text-brand" : i === hi ? "text-brand" : "text-ink", o.ph && !on && "text-ink-mute")}>
-                  <OptBox on={on} />{dotOf(o)}<span className="flex-1 truncate">{String(o.label).trim()}</span>
+                  {dotOf(o)}<span className="flex-1 truncate">{String(o.label).trim()}</span><OptTick on={on} />
                 </button>
               );
             }) : <p className="px-3 py-2 text-[12.5px] text-ink-mute">No matches</p>}
@@ -580,7 +584,7 @@ function TradePicker({ options, value = [], onChange, placeholder = "Select trad
                 {g.items.map((o) => { const on = value.includes(o); return (
                   <button key={o} type="button" role="option" aria-selected={on} aria-pressed={on} onClick={() => toggle(o)}
                     className={cls("flex w-full items-center gap-2 px-3 py-1.5 text-left text-[13px]", on ? "text-brand" : "text-ink hover:text-brand")}>
-                    <OptBox on={on} />{o}
+                    <span className="flex-1">{o}</span><OptTick on={on} />
                   </button>); })}
               </div>)) : <p className="px-3 py-3 text-center text-[12.5px] text-ink-mute">No trade matches “{q}”</p>}
           </div>
@@ -659,25 +663,29 @@ function ChipList({ opts, isOn, onToggle }) {
     </>
   );
 }
-function FilterSelect({ value, onChange, options, label }) {
+// Several values can be picked from one filter (single = one value only, e.g. a period)
+function FilterSelect({ value, onChange, options, label, single }) {
   const panel = y.useContext(FilterPanelCtx);
-  if (panel) return <FilterSelectPanel value={value} onChange={onChange} options={options} label={label} panel={panel} />;
-  return <FilterSelectMenu value={value} onChange={onChange} options={options} label={label} />;
+  if (panel) return <FilterSelectPanel value={value} onChange={onChange} options={options} label={label} panel={panel} single={single} />;
+  return <FilterSelectMenu value={value} onChange={onChange} options={options} label={label} single={single} />;
 }
+// toggling o in a multi filter: nothing left → the "All" value, one → that value, more → the list
+const toggleSel = (cur, o, allValue) => { const l = selList(cur).map(String), v = String(o); const n = l.includes(v) ? l.filter((x) => x !== v) : [...l, v]; return n.length === 0 ? (allValue ?? "All") : n.length === 1 ? n[0] : n; };
 // Page filter shown in the side panel: one choice; tapping the chosen chip goes back to "all"
-function FilterSelectPanel({ value, onChange, options, label, panel }) {
+function FilterSelectPanel({ value, onChange, options, label, panel, single }) {
   const opts = options.map((o) => (typeof o === "object" ? o : { value: o, label: o }));
   const all = isAllOpt(opts[0], opts) ? opts[0] : null;
   panel.register(label, { first: opts[0].value, onChange });
   const cur = panel.draft[label] ? panel.draft[label].value : value;
   const choices = opts.filter((o) => o !== all).map((o) => ({ ...o, toneKey: optTone(o, opts) }));
   return (
-    <FilterSection title={label} count={all && String(cur) !== String(all.value) ? 1 : 0}>
-      <ChipList opts={choices} isOn={(o) => String(o.value) === String(cur)} onToggle={(o) => panel.stage(label, String(o.value) === String(cur) && all ? all.value : o.value, onChange)} />
+    <FilterSection title={label} count={all ? selList(String(cur) === String(all.value) ? "All" : cur).length : 0}>
+      <ChipList opts={choices} isOn={(o) => (single ? String(o.value) === String(cur) : selList(cur).map(String).includes(String(o.value)))}
+        onToggle={(o) => panel.stage(label, single ? (String(o.value) === String(cur) && all ? all.value : o.value) : toggleSel(cur, o.value, all ? all.value : "All"), onChange)} />
     </FilterSection>
   );
 }
-function FilterSelectMenu({ value, onChange, options, label }) {
+function FilterSelectMenu({ value, onChange, options, label, single }) {
   const [open, setOpen] = y.useState(false);
   const [fq, setFq] = y.useState("");
   const ref = y.useRef(null);
@@ -697,8 +705,9 @@ function FilterSelectMenu({ value, onChange, options, label }) {
     setFlip(r.right > window.innerWidth - 8);
   }, [open]);
   const opts = options.map((o) => (typeof o === "object" ? o : { value: o, label: o }));
-  const cur = opts.find((o) => String(o.value) === String(value)) || opts[0];
   const isAll = (o) => o === opts[0] && /^(all|any)\b/i.test(String(o.label));
+  const picked = single ? [] : selList(value).filter((v) => !(isAll(opts[0]) && String(v) === String(opts[0].value)));
+  const cur = picked.length > 1 ? { value: "__multi", label: `${String((opts.find((o) => String(o.value) === String(picked[0])) || {}).label || picked[0]).trim()} +${picked.length - 1}` } : opts.find((o) => String(o.value) === String(picked[0] ?? value)) || opts[0];
   // Every option gets a colour: its status colour when it has one, otherwise a distinct colour from the palette
   const tone = (o) => (isAll(o) ? null : o.tone || EXTRA_DOT[String(o.label).toLowerCase()] || TONE[String(o.label).toLowerCase()] || TONE[String(o.value).toLowerCase()] || FILTER_PALETTE[Math.max(0, opts.indexOf(o) - 1) % FILTER_PALETTE.length]);
   const dot = (o) => { const t = tone(o); return <span className={cls("h-2 w-2 shrink-0 rounded-full", t ? DOT[t] : "border border-gray-300 bg-white")} />; };
@@ -713,14 +722,14 @@ function FilterSelectMenu({ value, onChange, options, label }) {
       </button>
       {open && (
         <div ref={menu} role="listbox" className={cls("absolute z-50 mt-1 max-h-[320px] min-w-full w-max max-w-[min(340px,calc(100vw-24px))] overflow-y-auto rounded-lg border border-line bg-white py-1 shadow-lg", flip ? "right-0" : "left-0")}>
-          {label && <p className="px-3 pb-1 pt-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-ink-mute">{label}</p>}
+          {label && <p className="flex items-center justify-between px-3 pb-1 pt-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-ink-mute">{label}{!single && <span className="normal-case tracking-normal font-normal">{picked.length ? <button type="button" className="text-brand" onClick={() => onChange(isAll(opts[0]) ? opts[0].value : "All")}>Clear</button> : "pick one or more"}</span>}</p>}
           {opts.length > 8 && <div className="px-2 pb-1"><input autoFocus className="h-[28px] w-full rounded-md border border-line px-2 text-[12.5px] outline-none focus:border-brand" placeholder="Search…" value={fq} onChange={(e) => setFq(e.target.value)} /></div>}
           {opts.filter((o) => !fq.trim() || isAll(o) || String(o.label).toLowerCase().includes(fq.trim().toLowerCase())).map((o) => {
-            const on = String(o.value) === String(value);
+            const on = single || isAll(o) ? (isAll(o) ? !picked.length && String(value) === String(o.value) || (!single && !picked.length) : String(o.value) === String(value)) : picked.map(String).includes(String(o.value));
             return (
-              <button key={o.value} type="button" role="option" aria-selected={on} onClick={() => { onChange(o.value); setOpen(false); }}
+              <button key={o.value} type="button" role="option" aria-selected={on} onClick={() => { if (single) { onChange(o.value); setOpen(false); } else onChange(isAll(o) ? o.value : toggleSel(picked, o.value, isAll(opts[0]) ? opts[0].value : "All")); }}
                 className={cls("flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-[13px]", on ? "text-brand" : "text-ink hover:text-brand")}>
-                <OptBox on={on} />{dot(o)}<span className="flex-1 truncate">{String(o.label).trim()}</span>
+                {dot(o)}<span className="flex-1 truncate">{String(o.label).trim()}</span><OptTick on={on} />
               </button>
             );
           })}
@@ -757,7 +766,7 @@ function QuickColFilter({ def, value, onChange }) {
             return (
               <button key={o.value} type="button" role="option" aria-selected={on} onClick={() => toggle(o.value)}
                 className={cls("flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-[13px]", on ? "text-brand" : "text-ink hover:text-brand")}>
-                <OptBox on={on} /><span className={cls("h-2 w-2 shrink-0 rounded-full", o.toneKey ? DOT[o.toneKey] : "bg-gray-300")} /><span className="flex-1 truncate">{o.label}</span>
+                <span className={cls("h-2 w-2 shrink-0 rounded-full", o.toneKey ? DOT[o.toneKey] : "bg-gray-300")} /><span className="flex-1 truncate">{o.label}</span><OptTick on={on} />
               </button>);
           })}
         </div>)}

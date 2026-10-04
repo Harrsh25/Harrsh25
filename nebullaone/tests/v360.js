@@ -1,5 +1,5 @@
 // G10 - Vendor 360: all transactions with one vendor, totals, rows open their records
-require('./lib')('v360', async ({ p, go, dlg, S, T }) => {
+require('./lib')('v360', async ({ fill, p, go, dlg, S, T }) => {
   await T('V360-01', 'Vendor 360 tab shows totals and every transaction type for a supplier', async () => {
     await go('vendor-management/registry?open=VEN-003&tab=v360'); await p.waitForTimeout(400); const t = await dlg().innerText();
     const s = await S(); const nPo = s.purchaseOrders.filter((x) => x.vendorId === 'VEN-003').length;

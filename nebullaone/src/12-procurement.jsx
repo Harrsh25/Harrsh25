@@ -30,7 +30,7 @@ function grnReverseBlock(st, po, g) {
 function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket, requisitionId }) {
   const st = useStore();
   const set0 = settingsOf(st);
-  const blank = () => ({ vendorId: "", blanketId: presetBlanket || "", project: PROJECTS[0], deliveryDate: shiftDays(14), billingPolicy: "On received quantity", tolerance: 2, lines: [{ desc: "", unit: "nos", qty: "", rate: "" }], details: docDefaults("po", st) });
+  const blank = () => ({ vendorId: "", blanketId: presetBlanket || "", project: "", deliveryDate: shiftDays(14), billingPolicy: "", tolerance: 2, lines: [{ desc: "", unit: "", qty: "", rate: "" }], details: docDefaults("po", st) });
   const [f, setF] = y.useState(blank);
   y.useEffect(() => { if (open) { const b = blank(); if (presetBlanket) Object.assign(b, fromBlanket(presetBlanket)); if (requisitionId) Object.assign(b, fromRequisition(requisitionId)); setF(b); } }, [open]);
   // Requisition → PO directly (ERPNext Material Request → Purchase Order, Oracle / SAP requisition to order)
@@ -64,7 +64,7 @@ function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket, requis
   // Line extras (all five platforms carry tax and a need-by date per line; HSN/SAC is the India GST code)
   const lineErr = (l) => (l.hsn && !/^\d{4}(\d{2}){0,2}$/.test(String(l.hsn)) ? "HSN/SAC is 4, 6 or 8 digits" : l.gstPct !== undefined && l.gstPct !== "" && !GST_RATES.includes(Number(l.gstPct)) ? `GST must be one of ${GST_RATES.join(", ")}%` : l.needBy && l.needBy < todayISO() ? "Need-by date can't be in the past" : "");
   const gstTotal = round2(sum(lines, (l) => (Number(l.qty) || 0) * (Number(l.rate) || 0) * (Number(l.gstPct) || 0) / 100));
-  const ok = f.vendorId && lines.length && lines.every((l) => String(l.desc).trim() && String(l.unit || "").trim() && qtyOk(l) && rateOk(l) && !lineErr(l)) && !gate.block && !overBlanket && !VX.any(poErr) && !dupItem && !VX.any(detErr);
+  const ok = f.vendorId && f.project && f.billingPolicy && lines.length && lines.every((l) => String(l.desc).trim() && String(l.unit || "").trim() && qtyOk(l) && rateOk(l) && !lineErr(l)) && !gate.block && !overBlanket && !VX.any(poErr) && !dupItem && !VX.any(detErr);
   const needsApproval = total >= (Number(set0.poApprovalMin) || 0);
   const outstanding = v ? sum(st.invoices.filter((i) => i.vendorId === v.id), (i) => invoiceTotals(i).balance) + sum(st.purchaseOrders.filter((p) => p.vendorId === v.id && ["Issued", "Partially Received"].includes(poStatus(p))), poValue) : 0;
   const overCredit = v && Number(v.creditLimit) > 0 && outstanding + total > Number(v.creditLimit);
@@ -85,9 +85,9 @@ function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket, requis
         <div className="grid grid-cols-3 gap-3">
           <Field label="Draw from blanket order" hint="Uses the agreed rates"><Select value={f.blanketId} placeholder="- none (standalone PO) -" onChange={(x) => setF({ ...blank(), ...(x ? fromBlanket(x) : {}), project: f.project })} options={activeBlankets.map((b) => ({ value: b.id, label: `${b.id} - ${vendorName(st, b.vendorId)}` }))} /></Field>
           <Field label="Vendor" required hint="Only spend-authorized, unblocked vendors"><Select value={f.vendorId} disabled={!!bo} placeholder="Select vendor…" onChange={(x) => { const nv = byId(st.vendors, x); setF({ ...f, vendorId: x, details: { ...(f.details || {}), buyer: nv?.defaultBuyer || (f.details || {}).buyer || currentUser(), currency: nv?.currency || "INR", fx: fxRate(nv?.currency), paymentTerms: nv?.paymentTerms, priceList: nv?.priceList || f.details?.priceList, supplierAddress: "", supplierContact: "" } }); }} options={vendors.map((x) => ({ value: x.id, label: x.name }))} /></Field>
-          <Field label="Project"><Select value={f.project} onChange={(x) => setF({ ...f, project: x })} options={PROJECTS} /></Field>
+          <Field label="Project" required><Select value={f.project} placeholder="Select" onChange={(x) => setF({ ...f, project: x })} options={PROJECTS} /></Field>
           <Field label="Delivery by"><DateInput value={f.deliveryDate} onChange={(x) => setF({ ...f, deliveryDate: x })} /><FieldErr m={poErr.delivery} /></Field>
-          <Field label="Bill control"><Select value={f.billingPolicy} onChange={(x) => setF({ ...f, billingPolicy: x })} options={["On received quantity", "On ordered quantity"]} /></Field>
+          <Field label="Bill control" required><Select value={f.billingPolicy} placeholder="Select" onChange={(x) => setF({ ...f, billingPolicy: x })} options={["On received quantity", "On ordered quantity"]} /></Field>
           <Field label="Receipt tolerance (%)" hint="0–20%"><NumInput value={f.tolerance} onChange={(x) => setF({ ...f, tolerance: x })} /><FieldErr m={poErr.tol} /></Field>
         </div>
         {sg.issues.length > 0 && <Note tone={sg.block ? "red" : "amber"}>{v.name}: {sg.issues.join(" · ")}.{sg.block ? " New POs are stopped until this is fixed (Procurement Settings → PO compliance gate)." : ""}</Note>}
@@ -878,7 +878,7 @@ function InvoicesPage() {
   // Bills due within 7 days that pass every payment check (no stops, not waiting for AP review)
   const payable = st.invoices.filter((i) => !["Paid", "Awaiting Review", "Rejected"].includes(invoiceStatus(i)) && invoiceTotals(i).balance > 0.5 && daysUntil((nextInstalment(i) || {}).due || i.due) <= 7 && !paymentGate(st, i).stops.length);
   const advErr = adv ? { vendorId: VX.req(adv.vendorId), amount: VX.num(adv.amount, { gt: 0, label: "Amount" }), date: VX.req(adv.date) || VX.notFuture(adv.date, "Payment date can't be in the future"), ref: VX.req(adv.ref, "Enter the payment reference (UTR / cheque no.)") } : {};
-  const rows = st.invoices.filter((i) => status === "All" || invoiceStatus(i) === status);
+  const rows = st.invoices.filter((i) => selMatch(status, invoiceStatus(i)));
   const open$ = st.invoices.filter((i) => invoiceStatus(i) !== "Paid");
   const accrued = sum(st.measurements.filter((m) => m.jms.status === "Signed" && !m.billedIn), (m) => {
     const wo = byId(st.workOrders, m.woId);

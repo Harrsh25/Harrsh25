@@ -24,7 +24,7 @@ const fxRate = (cur) => (cur && cur !== "INR" ? DEFAULT_FX[cur] || 1 : 1);
 const ITC_ELIGIBILITY = ["All other ITC", "Ineligible - section 17(5)", "Ineligible - others", "Import of goods", "Import of services", "Input service distributor"];
 const DOC_FIELDS = [
   // Header
-  { key: "company", label: "Company / buying entity", group: "Header", type: "select", opts: (st) => COMPANIES(st), def: (st) => settingsOf(st).ourCompany, kinds: "req rfq quote po blanket grn bill payment contract" },
+  { key: "company", label: "Company / buying entity", group: "Header", type: "select", opts: (st) => COMPANIES(st), kinds: "req rfq quote po blanket grn bill payment contract" },
   { key: "title", label: "Title", group: "Header", type: "text", kinds: "quote po grn bill" },
   { key: "docDateTime", label: "Document date & time", group: "Header", type: "datetime", kinds: "po", def: () => new Date().toISOString().slice(0, 16) },
   { key: "rfqDate", label: "RFQ date", group: "Header", type: "date", kinds: "rfq", def: () => todayISO() },
@@ -32,19 +32,19 @@ const DOC_FIELDS = [
   { key: "postingDate", label: "Posting / accounting date", group: "Header", type: "date", kinds: "bill payment grn", def: () => todayISO() },
   { key: "supplyDate", label: "Delivery / taxable supply date", group: "Header", type: "date", kinds: "bill" },
   { key: "buyer", label: "Buyer", group: "Header", type: "text", kinds: "rfq blanket po", def: () => currentUser() },
-  { key: "priority", label: "Priority", group: "Header", type: "select", opts: () => ["Normal", "Urgent"], def: () => "Normal", kinds: "rfq grn" },
+  { key: "priority", label: "Priority", group: "Header", type: "select", opts: () => ["Normal", "Urgent"], kinds: "rfq grn" },
   { key: "vendorRef", label: "Vendor reference", group: "Header", type: "text", kinds: "rfq" },
   { key: "previewDate", label: "Preview / open date", group: "Header", type: "date", kinds: "rfq", hint: "Vendors can see the RFQ from this date" },
   { key: "awardDate", label: "Anticipated award date", group: "Header", type: "date", kinds: "rfq" },
   { key: "supplierGroup", label: "Supplier group", group: "Header", type: "readonly", value: (st, v) => v?.group || "Not grouped", kinds: "bill" },
   { key: "deliveryNote", label: "Supplier delivery note / challan no.", group: "Header", type: "text", kinds: "grn" },
-  { key: "paymentType", label: "Payment type", group: "Header", type: "select", opts: () => ["Pay", "Advance", "Refund received"], def: () => "Pay", kinds: "payment" },
+  { key: "paymentType", label: "Payment type", group: "Header", type: "select", opts: () => ["Pay", "Advance", "Refund received"], kinds: "payment" },
   { key: "orderDate", label: "Order date", group: "Header", type: "date", kinds: "blanket", def: () => todayISO() },
   { key: "linkedBlanket", label: "Link to purchase agreement", group: "Header", type: "select", opts: (st) => (st.blanketOrders || []).map((b) => ({ value: b.id, label: `${b.id} - ${b.vendorId ? vendorName(st, b.vendorId) : ""}` })), kinds: "rfq" },
   // Currency & pricing
-  { key: "currency", label: "Currency", group: "Currency & pricing", type: "select", opts: () => CURRENCIES, def: (st, v) => v?.currency || "INR", kinds: "rfq quote po blanket grn bill payment" },
+  { key: "currency", label: "Currency", group: "Currency & pricing", type: "select", opts: () => CURRENCIES, def: (st, v) => v?.currency || "", kinds: "rfq quote po blanket grn bill payment" },
   { key: "fx", label: "Exchange rate (₹ per unit)", group: "Currency & pricing", type: "number", def: (st, v) => fxRate(v?.currency), kinds: "rfq quote po blanket grn bill payment", show: (d) => d.currency && d.currency !== "INR" },
-  { key: "priceList", label: "Price list", group: "Currency & pricing", type: "select", opts: (st) => settingsOf(st).priceLists, def: (st) => settingsOf(st).defaultPriceList, kinds: "req quote po blanket grn bill" },
+  { key: "priceList", label: "Price list", group: "Currency & pricing", type: "select", opts: (st) => settingsOf(st).priceLists, kinds: "req quote po blanket grn bill" },
   { key: "ignorePricing", label: "Ignore pricing rule (don't fill rates from the price list)", group: "Currency & pricing", type: "check", kinds: "quote po bill" },
   { key: "discPct", label: "Additional discount (%)", group: "Currency & pricing", type: "number", kinds: "quote po grn bill" },
   { key: "discAmt", label: "Additional discount (₹)", group: "Currency & pricing", type: "number", kinds: "quote po grn bill" },
@@ -70,7 +70,7 @@ const DOC_FIELDS = [
   { key: "vehicleDate", label: "Vehicle date", group: "Transport", type: "date", kinds: "grn" },
   // India GST on bills (ERPNext place_of_supply / eligibility_for_itc, Zoho Books source of supply / ITC eligibility)
   { key: "placeOfSupply", label: "Place of supply", group: "Taxes & shipping", type: "select", opts: () => STATES, def: (st, v) => v?.placeOfSupply || v?.state || "", kinds: "bill" },
-  { key: "itcEligibility", label: "ITC eligibility", group: "Taxes & shipping", type: "select", opts: () => ITC_ELIGIBILITY, def: () => ITC_ELIGIBILITY[0], kinds: "bill" },
+  { key: "itcEligibility", label: "ITC eligibility", group: "Taxes & shipping", type: "select", opts: () => ITC_ELIGIBILITY, kinds: "bill" },
   // Transport documents on the receipt (ERPNext lr_no / lr_date, e-Way bill)
   { key: "ewayBill", label: "e-Way bill no.", group: "Transport", type: "text", kinds: "grn", hint: "12 digits - needed for goods above ₹50,000 moved by road" },
   { key: "lrNo", label: "LR / bill of lading no.", group: "Transport", type: "text", kinds: "grn" },
@@ -228,9 +228,9 @@ const SITE_PURPOSES = ["Purchasing", "Pay", "Primary pay", "Sourcing only"];
 const VENDOR_FORM_KEYS = ["country", "pin", "website", "taxId", "addressLine2", "district", "entityType", "taxPreference", "gstTreatment", "placeOfSupply", "msmeType", "udyamNo", "duns", "cin",
   "federalTaxType", "tags", "logo", "logoName", "isTransporter", "paymentMethod", "priceList", "creditLimit", "billDelivery", "autoPostBills",
   "defaultBuyer", "purchaseWarning", "receiptReminderDays", "custom", "noteToApprover"];
-const vendorExtraDefaults = () => ({ addressLine2: "", district: "", entityType: "Private limited company", taxPreference: "Taxable", gstTreatment: "Registered - regular", placeOfSupply: "",
-  msmeType: "Not MSME", udyamNo: "", duns: "", cin: "", federalTaxType: "", tags: [], logo: null, logoName: "", isTransporter: false, paymentMethod: "NEFT", priceList: "",
-  creditLimit: "", billDelivery: "Supplier portal", autoPostBills: false, defaultBuyer: "", purchaseWarning: "", receiptReminderDays: "", custom: {}, notesText: "", noteToApprover: "",
+const vendorExtraDefaults = () => ({ addressLine2: "", district: "", entityType: "", taxPreference: "", gstTreatment: "", placeOfSupply: "",
+  msmeType: "", udyamNo: "", duns: "", cin: "", federalTaxType: "", tags: [], logo: null, logoName: "", isTransporter: false, paymentMethod: "", priceList: "",
+  creditLimit: "", billDelivery: "", autoPostBills: false, defaultBuyer: "", purchaseWarning: "", receiptReminderDays: "", custom: {}, notesText: "", noteToApprover: "",
   contacts: [], addresses: [] });
 function vendorExtraErrors(f) {
   const e = {};
@@ -278,7 +278,7 @@ function VendorContactsAddresses({ v, locked }) {
   const [c, setC] = y.useState(null), [a, setA] = y.useState(null);
   const mut = (fn, action) => setState((s) => fn(byId(s.vendors, v.id)), { entity: "Vendor", id: v.id, action });
   const cErr = !c ? "" : !(c.firstName || "").trim() ? "Enter the first name" : !EMAIL_RE.test(c.email || "") ? "Enter a valid e-mail" : VX.phone(c.phone) || (c.mobile ? VX.mobile(c.mobile) : "") || "";
-  const aErr = !a ? "" : !(a.title || "").trim() ? "Enter an address title" : !(a.line1 || "").trim() ? "Enter address line 1" : !(a.city || "").trim() ? "Enter the city" : VX.pin(a.pin, a.country || "India") || "";
+  const aErr = !a ? "" : !(a.title || "").trim() ? "Enter an address title" : !a.type ? "Pick the address type" : !(a.line1 || "").trim() ? "Enter address line 1" : !(a.city || "").trim() ? "Enter the city" : VX.pin(a.pin, a.country || "India") || "";
   const saveC = () => {
     if (cErr) return toast(cErr, "red");
     mut((x) => { x.contacts = x.contacts || []; if (c.primary) x.contacts.forEach((o) => (o.primary = false)); const i = x.contacts.findIndex((o) => o.id === c.id); if (i >= 0) x.contacts[i] = c; else x.contacts.push({ ...c, id: `CT-${Date.now().toString(36)}` });
@@ -296,7 +296,7 @@ function VendorContactsAddresses({ v, locked }) {
     toast("Address saved"); setA(null);
   };
   const blankC = () => ({ salutation: "", firstName: "", middleName: "", lastName: "", designation: "", department: "", gender: "", email: "", phone: "", mobile: "", fax: "", primary: !(v.contacts || []).length, status: "Active", portalUser: false });
-  const blankA = () => ({ title: "", type: "Billing", line1: "", line2: "", city: "", district: "", state: v.state || "Maharashtra", pin: "", country: v.country || "India", purposes: ["Purchasing", "Pay"], bu: settingsOf(st).ourCompany, preferredBilling: !(v.addresses || []).length, preferredShipping: false, disabled: false });
+  const blankA = () => ({ title: "", type: "", line1: "", line2: "", city: "", district: "", state: v.state || "Maharashtra", pin: "", country: v.country || "India", purposes: ["Purchasing", "Pay"], bu: settingsOf(st).ourCompany, preferredBilling: !(v.addresses || []).length, preferredShipping: false, disabled: false });
   const contacts = [{ id: "MAIN", firstName: v.contact.name, email: v.contact.email, phone: v.contact.phone, mobile: v.contact.mobile, designation: v.contact.designation, salutation: v.contact.salutation, main: true, primary: !(v.contacts || []).some((x) => x.primary), status: "Active", portalUser: true }, ...(v.contacts || [])];
   return (
     <>
@@ -341,7 +341,7 @@ function VendorContactsAddresses({ v, locked }) {
         <Modal open onClose={() => setA(null)} width={720} title={a.id ? "Edit address" : "Add address / supplier site"} footer={<>{aErr && <span className="mr-auto text-[12px] text-red-600">{aErr}</span>}<Btn onClick={() => setA(null)}>Cancel</Btn><Btn variant="primary" disabled={!!aErr} onClick={saveA}>Save address</Btn></>}>
           <div className="grid grid-cols-3 gap-3">
             <Field label="Address title" required><TextInput value={a.title} onChange={(x) => setA({ ...a, title: x })} placeholder="e.g. Chakan works" /></Field>
-            <Field label="Address type"><Select value={a.type} onChange={(x) => setA({ ...a, type: x })} options={ADDRESS_TYPES} /></Field>
+            <Field label="Address type" required><Select value={a.type} placeholder="Select" onChange={(x) => setA({ ...a, type: x })} options={ADDRESS_TYPES} /></Field>
             <Field label="Business unit (client / bill-to)"><Select value={a.bu} onChange={(x) => setA({ ...a, bu: x })} options={COMPANIES(st)} /></Field>
             <Field label="Address line 1" required span={2}><TextInput value={a.line1} onChange={(x) => setA({ ...a, line1: x })} /></Field>
             <Field label="Address line 2"><TextInput value={a.line2} onChange={(x) => setA({ ...a, line2: x })} /></Field>
@@ -546,6 +546,9 @@ function reqStatus(st, r) {
 }
 function reqErrors(f) {
   const e = [];
+  if (!f.purpose) e.push("Pick the request purpose / type");
+  if (!f.project) e.push("Pick the project");
+  if (!f.company) e.push("Pick the company");
   if (!f.date) e.push("Request date required"); else if (f.date > todayISO()) e.push("Request date can't be in the future");
   if (!f.requiredBy) e.push("Required-by date needed"); else if (f.requiredBy < (f.date || todayISO())) e.push("Required-by can't be before the request date");
   if (f.purpose === "Customer provided" && !String(f.client || "").trim()) e.push("Enter the client providing the material");
@@ -554,6 +557,7 @@ function reqErrors(f) {
   if (f.purpose === "Manpower (labour)") {
     const L = f.labour || {};
     if (!L.category) e.push("Pick the labour category / trade");
+    if (!L.labourType) e.push("Pick the labour type");
     if (!(Number(L.headcount) > 0)) e.push("Enter the headcount");
     if (!L.start || !L.end) e.push("Enter the start and end dates"); else if (L.end <= L.start) e.push("End date must be after the start");
     if (!(L.distribution || []).length) e.push("Pick at least one contractor for the distribution list");
@@ -566,9 +570,10 @@ function reqErrors(f) {
 }
 function RequisitionModal({ onClose, base }) {
   const st = useStore();
-  const blank = () => ({ purpose: "Purchase", date: todayISO(), requiredBy: shiftDays(14), project: PROJECTS[0], costCentre: "", company: settingsOf(st).ourCompany, priceList: settingsOf(st).defaultPriceList,
-    client: "", sourceStore: "", targetStore: settingsOf(st).stores[1] || "", items: [{ desc: "", unit: "nos", qty: "", rate: "" }], terms: "", notes: "",
-    labour: { contingentType: CONTINGENT_TYPES[0], category: "", labourType: "Skilled", headcount: "", start: shiftDays(7), end: shiftDays(97), site: PROJECTS[0], bu: settingsOf(st).ourCompany, costCentre: "", rateCard: "", distribution: [], rule: DIST_RULES[0], qualifications: "" } });
+  // opens with nothing pre-selected (the person picks the purpose, project and the rest)
+  const blank = () => ({ purpose: "", date: todayISO(), requiredBy: shiftDays(14), project: "", costCentre: "", company: "",
+    client: "", sourceStore: "", targetStore: "", items: [{ desc: "", unit: "", qty: "", rate: "" }], terms: "",
+    labour: { category: "", labourType: "", headcount: "", start: shiftDays(7), end: shiftDays(97), rateCard: "", distribution: [] } });
   const [f, setF] = y.useState(() => (base ? JSON.parse(JSON.stringify(base)) : blank()));
   const errs = reqErrors(f);
   const L = f.labour || {};
@@ -591,13 +596,12 @@ function RequisitionModal({ onClose, base }) {
       footer={<>{errs[0] && <span className="mr-auto max-w-[460px] truncate text-[12px] text-red-600" title={errs.join("\n")}>{errs[0]}{errs.length > 1 ? ` (+${errs.length - 1} more)` : ""}</span>}<Btn onClick={onClose}>Cancel</Btn><Btn disabled={!!errs.length} onClick={() => save(false)}>Save draft</Btn><Btn variant="primary" disabled={!!errs.length} onClick={() => save(true)}>Submit</Btn></>}>
       <div className="space-y-4">
         <div className="grid grid-cols-4 gap-3">
-          <Field label="Request purpose / type" required><Select value={f.purpose} onChange={(x) => setF({ ...f, purpose: x })} options={REQ_PURPOSES} /></Field>
+          <Field label="Request purpose / type" required><Select value={f.purpose} placeholder="Select" onChange={(x) => setF({ ...f, purpose: x })} options={REQ_PURPOSES} /></Field>
           <Field label="Request date" required><DateInput value={f.date} onChange={(x) => setF({ ...f, date: x })} /></Field>
           <Field label="Required by" required><DateInput value={f.requiredBy} onChange={(x) => setF({ ...f, requiredBy: x })} /></Field>
-          <Field label="Company"><Select value={f.company} onChange={(x) => setF({ ...f, company: x })} options={COMPANIES(st)} /></Field>
-          <Field label="Project"><Select value={f.project} onChange={(x) => setF({ ...f, project: x })} options={PROJECTS} /></Field>
+          <Field label="Company" required><Select value={f.company} placeholder="Select" onChange={(x) => setF({ ...f, company: x })} options={COMPANIES(st)} /></Field>
+          <Field label="Project" required><Select value={f.project} placeholder="Select" onChange={(x) => setF({ ...f, project: x })} options={PROJECTS} /></Field>
           <Field label="Cost centre"><Select value={f.costCentre} placeholder="-" onChange={(x) => setF({ ...f, costCentre: x })} options={settingsOf(st).costCentres} /></Field>
-          <Field label="Price list"><Select value={f.priceList} onChange={(x) => setF({ ...f, priceList: x })} options={settingsOf(st).priceLists} /></Field>
           {f.purpose === "Customer provided" ? <Field label="Client (customer providing material)" required><TextInput value={f.client} onChange={(x) => setF({ ...f, client: x })} /></Field> : <span />}
           {!manpower && <>
             <Field label="Source store / warehouse"><Select value={f.sourceStore} placeholder="-" onChange={(x) => setF({ ...f, sourceStore: x })} options={settingsOf(st).stores} /></Field>
@@ -607,25 +611,19 @@ function RequisitionModal({ onClose, base }) {
         {manpower ? (
           <Section title="Labour requisition (contingent labour)" icon={Icon.hardHat}>
             <div className="grid grid-cols-4 gap-3 p-4">
-              <Field label="Contingent type"><Select value={L.contingentType} onChange={(x) => setL("contingentType", x)} options={CONTINGENT_TYPES} /></Field>
               <Field label="Category / trade" required><Select value={L.category} placeholder="Select…" onChange={(x) => setL("category", x)} options={[...new Set(st.laborRates.map((r) => r.trade))]} /></Field>
-              <Field label="Labour type"><Select value={L.labourType} onChange={(x) => setL("labourType", x)} options={["Unskilled", "Semi-skilled", "Skilled", "Highly Skilled"]} /></Field>
+              <Field label="Labour type" required><Select value={L.labourType} placeholder="Select" onChange={(x) => setL("labourType", x)} options={["Unskilled", "Semi-skilled", "Skilled", "Highly Skilled"]} /></Field>
               <Field label="Headcount" required><NumInput value={L.headcount} onChange={(x) => setL("headcount", x)} /></Field>
               <Field label="Start date" required><DateInput value={L.start} onChange={(x) => setL("start", x)} /></Field>
               <Field label="End date" required><DateInput value={L.end} onChange={(x) => setL("end", x)} /></Field>
-              <Field label="Site / location"><Select value={L.site} onChange={(x) => setL("site", x)} options={PROJECTS} /></Field>
-              <Field label="Business unit"><Select value={L.bu} onChange={(x) => setL("bu", x)} options={COMPANIES(st)} /></Field>
-              <Field label="Cost centre"><Select value={L.costCentre} placeholder="-" onChange={(x) => setL("costCentre", x)} options={settingsOf(st).costCentres} /></Field>
               <Field label="Rate grid (labour rate card)" span={2}><Select value={L.rateCard} placeholder="-" onChange={(x) => setL("rateCard", x)} options={cards.map((r) => ({ value: r.id, label: `${r.id} · ${r.trade} · ${r.region} · ₹${r.rate}/day` }))} /></Field>
-              <Field label="Distribution rule"><Select value={L.rule} onChange={(x) => setL("rule", x)} options={DIST_RULES} /></Field>
-              <Field label="Qualifications required" span={4}><TextInput value={L.qualifications} onChange={(x) => setL("qualifications", x)} placeholder="e.g. ITI certificate, 3 years high-rise experience, valid height pass" /></Field>
               <Field label="Supplier distribution list" span={4} hint="Contractors who receive this requisition as an RFQ">
                 <div className="flex flex-wrap gap-1.5">{contractors.map((v) => { const on = (L.distribution || []).includes(v.id); return <button key={v.id} type="button" onClick={() => setL("distribution", on ? L.distribution.filter((x) => x !== v.id) : [...(L.distribution || []), v.id])} className={cls("rounded-full border px-2.5 py-[3px] text-[12px]", on ? "border-brand bg-brand-soft font-medium text-brand" : "border-line text-ink-soft hover:bg-gray-50")}>{v.name}</button>; })}</div>
               </Field>
             </div>
           </Section>
         ) : (
-          <Section title="Items" icon={Icon.boxes} actions={<Btn size="sm" icon={Icon.plus} onClick={() => setF({ ...f, items: [...f.items, { desc: "", unit: "nos", qty: "", rate: "" }] })}>Add line</Btn>}>
+          <Section title="Items" icon={Icon.boxes} actions={<Btn size="sm" icon={Icon.plus} onClick={() => setF({ ...f, items: [...f.items, { desc: "", unit: "", qty: "", rate: "" }] })}>Add line</Btn>}>
             <div className="space-y-2 p-3">
               <div className="grid grid-cols-[1fr_90px_110px_130px_28px] gap-2 text-[11.5px] font-medium text-ink-mute"><span>Item / description</span><span>Unit</span><span>Quantity</span><span>Estimated rate (₹)</span><span /></div>
               {f.items.map((it, i) => (
@@ -640,10 +638,7 @@ function RequisitionModal({ onClose, base }) {
             </div>
           </Section>
         )}
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Terms & conditions"><TextArea rows={2} value={f.terms} onChange={(x) => setF({ ...f, terms: x })} /></Field>
-          <Field label="Notes"><TextArea rows={2} value={f.notes} onChange={(x) => setF({ ...f, notes: x })} /></Field>
-        </div>
+        <Field label="Terms & conditions"><TextArea rows={2} value={f.terms} onChange={(x) => setF({ ...f, terms: x })} /></Field>
       </div>
     </Modal>
   );
@@ -696,22 +691,21 @@ function RequisitionsPage() {
             {reqInternal(r) && !r.stockEntry && <Note>Internal stock move - completed with a stock entry, never sent to vendors as an RFQ or PO.</Note>}
             {r.stockEntry && <Note tone="green" icon={Icon.check}>{r.stockEntry.type} {r.stockEntry.id} posted {fmtDate(r.stockEntry.at)} by {r.stockEntry.by}{r.stockEntry.from ? ` · from ${r.stockEntry.from}` : ""}{r.stockEntry.to ? ` → ${r.stockEntry.to}` : ""}</Note>}
             <Section title="Request" icon={Icon.info}>
-              <KV items={[["Purpose", r.purpose], ["Request date", fmtDate(r.date)], ["Required by", fmtDate(r.requiredBy)], ["Company", r.company], ["Project", r.project], ["Cost centre", r.costCentre || "-"], ["Price list", r.priceList || "-"],
+              <KV items={[["Purpose", r.purpose], ["Request date", fmtDate(r.date)], ["Required by", fmtDate(r.requiredBy)], ["Company", r.company], ["Project", r.project], ["Cost centre", r.costCentre || "-"],
                 ["Client", r.client || null], ["Source store", r.sourceStore || null], ["Target store", r.targetStore || null], ["Requested by", r.requestedBy], ["Estimated value", reqValue(st, r) ? inrShort(reqValue(st, r)) : "-"],
                 ["Approvals", (r.approvals || []).map((a) => `${a.level}: ${a.by} · ${fmtDate(a.at)}`).join("; ") || (r.decidedBy ? `${r.decidedBy} · ${fmtDate(r.decidedAt)}` : null)],
                 ...(reqInternal(r) ? [["Stock entry", r.stockEntry ? `${r.stockEntry.id} · ${r.stockEntry.type}` : "Not posted yet"]] : [["% ordered", `${reqOrdered(st, r).pctOrdered}%`], ["% received", `${reqOrdered(st, r).pctReceived}%`], ["RFQs", (r.rfqIds || []).join(", ") || null]])]} />
             </Section>
             {r.purpose === "Manpower (labour)" && (
               <Section title="Labour requisition" icon={Icon.hardHat}>
-                <KV items={[["Contingent type", r.labour.contingentType], ["Category / trade", r.labour.category], ["Labour type", r.labour.labourType], ["Headcount", r.labour.headcount], ["Start / end", `${fmtDate(r.labour.start)} → ${fmtDate(r.labour.end)}`],
-                  ["Site", r.labour.site], ["Business unit", r.labour.bu], ["Cost centre", r.labour.costCentre || "-"], ["Rate grid", r.labour.rateCard || "-"], ["Distribution rule", r.labour.rule],
-                  ["Distribution list", (r.labour.distribution || []).map((id) => vendorName(st, id)).join(", ")], ["Qualifications required", r.labour.qualifications || "-"]]} />
+                <KV items={[["Category / trade", r.labour.category], ["Labour type", r.labour.labourType], ["Headcount", r.labour.headcount], ["Start / end", `${fmtDate(r.labour.start)} → ${fmtDate(r.labour.end)}`],
+                  ["Rate grid", r.labour.rateCard || "-"], ["Distribution list", (r.labour.distribution || []).map((id) => vendorName(st, id)).join(", ")]]} />
               </Section>
             )}
             <Section title="Items" icon={Icon.boxes}>
               <DataTable dense rows={r.items} rowKey={(x) => x.desc} columns={[{ key: "desc", label: "Item" }, { key: "unit", label: "Unit" }, { key: "qty", label: "Qty", align: "right", num: true }, { key: "rate", label: "Est. rate", align: "right", render: (x) => (x.rate ? inr(x.rate) : "-") }]} />
             </Section>
-            {(r.terms || r.notes) && <Section title="Terms & notes"><KV cols={2} items={[["Terms", r.terms || "-"], ["Notes", r.notes || "-"]]} /></Section>}
+            {r.terms && <Section title="Terms & conditions"><KV items={[["Terms", r.terms]]} /></Section>}
           </div>
         </Drawer>
       )}
@@ -745,7 +739,7 @@ function RfqExtras({ f, setF }) {
         )}
       </Section>
       <div className="grid grid-cols-3 gap-3">
-        <Field label="Ranking shown to vendors"><Select value={f.ranking || "Hidden"} onChange={(x) => setF({ ...f, ranking: x })} options={RANKING} /></Field>
+        <Field label="Ranking shown to vendors"><Select value={f.ranking || ""} placeholder="Select" onChange={(x) => setF({ ...f, ranking: x })} options={RANKING} /></Field>
         <div className="flex items-end pb-1.5"><Check checked={f.multiResponse !== false} onChange={(b) => setF({ ...f, multiResponse: b })} label="Allow vendors to revise their quote" /></div>
         <Field label="Attachments (drawings, specs, BOQ)">
           <label className="flex h-[32px] cursor-pointer items-center gap-2 rounded-md border border-dashed border-gray-300 px-2.5 text-[12.5px] text-ink-soft hover:border-brand hover:text-brand">{h(Icon.upload, { size: 13 })}Add file
@@ -794,6 +788,8 @@ function vendorPriceFor(st, vendorId, desc, qty, list) {
 function priceErr(p, st, id) {
   if (!p.vendorId) return "Pick the vendor";
   if (!String(p.product || "").trim()) return "Enter the product";
+  if (!String(p.unit || "").trim()) return "Enter the unit";
+  if (!p.currency) return "Pick the currency";
   if (!(Number(p.unitPrice) > 0)) return "Unit price must be above zero";
   if (Number(p.minQty) < 0) return "Minimum quantity can't be negative";
   if (Number(p.discount) < 0 || Number(p.discount) > 100) return "Discount must be 0–100%";
@@ -805,7 +801,7 @@ function priceErr(p, st, id) {
 }
 function PriceModal({ base, vendorId, portal, onClose }) {
   const st = useStore();
-  const [f, setF] = y.useState(() => base ? { ...base } : { vendorId: vendorId || "", product: "", vendorProductName: "", vendorProductCode: "", unit: "nos", minQty: 1, unitPrice: "", currency: "INR", discount: 0, leadDays: 7, validFrom: todayISO(), validTo: shiftDays(180), priceList: "", company: settingsOf(st).ourCompany });
+  const [f, setF] = y.useState(() => base ? { ...base } : { vendorId: vendorId || "", product: "", vendorProductName: "", vendorProductCode: "", unit: "", minQty: 1, unitPrice: "", currency: "", discount: 0, leadDays: 7, validFrom: todayISO(), validTo: shiftDays(180), priceList: "", company: "" });
   const err = priceErr(f, st, base?.id);
   const save = () => {
     if (err) return toast(err, "red");
@@ -945,7 +941,7 @@ function ContractExtras({ f, setF }) {
         {f.fulfilmentRequired && <Field label="Fulfilment terms"><TextInput value={f.fulfilmentTerms || ""} onChange={set("fulfilmentTerms")} placeholder="e.g. As-built drawings, O&M manuals" /></Field>}
         <Field label="Reference document type"><Select value={f.refDocType || ""} placeholder="-" onChange={set("refDocType")} options={["RFQ", "Purchase requisition", "Letter of intent", "Work order (client)"]} /></Field>
         <Field label="Reference document name"><TextInput value={f.refDocName || f.rfqId || ""} onChange={set("refDocName")} /></Field>
-        <Field label="Company"><Select value={f.company || settingsOf(st).ourCompany} onChange={set("company")} options={COMPANIES(st)} /></Field>
+        <Field label="Company"><Select value={f.company || ""} placeholder="Select" onChange={set("company")} options={COMPANIES(st)} /></Field>
         <Field label="Cost centre"><Select value={f.costCentre || ""} placeholder="-" onChange={set("costCentre")} options={settingsOf(st).costCentres} /></Field>
       </div>
     </Section>

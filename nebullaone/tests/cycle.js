@@ -1,5 +1,5 @@
 // Record panel previous / next arrows run in a cycle
-require('./lib')('cycle', async ({ p, go, S, T }) => {
+require('./lib')('cycle', async ({ fill, p, go, S, T }) => {
   await T('CY-01', 'On the last row, Next goes to the first; on the first row, Previous goes to the last', async () => {
     await go('vendor-management/requisitions'); await p.waitForTimeout(300);
     const rows = p.locator('main table tbody tr.cursor-pointer'); const n = await rows.count();

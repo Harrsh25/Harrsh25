@@ -1,5 +1,5 @@
 // G8 - subcontractor management under a main contractor
-require('./lib')('subcontract', async ({ p, go, dlg, S, mut, T, pick }) => {
+require('./lib')('subcontract', async ({ fill, p, go, dlg, S, mut, T, pick }) => {
   const open = async () => { await go('contract-labor/contracts?open=CTR-001'); await p.waitForTimeout(400); return p.locator('[data-drawer]'); };
   await T('SC-01', 'Contract shows its subcontractors; the on-hold one can\'t be approved (reason shown)', async () => {
     const d = await open(); const sec = d.locator('section, div').filter({ has: p.locator('text=Subcontractors') }).last();

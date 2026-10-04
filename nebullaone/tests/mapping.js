@@ -8,7 +8,7 @@
 // (every PO / bill / RA bill / measurement points at records that exist and agree with each other).
 // Run final.js first (it writes out/final-store.json and out/final-chain.json).
 const fs = require('fs');
-require('./lib')('mapping', async ({ p, go, dlg, S, T }) => {
+require('./lib')('mapping', async ({ fill, p, go, dlg, S, T }) => {
   const store = JSON.parse(fs.readFileSync(__dirname + '/out/final-store.json', 'utf8'));
   const chain = JSON.parse(fs.readFileSync(__dirname + '/out/final-chain.json', 'utf8'));
   await p.evaluate((s) => localStorage.setItem('nxv-store-v1', JSON.stringify(s)), store);

@@ -266,7 +266,7 @@ function RaBillsPage() {
   const [prep, setPrep] = y.useState(!!presetWo), [status, setStatus] = y.useState("All");
   const [tab, setTab] = y.useState(new URLSearchParams(loc.search).get("tab") || "bills");
   const newClaims = st.claims.filter((c) => c.status === "Submitted").length;
-  const rows = st.raBills.filter((b) => status === "All" || b.status === status);
+  const rows = st.raBills.filter((b) => selMatch(status, b.status));
   const inCert = st.raBills.filter((b) => ["Submitted", "Verified", "Certified"].includes(b.status));
   return (
     <Page title="RA Bills & Certification" subtitle="Running account bills from the measurement book - verify, certify, approve, pay" icon={Icon.receipt}
@@ -303,6 +303,7 @@ function RetentionPage() {
     const cap = c ? round2((contractValue(c) * (Number(c.advancePct) || 0)) / 100) : 0, given = c ? Number(c.advanceAmount) || 0 : 0;
     return {
       contract: VX.req(a.contractId),
+      type: VX.req(a.type, "Pick the advance type"),
       amount: VX.num(a.amount, { gt: 0, label: "Amount" }) || (c && given + amt > contractValue(c) ? "Advance can't exceed the contract value" : "")
         || (c && a.type === "Mobilisation advance" && given + amt > cap + 0.5 ? `Exceeds the contract's ${c.advancePct || 0}% mobilisation advance (${inr(Math.max(0, cap - given))} left)` : ""),
       date: VX.req(a.date) || VX.notFuture(a.date, "Payment date can't be in the future"),
@@ -315,7 +316,7 @@ function RetentionPage() {
   const dedRows = st.raBills.filter((b) => b.status !== "Rejected" && b.status !== "Draft");
   return (
     <Page title="Retention, Deductions & Advances" subtitle="Retention held and released, advance recovery and every statutory / contractual deduction" icon={Icon.scale}
-      actions={<><Btn icon={Icon.plus} onClick={() => setAdv({ contractId: contracts[0]?.id, amount: "", type: "Mobilisation advance", date: todayISO(), ref: "" })}>Record advance</Btn>
+      actions={<><Btn icon={Icon.plus} onClick={() => setAdv({ contractId: "", amount: "", type: "", date: todayISO(), ref: "" })}>Record advance</Btn>
         <Btn variant="primary" icon={Icon.lock} onClick={() => setRel({ contractId: contracts.find((c) => contractLedger(st, c).retentionBalance > 0)?.id || "", type: "After DLP", amount: "", note: "" })}>Request retention release</Btn></>}>
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "ledger", label: "Contract ledger", icon: Icon.book }, { id: "rel", label: "Retention releases", icon: Icon.lock }, { id: "ded", label: "Deduction register", icon: Icon.listChecks }]} />
       {tab === "ledger" && (
@@ -405,8 +406,8 @@ function RetentionPage() {
             toast("Advance recorded"); setAdv(null);
           }}>Save</Btn></>}>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Contract" span={2}><Select value={adv.contractId} onChange={(x) => setAdv({ ...adv, contractId: x })} options={contracts.map((x) => ({ value: x.id, label: `${x.id} - ${vendorName(st, x.vendorId)}` }))} /></Field>
-            <Field label="Type"><Select value={adv.type} onChange={(x) => setAdv({ ...adv, type: x })} options={["Mobilisation advance", "Secured advance (materials)", "Machinery advance"]} /></Field>
+            <Field label="Contract" required span={2}><Select value={adv.contractId} placeholder="Select" onChange={(x) => setAdv({ ...adv, contractId: x })} options={contracts.map((x) => ({ value: x.id, label: `${x.id} - ${vendorName(st, x.vendorId)}` }))} /></Field>
+            <Field label="Type" required><Select value={adv.type} placeholder="Select" onChange={(x) => setAdv({ ...adv, type: x })} options={["Mobilisation advance", "Secured advance (materials)", "Machinery advance"]} /></Field>
             <Field label="Amount (₹)" required><NumInput value={adv.amount} onChange={(x) => setAdv({ ...adv, amount: x })} /><FieldErr m={adv.amount !== "" && advErr(adv).amount} /></Field>
             <Field label="Payment date" required><DateInput value={adv.date} onChange={(x) => setAdv({ ...adv, date: x })} /><FieldErr m={advErr(adv).date} /></Field>
             <Field label="Payment ref / BG no." required><TextInput value={adv.ref} onChange={(x) => setAdv({ ...adv, ref: x })} placeholder="UTR / cheque / BG no." /></Field>

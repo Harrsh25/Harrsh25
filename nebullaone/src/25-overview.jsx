@@ -332,9 +332,9 @@ const Metric = ({ label, value, sub, tone }) => (
 function OverviewFilters({ f, setF, st, contractorsOnly }) {
   const vs = st.vendors.filter((v) => !contractorsOnly || v.isContractor || hasType(v, "Labor"));
   return (<>
-    <FilterSelect label="Period" value={f.period} onChange={(x) => setF({ ...f, period: x })} options={[{ value: "30", label: "Last 30 days" }, { value: "90", label: "Last 90 days" }, { value: "180", label: "Last 180 days" }, { value: "365", label: "Last 12 months" }, { value: "all", label: "All time" }]} />
-    <FilterSelect label="Project" value={f.project} onChange={(x) => setF({ ...f, project: x })} options={[{ value: "All", label: "All projects" }, ...PROJECTS]} />
-    <FilterSelect label={contractorsOnly ? "Contractor" : "Vendor"} value={f.vendor} onChange={(x) => setF({ ...f, vendor: x })} options={[{ value: "All", label: contractorsOnly ? "All contractors" : "All vendors" }, ...vs.map((v) => ({ value: v.id, label: v.name, tone: "gray" }))]} />
+    <FilterSelect single label="Period" value={f.period} onChange={(x) => setF({ ...f, period: x })} options={[{ value: "30", label: "Last 30 days" }, { value: "90", label: "Last 90 days" }, { value: "180", label: "Last 180 days" }, { value: "365", label: "Last 12 months" }, { value: "all", label: "All time" }]} />
+    <FilterSelect single label="Project" value={f.project} onChange={(x) => setF({ ...f, project: x })} options={[{ value: "All", label: "All projects" }, ...PROJECTS]} />
+    <FilterSelect single label={contractorsOnly ? "Contractor" : "Vendor"} value={f.vendor} onChange={(x) => setF({ ...f, vendor: x })} options={[{ value: "All", label: contractorsOnly ? "All contractors" : "All vendors" }, ...vs.map((v) => ({ value: v.id, label: v.name, tone: "gray" }))]} />
   </>);
 }
 

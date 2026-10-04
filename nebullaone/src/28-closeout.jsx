@@ -188,7 +188,7 @@ function CloseoutPage() {
   const st = useStore();
   const [open, setOpen] = useQueryOpen();
   const [stage, setStage] = y.useState("All");
-  const rows = closeoutContracts(st).map((c) => ({ c, stage: closeoutStage(st, c) })).filter((r) => stage === "All" || r.stage === stage);
+  const rows = closeoutContracts(st).map((c) => ({ c, stage: closeoutStage(st, c) })).filter((r) => selMatch(stage, r.stage));
   return (
     <Page title="Close-out & Handover" icon={Icon.folderCheck}>
       <DataTable noun="contracts" rows={rows} rowKey={(r) => r.c.id} onRow={(r) => setOpen(r.c.id)}

@@ -4,7 +4,7 @@
 function WorkOrderModal({ open, onClose, onCreated, contractId: presetContract }) {
   const st = useStore();
   const blank = () => ({ contractId: presetContract || "", title: "", type: "Item-Rate", location: "", wbs: "", start: todayISO(), end: shiftDays(90), lumpSum: "",
-    items: [{ id: "I1", code: "1.1", desc: "", unit: "cum", qty: "", rate: "" }],
+    items: [{ id: "I1", code: "1.1", desc: "", unit: "", qty: "", rate: "" }],
     milestones: [{ id: "M1", name: "Mobilisation", weight: 10 }, { id: "M2", name: "", weight: 90 }] });
   const [f, setF] = y.useState(blank);
   y.useEffect(() => { if (open) setF(blank()); }, [open]);
@@ -24,7 +24,7 @@ function WorkOrderModal({ open, onClose, onCreated, contractId: presetContract }
   const setMs = (i, k, v) => setF({ ...f, milestones: f.milestones.map((x, j) => (j === i ? { ...x, [k]: v } : x)) });
   const boqOver = c && f.type !== "Lump Sum" && f.items.some((i) => { const l = i.boqRef && contractBoq(st, c).find((b) => b.id === i.boqRef); return l && Number(i.qty) > l.balance + 0.001; });
   const dateErr = !f.start || !f.end ? "Enter start and finish dates" : f.end <= f.start ? "Finish must be after start" : c && f.start < c.start ? `Starts before the contract (${fmtDate(c.start)})` : c && f.end > c.end ? `Finishes after the contract completion (${fmtDate(c.end)}) - extend the contract first` : "";
-  const ok = c && f.title && f.wbs && value > 0 && !boqOver && !dateErr && (f.type === "Lump Sum" ? wsum === 100 && f.milestones.every((m) => m.name) : f.items.every((i) => i.desc && i.qty > 0 && i.rate > 0));
+  const ok = c && f.title && f.wbs && value > 0 && !boqOver && !dateErr && (f.type === "Lump Sum" ? wsum === 100 && f.milestones.every((m) => m.name) : f.items.every((i) => i.desc && i.unit && i.qty > 0 && i.rate > 0));
   const save = (issue) => {
     const id = nextId("WO", st.workOrders);
     if (issue && blockers.length) return toast(`Can't issue - ${blockers.join("; ")}`, "red");
@@ -59,14 +59,14 @@ function WorkOrderModal({ open, onClose, onCreated, contractId: presetContract }
         {c && boqLeft.length > 0 && f.type !== "Lump Sum" && <div className="flex items-center justify-between rounded-lg border border-line px-3 py-2 text-[12.5px]"><span>Contract BOQ has <b>{boqLeft.length}</b> line(s) not yet ordered.</span><Btn size="sm" icon={Icon.sheet} onClick={loadBoq}>Load lines from contract BOQ</Btn></div>}
         {c && <Note>Contract terms applied to bills under this WO: retention {c.retentionPct}%, advance recovery {c.advanceRecoveryPct || 0}%, cess {c.cessPct}%, GST {c.gstPct}%.</Note>}
         {f.type === "Item-Rate" ? (
-          <Section title="Schedule of items (BOQ)" actions={<Btn size="sm" icon={Icon.plus} onClick={() => setF({ ...f, items: [...f.items, { id: `I${f.items.length + 1}`, code: "", desc: "", unit: "cum", qty: "", rate: "" }] })}>Add item</Btn>}>
+          <Section title="Schedule of items (BOQ)" actions={<Btn size="sm" icon={Icon.plus} onClick={() => setF({ ...f, items: [...f.items, { id: `I${f.items.length + 1}`, code: "", desc: "", unit: "", qty: "", rate: "" }] })}>Add item</Btn>}>
             <div className="space-y-2 p-3">
               <div className="grid grid-cols-[70px_1fr_80px_100px_110px_110px_28px] gap-2 text-[11.5px] font-medium text-ink-mute"><span>Code</span><span>Description</span><span>Unit</span><span>Qty</span><span>Rate (₹)</span><span className="text-right">Amount</span><span /></div>
               {f.items.map((it, i) => (
                 <div key={i} className="grid grid-cols-[70px_1fr_80px_100px_110px_110px_28px] items-center gap-2">
                   <TextInput value={it.code} onChange={(x) => setItem(i, "code", x)} />
                   <TextInput value={it.desc} onChange={(x) => setItem(i, "desc", x)} placeholder="Item description" />
-                  <Select value={it.unit} onChange={(x) => setItem(i, "unit", x)} options={["cum", "sqm", "rmt", "MT", "kg", "nos", "man-day", "LS"]} />
+                  <Select value={it.unit} placeholder="Unit" aria-label="Unit" onChange={(x) => setItem(i, "unit", x)} options={["cum", "sqm", "rmt", "MT", "kg", "nos", "man-day", "LS"]} />
                   <NumInput value={it.qty} onChange={(x) => setItem(i, "qty", x)} />
                   <NumInput value={it.rate} onChange={(x) => setItem(i, "rate", x)} />
                   <span className="num text-right text-[13px]">{inr((Number(it.qty) || 0) * (Number(it.rate) || 0))}</span>
@@ -189,7 +189,7 @@ function WorkOrdersPage() {
   const presetContract = new URLSearchParams(loc.search).get("contract");
   const [create, setCreate] = y.useState(!!presetContract);
   const [type, setType] = y.useState("All");
-  const rows = st.workOrders.filter((w) => type === "All" || w.type === type);
+  const rows = st.workOrders.filter((w) => selMatch(type, w.type));
   return (
     <Page title="Work Orders" subtitle="Lump Sum and Item-Rate work orders issued under contracts" icon={Icon.clipboardList}
       actions={<Btn variant="primary" icon={Icon.plus} onClick={() => setCreate(true)}>Create work order</Btn>}>
@@ -282,7 +282,7 @@ function MeasurementBookPage() {
     const it = w.items.find((x) => x.id === m.lineId); return it ? `${it.code} · ${it.desc}` : m.lineId;
   };
   const unitOf = (m) => { const w = byId(st.workOrders, m.woId); return w.type === "Lump Sum" ? "%" : (w.items.find((x) => x.id === m.lineId) || {}).unit; };
-  const rows = st.measurements.filter((m) => (wo === "All" || m.woId === wo) && (jms === "All" || m.jms.status === jms)).slice().sort((a, b) => b.date.localeCompare(a.date));
+  const rows = st.measurements.filter((m) => selMatch(wo, m.woId) && selMatch(jms, m.jms.status)).slice().sort((a, b) => b.date.localeCompare(a.date));
   const pendingRows = st.measurements.filter((m) => m.jms.status !== "Signed" && !m.voided);
   const signAll = (ids, form) => {
     if (!tryAct("Site Engineer", [], "JMS sign-off")) return;
@@ -296,7 +296,7 @@ function MeasurementBookPage() {
     <Page title="Measurement Book" subtitle="Site measurements and joint measurement sheets (JMS) - the basis for every RA bill" icon={Icon.ruler}
       actions={<Btn variant="primary" icon={Icon.plus} onClick={() => setAdd(true)}>Record measurement</Btn>}>
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "mb", label: "Measurement book", icon: Icon.book }, { id: "jms", label: "Joint measurement sheets", icon: Icon.users }, { id: "ncr", label: `Inspections & NCRs${(st.ncrs || []).filter((n) => n.status !== "Closed").length ? ` (${(st.ncrs || []).filter((n) => n.status !== "Closed").length})` : ""}`, icon: Icon.shieldCheck }, { id: "abs", label: "Abstract by item", icon: Icon.sheet }]} />
-      {tab === "ncr" && <NcrTable rows={(st.ncrs || []).filter((n) => wo === "All" || n.woId === wo)} />}
+      {tab === "ncr" && <NcrTable rows={(st.ncrs || []).filter((n) => selMatch(wo, n.woId))} />}
       {ncrFor && <NcrModal woId={ncrFor.woId} mb={ncrFor} onClose={() => setNcrFor(null)} />}
       {tab === "mb" && <>
         <DataTable noun="measurements" defaultCols={["wo", "item", "qty", "jms", "qc"]} extraColumns={LIST_EXTRA.mb(st)} filters={<><FilterSelect label="Work order" value={wo} onChange={setWo} options={woOpts} /><FilterSelect label="JMS" value={jms} onChange={setJms} options={[{ value: "All", label: "All JMS status" }, "Pending", "Signed", "Disputed"]} /></>} rows={rows} onRow={(m) => setOpenMb(m.id)} columns={[
@@ -332,7 +332,7 @@ function MeasurementBookPage() {
       </>}
       {tab === "abs" && (
         <div className="space-y-4 p-4">
-          {st.workOrders.filter((w) => w.status !== "Draft" && (wo === "All" || w.id === wo)).map((w) => (
+          {st.workOrders.filter((w) => w.status !== "Draft" && selMatch(wo, w.id)).map((w) => (
             <Section key={w.id} title={`${w.id} · ${w.title}`} icon={Icon.sheet} actions={<span className="text-[12px] text-ink-mute">{vendorName(st, w.vendorId)} · {w.type}</span>}>
               <DataTable dense rows={woPosition(st, w)} rowKey={(p) => p.line.id} columns={[
                 { key: "d", label: w.type === "Lump Sum" ? "Milestone" : "Item", className: "whitespace-normal", render: (p) => p.line.name || `${p.line.code} · ${p.line.desc}` },
@@ -345,7 +345,7 @@ function MeasurementBookPage() {
           ))}
         </div>
       )}
-      {add && <MeasurementModal preset={{ woId: wo !== "All" ? wo : "" }} onClose={() => setAdd(false)} />}
+      {add && <MeasurementModal preset={{ woId: typeof wo === "string" && wo !== "All" ? wo : "" }} onClose={() => setAdd(false)} />}
       {openMb && (() => {
         const m = byId(st.measurements, openMb); if (!m) return null;
         const w = byId(st.workOrders, m.woId);

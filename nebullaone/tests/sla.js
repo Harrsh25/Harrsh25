@@ -1,5 +1,5 @@
 // G2 - approval deadlines (SLA) per stage and escalation
-require('./lib')('sla', async ({ p, go, dlg, S, mut, T }) => {
+require('./lib')('sla', async ({ fill, p, go, dlg, S, mut, T }) => {
   const s0 = await S(); const v = s0.vendors.find((x) => x.status === 'Pending Approval');
   const ago = (d) => new Date(Date.now() - d * 86400000).toISOString();
   await T('SLA-01', 'Vendor approval queue shows when each decision is due', async () => {

@@ -37,7 +37,7 @@ const templateItems = (name) => { const t = RFQ_TEMPLATES.find((x) => x.name ===
 // ---------------------------------------------------------------- create RFQ
 function NewRfqModal({ open, onClose, onCreated, preset }) {
   const st = useStore();
-  const blank = () => ({ questions: [], ranking: "Hidden", multiResponse: true, attachments: [], details: docDefaults("rfq", st), requisitionId: "", ...(preset || {}), title: preset?.title || "", project: preset?.project || PROJECTS[0], mode: "Multiple Vendors", template: "", sourceRef: "", dueDate: shiftDays(7), incoterm: INCOTERMS[0],
+  const blank = () => ({ questions: [], ranking: "", multiResponse: true, attachments: [], details: docDefaults("rfq", st), requisitionId: "", ...(preset || {}), title: preset?.title || "", project: preset?.project || "", mode: "", template: "", sourceRef: "", dueDate: shiftDays(7), incoterm: "",
     tnc: "Prices firm for the validity period. Delivery to site, unloading by vendor. Payment as per agreed terms after GRN and bill.",
     items: [{ desc: "", unit: "nos", qty: "", requiredBy: shiftDays(14) }], vendorIds: [], weights: { price: 60, quality: 25, delivery: 15 }, ...(preset || {}) });
   const [f, setF] = y.useState(blank);
@@ -49,11 +49,13 @@ function NewRfqModal({ open, onClose, onCreated, preset }) {
   const wsum = Number(f.weights.price || 0) + Number(f.weights.quality || 0) + Number(f.weights.delivery || 0);
   const errs = [
     !f.title.trim() && "Title required",
+    !f.project && "Pick the project",
+    !f.mode && "Pick the sourcing mode",
     (VX.req(f.dueDate, "Quotes due date required") || (f.dueDate <= todayISO() ? "Quotes due date must be in the future" : "")),
     ["price", "quality", "delivery"].some((k) => VX.pct(f.weights[k])) ? "Each weight must be 0–100" : wsum !== 100 ? `Weights total ${wsum}% - must be 100%` : "",
     !lines.length && "Add at least one line with a quantity",
     ...f.items.map((it, i) => (!it.desc && !it.qty ? "" : !String(it.desc).trim() ? `Line ${i + 1}: description required` : !String(it.unit || "").trim() ? `Line ${i + 1}: unit required` : it.qty !== "" && Number(it.qty) < 0 ? `Line ${i + 1}: quantity can't be negative` : Number(it.qty) > 0 && !it.requiredBy ? `Line ${i + 1}: required-by date missing` : Number(it.qty) > 0 && it.requiredBy < f.dueDate ? `Line ${i + 1}: required by ${fmtDate(it.requiredBy)} is before quotes are due` : "")),
-    f.mode === "Single Vendor" ? (f.vendorIds.length !== 1 && "Pick exactly one vendor") : f.vendorIds.length < 2 && "Invite at least two vendors",
+    !f.mode ? "" : f.mode === "Single Vendor" ? (f.vendorIds.length !== 1 && "Pick exactly one vendor") : f.vendorIds.length < 2 && "Invite at least two vendors",
     ...(f.questions || []).map((q, i) => (!String(q.text || "").trim() ? `Question ${i + 1}: enter the question` : q.type === "Choice" && !String(q.options || "").trim() ? `Question ${i + 1}: list the choices` : "")),
     ...Object.values(docDetailErrors("rfq", f.details || {})),
   ].filter(Boolean);
@@ -83,11 +85,11 @@ function NewRfqModal({ open, onClose, onCreated, preset }) {
         <div className="grid grid-cols-3 gap-3">
           <Field label="Title" required span={2}><TextInput value={f.title} onChange={(x) => setF({ ...f, title: x })} placeholder="e.g. TMT steel Fe500D - 120 MT" /></Field>
           <Field label="Template" hint={f.template ? `${f.items.length} line items loaded - edit or remove as needed` : "Loads a ready list of line items"}><Select value={f.template} placeholder="Blank" onChange={(x) => setF({ ...f, template: x, title: f.title || (x ? `${x} - ${f.project}` : ""), items: templateItems(x) || [{ desc: "", unit: "nos", qty: "", requiredBy: shiftDays(14) }] })} options={RFQ_TEMPLATES.map((t) => ({ value: t.name, label: `${t.name} (${t.items.length} items)` }))} /></Field>
-          <Field label="Project"><Select value={f.project} onChange={(x) => setF({ ...f, project: x })} options={PROJECTS} /></Field>
+          <Field label="Project" required><Select value={f.project} placeholder="Select" onChange={(x) => setF({ ...f, project: x })} options={PROJECTS} /></Field>
           <Field label="Source (BOQ / material request)"><TextInput value={f.sourceRef} onChange={(x) => setF({ ...f, sourceRef: x })} placeholder="e.g. BOQ-2026-002 · Structural steel" /></Field>
-          <Field label="Sourcing mode"><Select value={f.mode} onChange={(x) => setF({ ...f, mode: x, vendorIds: x === "Single Vendor" ? f.vendorIds.slice(0, 1) : f.vendorIds })} options={["Multiple Vendors", "Single Vendor"]} /></Field>
+          <Field label="Sourcing mode" required><Select value={f.mode} placeholder="Select" onChange={(x) => setF({ ...f, mode: x, vendorIds: x === "Single Vendor" ? f.vendorIds.slice(0, 1) : f.vendorIds })} options={["Multiple Vendors", "Single Vendor"]} /></Field>
           <Field label="Quotes due (order deadline)"><DateInput value={f.dueDate} onChange={(x) => setF({ ...f, dueDate: x })} /></Field>
-          <Field label="Incoterm"><Select value={f.incoterm} onChange={(x) => setF({ ...f, incoterm: x })} options={INCOTERMS} /></Field>
+          <Field label="Incoterm"><Select value={f.incoterm} placeholder="Select" onChange={(x) => setF({ ...f, incoterm: x })} options={INCOTERMS} /></Field>
         </div>
         <Section title={`Line items - ${lines.length} of ${f.items.length} with quantity`} actions={<Btn size="sm" icon={Icon.plus} onClick={() => setF({ ...f, items: [...f.items, { desc: "", unit: "nos", qty: "", requiredBy: shiftDays(14) }] })}>Add line</Btn>}>
           <div className="space-y-2 p-3">
@@ -764,7 +766,7 @@ function RfqPage() {
   return (
     <Page title="RFQ & Quotations" subtitle="Requests for quotation, vendor responses, comparison and award" icon={Icon.scale}
       actions={<Btn variant="primary" icon={Icon.plus} onClick={() => setCreate(true)}>New RFQ</Btn>}>
-      <DataTable noun="RFQs" defaultCols={["title", "project", "resp", "due", "s"]} extraColumns={LIST_EXTRA.rfqs(st)} calendar={{ label: "Quote due dates", date: (r) => r.dueDate, title: (r) => r.title }} filters={<FilterSelect label="Stage" value={filter} onChange={setFilter} options={[{ value: "All", label: "All stages" }, { value: "To Send", label: "To send", tone: "blue" }, { value: "Waiting", label: "Waiting", tone: "amber" }, { value: "Late", label: "Late", tone: "red" }, { value: "Done", label: "Awarded / closed", tone: "green" }]} />} rows={rows} onRow={(r) => { setCompose(false); setOpen(r.id); }} columns={[
+      <DataTable noun="RFQs" defaultCols={["title", "project", "resp", "due", "s"]} extraColumns={LIST_EXTRA.rfqs(st)} calendar={{ label: "Quote due dates", date: (r) => r.dueDate, title: (r) => r.title }} filters={<FilterSelect single label="Stage" value={filter} onChange={setFilter} options={[{ value: "All", label: "All stages" }, { value: "To Send", label: "To send", tone: "blue" }, { value: "Waiting", label: "Waiting", tone: "amber" }, { value: "Late", label: "Late", tone: "red" }, { value: "Done", label: "Awarded / closed", tone: "green" }]} />} rows={rows} onRow={(r) => { setCompose(false); setOpen(r.id); }} columns={[
         { key: "id", label: "RFQ no.", className: "mono text-[12px]" },
         { key: "title", label: "Requirement", className: "font-medium" },
         { key: "project", label: "Project", filterOptions: FO.projects, filter: true },

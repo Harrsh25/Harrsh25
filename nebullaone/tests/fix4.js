@@ -1,5 +1,5 @@
 // Batch 4 - quantity & execution chain: inspection/NCR, over-quantity, material recovery, equipment, DPR, JMS co-sign, WBS cost
-require('./lib')('fix4', async ({ p, go, dlg, S, mut, as, T, pick, toastText }) => {
+require('./lib')('fix4', async ({ fill, p, go, dlg, S, mut, as, T, pick, toastText }) => {
   const btn = (t) => p.locator(`button:has-text("${t}")`);
   const mb = async (id) => (await S()).measurements.find((m) => m.id === id);
   await T('G-23', 'Contractor agrees a measurement in the portal; engineer countersigns without a paper sheet', async () => {
@@ -92,7 +92,7 @@ require('./lib')('fix4', async ({ p, go, dlg, S, mut, as, T, pick, toastText }) 
   await T('G-09b', 'Work order needs a WBS element', async () => {
     await go('contract-labor/work-orders'); await btn('Create work order').click(); await p.waitForTimeout(200); const d = dlg();
     await pick(d.locator('label:has-text("Contract") [role=combobox]').first(), 'CTR-001'); await d.locator('label:has-text("Title") input').fill('Tower B superstructure');
-    const items = d.locator('.grid.grid-cols-\\[70px_1fr_80px_100px_110px_110px_28px\\].items-center input'); await items.nth(1).fill('RCC'); await items.nth(2).fill('10'); await items.nth(3).fill('7450');
+    const items = d.locator('.grid.grid-cols-\\[70px_1fr_80px_100px_110px_110px_28px\\].items-center input'); await items.nth(1).fill('RCC'); await items.nth(2).fill('10'); await items.nth(3).fill('7450'); await fill(d, ['WBS element']); await pick(d.locator('[aria-label="Unit"]').first(), 'cum');
     const dis1 = await d.locator('button:has-text("Save draft")').isDisabled();
     await pick(d.locator('label:has-text("WBS element") [role=combobox]'), '2.4 Tower B - superstructure'); const dis2 = await d.locator('button:has-text("Save draft")').isDisabled(); await p.keyboard.press('Escape');
     return [`save disabled without WBS=${dis1}, with WBS=${dis2}`, dis1 && !dis2];

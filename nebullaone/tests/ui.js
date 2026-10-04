@@ -1,6 +1,6 @@
 // UI features: visible search, saved views, paging, group-by, board, calendar
 const run = require('./lib');
-run('ui', async ({ p, go, T, pick, S, mut }) => {
+run('ui', async ({ fill, p, go, T, pick, S, mut }) => {
   await go('vendor-management/purchase-orders');
   await T('UI-01', 'Search icon opens a full-width search box; Esc closes it', async () => {
     await go('vendor-management/registry'); await p.waitForTimeout(200);
@@ -69,8 +69,8 @@ run('ui', async ({ p, go, T, pick, S, mut }) => {
   await T('UI-11', 'PO line HSN/SAC, GST % and need-by are saved and shown; bad HSN blocks the PO', async () => {
     await go('vendor-management/purchase-orders'); await p.locator('main button:has-text("New PO")').click(); await p.waitForTimeout(200);
     const d = p.locator('[role=dialog]').last();
-    await pick(d.locator('label:has-text("Vendor") [role=combobox]').first(), 'Deccan Steel Traders');
-    await d.locator('input[placeholder="Description"]').fill('Binding wire'); await d.locator('input[placeholder="Qty"]').fill('10'); await d.locator('input[placeholder="Rate"]').fill('100');
+    await pick(d.locator('label:has-text("Vendor") [role=combobox]').first(), 'Deccan Steel Traders'); await fill(d);
+    await d.locator('input[placeholder="Description"]').fill('Binding wire'); await d.locator('input[placeholder="Unit"]').first().fill('kg'); await d.locator('input[placeholder="Qty"]').fill('10'); await d.locator('input[placeholder="Rate"]').fill('100');
     await d.locator('input[aria-label="Line 1 HSN/SAC"]').fill('72');
     const create = d.locator('button:has-text("Create")').last(); const blocked = await create.isDisabled();
     await d.locator('input[aria-label="Line 1 HSN/SAC"]').fill('7217');

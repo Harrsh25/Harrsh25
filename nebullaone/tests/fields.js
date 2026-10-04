@@ -1,6 +1,6 @@
 // Field-level tests on the vendor registration form (full form) - validation, dependent and conditional fields,
 // defaults, and that every saved value lands in the vendor record. Runs in Chromium against the built HTML.
-require('./lib')('fields', async ({ p, go, dlg, S, T, pick }) => {
+require('./lib')('fields', async ({ fill, p, go, dlg, S, T, pick }) => {
   const open = async () => {
     await go('vendor-management/registry'); await p.locator('main button:has-text("Register vendor")').first().click(); await p.waitForTimeout(200);
     await dlg().locator('button:has-text("Fill all details now")').click().catch(() => {}); await p.waitForTimeout(150); return dlg();
@@ -9,7 +9,7 @@ require('./lib')('fields', async ({ p, go, dlg, S, T, pick }) => {
   const esc = (x) => x.replace(/[.*+?^${}()|[\]\\\/]/g, '\\$&');
   const lab = (d, label) => d.locator('label').filter({ has: p.locator('xpath=./span[1]').filter({ hasText: new RegExp('^\\s*' + esc(label) + '\\s*\\*?\\s*$') }) }).first();
   const errOf = async (d, label) => ((await lab(d, label).innerText({ timeout: 1500 }).catch(() => '')).split('\n').slice(1).join(' ').trim());
-  const save = async (d, what = 'Save draft') => { await d.locator(`button:has-text("${what}")`).click(); await p.waitForTimeout(250); };
+  const save = async (d, what = 'Save draft') => { await fill(d); await d.locator(`button:has-text("${what}")`).click(); await p.waitForTimeout(250); };
   const trade = async (d, t) => { await d.locator('[role=combobox][aria-haspopup=listbox]').filter({ hasText: /Select trades|,/ }).first().click(); await p.locator('[role=option]').filter({ hasText: t }).first().click(); await d.locator('h2,h3').first().click(); };
   const base = async (d, o = {}) => {
     await lab(d, 'Company / trade name').locator('input').fill(o.name ?? 'Field Test Traders');
@@ -62,7 +62,7 @@ require('./lib')('fields', async ({ p, go, dlg, S, T, pick }) => {
     const e = await errOf(d, 'Licence valid till'); await p.keyboard.press('Escape'); return [e, /expired/.test(e)];
   });
   await T('F-11', 'Goods-only vendor defaults TDS to 194Q', async () => {
-    const d = await open(); const tds = (await lab(d, 'Withholding tax (TDS)').innerText().catch(() => '')).split('\n').slice(1).join(' '); await p.keyboard.press('Escape'); return [tds, /194Q/.test(tds)];
+    const d = await open(); await d.locator('button[role=checkbox]:has-text("Goods")').click(); await p.waitForTimeout(80); const tds = (await lab(d, 'Withholding tax (TDS)').innerText().catch(() => '')).split('\n').slice(1).join(' '); await p.keyboard.press('Escape'); return [tds, /194Q/.test(tds)];
   });
   await T('F-12', 'Valid full form saves; values land in the vendor record (form → data mapping)', async () => {
     const d = await open(); await base(d, { name: 'Mapping Check Pvt Ltd', gstin: '27MAPCK1234B1Z9', email: 'ops@mapping.in', contact: 'Meera' });

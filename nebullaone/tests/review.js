@@ -1,6 +1,6 @@
 // Review follow-ups - duplicate supplier detection (GSTIN / bank account block; PAN / e-mail / phone warn),
 // the approver's "possible duplicate" note, and the Exception Center.
-require('./lib')('review', async ({ p, go, dlg, S, mut, T }) => {
+require('./lib')('review', async ({ fill, p, go, dlg, S, mut, T }) => {
   const open = async () => { await go('vendor-management/registry'); await p.locator('main button:has-text("Register vendor")').first().click(); await p.waitForTimeout(250); return dlg(); };
   const lab = (d, label) => d.locator('label').filter({ has: p.locator('xpath=./span[1]').filter({ hasText: new RegExp('^\\s*' + label.replace(/[.*+?^${}()|[\]\\\/]/g, '\\$&') + '\\s*\\*?\\s*$') }) }).first();
   const s0 = await S(); const ref = s0.vendors.find((v) => (v.bankAccounts || []).length && v.contact?.email && v.contact?.phone);

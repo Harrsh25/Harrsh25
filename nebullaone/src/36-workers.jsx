@@ -45,12 +45,15 @@ function seedWorkerDetails(s) {
 function WorkerForm({ w0, onClose }) {
   const st = useStore();
   const contractors = st.vendors.filter((v) => (v.isContractor || hasType(v, "Labor")) && lifeStatus(v));
-  const [f, setF] = y.useState(() => w0 ? { ...w0, certificates: [...(w0.certificates || [])] } : { name: "", vendorId: contractors[0]?.id || "", trade: "Mason", skill: "Skilled", dob: "", mobile: "", idType: "Aadhaar", idRef: "", uan: "", esic: "", inductionOn: todayISO(), medicalValidTill: "", joiningOn: todayISO(), site: "", woId: "", shift: "Day", gatePass: "", certificates: [] });
+  const [f, setF] = y.useState(() => w0 ? { ...w0, certificates: [...(w0.certificates || [])] } : { name: "", vendorId: "", trade: "", skill: "", dob: "", mobile: "", idType: "", idRef: "", uan: "", esic: "", inductionOn: todayISO(), medicalValidTill: "", joiningOn: todayISO(), site: "", woId: "", shift: "", gatePass: "", certificates: [] });
   const [tried, setTried] = y.useState(false);
   const age = f.dob ? Math.floor((Date.now() - new Date(f.dob).getTime()) / (365.25 * DAY)) : null;
   const e = {
     name: f.name.trim().length < 3 ? "Enter the full name" : "",
     vendorId: f.vendorId ? "" : "Pick the contractor",
+    trade: f.trade ? "" : "Pick the trade",
+    skill: f.skill ? "" : "Pick the skill",
+    idType: f.idType ? "" : "Pick the ID proof",
     dob: !f.dob ? "Required" : f.dob > todayISO() ? "Date can't be in the future" : age < 18 ? "Worker must be at least 18" : "",
     mobile: f.mobile ? VX.mobile(f.mobile) : "",
     idRef: f.idRef.trim().length < 4 ? "Enter the ID number (last 4 digits at least)" : "",
@@ -74,11 +77,11 @@ function WorkerForm({ w0, onClose }) {
       <div className="grid grid-cols-3 gap-3">
         <Field label="Full name" required span={2}><TextInput value={f.name} onChange={(x) => setF({ ...f, name: x })} />{tried && <FieldErr m={e.name} />}</Field>
         <Field label="Date of birth" required><DateInput value={f.dob || ""} onChange={(x) => setF({ ...f, dob: x })} />{(tried || f.dob) && <FieldErr m={e.dob} />}</Field>
-        <Field label="Contractor" required><Select value={f.vendorId} onChange={(x) => setF({ ...f, vendorId: x, woId: "" })} options={contractors.map((v) => ({ value: v.id, label: v.name }))} />{tried && <FieldErr m={e.vendorId} />}</Field>
-        <Field label="Trade"><Select value={f.trade} onChange={(x) => setF({ ...f, trade: x })} options={[...new Set([...st.laborRates.map((r) => r.trade), f.trade])]} /></Field>
-        <Field label="Skill"><Select value={f.skill} onChange={(x) => setF({ ...f, skill: x })} options={SKILLS} /></Field>
+        <Field label="Contractor" required><Select value={f.vendorId} placeholder="Select" onChange={(x) => setF({ ...f, vendorId: x, woId: "" })} options={contractors.map((v) => ({ value: v.id, label: v.name }))} />{tried && <FieldErr m={e.vendorId} />}</Field>
+        <Field label="Trade" required><Select value={f.trade} placeholder="Select" onChange={(x) => setF({ ...f, trade: x })} options={[...new Set([...st.laborRates.map((r) => r.trade), f.trade].filter(Boolean))]} />{tried && <FieldErr m={e.trade} />}</Field>
+        <Field label="Skill" required><Select value={f.skill} placeholder="Select" onChange={(x) => setF({ ...f, skill: x })} options={SKILLS} />{tried && <FieldErr m={e.skill} />}</Field>
         <Field label="Mobile"><TextInput value={f.mobile || ""} onChange={(x) => setF({ ...f, mobile: x })} placeholder="98xxxxxxxx" /><FieldErr m={e.mobile} /></Field>
-        <Field label="ID proof"><Select value={f.idType} onChange={(x) => setF({ ...f, idType: x })} options={ID_TYPES} /></Field>
+        <Field label="ID proof" required><Select value={f.idType} placeholder="Select" onChange={(x) => setF({ ...f, idType: x })} options={ID_TYPES} />{tried && <FieldErr m={e.idType} />}</Field>
         <Field label="ID number" required hint="Store only the last 4 digits of Aadhaar"><TextInput value={f.idRef} onChange={(x) => setF({ ...f, idRef: x })} placeholder="XXXX-XXXX-1234" />{tried && <FieldErr m={e.idRef} />}</Field>
         <Field label="PF - UAN"><TextInput value={f.uan || ""} onChange={(x) => setF({ ...f, uan: x })} placeholder="12 digits" className={cls(inputCls, "mono")} /><FieldErr m={e.uan} /></Field>
         <Field label="ESI number"><TextInput value={f.esic || ""} onChange={(x) => setF({ ...f, esic: x })} className={cls(inputCls, "mono")} /><FieldErr m={e.esic} /></Field>
@@ -90,7 +93,7 @@ function WorkerForm({ w0, onClose }) {
         <Field label="Work order"><Select value={f.woId || ""} placeholder="-" onChange={(x) => setF({ ...f, woId: x })} options={wos.map((x) => ({ value: x.id, label: `${x.id} - ${x.title}` }))} /></Field>
         {(() => { const subs = st.contracts.filter((k) => k.vendorId === f.vendorId).flatMap(contractSubs).filter((x) => x.status === "Approved");
           return <Field label="Employed by" hint="Subcontractor workers need an approved subcontract"><Select value={f.subcontractId || ""} onChange={(x) => setF({ ...f, subcontractId: x })} options={[{ value: "", label: "Main contractor" }, ...subs.map((x) => ({ value: x.id, label: `${vendorName(st, x.vendorId)} (${x.id})` }))]} /></Field>; })()}
-        <Field label="Shift"><Select value={f.shift || "Day"} onChange={(x) => setF({ ...f, shift: x })} options={["Day", "Night", "General"]} /></Field>
+        <Field label="Shift"><Select value={f.shift || ""} placeholder="Select" onChange={(x) => setF({ ...f, shift: x })} options={["Day", "Night", "General"]} /></Field>
       </div>
       <div className="mt-4 rounded-lg border border-line">
         <div className="flex items-center justify-between border-b border-line px-3 py-2"><span className="text-[13px] font-medium">Certificates & licences</span><Btn size="sm" icon={Icon.plus} onClick={() => setF({ ...f, certificates: [...f.certificates, { name: WORKER_CERTS[0], no: "", validTill: "" }] })}>Add certificate</Btn></div>

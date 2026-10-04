@@ -14,7 +14,7 @@ function OnboardingPage() {
       actions={<Btn variant="primary" icon={Icon.userPlus} onClick={() => setReg(true)}>Onboard contractor</Btn>}>
       <DataTable noun="contractors" placeholder="Search contractor, trade…"
         filters={<FilterSelect label="Stage" value={stageF} onChange={setStageF} options={[{ value: "All", label: "All stages" }, ...ONBOARD_STAGES.map((x, k) => ({ value: x, label: x, tone: ["amber", "blue", "purple", "green"][k] }))]} />}
-        rows={list.filter((v) => stageF === "All" || onboardingStage(v) === stageF)} onRow={(v) => setOpen(v.id)} columns={[
+        rows={list.filter((v) => selMatch(stageF, onboardingStage(v)))} onRow={(v) => setOpen(v.id)} columns={[
         { key: "n", label: "Contractor", className: "font-medium", render: (v) => v.name },
         { key: "t", label: "Trades", filterOptions: FO.trades, filter: (v) => v.categories, render: (v) => <CategoryChips list={v.categories} /> },
         { key: "st", label: "Stage", render: (v) => { const s0 = onboardingStage(v); return <Status tone={{ Documents: "amber", "Under Review": "blue", Mobilising: "purple", Onboarded: "green", Rejected: "red" }[s0]}>{s0}</Status>; } },
@@ -89,7 +89,7 @@ function ContractsPage() {
   const st = useStore();
   const [open, setOpen] = useQueryOpen();
   const [create, setCreate] = y.useState(false), [status, setStatus] = y.useState("All");
-  const rows = st.contracts.filter((c) => status === "All" || contractStatus(c) === status);
+  const rows = st.contracts.filter((c) => selMatch(status, contractStatus(c)));
   const reminders = st.contracts.filter((c) => !["Closed", "Draft", "Pending Approval", "Approved", "Rejected"].includes(c.status)).flatMap((c) => {
     const out = [], d = daysUntil(c.end);
     if (c.status !== "Terminated" && d >= 0 && d <= 90) out.push({ c, what: "Completion", date: c.end, d });

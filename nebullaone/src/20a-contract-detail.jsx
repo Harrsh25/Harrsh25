@@ -4,7 +4,7 @@
 
 function ContractModal({ open, onClose, onCreated, edit }) {
   const st = useStore();
-  const blank = () => (edit ? { bgBank: "", ...edit, value: edit.value, scope: (edit.scope || []).map((l) => ({ ...l })) } : { vendorId: "", title: "", value: "", bgBank: "", ...CONTRACT_DEFAULTS(), scope: [] });
+  const blank = () => (edit ? { bgBank: "", ...edit, value: edit.value, scope: (edit.scope || []).map((l) => ({ ...l })) } : { vendorId: "", title: "", value: "", bgBank: "", ...CONTRACT_DEFAULTS(), project: "", type: "", gstPct: "", scope: [] });
   const [f, setF] = y.useState(blank);
   y.useEffect(() => { if (open) setF(blank()); }, [open]);
   const set = (k) => (x) => setF({ ...f, [k]: x });
@@ -15,6 +15,9 @@ function ContractModal({ open, onClose, onCreated, edit }) {
   const value = f.scope.length ? round2(sum(f.scope, (l) => (Number(l.qty) || 0) * (Number(l.rate) || 0))) : Number(f.value) || 0;
   const scopeOk = f.scope.every((l) => l.desc && Number(l.qty) > 0 && Number(l.rate) > 0);
   const termErr = [
+    !f.project && "pick the project",
+    !f.type && "pick the contract type",
+    f.gstPct === "" && "pick the GST rate",
     ["retentionPct", "advancePct", "advanceRecoveryPct", "cessPct", "pbgPct"].some((k) => VX.pct(f[k])) && "percentages must be 0–100",
     Number(f.advancePct) > 0 && !(Number(f.advanceRecoveryPct) > 0) && "set a recovery % when an advance is given",
     VX.num(f.dlpMonths, { min: 0, max: 60, int: true }) && "DLP must be 0–60 whole months",
@@ -46,8 +49,8 @@ function ContractModal({ open, onClose, onCreated, edit }) {
       <div className="space-y-4">
         <div className="grid grid-cols-3 gap-3">
           <Field label="Contractor" required hint="Approved, spend-authorized contractors"><Select value={f.vendorId} placeholder="Select…" disabled={!!edit?.rfqId} onChange={set("vendorId")} options={vendors.map((x) => ({ value: x.id, label: x.name }))} /></Field>
-          <Field label="Project"><Select value={f.project} onChange={set("project")} options={PROJECTS} /></Field>
-          <Field label="Contract type"><Select value={f.type} onChange={set("type")} options={["Item-Rate", "Lump Sum", "Rate Contract"]} /></Field>
+          <Field label="Project" required><Select value={f.project} placeholder="Select" onChange={set("project")} options={PROJECTS} /></Field>
+          <Field label="Contract type" required><Select value={f.type} placeholder="Select" onChange={set("type")} options={["Item-Rate", "Lump Sum", "Rate Contract"]} /></Field>
           <Field label="Contract title / scope" required span={2}><TextInput value={f.title} onChange={set("title")} placeholder="e.g. Civil & structural works - Tower C" /></Field>
           <Field label="Contract value (₹, excl. GST)" required hint={f.scope.length ? "Sum of the BOQ lines below" : ""}>{f.scope.length ? <span className="flex h-[32px] items-center font-semibold num">{inr(value)}</span> : <NumInput value={f.value} onChange={set("value")} />}</Field>
           <Field label="Start date"><DateInput value={f.start} onChange={set("start")} /></Field>
@@ -84,7 +87,7 @@ function ContractModal({ open, onClose, onCreated, edit }) {
           <Field label="Mobilisation advance (%)" hint={value ? inrShort((value * (f.advancePct || 0)) / 100) : ""}><NumInput value={f.advancePct} onChange={set("advancePct")} /></Field>
           <Field label="Advance recovery per bill (%)"><NumInput value={f.advanceRecoveryPct} onChange={set("advanceRecoveryPct")} /></Field>
           <Field label="Labour welfare cess (%)"><NumInput value={f.cessPct} onChange={set("cessPct")} /></Field>
-          <Field label="GST (%)"><Select value={String(f.gstPct)} onChange={(x) => setF({ ...f, gstPct: Number(x) })} options={["18", "12", "5", "0"]} /></Field>
+          <Field label="GST (%)" required><Select value={String(f.gstPct ?? "")} placeholder="Select" onChange={(x) => setF({ ...f, gstPct: x === "" ? "" : Number(x) })} options={["18", "12", "5", "0"]} /></Field>
           <Field label="Defect liability (months)"><NumInput value={f.dlpMonths} onChange={set("dlpMonths")} /></Field>
           <Field label="LD per week (%)"><NumInput value={f.ldPctPerWeek} onChange={set("ldPctPerWeek")} /></Field>
           <Field label="LD cap (%)"><NumInput value={f.ldCapPct} onChange={set("ldCapPct")} /></Field>

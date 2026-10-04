@@ -62,7 +62,7 @@ const RiskBadge = ({ r }) => <span className="inline-flex items-center gap-1.5">
 // Risk tab in the vendor record
 function VendorRiskTab({ v, canAct }) {
   const st = useStore(), r = vendorRisk(st, v);
-  const blank = { title: "", owner: "", due: "", area: r.drivers[0]?.area || "" };
+  const blank = { title: "", owner: "", due: "", area: "" };
   const snap = (x, note) => { const rr = vendorRisk(getState(), x); x.riskHistory = [{ at: new Date().toISOString(), by: currentUser(), score: rr.score, level: rr.level.name, residual: rr.residual, note }, ...(x.riskHistory || [])]; };
   const [f, setF] = y.useState(null), [tried, setTried] = y.useState(false);
   const er = f ? { title: f.title.trim().length < 4 ? "Describe the action" : "", owner: f.owner ? "" : "Pick an owner", due: !f.due ? "Pick a due date" : f.due < todayISO() ? "Due date can't be in the past" : "" } : {};

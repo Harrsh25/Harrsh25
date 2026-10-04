@@ -1,6 +1,6 @@
 // G3 - bank-account change control on an approved vendor:
 // request → verify → Finance approval → cooling period (old account still paid) → new account becomes default
-require('./lib')('bank', async ({ p, go, dlg, S, mut, T }) => {
+require('./lib')('bank', async ({ fill, p, go, dlg, S, mut, T }) => {
   const VID = 'VEN-003'; const ACC = '918020055501234';
   const bankTab = async () => { await go(`vendor-management/registry?open=${VID}&tab=bank`); await p.waitForTimeout(300); };
   const acc = async () => (await S()).vendors.find((x) => x.id === VID).bankAccounts;

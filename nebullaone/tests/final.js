@@ -1,6 +1,6 @@
 // FINAL FULL-SYSTEM TEST - one clean run, new vendor and new contractor, registration → closure,
 // every step through the UI. Records the chain of IDs for data continuity.
-require('./lib')('final', async ({ p, go, dlg, S, mut, as, T, pick, toastText }) => {
+require('./lib')('final', async ({ fill, p, go, dlg, S, mut, as, T, pick, toastText }) => {
   const btn = (t) => p.locator(`button:has-text("${t}")`);
   const pdf = { name: 'doc.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 test') };
   const upAll = async (d) => { const f = d.locator('input[type=file]'); const n = await f.count(); for (let i = 0; i < n; i++) { await f.nth(i).setInputFiles(pdf); await p.waitForTimeout(60); } };
@@ -15,7 +15,7 @@ require('./lib')('final', async ({ p, go, dlg, S, mut, as, T, pick, toastText })
     await d.locator('input[placeholder="27AAKCS4412M1Z3"]').fill(f.gst); await d.locator('input[placeholder="AAKCS4412M"]').fill(f.pan);
     await d.locator('label:has-text("Contact person") input').fill(f.contact); await d.locator('input[type=email]').fill(f.email);
     await d.locator('label:has-text("Account holder name") input').fill(f.name); await d.locator('input[placeholder="e.g. HDFC Bank"]').fill('HDFC Bank'); await d.locator('label:has-text("Account no.") input').first().fill('5020' + f.pan.replace(/\D/g, '') + String(f.name.length).padStart(4, '0') + '01'); /* each party its own account - one bank account can belong to one vendor only */ await d.locator('label:has-text("IFSC") input').fill('HDFC0000123');
-    await upAll(d); await d.locator('button:has-text("Submit for approval")').click(); await p.waitForTimeout(350);
+    await fill(d); await upAll(d); await d.locator('button:has-text("Submit for approval")').click(); await p.waitForTimeout(350);
     return V(f.name);
   };
   const verifyAll = async (id, insurance) => {
@@ -51,7 +51,7 @@ require('./lib')('final', async ({ p, go, dlg, S, mut, as, T, pick, toastText })
   await T('V05', 'RFQ created and sent (new vendor + Konkan)', async () => {
     await as('Priya Nair'); await go('vendor-management/rfq'); await btn('New RFQ').click(); await p.waitForTimeout(200); const d = dlg();
     await d.locator('label:has-text("Title") input').first().fill('TMT Fe500D 16 mm - 40 MT'); await d.locator('input[placeholder="Description"]').fill('TMT Fe500D 16 mm'); await d.locator('input[type=number]').first().fill('40');
-    await d.locator(`button:has-text("${VN.name}")`).click(); await d.locator('button:has-text("Konkan Steel")').click(); await d.locator('button:has-text("Save & compose")').click(); await p.waitForTimeout(400);
+    await fill(d); await d.locator(`button:has-text("${VN.name}")`).click(); await d.locator('button:has-text("Konkan Steel")').click(); await d.locator('button:has-text("Save & compose")').click(); await p.waitForTimeout(400);
     await dlg().locator('button:has-text("Send to")').click(); await p.waitForTimeout(300); await as(null);
     const r = (await S()).rfqs.find((x) => x.title.startsWith('TMT Fe500D 16')); chain.vendor.rfq = r?.id; return [`${r?.id} ${r?.status}, invited ${r?.vendorIds.join(', ')}`, r && r.status === 'Sent'];
   });
@@ -115,7 +115,7 @@ require('./lib')('final', async ({ p, go, dlg, S, mut, as, T, pick, toastText })
   await T('C05', 'Tender (RFQ) with BOQ → contractor rate submission', async () => {
     await as('Priya Nair'); await go('vendor-management/rfq'); await btn('New RFQ').click(); await p.waitForTimeout(200); const d = dlg();
     await d.locator('label:has-text("Title") input').first().fill('Block D bulk excavation'); await d.locator('input[placeholder="Description"]').fill('Excavation in ordinary soil up to 3 m'); await d.locator('input[type=number]').first().fill('3000');
-    await d.locator(`button:has-text("${CN.name}")`).click(); await d.locator('button:has-text("Shree Balaji")').click(); await d.locator('button:has-text("Save & compose")').click(); await p.waitForTimeout(400);
+    await fill(d); await d.locator(`button:has-text("${CN.name}")`).click(); await d.locator('button:has-text("Shree Balaji")').click(); await d.locator('button:has-text("Save & compose")').click(); await p.waitForTimeout(400);
     await dlg().locator('button:has-text("Send to")').click(); await p.waitForTimeout(300); await as(null);
     const r = (await S()).rfqs.find((x) => x.title === 'Block D bulk excavation'); chain.contractor.rfq = r.id;
     await p.evaluate(() => localStorage.removeItem('nxv-vendor-session')); await go(`#/vendor-quote/${r.id}/${c.id}`);

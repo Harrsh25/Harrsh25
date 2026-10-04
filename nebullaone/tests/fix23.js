@@ -1,6 +1,6 @@
 // Batches 2–3 - SoD on RA bills / retention, award recommendation + award-to-contract,
 // contract approval & signing, BG register, WO gates, suspend, change-order quantities, closure checklist
-require('./lib')('fix23', async ({ p, go, dlg, S, mut, as, T, pick, toastText }) => {
+require('./lib')('fix23', async ({ fill, p, go, dlg, S, mut, as, T, pick, toastText }) => {
   const btn = (t) => p.locator(`button:has-text("${t}")`);
   await T('G-25a', 'Retention release: must be approved before it can be released', async () => {
     await go('contract-labor/retention'); await p.getByText('Retention releases', { exact: true }).click(); await p.waitForTimeout(150);
@@ -32,7 +32,7 @@ require('./lib')('fix23', async ({ p, go, dlg, S, mut, as, T, pick, toastText })
   await T('G-03b', 'New contract: draft → Legal → Finance → sign (needs performance BG)', async () => {
     await as('Arjun Mehta'); await go('contract-labor/contracts'); await btn('Create contract').click(); await p.waitForTimeout(200); const d = dlg();
     await pick(d.locator('label:has-text("Contractor") [role=combobox]'), 'Kaveri Manpower'); await d.locator('label:has-text("Contract title") input').fill('Finishing labour - Station 5');
-    await d.locator('label:has-text("Contract value") input').fill('2500000'); await d.locator('button:has-text("Submit for approval")').click(); await p.waitForTimeout(250);
+    await d.locator('label:has-text("Contract value") input').fill('2500000'); await fill(d); await d.locator('button:has-text("Submit for approval")').click(); await p.waitForTimeout(250);
     let c = (await S()).contracts.find((x) => x.title === 'Finishing labour - Station 5'); const s0 = c.status;
     await as('Neha Kulkarni'); await go('contract-labor/contracts?open=' + c.id); await p.waitForTimeout(300); await btn('Approve as Legal').click(); await p.waitForTimeout(150);
     await as('Rohit Shah'); await go('contract-labor/contracts?open=' + c.id); await p.waitForTimeout(300); await btn('Approve as Finance').click(); await p.waitForTimeout(150);

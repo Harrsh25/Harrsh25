@@ -215,7 +215,7 @@ function CompliancePage() {
   const counts = { Compliant: 0, Expiring: 0, "Non-Compliant": 0 };
   rows.forEach((r) => counts[r.c.status]++);
   const blocked = rows.filter((r) => r.c.blocking.length).length;
-  const vendorRows = rows.filter((r) => (flt === "All" || (flt === "Blocked" ? r.c.blocking.length > 0 : r.c.status === flt)));
+  const vendorRows = rows.filter((r) => selAny(flt, (x) => (x === "Blocked" ? r.c.blocking.length > 0 : r.c.status === x)));
   const mutDoc = (v, name, fn, action) => setState((s) => fn(byId(s.vendors, v.id).docs.find((d) => d.name === name)), { entity: "Vendor", id: v.id, action });
   const mutPol = (v, p, fn, action) => setState((s) => fn(byId(s.vendors, v.id).insurance.find((i) => i === p || (i.id && i.id === p.id) || i.policy === p.policy)), { entity: "Vendor", id: v.id, action });
   const gateTag = (r) => (r.c.blocking.length ? <Status tone={set0.complianceGate === "Stop" ? "red" : set0.complianceGate === "Warn" ? "amber" : "gray"}>{set0.complianceGate === "Stop" ? "Blocked" : set0.complianceGate === "Warn" ? "Flagged" : "Open (gate off)"}</Status> : <Status tone="green">Open</Status>);

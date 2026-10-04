@@ -1,5 +1,5 @@
 // Earlier vendor-record requests, checked in the live page
-require('./lib')('audit-vendor', async ({ p, go, dlg, S, T }) => {
+require('./lib')('audit-vendor', async ({ fill, p, go, dlg, S, T }) => {
   const open = async (id, tab) => { await go(`vendor-management/registry?open=${id}${tab ? `&tab=${tab}` : ''}`); await p.waitForTimeout(350); return dlg(); };
   await T('AV-01', 'Header: title, ID and status only; star on the right without a box; status is view only (no caret)', async () => {
     const d = await open('VEN-001'); const h = d.locator('.nx-dhead');

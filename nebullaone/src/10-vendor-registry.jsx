@@ -48,10 +48,11 @@ const SUPPLIER_TYPES = ["Company", "Partnership / LLP", "Individual / HUF", "Pro
 // Default TDS on the vendor: goods-only suppliers 194Q, anyone doing services / labour 194C (each bill can still pick its own section)
 const autoTds = (type, st) => ([].concat(type).every((t) => t === "Goods") ? "194Q" : /Individual|Proprietor/.test(st || "") ? "194C-1" : "194C-2");
 const emptyVendor = () => ({
-  supplierType: "Company", allowBillWithoutPO: false, allowBillWithoutReceipt: false, portalUsers: [], changeRequest: null,
-  uploads: {}, name: "", legalName: "", type: "Goods", types: ["Goods"], isContractor: false, categories: [], tier: "Approved", regTier: "Spend Authorized",
-  gstin: "", pan: "", contact: { name: "", email: "", phone: "" }, address: "", city: "", state: "", country: "India", pin: "", website: "", taxId: "", currency: "INR",
-  paymentTerms: "Net 30", tds: "194Q", group: currentSettings().defaultSupplierGroup || "", parentCompany: "", bank: { holder: "", bank: "", account: "", accountConfirm: "", ifsc: "", swift: "", iban: "", accountType: "Current", currency: "", branch: "" },
+  // forms open with nothing pre-selected: every dropdown starts empty and the person picks
+  supplierType: "", allowBillWithoutPO: false, allowBillWithoutReceipt: false, portalUsers: [], changeRequest: null,
+  uploads: {}, name: "", legalName: "", type: "", types: [], isContractor: false, categories: [], tier: "", regTier: "",
+  gstin: "", pan: "", contact: { name: "", email: "", phone: "" }, address: "", city: "", state: "", country: "", pin: "", website: "", taxId: "", currency: "",
+  paymentTerms: "", tds: "", group: currentSettings().defaultSupplierGroup || "", parentCompany: "", bank: { holder: "", bank: "", account: "", accountConfirm: "", ifsc: "", swift: "", iban: "", accountType: "", currency: "", branch: "" },
   ...vendorExtraDefaults(),
   contractor: { labourLicence: "", licenceExpiry: "", pfCode: "", esiCode: "", workforce: "", experienceYrs: "", pastProjects: "" },
 });
@@ -84,10 +85,20 @@ function duplicateHints(v) {
   if (d.phone) out.push(`same phone as ${d.phone.name} (${d.phone.id})`);
   return out;
 }
-function validateVendor(f) {
+function validateVendor(f, { internal } = {}) {
   const e = {};
   const foreign = isForeign(f);
   if (!f.name.trim()) e.name = "Required";
+  if (!vTypes(f).length) e.types = "Tick what they supply";
+  if (!f.country) e.country = "Pick the country";
+  if (!f.supplierType) e.supplierType = "Pick the supplier type";
+  if (!f.paymentTerms) e.paymentTerms = "Pick the payment terms";
+  if (!f.currency) e.currency = "Pick the currency";
+  if (internal) {
+    if (!f.tds) e.tds = "Pick the withholding tax section";
+    if (!f.tier) e.tier = "Pick the supplier tier";
+    if (!f.regTier) e.regTier = "Pick the registration tier";
+  }
   if (!foreign) {
     if (!GSTIN_RE.test(f.gstin.trim().toUpperCase())) e.gstin = "Enter a valid 15-character GSTIN";
     if (!PAN_RE.test(f.pan.trim().toUpperCase())) e.pan = "Enter a valid PAN (ABCDE1234F)";
@@ -133,7 +144,7 @@ function createVendor(f, submit, source = "Internal") {
   const id = prev ? prev.id : nextId("VEN", st.vendors);
   const v = {
     ...f, id, name: f.name.trim(), legalName: f.legalName.trim() || f.name.trim(), gstin: isForeign(f) ? "" : f.gstin.toUpperCase(), pan: isForeign(f) ? "" : f.pan.toUpperCase(),
-    status: submit ? "Pending Approval" : "Draft", preferred: false, hold: null, notes: f.notesText && f.notesText.trim() ? [{ at: todayISO(), by: currentUser(), text: f.notesText.trim() }] : [], insurance: [],
+    tier: f.tier || "Approved", regTier: f.regTier || "Spend Authorized", country: f.country || "India", status: submit ? "Pending Approval" : "Draft", preferred: false, hold: null, notes: f.notesText && f.notesText.trim() ? [{ at: todayISO(), by: currentUser(), text: f.notesText.trim() }] : [], insurance: [],
     bankAccounts: f.bank.account ? [{ id: 1, ...f.bank, accountConfirm: undefined, iban: (f.bank.iban || "").replace(/\s/g, "").toUpperCase(), currency: f.bank.currency || f.currency, account: String(f.bank.account).replace(/\s/g, ""), ifsc: (f.bank.ifsc || "").toUpperCase(), status: "Unverified", addedAt: todayISO(), isDefault: true }] : [],
     approval: { stages: vendorFlowFor(f).map((dept, i) => ({ dept, status: submit && i === 0 ? "Pending" : "Waiting", by: null, at: null, remark: "", ...(submit && i === 0 ? { since: new Date().toISOString() } : {}) })) },
     submittedAt: submit ? new Date().toISOString() : null,
@@ -212,7 +223,7 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
     const cur = vTypes(f), types = VENDOR_TYPES.filter((x) => (x === t ? !cur.includes(t) : cur.includes(x)));
     if (!types.length) return;
     const gOnly = types.every((x) => x === "Goods");
-    set({ ...f, types, type: types[0], tds: autoTds(types, f.supplierType), isContractor: types.includes("Labor") || types.includes("Services") });
+    set({ ...f, types, type: types[0], tds: f.country && isForeign(f) ? f.tds : autoTds(types, f.supplierType), isContractor: types.includes("Labor") || types.includes("Services") });
   };
   const docsDone = requiredDocs(f).every((d) => (f.uploads || {})[d]?.file);
   const dup = publicMode ? {} : findDuplicate(f);
@@ -240,6 +251,7 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
             );
           })}
         </div>
+        {err("types")}
         <div className="mt-4 grid grid-cols-2 gap-3">
           <Field label="Trades / categories" required span={2}><TradePicker options={TRADES} value={f.categories} onChange={(v) => upd("categories", v)} />{err("categories")}</Field>
         </div>
@@ -247,14 +259,14 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
 
       <FormSection n={++n} title="Tax & payment" desc={foreign ? "Foreign vendor - GSTIN and PAN are not required" : "GSTIN fills the PAN and state automatically"} done={foreign ? !!f.taxId : gstOk && panOk}>
         <div className="grid grid-cols-3 gap-3">
-          <Field label="Country" required><Select value={f.country || "India"} onChange={(v) => set({ ...f, country: v, currency: COUNTRY_CURRENCY[v] || f.currency, tds: v === "India" ? autoTds(vTypes(f), f.supplierType) : "NONE" })} options={COUNTRIES} /></Field>
+          <Field label="Country" required><Select value={f.country} placeholder="Select country" onChange={(v) => set({ ...f, country: v, currency: COUNTRY_CURRENCY[v] || f.currency, tds: v === "India" ? autoTds(vTypes(f), f.supplierType) : "NONE" })} options={COUNTRIES} />{err("country")}</Field>
           {foreign && <Field label="Tax / VAT registration no." required span={2}><TextInput value={f.taxId || ""} onChange={(v) => upd("taxId", v.toUpperCase())} placeholder="e.g. TRN 100234567800003" className={cls(inputCls, "mono")} />{err("taxId")}</Field>}
           {!foreign && <Field label="GSTIN" required><TextInput value={f.gstin} onChange={setGstin} placeholder="27AAKCS4412M1Z3" maxLength={15} className={cls(inputCls, "mono")} />{err("gstin") || dupNote(dup.gstin, "Already registered:") || ok(gstOk, `Valid · ${GST_STATES[f.gstin.slice(0, 2)] || "state code " + f.gstin.slice(0, 2)}`)}</Field>}
           {!foreign && <Field label="PAN" required><TextInput value={f.pan} onChange={(v) => upd("pan", v.toUpperCase())} placeholder="AAKCS4412M" maxLength={10} className={cls(inputCls, "mono")} />{err("pan") || (dup.pan && <span className="mt-1 block text-[11px] text-amber-700">Same PAN as <b>{dup.pan.name}</b> ({dup.pan.id}) - another branch of the same company?</span>) || ok(panOk && gstOk && f.gstin.slice(2, 12) === f.pan, "Matches GSTIN")}</Field>}
-          <Field label="Supplier type"><Select value={f.supplierType || "Company"} onChange={(v) => set({ ...f, supplierType: v, tds: autoTds(vTypes(f), v) })} options={SUPPLIER_TYPES} /></Field>
-          <Field label={publicMode ? "Preferred payment terms" : "Payment terms"}><Select value={f.paymentTerms} onChange={(v) => upd("paymentTerms", v)} options={PAYMENT_TERMS} /></Field>
-          <Field label="Currency"><Select value={f.currency} onChange={(v) => upd("currency", v)} options={withCurrent(CURRENCIES, f.currency)} /></Field>
-          {!publicMode && <Field label="Withholding tax (TDS)"><Select value={f.tds} onChange={(v) => upd("tds", v)} options={TDS_SECTIONS} /></Field>}
+          <Field label="Supplier type" required><Select value={f.supplierType} placeholder="Select" onChange={(v) => set({ ...f, supplierType: v, tds: vTypes(f).length ? autoTds(vTypes(f), v) : f.tds })} options={SUPPLIER_TYPES} />{err("supplierType")}</Field>
+          <Field label={publicMode ? "Preferred payment terms" : "Payment terms"} required><Select value={f.paymentTerms} placeholder="Select" onChange={(v) => upd("paymentTerms", v)} options={PAYMENT_TERMS} />{err("paymentTerms")}</Field>
+          <Field label="Currency" required><Select value={f.currency} placeholder="Select" onChange={(v) => upd("currency", v)} options={withCurrent(CURRENCIES, f.currency)} />{err("currency")}</Field>
+          {!publicMode && <Field label="Withholding tax (TDS)" required><Select value={f.tds} placeholder="Select" onChange={(v) => upd("tds", v)} options={TDS_SECTIONS} />{err("tds")}</Field>}
         </div>
       </FormSection>
 
@@ -302,7 +314,7 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
             : <Field label="IFSC"><TextInput value={f.bank.ifsc} disabled={lockBank} onChange={(v) => updB("ifsc", v.toUpperCase())} maxLength={11} placeholder="HDFC0001234" className={cls(inputCls, "mono")} />
             {err("bank_ifsc") || (f.bank.ifsc && !ifscOk ? <span className="mt-1 block text-[11px] text-amber-700">Format: 4 letters, 0, then 6 characters</span> : ok(ifscOk, "Valid IFSC"))}</Field>}
           <Field label="Re-enter account no."><TextInput value={f.bank.accountConfirm || ""} disabled={lockBank} onChange={(v) => updB("accountConfirm", v.replace(/\s/g, ""))} className={cls(inputCls, "mono")} onPaste={(e) => e.preventDefault()} />{err("bank_confirm") || ok(f.bank.account && f.bank.accountConfirm === f.bank.account, "Matches")}</Field>
-          <Field label="Account type"><Select value={f.bank.accountType || "Current"} disabled={lockBank} onChange={(v) => updB("accountType", v)} options={ACCOUNT_TYPES} /></Field>
+          <Field label="Account type"><Select value={f.bank.accountType || ""} placeholder="Select" disabled={lockBank} onChange={(v) => updB("accountType", v)} options={ACCOUNT_TYPES} /></Field>
           <Field label="Account currency"><Select value={f.bank.currency || f.currency} disabled={lockBank} onChange={(v) => updB("currency", v)} options={withCurrent(CURRENCIES, f.bank.currency || f.currency)} /></Field>
           <Field label="Branch"><TextInput value={f.bank.branch || ""} disabled={lockBank} onChange={(v) => updB("branch", v)} /></Field>
           {foreign && <Field label="IBAN"><TextInput value={f.bank.iban || ""} disabled={lockBank} onChange={(v) => updB("iban", v.toUpperCase())} className={cls(inputCls, "mono")} />{err("bank_iban")}</Field>}
@@ -318,8 +330,8 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
       {!publicMode && (
         <FormSection n={++n} title="Internal classification" desc="Only visible to your team - not shown to the vendor" done>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Supplier tier"><Select value={f.tier} onChange={(v) => upd("tier", v)} options={TIERS} /></Field>
-            <Field label="Registration tier" hint="Prospective vendors can quote but can't receive POs"><Select value={f.regTier} onChange={(v) => upd("regTier", v)} options={["Spend Authorized", "Prospective"]} /></Field>
+            <Field label="Supplier tier" required><Select value={f.tier} placeholder="Select" onChange={(v) => upd("tier", v)} options={TIERS} />{err("tier")}</Field>
+            <Field label="Registration tier" required hint="Prospective vendors can quote but can't receive POs"><Select value={f.regTier} placeholder="Select" onChange={(v) => upd("regTier", v)} options={["Spend Authorized", "Prospective"]} />{err("regTier")}</Field>
             <Field label="Vendor group" hint="Used to filter the vendor list"><Select value={f.group} placeholder="Not grouped" onChange={(v) => set({ ...f, group: v, paymentTerms: groupTerms(getState(), v) || f.paymentTerms })} options={withCurrent(settingsOf(getState()).vendorGroups, f.group)} /></Field>
             <Field label="Internal parent company" hint="Only if this vendor is one of our group companies"><Select value={f.parentCompany} placeholder="External vendor" onChange={(v) => upd("parentCompany", v)} options={withCurrent(settingsOf(getState()).groupCompanies, f.parentCompany)} /></Field>
           </div>
@@ -370,10 +382,10 @@ function RegisterVendorModal({ open, onClose, onCreated, contractorMode }) {
   const [f, setF] = y.useState(emptyVendor);
   const [errors, setErrors] = y.useState({});
   y.useEffect(() => {
-    if (open) { setF(contractorMode ? { ...emptyVendor(), type: "Labor", types: ["Labor"], isContractor: true, tds: "194C-2" } : emptyVendor()); setErrors({}); }
+    if (open) { setF(contractorMode ? { ...emptyVendor(), type: "Labor", types: ["Labor"], isContractor: true } : emptyVendor()); setErrors({}); }
   }, [open]);
   const save = (submit) => {
-    const e = validateVendor(f);
+    const e = validateVendor(f, { internal: true });
     setErrors(e);
     if (Object.keys(e).length) return;
     if (submit && currentSettings().requireDocsOnSubmit) {
@@ -389,7 +401,6 @@ function RegisterVendorModal({ open, onClose, onCreated, contractorMode }) {
   return (
     <Modal open={open} onClose={onClose} width={820}
       title={contractorMode ? "Onboard contractor" : "Register vendor"}
-      subtitle="All details. Saving creates a draft; submitting routes it through Procurement → Legal → Finance. To let the vendor fill it in, use Invite vendor instead."
       footer={<><Btn onClick={onClose}>Cancel</Btn><Btn onClick={() => save(false)}>Save draft</Btn>
         <Btn variant="primary" icon={Icon.send} onClick={() => save(true)}>Submit for approval</Btn></>}>
       {errors.docs && <div className="mb-3"><Note tone="red">{errors.docs}</Note></div>}
@@ -651,7 +662,7 @@ function BankHistory({ v }) {
 }
 function VendorBanks({ v, locked: locked0, approving, control }) {
   const locked = locked0 && !control;
-  const blank = { holder: "", bank: "", account: "", accountConfirm: "", ifsc: "", swift: "", iban: "", accountType: "Current", currency: v.currency || "INR", branch: "", allowIntl: isForeign(v), paymentsEnabled: true, notes: "" };
+  const blank = { holder: "", bank: "", account: "", accountConfirm: "", ifsc: "", swift: "", iban: "", accountType: "", currency: "", branch: "", allowIntl: isForeign(v), paymentsEnabled: true, notes: "" };
   const [f, setF] = y.useState(blank), [tried, setTried] = y.useState(false), [rej, setRej] = y.useState(null), [del, setDel] = y.useState(null);
   const mut = (fn, action) => setState((s) => fn(byId(s.vendors, v.id)), { entity: "Vendor", id: v.id, action });
   const foreign = isForeign(v);
@@ -890,7 +901,7 @@ function VendorStatusMenu({ v, approval, caret }) {
             return (
               <button key={o} type="button" role="menuitem" aria-current={cur || undefined} disabled={cur || !can} onClick={() => pick(o)} data-tip={!cur && !can ? (approval ? "Set by the approval flow" : "Available once the registration is approved") : undefined}
                 className={cls("flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px]", cur ? "font-medium text-brand" : can ? "text-ink hover:text-brand" : "cursor-default text-ink-mute")}>
-                <OptBox on={cur} /><span className={cls("h-2 w-2 shrink-0 rounded-full", DOT[TONE[o.toLowerCase()] || "gray"])} /><span className="flex-1">{label}</span>
+                <span className={cls("h-2 w-2 shrink-0 rounded-full", DOT[TONE[o.toLowerCase()] || "gray"])} /><span className="flex-1">{label}</span><OptTick on={cur} />
               </button>
             );
           })}
@@ -918,7 +929,7 @@ function VendorRegistryPage() {
   const [open, setOpen] = useQueryOpen(), [reg, setReg] = y.useState(false), [share, setShare] = y.useState(false), [invite, setInvite] = y.useState(false), [view, setView] = y.useState("vendors");
   const [sel, setSel] = y.useState([]), [holdFor, setHoldFor] = y.useState(null);
   const rows = st.vendors.filter((v) =>
-    (type === "All" || hasType(v, type)) && (status === "All" || lifeStatus(v) === status) && (appr === "All" || approvalStatus(v) === appr) && (tier === "All" || v.tier === tier) &&
+    (type === "All" || hasType(v, type)) && selMatch(status, lifeStatus(v)) && selMatch(appr, approvalStatus(v)) && selMatch(tier, v.tier) &&
     (grp === "All" || (grp === "__intra" ? isGroupCompany(v) : grp === "__none" ? !v.group : inGroup(v, grp))) &&
     true);
   const compIssues = st.vendors.filter((v) => v.status === "Active" && complianceOf(v).status !== "Compliant").length;

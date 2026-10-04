@@ -1,5 +1,5 @@
 // Requisitions: internal stock moves never become RFQs / POs; approval by estimated value
-require('./lib')('reqflow', async ({ p, go, dlg, S, mut, T }) => {
+require('./lib')('reqflow', async ({ fill, p, go, dlg, S, mut, T }) => {
   const add = (r) => mut(`(s) => { s.requisitions.unshift(${JSON.stringify(r)}); }`);
   const base = { date: new Date().toISOString().slice(0, 10), requiredBy: '2026-12-31', project: 'Skyline Towers - Phase 1', company: 'NebullaOne Infra Pvt Ltd', requestedBy: 'Site A', rfqIds: [], terms: '', notes: '' };
   await add({ ...base, id: 'MR-801', purpose: 'Material transfer', sourceStore: 'Central Store', targetStore: 'Site Store - Skyline', status: 'Approved', items: [{ desc: 'Shuttering plywood 12 mm', unit: 'sheet', qty: 80, rate: 1450 }] });

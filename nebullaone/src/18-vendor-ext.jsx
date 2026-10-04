@@ -43,7 +43,7 @@ function InvitesTable({ onOpenVendor }) {
   const [share, setShare] = y.useState(null);
   const [open, setOpen] = y.useState(null), [status, setStatus] = y.useState("All");
   const stop = (e) => e.stopPropagation();
-  const rows = st.invites.filter((i) => status === "All" || i.status === status);
+  const rows = st.invites.filter((i) => selMatch(status, i.status));
   return (
     <>
       <DataTable noun="invitations" placeholder="Search company, e-mail, trade…" filters={<FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Invited", "Registered", "Cancelled"]} />} rows={rows} onRow={(i) => setOpen(i.id)} empty={<EmptyState icon={Icon.mail} title="No invitations yet" text="Use “Invite vendor” to send a personal registration link." />} columns={[

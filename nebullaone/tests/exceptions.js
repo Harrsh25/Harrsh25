@@ -1,6 +1,6 @@
 // Exception workflows - return / reject / resubmit paths, driven through the UI (Chromium, built HTML).
 // NCR rework, RA-bill rejection and GRN rejection are covered in fix4.js (G-12b/c, G-16b) and merge.js.
-require('./lib')('exceptions', async ({ p, go, dlg, S, mut, T }) => {
+require('./lib')('exceptions', async ({ fill, p, go, dlg, S, mut, T }) => {
   const s0 = await S();
   const pend = s0.vendors.find((v) => v.status === 'Pending Approval');
   await T('EX-01', 'Approver requests changes (field + document) → vendor status Changes Requested, document marked Rejected', async () => {

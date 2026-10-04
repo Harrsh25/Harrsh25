@@ -21,10 +21,12 @@ function matchRate(st, wo, item) {
 function RateModal({ base, onClose }) {
   const st = useStore();
   const [f, setF] = y.useState(base ? { ...base, rate: base.rate, minWage: base.minWage, effectiveFrom: shiftDays(1), reason: "" }
-    : { trade: "", skill: "Skilled", region: REGIONS[0], vendorId: "", minWage: "", rate: "", otMultiplier: 2, basis: "Per 8-hr man-day", effectiveFrom: todayISO(), reason: "" });
+    : { trade: "", skill: "", region: "", vendorId: "", minWage: "", rate: "", otMultiplier: 2, basis: "Per 8-hr man-day", effectiveFrom: todayISO(), reason: "" });
   const cur = base && st.laborRates.find((r) => r.status === "Active" && rateKey(r) === rateKey(base));
   const lrErr = {
     trade: VX.req(String(f.trade).trim()),
+    skill: VX.req(f.skill, "Pick the skill category"),
+    region: VX.req(f.region, "Pick the region / wage zone"),
     dupCard: !base && f.trade && st.laborRates.some((r) => ["Active", "Pending Approval"].includes(r.status) && rateKey(r) === rateKey({ ...f, trade: f.trade.trim(), vendorId: f.vendorId || null })) ? "A rate card for this trade, zone and contractor already exists - use Revise" : "",
     minWage: VX.num(f.minWage, { gt: 0, label: "Minimum wage" }),
     rate: VX.num(f.rate, { gt: 0, label: "Rate" }) || (Number(f.rate) < Number(f.minWage) ? "Billing rate can't be below the statutory minimum wage" : ""),
@@ -44,8 +46,8 @@ function RateModal({ base, onClose }) {
       }}>Submit for approval</Btn></>}>
       <div className="grid grid-cols-3 gap-3">
         <Field label="Trade" required span={2}><TextInput value={f.trade} onChange={(x) => setF({ ...f, trade: x })} disabled={!!base} placeholder="e.g. Plumber" /></Field>
-        <Field label="Skill category"><Select value={f.skill} onChange={(x) => setF({ ...f, skill: x })} options={SKILLS} disabled={!!base} /></Field>
-        <Field label="Region / wage zone"><Select value={f.region} onChange={(x) => setF({ ...f, region: x })} options={REGIONS} disabled={!!base} /></Field>
+        <Field label="Skill category" required><Select value={f.skill} placeholder="Select" onChange={(x) => setF({ ...f, skill: x })} options={SKILLS} disabled={!!base} /></Field>
+        <Field label="Region / wage zone" required><Select value={f.region} placeholder="Select" onChange={(x) => setF({ ...f, region: x })} options={REGIONS} disabled={!!base} /></Field>
         <Field label="Applies to" span={2}><Select value={f.vendorId || ""} onChange={(x) => setF({ ...f, vendorId: x })} disabled={!!base} options={[{ value: "", label: "Standard schedule (all contractors)" }, ...contractorVendors(st).filter((v) => v.status === "Active").map((v) => ({ value: v.id, label: v.name }))]} /></Field>
         <Field label="Statutory minimum wage / day (₹)" required><NumInput value={f.minWage} onChange={(x) => setF({ ...f, minWage: x })} /><FieldErr m={f.minWage !== "" && lrErr.minWage} /></Field>
         <Field label="Billing rate / day (₹)" required hint={f.minWage && f.rate && !lrErr.rate ? `${margin(f).toFixed(1)}% over minimum wage` : ""}><NumInput value={f.rate} onChange={(x) => setF({ ...f, rate: x })} /><FieldErr m={f.rate !== "" && lrErr.rate} /></Field>
@@ -75,7 +77,7 @@ function LaborRatesPage() {
   const [region, setRegion] = y.useState("All"), [skill, setSkill] = y.useState("All"), [src, setSrc] = y.useState("All");
   const [edit, setEdit] = y.useState(null), [openR, setOpenR] = y.useState(null);
   const active = st.laborRates.filter((r) => r.status === "Active");
-  const filt = (list) => list.filter((r) => (region === "All" || r.region === region) && (skill === "All" || r.skill === skill) && (src === "All" || (src === "Standard" ? !r.vendorId : r.vendorId === src)));
+  const filt = (list) => list.filter((r) => selMatch(region, r.region) && selMatch(skill, r.skill) && selAny(src, (x) => (x === "Standard" ? !r.vendorId : r.vendorId === x)));
   const pending = st.laborRates.filter((r) => r.status === "Pending Approval");
   const below = active.filter((r) => r.rate < r.minWage);
   const labourItems = st.workOrders.filter((w) => w.type === "Item-Rate" && w.status !== "Draft").flatMap((wo) => wo.items.filter((i) => i.unit === "man-day").map((i) => ({ wo, i, card: matchRate(st, wo, i) })));

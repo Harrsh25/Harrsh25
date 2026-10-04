@@ -1,5 +1,5 @@
 // G5 - Worker Master: profiles, statutory + safety checks, eligibility gate on the daily muster, exit, exceptions
-require('./lib')('workers', async ({ p, go, dlg, S, mut, T, pick }) => {
+require('./lib')('workers', async ({ fill, p, go, dlg, S, mut, T, pick }) => {
   await T('WK-01', 'Worker Master lists workers with contractor, trade, checks and status; tiles count them', async () => {
     await go('contract-labor/workers'); await p.waitForTimeout(300);
     const head = await p.locator('main table thead').innerText(); const n = await p.locator('main table tbody tr').count(); const t = await p.locator('main').innerText();
@@ -18,7 +18,7 @@ require('./lib')('workers', async ({ p, go, dlg, S, mut, T, pick }) => {
     const t2 = await d.innerText(); await d.locator('label:has-text("PF - UAN") input').fill('100912345678');
     await d.locator('label:has-text("Medical fit till") input').fill('2027-03-31');
     await d.locator('button:has-text("Add certificate")').click(); await d.locator('input[placeholder="Certificate no."]').fill('WAH-9001'); await d.locator('.grid-cols-\\[1\\.4fr_1fr_150px_auto\\] input[type=date]').fill('2027-01-31');
-    await d.locator('button:has-text("Add worker")').last().click(); await p.waitForTimeout(300);
+    await fill(d); await d.locator('button:has-text("Add worker")').last().click(); await p.waitForTimeout(300);
     const w = (await S()).workers.find((x) => x.name === 'Test Worker Pawar');
     return [`errors ${/Enter the full name/.test(t1)} / UAN ${/UAN is 12 digits/.test(t2)}; saved ${w?.id} uan ${w?.uan} certs ${w?.certificates?.length}`, /Enter the full name/.test(t1) && /UAN is 12 digits/.test(t2) && w?.uan === '100912345678' && w.certificates.length === 1];
   });

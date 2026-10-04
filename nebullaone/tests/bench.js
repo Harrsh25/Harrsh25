@@ -2,7 +2,7 @@
 // and addresses, bank settings, qualification limits and question library, requisitions, RFQ
 // questions, vendor price lists, PO controls, receiving, bills / TDS, payments, scorecard
 // criteria, contract terms, worker details and the supplier portal.
-require('./lib')('bench', async ({ p, go, dlg, S, mut, T, pick, toastText }) => {
+require('./lib')('bench', async ({ fill, p, go, dlg, S, mut, T, pick, toastText }) => {
   const btn = (t) => p.locator(`button:has-text("${t}")`);
   const esc = () => p.keyboard.press('Escape');
   const V = async (id) => (await S()).vendors.find((v) => v.id === id);
@@ -12,7 +12,7 @@ require('./lib')('bench', async ({ p, go, dlg, S, mut, T, pick, toastText }) => 
     await d.locator('button:has-text("Fill all details now")').click().catch(() => {}); await p.waitForTimeout(150); await d.locator('input').nth(0).fill('Benchmark Cement Co'); await d.locator('[role=combobox][aria-haspopup=listbox]:has-text("Select trades")').first().click(); await p.locator('[role=option]').filter({ hasText: 'Cement & Aggregates' }).first().click(); await d.locator('h2,h3').first().click();
     await d.locator('input[placeholder="27AAKCS4412M1Z3"]').fill('27BNCHM4411K1Z5'); await d.locator('input[placeholder="AAKCS4412M"]').fill('BNCHM4411K');
     await d.locator('label:has-text("Contact person") input').first().fill('Asha Rao'); await d.locator('input[type=email]').first().fill('asha@bench.in');
-    await d.locator('button:has-text("Save draft")').click(); await p.waitForTimeout(300);
+    await fill(d); await d.locator('button:has-text("Save draft")').click(); await p.waitForTimeout(300);
     const v = (await S()).vendors.find((x) => x.name === 'Benchmark Cement Co');
     // MSME / entity type / credit limit were removed from the form on request - registration saves trades, GSTIN and PAN
     return [`saved ${v?.id} ${v?.status}; trades ${(v?.categories || []).join(', ')}; GSTIN ${v?.gstin}; PAN ${v?.pan}`, !!v && v.status === 'Draft' && (v.categories || []).includes('Cement & Aggregates') && v.pan === 'BNCHM4411K'];
@@ -29,7 +29,7 @@ require('./lib')('bench', async ({ p, go, dlg, S, mut, T, pick, toastText }) => 
     await m.locator('label:has-text("E-mail") input').fill('vikas@nhm.in'); await m.locator('button:has-text("Save contact")').click(); await p.waitForTimeout(200);
     await btn('Add address').click(); await p.waitForTimeout(150); m = dlg();
     await m.locator('label:has-text("Address title") input').fill('Bhosari depot'); await m.locator('label:has-text("Address line 1") input').fill('Plot 9, Bhosari MIDC'); await m.locator('label:has-text("City") input').fill('Pune');
-    await m.locator('button:has-text("Save address")').click(); await p.waitForTimeout(200);
+    await fill(m); await m.locator('button:has-text("Save address")').click(); await p.waitForTimeout(200);
     const v = await V('VEN-009');
     return [`contacts ${v.contacts?.length}, primary → ${v.contact.name}; addresses ${v.addresses?.length} (${v.addresses?.[0]?.purposes?.join('/')})`, v.contacts?.length === 1 && v.contact.name === 'Vikas Shetty' && v.addresses?.length === 1];
   });
@@ -86,7 +86,7 @@ require('./lib')('bench', async ({ p, go, dlg, S, mut, T, pick, toastText }) => 
   await T('BF-10', 'PO below the approval minimum is issued directly', async () => {
     await go('vendor-management/purchase-orders'); await btn('New PO').first().click(); await p.waitForTimeout(200); const d = dlg();
     await pick(d.locator('label:has-text("Vendor") [role=combobox]').first(), 'Deccan Steel'); await d.locator('input[placeholder="Description"]').first().fill('Binding wire 18 SWG');
-    await d.locator('input[placeholder="Qty"]').first().fill('100'); await d.locator('input[placeholder="Rate"]').first().fill('92'); await p.waitForTimeout(100);
+    await d.locator('input[placeholder="Qty"]').first().fill('100'); await d.locator('input[placeholder="Rate"]').first().fill('92'); await d.locator('input[placeholder="Unit"]').first().fill('kg'); await fill(d); await p.waitForTimeout(100);
     await d.locator('button:has-text("Create & issue")').click(); await p.waitForTimeout(300);
     const po = (await S()).purchaseOrders[0];
     return [`${po.id} ${po.status} - ${po.approval?.remark}`, po.status === 'Issued' && /threshold/.test(po.approval?.remark || '')];

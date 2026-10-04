@@ -1,5 +1,5 @@
 // G4 - Supplier Risk 360: score + level with reasons, risk actions, registry column, exceptions
-require('./lib')('risk', async ({ p, go, dlg, S, mut, T, pick }) => {
+require('./lib')('risk', async ({ fill, p, go, dlg, S, mut, T, pick }) => {
   const VID = 'VEN-003';
   await T('RK-01', 'Registry shows a Risk column (level + score) that can be switched on', async () => {
     await go('vendor-management/registry'); await p.waitForTimeout(300);

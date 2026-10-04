@@ -1,7 +1,7 @@
 // FLOW WIRING - a requisition becomes an RFQ, an awarded PO and a goods receipt; a vendor hold stops
 // POs and payments and its release restores them; a change order's approval changes the contract
 // value; every step lands in the audit log with a working link.
-require('./lib')('flow', async ({ p, go, dlg, S, mut, T, pick, toastText }) => {
+require('./lib')('flow', async ({ fill, p, go, dlg, S, mut, T, pick, toastText }) => {
   const btn = (t) => p.locator(`button:has-text("${t}")`);
   const esc = () => p.keyboard.press('Escape');
   let rfqId, poId;

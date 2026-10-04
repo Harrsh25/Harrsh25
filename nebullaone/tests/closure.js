@@ -2,7 +2,7 @@
 // Requalification: goods warranty and claim; DLP defect blocking closure; final settlement (statement,
 // send, agreement); contractor release with the closing evaluation → requalification flag → contract
 // closed; requalification blocking a PO until cleared; termination → final account → blacklist decision.
-require('./lib')('closure', async ({ p, go, dlg, S, mut, T, pick, toastText }) => {
+require('./lib')('closure', async ({ fill, p, go, dlg, S, mut, T, pick, toastText }) => {
   const btn = (t) => p.locator(`button:has-text("${t}")`);
   const esc = () => p.keyboard.press('Escape');
   const main = async () => (await p.textContent('main')) || '';

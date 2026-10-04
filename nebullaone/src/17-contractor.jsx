@@ -226,7 +226,7 @@ function AttendanceSheet({ vendorId, portal }) {
         <Field label="Work order"><Select value={woId} placeholder="Select…" onChange={setWoId} options={wos.map((w) => ({ value: w.id, label: `${w.id} - ${w.title}` }))} /></Field>
         <Field label="Date"><DateInput value={date} max={todayISO()} onChange={setDate} /></Field>
         <span className="flex-1" />
-        <Btn icon={Icon.userPlus} onClick={() => setNw({ name: "", trade: "Mason", skill: "Skilled", gatePass: "" })}>Add worker</Btn>
+        <Btn icon={Icon.userPlus} onClick={() => setNw({ name: "", trade: "", skill: "", gatePass: "" })}>Add worker</Btn>
       </div>
       {!woId ? <Note>No accepted work order to record attendance against.</Note> : (
         <>
@@ -265,6 +265,8 @@ function AttendanceSheet({ vendorId, portal }) {
         const age = nw.dob ? Math.floor((Date.now() - new Date(nw.dob).getTime()) / (365.25 * DAY)) : null;
         const e = {
           name: !String(nw.name).trim() ? "Enter the full name" : "",
+          trade: nw.trade ? "" : "Pick the trade",
+          skill: nw.skill ? "" : "Pick the skill",
           dob: !nw.dob ? "Required" : nw.dob > todayISO() ? "Date can't be in the future" : age < 18 ? "Worker must be at least 18 (Child & Adolescent Labour Act / BOCW)" : age > 70 ? "Check the date of birth - age over 70" : "",
           mobile: VX.mobile(nw.mobile),
           gatePass: nw.gatePass && st.workers.some((w) => normNo(w.gatePass) === normNo(nw.gatePass)) ? "Gate pass already issued to another worker" : "",
@@ -285,12 +287,12 @@ function AttendanceSheet({ vendorId, portal }) {
               {dupName && <span className="mt-1 block text-[11px] text-amber-700">{dupName.name} ({dupName.gatePass}) is already on this contractor's roll - check this is not a duplicate.</span>}</Field>
             <Field label="Date of birth" required><DateInput value={nw.dob || ""} onChange={(x) => setNw({ ...nw, dob: x })} /><FieldErr m={nw.dob && e.dob} /></Field>
             <Field label="Mobile"><TextInput value={nw.mobile || ""} onChange={(x) => setNw({ ...nw, mobile: x })} placeholder="98xxxxxxxx" /><FieldErr m={e.mobile} /></Field>
-            <Field label="Trade"><Select value={nw.trade} onChange={(x) => setNw({ ...nw, trade: x })} options={[...new Set(st.laborRates.map((r) => r.trade))]} /></Field>
-            <Field label="Skill"><Select value={nw.skill} onChange={(x) => setNw({ ...nw, skill: x })} options={SKILLS} /></Field>
+            <Field label="Trade" required><Select value={nw.trade} placeholder="Select" onChange={(x) => setNw({ ...nw, trade: x })} options={[...new Set(st.laborRates.map((r) => r.trade))]} /></Field>
+            <Field label="Skill" required><Select value={nw.skill} placeholder="Select" onChange={(x) => setNw({ ...nw, skill: x })} options={SKILLS} /></Field>
             <Field label="Gate pass no."><TextInput value={nw.gatePass} onChange={(x) => setNw({ ...nw, gatePass: x })} placeholder="Auto" /><FieldErr m={e.gatePass} /></Field>
             <Field label="Preferred name"><TextInput value={nw.preferredName || ""} onChange={(x) => setNw({ ...nw, preferredName: x })} /></Field>
             <Field label="E-mail"><TextInput value={nw.email || ""} onChange={(x) => setNw({ ...nw, email: x })} /><FieldErr m={e.email} /></Field>
-            <Field label="Residential status" hint="Inter-state migrant workers need ISMW registration"><Select value={nw.residential || "Local"} onChange={(x) => setNw({ ...nw, residential: x })} options={["Local", "Inter-state migrant", "Intra-state migrant"]} /></Field>
+            <Field label="Residential status" hint="Inter-state migrant workers need ISMW registration"><Select value={nw.residential || ""} placeholder="Select" onChange={(x) => setNw({ ...nw, residential: x })} options={["Local", "Inter-state migrant", "Intra-state migrant"]} /></Field>
             <Field label="Address" span={2}><TextInput value={nw.address || ""} onChange={(x) => setNw({ ...nw, address: x })} placeholder="Permanent address" /></Field>
             <Field label="Pay rate / day (₹)" hint={card ? `Rate card ${card.id}: min wage ₹${card.minWage || "-"}` : ""}><NumInput value={nw.payRate ?? ""} onChange={(x) => setNw({ ...nw, payRate: x })} /></Field>
             <Field label="Bill rate / day (₹)" hint={card ? `Rate card ₹${card.rate}` : ""}><NumInput value={nw.billRate ?? (card ? card.rate : "")} onChange={(x) => setNw({ ...nw, billRate: x })} /><FieldErr m={e.rates} /></Field>

@@ -2,7 +2,7 @@
 // vendor master formats and bank verification, bills & payments, purchasing, contractor side,
 // qualification status and limits, background-check mobilisation, remaining forms,
 // configurable approval stages, and the removal of roles.
-require('./lib')('merge', async ({ p, go, dlg, S, mut, T, pick, toastText }) => {
+require('./lib')('merge', async ({ fill, p, go, dlg, S, mut, T, pick, toastText }) => {
   const btn = (t) => p.locator(`button:has-text("${t}")`);
   const body = () => p.textContent('body');
   const esc = () => p.keyboard.press('Escape');
@@ -68,7 +68,7 @@ require('./lib')('merge', async ({ p, go, dlg, S, mut, T, pick, toastText }) => 
   await T('P-01', 'RFQ: one vendor only is refused (≥ 2 vendors needed)', async () => {
     await go('vendor-management/rfq'); await btn('New RFQ').click(); await p.waitForTimeout(200); const d = dlg();
     await d.locator('label:has-text("Title") input').first().fill('Test single vendor'); await d.locator('input[placeholder="Description"]').fill('Binding wire'); await d.locator('input[type=number]').first().fill('10');
-    await d.locator('button:has-text("Konkan Steel")').click(); await p.waitForTimeout(100);
+    await fill(d); await d.locator('button:has-text("Konkan Steel")').click(); await p.waitForTimeout(100);
     const t = await d.textContent(); const dis = await d.locator('button:has-text("Save & compose")').isDisabled(); await esc();
     return [`message: ${(t.match(/at least (2|two) vendors[^.]*/i) || ['none'])[0]}; disabled=${dis}`, /at least (2|two) vendors/i.test(t) && dis];
   });
@@ -156,7 +156,7 @@ require('./lib')('merge', async ({ p, go, dlg, S, mut, T, pick, toastText }) => 
     await d.locator('input[placeholder="27AAKCS4412M1Z3"]').fill('27STGTE4411K1Z5'); await d.locator('input[placeholder="AAKCS4412M"]').fill('STGTE4411K');
     await d.locator('label:has-text("Contact person") input').fill('Ravi Test'); await d.locator('input[type=email]').fill('ravi@stagetest.in');
     await d.locator('label:has-text("Account holder name") input').fill('Stage Test Traders'); await d.locator('input[placeholder="e.g. HDFC Bank"]').fill('HDFC Bank'); await d.locator('label:has-text("Account no.") input').first().fill('50200011229988'); await d.locator('label:has-text("IFSC") input').fill('HDFC0000123');
-    await d.locator('button:has-text("Save draft")').first().click(); await p.waitForTimeout(300);
+    await fill(d); await d.locator('button:has-text("Save draft")').first().click(); await p.waitForTimeout(300);
     const v = (await S()).vendors.find((x) => x.name === 'Stage Test Traders');
     return [`settings: ${flow.join(' → ')}; new vendor stages: ${v?.approval.stages.map((x) => x.dept).join(' → ')}`, flow.length === 4 && v?.approval.stages.length === 4 && v.approval.stages[3].dept === 'Compliance'];
   });
