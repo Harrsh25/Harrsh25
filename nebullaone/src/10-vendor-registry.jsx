@@ -288,6 +288,10 @@ function VendorForm({ f, set, errors, contractorMode, publicMode, lockBank }) {
         </div>
       </FormSection>
 
+      <FormSection n={++n} title="Ownership & declarations" done={!!(f.relatedParty && f.coi)}>
+        <VendorOwnershipFields f={f} set={set} errors={errors} foreign={foreign} />
+      </FormSection>
+
       {!publicMode && <FormSection n={++n} title="Purchasing & payment" optional done>
         <VendorMoreFields f={f} set={set} errors={errors} publicMode={publicMode} foreign={foreign} />
       </FormSection>}

@@ -18,6 +18,15 @@ function migrateState(s) {
   if ((s.workers || []).some((w) => w.idRef === undefined)) { seedWorkerDetails(s); changed = true; }
   if (seedSubcontracts(s)) changed = true;
   if (seedDispatches(s)) changed = true;
+  if (seedContractBoq(s)) changed = true;
+  if (seedClaims(s)) changed = true;
+  if (seedDefaults(s)) changed = true;
+  if (seedOwnership(s)) changed = true;
+  if (seedBlanketReleases(s)) changed = true;
+  if (seedBankConfirm(s)) changed = true;
+  if (seedSubTerms(s)) changed = true;
+  if (seedWorkerExtras(s)) changed = true;
+  if (seedBaselines(s)) changed = true;
   return changed;
 }
 const SUB_STATUS_TONE = { Proposed: "blue", Approved: "green", Rejected: "red", Closed: "gray" };
@@ -43,8 +52,15 @@ const subWorkers = (st, sub) => st.workers.filter((w) => w.subcontractId === sub
 function decideSub(c, sub, approve, remark) {
   const st = getState();
   if (approve) { const b = subBlockers(st, c, sub); if (b.length) { toast(`Can't approve - ${b.join("; ")}`, "red"); return false; } }
+  // value above the approval limit: Project Manager, then Finance Controller
+  const lv = subLevels(st, sub), done = (sub.approvals || []).length;
+  if (approve && done + 1 < lv.length) {
+    setState((s) => { const x = byId(s.contracts, c.id).subcontracts.find((q) => q.id === sub.id); x.approvals = [...(x.approvals || []), { level: lv[done], by: currentUser(), at: new Date().toISOString() }]; },
+      { entity: "Contract", id: c.id, action: `Subcontract ${sub.id} approved by ${lv[done]} - ${lv[done + 1]} next (value above ${inrShort(subApprovalLimit(st))})` });
+    toast(`${lv[done]} approval recorded - ${lv[done + 1]} next`); return true;
+  }
   if (!approve && !(remark || "").trim()) { toast("A reason is required to reject", "red"); return false; }
-  setState((s) => Object.assign(byId(s.contracts, c.id).subcontracts.find((x) => x.id === sub.id), { status: approve ? "Approved" : "Rejected", decidedBy: currentUser(), decidedAt: new Date().toISOString(), remark: remark || "" }),
+  setState((s) => Object.assign(byId(s.contracts, c.id).subcontracts.find((x) => x.id === sub.id), { status: approve ? "Approved" : "Rejected", decidedBy: currentUser(), decidedAt: new Date().toISOString(), remark: remark || "", ...(approve ? { approvals: [...(sub.approvals || []), { level: lv[done], by: currentUser(), at: new Date().toISOString() }] } : {}) }),
     { entity: "Contract", id: c.id, action: `Subcontract ${sub.id} to ${vendorName(st, sub.vendorId)} ${approve ? "approved" : "rejected"}${remark ? ` - ${remark}` : ""}` });
   toast(approve ? "Subcontract approved" : "Subcontract rejected", approve ? "green" : "red");
   return true;
@@ -54,35 +70,41 @@ function SubcontractSection({ c }) {
   const st = useStore();
   const subs = contractSubs(c);
   const live = !["Draft", "Rejected", "Closed", "Terminated"].includes(c.status);
-  const [f, setF] = y.useState(null), [tried, setTried] = y.useState(false), [dec, setDec] = y.useState(null), [closeIt, setCloseIt] = y.useState(null);
+  const [f, setF] = y.useState(null), [tried, setTried] = y.useState(false), [dec, setDec] = y.useState(null), [closeIt, setCloseIt] = y.useState(null), [det, setDet] = y.useState(null);
   const candidates = st.vendors.filter((v) => v.id !== c.vendorId && (v.isContractor || hasType(v, "Labor") || hasType(v, "Services")));
   const er = f ? {
     vendorId: f.vendorId ? "" : "Pick the subcontractor",
     scope: f.scope.trim().length < 5 ? "Describe the sublet scope" : "",
-    value: !(Number(f.value) > 0) ? "Enter the sublet value" : "",
+    value: (f.boq || []).length ? "" : !(Number(f.value) > 0) ? "Enter the sublet value" : "",
+    terms: f.terms ? "" : "Select the terms",
+    own: f.terms === "Own terms" && (!(Number(f.retentionPct) >= 0 && f.retentionPct !== "" && Number(f.retentionPct) <= 20) || !(Number(f.paymentDays) > 0) || !(Number(f.dlpMonths) >= 0 && f.dlpMonths !== "")) ? "Enter retention %, payment days and DLP months" : "",
+    boq: (f.boq || []).some((l) => !String(l.desc).trim() || !(Number(l.qty) > 0) || !(Number(l.rate) > 0)) ? "Complete every BOQ line (item, quantity, rate)" : "",
+    bg: f.bgNo && (!f.bgBank || !(Number(f.bgAmount) > 0) || !f.bgExpiry || f.bgExpiry <= todayISO()) ? "Guarantee needs bank, amount and a future expiry" : "",
     dates: !f.start || !f.end ? "Enter start and end" : f.end <= f.start ? "End must be after start" : f.start < c.start || f.end > c.end ? `Must sit within the contract (${fmtDate(c.start)} – ${fmtDate(c.end)})` : "",
   } : {};
-  const warn = f && f.vendorId ? subBlockers(st, c, { ...f, id: "new" }) : [];
+  const fValue = f ? ((f.boq || []).length ? round2(sum(f.boq, (l) => (Number(l.qty) || 0) * (Number(l.rate) || 0))) : Number(f.value) || 0) : 0;
+  const warn = f && f.vendorId ? subBlockers(st, c, { ...f, value: fValue, id: "new" }) : [];
   const save = () => {
     setTried(true); if (VX.any(er)) return;
     const n = allSubs(getState()).length + 1, id = `SUB-${String(n).padStart(3, "0")}`;
-    setState((s) => { const x = byId(s.contracts, c.id); x.subcontracts = [...(x.subcontracts || []), { id, vendorId: f.vendorId, scope: f.scope.trim(), value: Number(f.value), start: f.start, end: f.end, status: "Proposed", requestedBy: currentUser(), requestedAt: new Date().toISOString() }]; },
+    setState((s) => { const x = byId(s.contracts, c.id); x.subcontracts = [...(x.subcontracts || []), { id, vendorId: f.vendorId, scope: f.scope.trim(), value: fValue, start: f.start, end: f.end, ...subTermsOf(c, f), boq: (f.boq || []).map((l) => ({ desc: l.desc.trim(), unit: l.unit || "nos", qty: Number(l.qty), rate: Number(l.rate) })), payments: [], ...(f.bgNo ? { bg: { number: f.bgNo.trim(), bank: f.bgBank.trim(), amount: Number(f.bgAmount), expiry: f.bgExpiry } } : {}), status: "Proposed", requestedBy: currentUser(), requestedAt: new Date().toISOString() }]; },
       { entity: "Contract", id: c.id, action: `Subcontract ${id} proposed - ${vendorName(st, f.vendorId)} for ${f.scope.trim()} (${inrShort(Number(f.value))})` });
     toast("Subcontract proposed - waiting for approval"); setF(null); setTried(false);
   };
   return (
-    <Section title="Subcontractors" icon={Icon.users} actions={live && !f && <Btn size="sm" icon={Icon.plus} onClick={() => setF({ vendorId: "", scope: "", value: "", start: c.start, end: c.end })}>Propose subcontractor</Btn>}>
+    <Section title="Subcontractors" icon={Icon.users} actions={live && !f && <Btn size="sm" icon={Icon.plus} onClick={() => setF({ vendorId: "", scope: "", value: "", start: c.start, end: c.end, terms: "", retentionPct: "", paymentDays: "", dlpMonths: "", boq: [], bgNo: "", bgBank: "", bgAmount: "", bgExpiry: "" })}>Propose subcontractor</Btn>}>
       <DataTable dense plain rows={subs} empty={<p className="p-4 text-[13px] text-ink-mute">No part of this contract is sublet. The main contractor must get approval before any subcontractor works on site.</p>} columns={[
         { key: "vendorId", label: "Subcontractor", className: "font-medium", render: (x) => vendorName(st, x.vendorId) },
         { key: "scope", label: "Scope" },
         { key: "value", label: "Value", align: "right", render: (x) => <span className="num">{inrShort(x.value)}</span> },
         { key: "dates", label: "Period", render: (x) => `${fmtDate(x.start)} – ${fmtDate(x.end)}` },
         { key: "w", label: "Workers", align: "right", render: (x) => subWorkers(st, x).filter((w) => workerState(w) !== "Exited").length },
-        { key: "status", label: "Status", render: (x) => <span className="flex flex-col"><Status tone={SUB_STATUS_TONE[x.status]}>{x.status}</Status>{x.rating && <span className="text-[11px] text-ink-mute">rated {x.rating.quality}/5 · {x.rating.safety}/5</span>}{x.status === "Approved" && subBlockers(st, c, x).length > 0 && <span className="text-[11px] text-red-600">{subBlockers(st, c, x)[0]}</span>}</span> },
+        { key: "status", label: "Status", render: (x) => <span className="flex flex-col"><Status tone={SUB_STATUS_TONE[x.status]}>{x.status}</Status>{x.status === "Proposed" && (x.approvals || []).length > 0 && <span className="text-[11px] text-ink-mute">{x.approvals.map((a) => a.level).join(", ")} approved - {subLevels(st, x)[(x.approvals || []).length]} next</span>}{x.rating && <span className="text-[11px] text-ink-mute">rated {x.rating.quality}/5 · {x.rating.safety}/5</span>}{x.status === "Approved" && subBlockers(st, c, x).length > 0 && <span className="text-[11px] text-red-600">{subBlockers(st, c, x)[0]}</span>}</span> },
         { key: "act", label: "", align: "right", render: (x) => (
           <span className="flex justify-end gap-1">
             {x.status === "Proposed" && <><Btn size="sm" variant="danger" onClick={() => setDec({ sub: x, approve: false, remark: "" })}>Reject</Btn><Btn size="sm" variant="success" disabled={subBlockers(st, c, x).length > 0} title={subBlockers(st, c, x).join(" · ")} onClick={() => decideSub(c, x, true, "")}>Approve</Btn></>}
-            {x.status === "Approved" && <Btn size="sm" onClick={() => setCloseIt({ sub: x, quality: "4", safety: "4", remark: "" })}>Close & rate</Btn>}
+            <Btn size="sm" onClick={() => setDet(x.id)}>Details</Btn>
+            {x.status === "Approved" && <Btn size="sm" onClick={() => setCloseIt({ sub: x, quality: "", safety: "", remark: "" })}>Close & rate</Btn>}
           </span>) },
       ]} />
       {subLimitPct(st) > 0 && <p className="border-t border-line px-4 py-2 text-[12px] text-ink-mute">Sublet so far {inrShort(sum(subs.filter((x) => ["Proposed", "Approved"].includes(x.status)), (x) => Number(x.value) || 0))} of the {subLimitPct(st)}% allowed ({inrShort(contractValue(c) * subLimitPct(st) / 100)}). Subcontractor workers are added in Worker Master under the main contractor; their work is measured and billed through the main contractor.</p>}
@@ -95,6 +117,7 @@ function SubcontractSection({ c }) {
             <Field label="Start"><DateInput value={f.start} onChange={(x) => setF({ ...f, start: x })} /></Field>
             <Field label="End"><DateInput value={f.end} onChange={(x) => setF({ ...f, end: x })} />{tried && <FieldErr m={er.dates} />}</Field>
           </div>
+          <SubTermsFields c={c} f={f} setF={setF} tried={tried} er={er} value={fValue} />
           {warn.length > 0 && <Note tone="amber">Approval will be refused until: {warn.join(" · ")}</Note>}
           <div className="flex justify-end gap-2"><Btn onClick={() => { setF(null); setTried(false); }}>Cancel</Btn><Btn variant="primary" onClick={save}>Propose</Btn></div>
         </div>
@@ -104,8 +127,9 @@ function SubcontractSection({ c }) {
           <Field label="Reason" required><TextInput value={dec.remark} onChange={(x) => setDec({ ...dec, remark: x })} placeholder="e.g. Not qualified for deep excavation" /></Field>
         </Modal>
       )}
+      {det && <SubcontractDetail c={c} id={det} onClose={() => setDet(null)} />}
       {closeIt && (
-        <Modal open width={480} onClose={() => setCloseIt(null)} title={`Close subcontract ${closeIt.sub.id}`} footer={<><Btn onClick={() => setCloseIt(null)}>Cancel</Btn><Btn variant="primary" onClick={() => {
+        <Modal open width={480} onClose={() => setCloseIt(null)} title={`Close subcontract ${closeIt.sub.id}`} footer={<><Btn onClick={() => setCloseIt(null)}>Cancel</Btn><Btn variant="primary" disabled={!closeIt.quality || !closeIt.safety} onClick={() => {
           const r = { quality: Number(closeIt.quality), safety: Number(closeIt.safety), remark: closeIt.remark.trim() };
           setState((s) => {
             Object.assign(byId(s.contracts, c.id).subcontracts.find((x) => x.id === closeIt.sub.id), { status: "Closed", closedAt: new Date().toISOString(), closedBy: currentUser(), rating: r });
@@ -114,8 +138,8 @@ function SubcontractSection({ c }) {
           toast("Subcontract closed - rating added to the subcontractor's scorecard"); setCloseIt(null);
         }}>Close</Btn></>}>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Quality (1–5)"><Select value={closeIt.quality} onChange={(x) => setCloseIt({ ...closeIt, quality: x })} options={["1", "2", "3", "4", "5"]} /></Field>
-            <Field label="Safety (1–5)"><Select value={closeIt.safety} onChange={(x) => setCloseIt({ ...closeIt, safety: x })} options={["1", "2", "3", "4", "5"]} /></Field>
+            <Field label="Quality (1–5)" required><Select value={closeIt.quality} onChange={(x) => setCloseIt({ ...closeIt, quality: x })} options={["1", "2", "3", "4", "5"]} /></Field>
+            <Field label="Safety (1–5)" required><Select value={closeIt.safety} onChange={(x) => setCloseIt({ ...closeIt, safety: x })} options={["1", "2", "3", "4", "5"]} /></Field>
             <Field label="Remarks" span={2}><TextInput value={closeIt.remark} onChange={(x) => setCloseIt({ ...closeIt, remark: x })} /></Field>
           </div>
         </Modal>

@@ -31,7 +31,7 @@ function WorkOrderModal({ open, onClose, onCreated, contractId: presetContract }
     const wo = { id, contractId: c.id, vendorId: c.vendorId, project: c.project, wbs: f.wbs, title: f.title, type: f.type, location: f.location, start: f.start, end: f.end, status: issue ? "Issued" : "Draft", issuedOn: issue ? todayISO() : null, issuedBy: issue ? currentUser() : null, acceptance: issue ? { status: "Pending" } : null };
     if (f.type === "Lump Sum") Object.assign(wo, { lumpSum: Number(f.lumpSum), milestones: f.milestones.map((m, i) => ({ id: `M${i + 1}`, name: m.name, weight: Number(m.weight) })) });
     else wo.items = f.items.map((it, i) => ({ id: `${id.slice(-3)}-${i + 1}`, code: it.code, desc: it.desc, unit: it.unit, qty: Number(it.qty), rate: Number(it.rate), ...(it.boqRef ? { boqRef: it.boqRef } : {}) }));
-    setState((s) => s.workOrders.unshift(wo), { entity: "Work Order", id, action: `${issue ? "Issued" : "Drafted"} under ${c.id} (${f.type})` });
+    setState((s) => s.workOrders.unshift({ ...wo, baseline: { start: wo.start, end: wo.end } }), { entity: "Work Order", id, action: `${issue ? "Issued" : "Drafted"} under ${c.id} (${f.type})` });
     toast(`${id} ${issue ? "issued" : "saved"}`); onClose(); onCreated && onCreated(id);
   };
   return (
@@ -161,6 +161,7 @@ function WorkOrderDrawer({ id, onClose }) {
             { key: "p", label: "Progress", render: (p) => <Progress value={Math.round(pct(p.measured, p.total))} color={p.measured > p.total ? "bg-red-500" : "bg-brand"} /> },
           ]} />
         </Section>
+        <WoEvSection wo={wo} />
         <Section title="RA bills" icon={Icon.receipt} actions={<RefLink to={`${CL_BASE}/ra-bills?wo=${id}`}>+ Prepare RA bill</RefLink>}>
           <DataTable dense rows={bills} empty={<p className="p-4 text-[13px] text-ink-mute">No bills yet.</p>} columns={[
             { key: "id", label: "Bill", render: (b) => <RefLink to={`${CL_BASE}/ra-bills?open=${b.id}`}>{b.id}</RefLink> }, { key: "seq", label: "RA no.", render: (b) => `RA-${b.seq}` },

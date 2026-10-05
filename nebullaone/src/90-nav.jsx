@@ -29,6 +29,7 @@ const NXV_PAGES = [
   { group: "Contract & Labor", base: CL_BASE, path: "retention", label: "Retention & Deductions", icon: Icon.lock, el: RetentionPage },
   { group: "Contract & Labor", base: CL_BASE, path: "labor-rates", label: "Labor Rate Management", icon: Icon.hardHat, el: LaborRatesPage },
   { group: "Contract & Labor", base: CL_BASE, path: "performance", label: "Performance & Progress", icon: Icon.trending, el: PerformancePage },
+  { group: "Contract & Labor", base: CL_BASE, path: "claims", label: "Claims", icon: Icon.scale, el: ClaimsPage },
   { group: "Contract & Labor", base: CL_BASE, path: "closeout", label: "Close-out & Handover", icon: Icon.folderCheck, el: CloseoutPage },
   { group: "Contract & Labor", base: CL_BASE, path: "final-settlement", label: "Final Settlement", icon: Icon.scale, el: FinalSettlementPage },
   { group: "Contract & Labor", base: CL_BASE, path: "dlp-warranty", label: "DLP & Warranty", icon: Icon.shieldCheck, el: DlpWarrantyPage },

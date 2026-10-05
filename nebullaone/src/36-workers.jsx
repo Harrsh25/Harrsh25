@@ -42,11 +42,18 @@ function seedWorkerDetails(s) {
   });
 }
 
+// The labour rate card behind a worker: contractor-specific card first, then the standard one, for the trade and skill
+function workerRateCard(st, w) {
+  const cards = (st.laborRates || []).filter((r) => r.trade === w.trade && r.skill === w.skill && r.status !== "Superseded" && r.status !== "Pending Approval");
+  return cards.find((r) => r.vendorId === w.vendorId) || cards.find((r) => !r.vendorId) || null;
+}
+const workerWage = (st, w) => (Number(w.wageRate) > 0 ? Number(w.wageRate) : workerRateCard(st, w)?.minWage || null);
 function WorkerForm({ w0, onClose }) {
   const st = useStore();
   const contractors = st.vendors.filter((v) => (v.isContractor || hasType(v, "Labor")) && lifeStatus(v));
   const [f, setF] = y.useState(() => w0 ? { ...w0, certificates: [...(w0.certificates || [])] } : { name: "", vendorId: "", trade: "", skill: "", dob: "", mobile: "", idType: "", idRef: "", uan: "", esic: "", inductionOn: todayISO(), medicalValidTill: "", joiningOn: todayISO(), site: "", woId: "", shift: "", gatePass: "", certificates: [] });
   const [tried, setTried] = y.useState(false);
+  const card = f.trade && f.skill ? workerRateCard(st, f) : null;
   const age = f.dob ? Math.floor((Date.now() - new Date(f.dob).getTime()) / (365.25 * DAY)) : null;
   const e = {
     name: f.name.trim().length < 3 ? "Enter the full name" : "",
@@ -62,6 +69,9 @@ function WorkerForm({ w0, onClose }) {
     gatePass: f.gatePass && st.workers.some((x) => x.id !== w0?.id && normNo(x.gatePass) === normNo(f.gatePass)) ? "Gate pass already issued to another worker" : "",
     medical: f.medicalValidTill && f.medicalValidTill < todayISO() && !w0 ? "Medical fitness has expired - get a fresh certificate" : "",
     certs: (f.certificates || []).some((c) => !c.name || !c.validTill) ? "Each certificate needs a name and a valid-till date" : "",
+    otEligible: f.otEligible ? "" : "Select overtime eligibility",
+    emergencyPhone: f.emergencyPhone ? VX.mobile(f.emergencyPhone) : "",
+    wageRate: VX.blank(f.wageRate) ? "" : !(Number(f.wageRate) > 0) ? "Enter a valid wage" : card && Number(f.wageRate) < card.minWage ? `Below the minimum wage of ${inr(card.minWage)} / day` : "",
   };
   const wos = st.workOrders.filter((x) => x.vendorId === f.vendorId && ["Issued", "In Progress"].includes(x.status));
   const save = () => {
@@ -94,6 +104,11 @@ function WorkerForm({ w0, onClose }) {
         {(() => { const subs = st.contracts.filter((k) => k.vendorId === f.vendorId).flatMap(contractSubs).filter((x) => x.status === "Approved");
           return <Field label="Employed by" hint="Subcontractor workers need an approved subcontract"><Select value={f.subcontractId || ""} onChange={(x) => setF({ ...f, subcontractId: x })} options={[{ value: "", label: "Main contractor" }, ...subs.map((x) => ({ value: x.id, label: `${vendorName(st, x.vendorId)} (${x.id})` }))]} /></Field>; })()}
         <Field label="Shift"><Select value={f.shift || ""} placeholder="Select" onChange={(x) => setF({ ...f, shift: x })} options={["Day", "Night", "General"]} /></Field>
+        <Field label="Supervisor"><TextInput value={f.supervisor || ""} onChange={(x) => setF({ ...f, supervisor: x })} /></Field>
+        <Field label="Overtime eligible" required><Select value={f.otEligible || ""} onChange={(x) => setF({ ...f, otEligible: x })} options={["Yes", "No"]} />{tried && <FieldErr m={e.otEligible} />}</Field>
+        <Field label="Wage rate / day (₹)" info={card ? `Rate card: min. wage ${inr(card.minWage)}, billing ${inr(card.rate)}` : ""}><NumInput value={f.wageRate ?? ""} onChange={(x) => setF({ ...f, wageRate: x })} /><FieldErr m={e.wageRate} /></Field>
+        <Field label="Emergency contact"><TextInput value={f.emergencyName || ""} onChange={(x) => setF({ ...f, emergencyName: x })} placeholder="Name and relation" /></Field>
+        <Field label="Emergency phone"><TextInput value={f.emergencyPhone || ""} onChange={(x) => setF({ ...f, emergencyPhone: x })} /><FieldErr m={e.emergencyPhone} /></Field>
       </div>
       <div className="mt-4 rounded-lg border border-line">
         <div className="flex items-center justify-between border-b border-line px-3 py-2"><span className="text-[13px] font-medium">Certificates & licences</span><Btn size="sm" icon={Icon.plus} onClick={() => setF({ ...f, certificates: [...f.certificates, { name: WORKER_CERTS[0], no: "", validTill: "" }] })}>Add certificate</Btn></div>
@@ -121,7 +136,7 @@ function WorkerDrawer({ id, onClose }) {
   const wo = byId(st.workOrders, w.woId);
   return (
     <Drawer open onClose={onClose} width={860} title={w.name} recordId={w.id} status={<Status tone={workerTone[state]}>{state}</Status>}
-      details={[["Contractor", vendorName(st, w.vendorId)], w.subcontractId && ["Employed by", `${vendorName(st, allSubs(st).find((x) => x.id === w.subcontractId)?.vendorId)} (${w.subcontractId})`], ["Trade", `${w.trade} · ${w.skill}`], ["Site / project", w.site || "-"], ["Work order", wo ? `${wo.id} - ${wo.title}` : "-"], ["Shift", w.shift || "-"], ["Gate pass", w.gatePass], ["Joining", fmtDate(w.joiningOn)], w.exitOn && ["Exit", `${fmtDate(w.exitOn)} - ${w.exitReason || ""}`]]}
+      details={[["Contractor", vendorName(st, w.vendorId)], w.subcontractId && ["Employed by", `${vendorName(st, allSubs(st).find((x) => x.id === w.subcontractId)?.vendorId)} (${w.subcontractId})`], ["Trade", `${w.trade} · ${w.skill}`], ["Site / project", w.site || "-"], ["Work order", wo ? `${wo.id} - ${wo.title}` : "-"], ["Shift", w.shift || "-"], ["Supervisor", w.supervisor || "-"], ["Gate pass", w.gatePass], ["Joining", fmtDate(w.joiningOn)], w.exitOn && ["Exit", `${fmtDate(w.exitOn)} - ${w.exitReason || ""}`]]}
       actions={state !== "Exited" && <><Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit</Btn><Btn variant="danger" onClick={() => setExit({ on: todayISO(), reason: "" })}>Record exit</Btn></>}
       tabs={{ tabs: [{ id: "profile", label: "Profile" }, { id: "att", label: "Attendance" }], active: tab, onChange: setTab }}>
       <div className="space-y-4 px-6 py-4">
@@ -130,6 +145,10 @@ function WorkerDrawer({ id, onClose }) {
           {iss.warn.length > 0 && <Note tone="amber">{iss.warn.join(" · ")}</Note>}
           <Section title="Identity & statutory" icon={Icon.idCard || Icon.user}>
             <KV items={[["Date of birth", w.dob ? fmtDate(w.dob) : "-"], ["Mobile", w.mobile || "-"], ["ID proof", w.idRef ? `${w.idType || "ID"} · ${w.idRef}` : "-"], ["PF - UAN", w.uan || "Not recorded"], ["ESI number", w.esic || "Not recorded"], ["Residential status", w.residential || "Local"]]} />
+          </Section>
+          <Section title="Pay & emergency contact" icon={Icon.wallet}>
+            <KV items={[["Wage rate / day", workerWage(st, w) ? `${inr(workerWage(st, w))}${Number(w.wageRate) > 0 ? "" : " (rate card minimum)"}` : "-"], ["Overtime eligible", w.otEligible || "-"],
+              ["Emergency contact", [w.emergencyName, w.emergencyPhone].filter(Boolean).join(" · ") || "-"]]} />
           </Section>
           <Section title="Safety & medical" icon={Icon.shieldCheck}>
             <KV items={[["Safety induction", w.inductionOn ? `${fmtDate(w.inductionOn)} - valid till ${fmtDate(inductionValidTill(w))}` : "Not done"], ["Medical fit till", w.medicalValidTill ? fmtDate(w.medicalValidTill) : "Not recorded"]]} />
@@ -205,4 +224,10 @@ function WorkerMasterPage() {
       {open && <WorkerDrawer id={open} onClose={() => setOpen(null)} />}
     </Page>
   );
+}
+// Demo workers: overtime eligibility, supervisor and an emergency contact (fields added later)
+function seedWorkerExtras(s) {
+  let ch = false;
+  (s.workers || []).forEach((w, i) => { if (w.otEligible === undefined) { w.otEligible = w.skill === "Unskilled" ? "Yes" : i % 4 === 0 ? "No" : "Yes"; w.supervisor = w.supervisor || ["R. Patil", "S. Khan", "M. Rao"][i % 3]; w.emergencyName = w.emergencyName || "Family member"; ch = true; } });
+  return ch;
 }

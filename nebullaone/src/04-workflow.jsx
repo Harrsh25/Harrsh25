@@ -354,6 +354,7 @@ function terminateContract(c, reason) {
   setState((s) => {
     const x = byId(s.contracts, c.id);
     x.status = "Terminated"; x.terminated = { by: currentUser(), at: new Date().toISOString(), reason };
+    if (x.defaultCase && x.defaultCase.status === "Open") { x.defaultCase.status = "Terminated"; x.defaultCase.history.push({ at: x.terminated.at, by: x.terminated.by, what: `Decision: terminate - ${reason}` }); }
     s.workOrders.filter((w) => w.contractId === c.id && ["Draft", "Issued", "In Progress", "Suspended"].includes(w.status)).forEach((w) => { w.status = w.status === "Draft" ? "Cancelled" : "Short-closed"; w.closedReason = `Contract terminated - ${reason}`; });
   }, { entity: "Contract", id: c.id, action: `Terminated - ${reason}` });
   toast(`${c.id} terminated; open work orders short-closed`, "red");

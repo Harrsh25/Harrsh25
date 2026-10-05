@@ -205,7 +205,7 @@ function ContractDrawer({ id, onClose }) {
         {["Draft", "Rejected"].includes(c.status) && <><Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit</Btn><Btn variant="primary" icon={Icon.send} onClick={() => submitContract(c)}>Submit for approval</Btn></>}
         {c.status === "Approved" && <Btn variant="primary" icon={Icon.check} onClick={() => activateContract(c)}>Sign & activate</Btn>}
         {live && <Btn icon={Icon.calendar} onClick={() => setCo({ days: 30, desc: "Extension of time", reason: "" })}>Extend (EOT)</Btn>}
-        {live && <Btn variant="danger" onClick={() => setTerm({ reason: "" })}>Terminate</Btn>}
+        {live && <Btn variant="danger" disabled={!canTerminate(c)} title={terminateBlock(c)} onClick={() => setTerm({ reason: "" })}>Terminate</Btn>}
         {(live || c.status === "Terminated") && <Btn variant="success" disabled={checklist.some((i) => !i.ok)} title={checklist.some((i) => !i.ok) ? "Complete the closure checklist first" : ""} onClick={() => closeContract(c)}>Close contract</Btn>}
       </>}>
       <div className="space-y-4 px-6 py-5">
@@ -246,16 +246,9 @@ function ContractDrawer({ id, onClose }) {
             ["GST", `${c.gstPct}%`], ["DLP", `${c.dlpMonths} months${c.handover ? ` from handover ${fmtDate(c.handover.date)}` : ""}`], ["LD", c.ldPctPerWeek ? `${c.ldPctPerWeek}%/week, cap ${c.ldCapPct}%` : "-"], ["Performance BG", c.pbgPct ? `${c.pbgPct}% required` : "Not required"],
           ]} />
         </Section>
-        {boq.length > 0 && (
-          <Section title="Contract BOQ - ordered, measured and billed" icon={Icon.sheet}>
-            <DataTable dense rows={boq} columns={[
-              { key: "code", label: "Code", className: "mono text-[12px]" }, { key: "desc", label: "Item", className: "whitespace-normal" },
-              { key: "q", label: "BOQ qty", align: "right", num: true, render: (l) => `${num(l.qty)} ${l.unit}` }, { key: "r", label: "Rate", align: "right", num: true, render: (l) => inr(l.rate) },
-              { key: "o", label: "Ordered", align: "right", num: true, render: (l) => num(l.ordered) }, { key: "m", label: "Measured", align: "right", num: true, render: (l) => num(l.measured) },
-              { key: "b", label: "Billed", align: "right", num: true, render: (l) => num(l.billed) }, { key: "bal", label: "Not yet ordered", align: "right", num: true, render: (l) => <span className={cls(l.balance < 0 && "text-red-600")}>{num(l.balance)}</span> },
-            ]} />
-          </Section>
-        )}
+        <QtyChainSection c={c} />
+        <ContractClaimsSection c={c} />
+        <DefaultCaseSection c={c} onTerminate={() => setTerm({ reason: "" })} />
         <Section title="Work orders" icon={Icon.clipboardList} actions={live ? <RefLink to={`${CL_BASE}/work-orders?contract=${id}`}>+ New work order</RefLink> : <span className="text-[12px] text-ink-mute">{c.status === "Closed" ? "Closed" : "Available once the contract is signed"}</span>}>
           <DataTable dense rows={wos} empty={<p className="p-4 text-[13px] text-ink-mute">No work orders yet.</p>} columns={[
             { key: "id", label: "WO", render: (w) => <RefLink to={`${CL_BASE}/work-orders?open=${w.id}`}>{w.id}</RefLink> },

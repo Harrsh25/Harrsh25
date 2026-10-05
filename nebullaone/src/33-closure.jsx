@@ -16,22 +16,24 @@ function settlementStatement(st, c, adj = {}) {
   const bills = led.bills;
   const gst = sum(bills, (b) => b.gst), net = sum(bills, (b) => b.net);
   const encashed = sum((c.guarantees || []).filter((g) => g.status === "Encashed"), (g) => g.amount);
-  const claims = Number(adj.claims) || 0, back = Number(adj.backcharges) || 0;
+  const reg = claimsSettled(st, c), ld = contractLd(st, c);
+  const manualClaims = Number(adj.claims) || 0, claims = round2(reg.other + manualClaims), back = Number(adj.backcharges) || 0;
   const unpaid = round2(net - led.paid);
-  const position = round2(unpaid + led.retentionBalance - Math.max(0, led.advanceBalance) + claims - back);
+  const position = round2(unpaid + led.retentionBalance - Math.max(0, led.advanceBalance) + reg.escalation + claims - ld.amount - back);
   // Encashed guarantees are money already recovered from the bank: they settle what the contractor owes
   const afterBg = position < 0 ? round2(Math.min(0, position + encashed)) : position;
   const rows = [
     ["Original contract value", Number(c.value) || 0, "info"], ["Approved variations", contractValue(c) - (Number(c.value) || 0), "info"], ["Revised contract value", contractValue(c), "info"],
     ["Work certified (gross)", led.gross, "plus"], ["GST on certified work", gst, "plus"],
     ["Less retention held", -led.retentionHeld, "minus"], ["Less advance recovered", -led.recovered, "minus"], ["Less TDS and cess", -(led.tds + led.cess), "minus"],
-    ["Less material recoveries, penalties / LD and other", -(led.materials + led.penalty + led.other), "minus"],
+    ["Less material recoveries", -led.materials, "minus"], ["Less penalties deducted in RA bills", -led.penalty, "minus"], ["Less other deductions", -led.other, "minus"],
     ["Net certified", net, "sub"], ["Less paid to date", -led.paid, "minus"], ["Certified, not yet paid", unpaid, "sub"],
     ["Add retention to be released", led.retentionBalance, "plus"], ["Less advance not yet recovered", -Math.max(0, led.advanceBalance), "minus"],
-    ["Add claims admitted", claims, "plus"], ["Less back-charges / LD not yet deducted", -back, "minus"],
+    ["Add price escalation admitted", reg.escalation, "plus"], ["Add claims admitted", claims, "plus"],
+    [ld.days > 0 ? `Less liquidated damages (${ld.weeks} wk late × ${c.ldPctPerWeek}%${ld.capped ? `, capped at ${c.ldCapPct}%` : ""})` : "Less liquidated damages (LD)", -ld.amount, "minus"], ["Less back-charges", -back, "minus"],
     ...(encashed ? [["Bank guarantees encashed (recovered from the bank)", encashed, "info"]] : []),
   ];
-  return { rows, net: afterBg, raw: position, encashed, ledger: led };
+  return { rows, net: afterBg, raw: position, encashed, ledger: led, ld, claims: reg };
 }
 function SettlementTable({ stm }) {
   return (
@@ -77,9 +79,9 @@ function SettlementDrawer({ id, onClose }) {
         {!locked && (
           <Section title="Settlement adjustments" icon={Icon.sliders}>
             <div className="grid grid-cols-2 gap-3 p-4">
-              <Field label="Claims admitted (₹)"><NumInput value={adj.claims} onChange={(x) => setAdj({ ...adj, claims: x })} /></Field>
-              <Field label="Claims - what was admitted"><TextInput value={adj.claimsNote} onChange={(x) => setAdj({ ...adj, claimsNote: x })} placeholder="e.g. Idle-time claim for July rains, 50%" /></Field>
-              <Field label="Back-charges / LD (₹)"><NumInput value={adj.backcharges} onChange={(x) => setAdj({ ...adj, backcharges: x })} /></Field>
+              <Field label="Other claims admitted (₹)"><NumInput value={adj.claims} onChange={(x) => setAdj({ ...adj, claims: x })} /></Field>
+              <Field label="Other claims - what was admitted"><TextInput value={adj.claimsNote} onChange={(x) => setAdj({ ...adj, claimsNote: x })} placeholder="e.g. Idle-time claim for July rains, 50%" /></Field>
+              <Field label="Back-charges (₹)"><NumInput value={adj.backcharges} onChange={(x) => setAdj({ ...adj, backcharges: x })} /></Field>
               <Field label="Back-charges - reason"><TextInput value={adj.backNote} onChange={(x) => setAdj({ ...adj, backNote: x })} placeholder="e.g. Scaffold damage, debris removal" /></Field>
               {adjErr && <span className="col-span-2 text-[12px] text-red-600">{adjErr}</span>}
             </div>
@@ -353,12 +355,12 @@ function TerminationsPage() {
   const [open, setOpen] = useQueryOpen();
   const [term, setTerm] = y.useState(null), [bg, setBg] = y.useState(null), [noEnc, setNoEnc] = y.useState(null), [dec, setDec] = y.useState(null);
   const rows = st.contracts.filter((c) => c.status === "Terminated" || c.terminated).map((c) => ({ id: c.id, c, step: terminationStep(st, c) }));
-  const live = st.contracts.filter((c) => !["Draft", "Pending Approval", "Approved", "Rejected", "Closed", "Terminated"].includes(c.status));
+  const live = st.contracts.filter((c) => !["Draft", "Pending Approval", "Approved", "Rejected", "Closed", "Terminated"].includes(c.status) && canTerminate(c));
   const c = open && byId(st.contracts, open);
   const decErr = dec && ((!dec.decision && "Choose the decision") || (dec.reason.trim().length < 5 && "Give the reason (min 5 characters)") || evalErr(dec.ev) || "");
   return (
     <Page title="Termination & Final Account" subtitle="Alternative close path: terminate → encash guarantees → settle the final account → blacklist decision → close" icon={Icon.ban}
-      actions={<Btn variant="danger" icon={Icon.ban} disabled={!live.length} onClick={() => setTerm({ contractId: "", reason: "" })}>Terminate a contract</Btn>}>
+      actions={<Btn variant="danger" icon={Icon.ban} disabled={!live.length} title={live.length ? "" : "No contract has completed notice, cure period and show-cause"} onClick={() => setTerm({ contractId: "", reason: "" })}>Terminate a contract</Btn>}>
       <DataTable noun="terminations" rows={rows} onRow={(r) => setOpen(r.id)} empty={<EmptyState icon={Icon.ban} title="No terminated contracts" text="Terminating a contract short-closes its open work orders and starts the final-account path." />} columns={[
         { key: "id", label: "Contract", className: "mono text-[12px]" }, { key: "t", label: "Title", className: "font-medium", render: (r) => r.c.title },
         { key: "v", label: "Contractor", render: (r) => vendorName(st, r.c.vendorId) },
@@ -371,6 +373,7 @@ function TerminationsPage() {
           <div className="space-y-4 px-6 py-5">
             <Section><div className="overflow-x-auto p-5"><Stepper steps={TERM_STEPS.map((x, i) => { const k = terminationStep(st, c); return { label: x, status: i < k || (i === 4 && c.status === "Closed") ? "done" : i === k ? "current" : "todo" }; })} /></div></Section>
             <Note tone="red">Terminated {fmtDate(c.terminated?.at)} by {c.terminated?.by} - {c.terminated?.reason}</Note>
+            {c.defaultCase && <Section title="Before termination - notice, cure period, show-cause" icon={Icon.fileClock}><AuditList items={c.defaultCase.history.slice().reverse().map((h) => ({ id: "", action: h.what, by: h.by, at: h.at }))} /></Section>}
             <Section title="1 · Encashment of guarantees" icon={Icon.lock} actions={liveGuarantees(c).length > 0 && !c.encashDecision && <Btn size="sm" onClick={() => setNoEnc({ reason: "" })}>No encashment</Btn>}>
               <DataTable dense rows={c.guarantees || []} rowKey={(g) => g.number} empty={<p className="p-4 text-[13px] text-ink-mute">No guarantees on this contract.</p>} columns={[
                 { key: "type", label: "Type" }, { key: "number", label: "BG no.", className: "mono text-[12px]" }, { key: "bank", label: "Bank" }, { key: "amount", label: "Amount", align: "right", render: (g) => inr(g.amount) },
@@ -476,4 +479,13 @@ function RequalificationPage() {
       )}
     </Page>
   );
+}
+
+// Liquidated damages: delay past the completion date (after approved extensions) to handover, closure or today
+function contractLd(st, c) {
+  const pct = Number(c.ldPctPerWeek) || 0, cap = Number(c.ldCapPct) || 0;
+  const done = c.handover?.date || c.closedOn || todayISO();
+  const days = c.end ? Math.max(0, Math.round((new Date(done) - new Date(c.end)) / DAY)) : 0;
+  const weeks = Math.ceil(days / 7), full = (contractValue(c) * pct * weeks) / 100, max = cap ? (contractValue(c) * cap) / 100 : full;
+  return { days, weeks, amount: pct && days ? round2(Math.min(full, max)) : 0, capped: cap > 0 && full > max };
 }

@@ -42,6 +42,11 @@ function exceptionRows(st) {
     if (["Issued", "Partially Received"].includes(s) && po.deliveryDate && po.deliveryDate < today) add("PO delivery overdue", "Medium", "PO", po.id, vendorName(st, po.vendorId), `${s} - delivery was due ${fmtDate(po.deliveryDate)}`, po.deliveryDate, `${VM_BASE}/purchase-orders?open=${po.id}`);
   }
   dispatchExceptions(st, add);
+  claimExceptions(st, add);
+  defaultExceptions(st, add);
+  blanketExceptions(st, add);
+  billExceptions(st, add);
+  subExceptions(st, add);
   for (const inv of st.invoices) {
     if (inv.cancelled) continue;
     const s = invoiceStatus(inv), m = threeWay(st, inv).status;

@@ -12,6 +12,7 @@ require('./lib')('subcontract', async ({ fill, p, go, dlg, S, mut, T, pick }) =>
     await pick(d.locator('label:has-text("Subcontractor") [role=combobox]').last(), 'Kaveri Manpower Services');
     await d.locator('label:has-text("Scope sublet") input').fill('Shuttering labour - Tower A floors 5–10'); await d.locator('label:has-text("Value") input').last().fill('90000000'); await p.waitForTimeout(100);
     const t2 = await d.innerText();
+    await pick(d.locator('label:has-text("Terms") [role=combobox]').last(), 'Back-to-back with main contract');
     await d.locator('label:has-text("Value") input').last().fill('2500000'); await d.locator('button:has-text("Propose")').last().click(); await p.waitForTimeout(250);
     const c = (await S()).contracts.find((x) => x.id === 'CTR-001'); const sub = c.subcontracts.find((x) => x.vendorId === 'VEN-005');
     return [`errors ${/Describe the sublet scope/.test(t1)}; limit warning ${/over 40% of the contract/.test(t2)}; saved ${sub?.id} ${sub?.status}`, /Describe the sublet scope/.test(t1) && /over 40% of the contract/.test(t2) && sub?.status === 'Proposed'];

@@ -225,17 +225,24 @@ const ACCOUNT_TYPES = ["Current", "Savings", "Cash credit", "Overdraft", "Escrow
 const ADDRESS_TYPES = ["Billing", "Shipping", "Office", "Site", "Registered", "Warehouse"];
 const SITE_PURPOSES = ["Purchasing", "Pay", "Primary pay", "Sourcing only"];
 // Top-level vendor keys the registration form edits (copied by applyForm on edit)
-const VENDOR_FORM_KEYS = ["country", "pin", "website", "taxId", "addressLine2", "district", "entityType", "taxPreference", "gstTreatment", "placeOfSupply", "msmeType", "udyamNo", "duns", "cin",
+const VENDOR_FORM_KEYS = ["country", "pin", "website", "taxId", "addressLine2", "district", "entityType", "taxPreference", "gstTreatment", "placeOfSupply", "msmeType", "udyamNo", "annualTurnover", "yearsInBusiness", "beneficialOwners", "relatedParty", "relatedPartyNote", "coi", "coiNote", "duns", "cin",
   "federalTaxType", "tags", "logo", "logoName", "isTransporter", "paymentMethod", "priceList", "creditLimit", "billDelivery", "autoPostBills",
   "defaultBuyer", "purchaseWarning", "receiptReminderDays", "custom", "noteToApprover"];
 const vendorExtraDefaults = () => ({ addressLine2: "", district: "", entityType: "", taxPreference: "", gstTreatment: "", placeOfSupply: "",
-  msmeType: "", udyamNo: "", duns: "", cin: "", federalTaxType: "", tags: [], logo: null, logoName: "", isTransporter: false, paymentMethod: "", priceList: "",
+  msmeType: "", udyamNo: "", annualTurnover: "", yearsInBusiness: "", beneficialOwners: "", relatedParty: "", relatedPartyNote: "", coi: "", coiNote: "", duns: "", cin: "", federalTaxType: "", tags: [], logo: null, logoName: "", isTransporter: false, paymentMethod: "", priceList: "",
   creditLimit: "", billDelivery: "", autoPostBills: false, defaultBuyer: "", purchaseWarning: "", receiptReminderDays: "", custom: {}, notesText: "", noteToApprover: "",
   contacts: [], addresses: [] });
 function vendorExtraErrors(f) {
   const e = {};
   if (f.udyamNo && !/^UDYAM-[A-Z]{2}-\d{2}-\d{7}$/.test(String(f.udyamNo).toUpperCase())) e.udyamNo = "Format UDYAM-MH-26-0012345";
   if (f.msmeType && f.msmeType !== "Not MSME" && !f.udyamNo) e.udyamNo = "Enter the Udyam registration no.";
+  if (!isForeign(f) && !f.msmeType) e.msmeType = "Select the MSME status";
+  if (!VX.blank(f.annualTurnover)) { const c = VX.num(f.annualTurnover, { min: 0, max: 1000000, label: "Turnover" }); if (c) e.annualTurnover = c; }
+  if (!VX.blank(f.yearsInBusiness)) { const c = VX.num(f.yearsInBusiness, { min: 0, max: 200, int: true, label: "Years" }); if (c) e.yearsInBusiness = c; }
+  if (!f.relatedParty) e.relatedParty = "Select whether this is a related party";
+  else if (f.relatedParty === "Yes" && String(f.relatedPartyNote || "").trim().length < 5) e.relatedPartyNote = "Describe the relationship";
+  if (!f.coi) e.coi = "Select the conflict-of-interest declaration";
+  else if (f.coi === "Declared" && String(f.coiNote || "").trim().length < 5) e.coiNote = "Describe the conflict";
   if (f.cin && !/^([LU]\d{5}[A-Z]{2}\d{4}[A-Z]{3}\d{6}|[A-Z]{3}-\d{4})$/.test(String(f.cin).toUpperCase())) e.cin = "CIN is 21 characters (e.g. U45200MH2010PTC123456) or LLPIN like AAB-1234";
   if (f.duns && !/^\d{9}$/.test(String(f.duns).replace(/-/g, ""))) e.duns = "D-U-N-S is 9 digits";
   if (!VX.blank(f.creditLimit)) { const c = VX.num(f.creditLimit, { min: 0, label: "Credit limit" }); if (c) e.creditLimit = c; }
@@ -368,7 +375,8 @@ function VendorMoreView({ v }) {
   const custom = Object.entries(v.custom || {}).filter(([, x]) => x !== "" && x !== undefined);
   const items = [
     ["Entity type", v.entityType], ["GST treatment", v.gstTreatment], ["Tax preference", v.taxPreference], ["Place of supply", v.placeOfSupply],
-    ["MSME", v.msmeType && v.msmeType !== "Not MSME" ? `${v.msmeType}${v.udyamNo ? ` · ${v.udyamNo}` : ""}` : null], ["CIN / LLPIN", v.cin], ["D-U-N-S", v.duns], ["Federal tax type", v.federalTaxType],
+    ["MSME", v.msmeType ? `${v.msmeType}${v.udyamNo ? ` · ${v.udyamNo}` : ""}` : null], ["Annual turnover", !VX.blank(v.annualTurnover) ? `₹${v.annualTurnover} Cr` : null], ["Years in business", !VX.blank(v.yearsInBusiness) ? `${v.yearsInBusiness} years` : null],
+    ["Beneficial owner(s)", v.beneficialOwners], ["Related party", v.relatedParty ? `${v.relatedParty}${v.relatedParty === "Yes" && v.relatedPartyNote ? ` - ${v.relatedPartyNote}` : ""}` : null], ["Conflict of interest", v.coi ? `${v.coi}${v.coi === "Declared" && v.coiNote ? ` - ${v.coiNote}` : ""}` : null], ["CIN / LLPIN", v.cin], ["D-U-N-S", v.duns], ["Federal tax type", v.federalTaxType],
     ["Payment method", v.paymentMethod], ["Price list", v.priceList], ["Credit limit", v.creditLimit ? inrShort(v.creditLimit) : null],
     ["Auto-post bills", v.autoPostBills ? "Yes" : null], ["Default buyer", v.defaultBuyer], ["Receipt reminder", v.receiptReminderDays ? `${v.receiptReminderDays} days before delivery` : null],
     ["Transporter", v.isTransporter ? "Yes" : null], ["Website", v.website], ["Tags", (v.tags || []).length ? <CategoryChips list={v.tags} max={99} wrap /> : null],
@@ -456,6 +464,8 @@ function BenchmarkSettings({ f, setF, mode, yesNo, part }) {
           {num("poApprovalMin", "PO approval - minimum amount (₹)", "At or above this a PO needs approval (double validation)")}
           {num("receiptReminderDays", "Receipt reminder (days before delivery)")}
           {num("dispatchGraceDays", "Dispatch not received - flag after (days)")}
+          {num("subApprovalLimit", "Subcontract value needing Finance approval (₹)")}
+          <Field label="Company state (GST)"><Select value={f.companyState || ""} onChange={set("companyState")} options={STATES} /></Field>
           {num("daysToPurchase", "Days to purchase", "Added to the vendor lead time")}
           {num("invoiceQtyTolPct", "Invoice quantity tolerance (%)")}
           {num("invoiceAmtTolPct", "Invoice amount tolerance (%)")}
@@ -1043,4 +1053,33 @@ function PortalProfileFields({ v, readOnly }) {
       <div className="p-4"><fieldset disabled={readOnly} className="contents"><CustomFieldInputs defs={defs} value={val} onChange={setVal} /></fieldset></div>
     </Section>
   );
+}
+
+// Ownership, size and declarations (registration form section)
+const RELATED_OPTS = ["No", "Yes"], COI_OPTS = ["None to declare", "Declared"];
+function VendorOwnershipFields({ f, set, errors, foreign }) {
+  const upd = (k, x) => set({ ...f, [k]: x });
+  const err = (k) => errors[k] && <span className="mt-1 block text-[11px] text-red-600">{errors[k]}</span>;
+  return (
+    <div className="grid grid-cols-3 gap-3" data-ownership>
+      {!foreign && <Field label="MSME status" required><Select value={f.msmeType || ""} onChange={(x) => set({ ...f, msmeType: x, udyamNo: x === "Not MSME" ? "" : f.udyamNo })} options={MSME_TYPES} />{err("msmeType")}</Field>}
+      {!foreign && f.msmeType && f.msmeType !== "Not MSME" && <Field label="Udyam registration no." required><TextInput value={f.udyamNo || ""} onChange={(x) => upd("udyamNo", x.toUpperCase())} placeholder="UDYAM-MH-26-0012345" />{err("udyamNo")}</Field>}
+      <Field label="Annual turnover (₹ Cr)"><NumInput value={f.annualTurnover ?? ""} onChange={(x) => upd("annualTurnover", x)} />{err("annualTurnover")}</Field>
+      <Field label="Years in business"><NumInput value={f.yearsInBusiness ?? ""} onChange={(x) => upd("yearsInBusiness", x)} />{err("yearsInBusiness")}</Field>
+      <Field label="Beneficial owner(s)" span={2}><TextInput value={f.beneficialOwners || ""} onChange={(x) => upd("beneficialOwners", x)} placeholder="e.g. R. Kulkarni 60%, S. Kulkarni 40%" /></Field>
+      <Field label="Related party" required><Select value={f.relatedParty || ""} onChange={(x) => upd("relatedParty", x)} options={RELATED_OPTS} />{err("relatedParty")}</Field>
+      {f.relatedParty === "Yes" && <Field label="Relationship" required span={2}><TextInput value={f.relatedPartyNote || ""} onChange={(x) => upd("relatedPartyNote", x)} placeholder="e.g. Director is a relative of our CFO" />{err("relatedPartyNote")}</Field>}
+      <Field label="Conflict of interest" required><Select value={f.coi || ""} onChange={(x) => upd("coi", x)} options={COI_OPTS} />{err("coi")}</Field>
+      {f.coi === "Declared" && <Field label="Conflict details" required span={2}><TextInput value={f.coiNote || ""} onChange={(x) => upd("coiNote", x)} />{err("coiNote")}</Field>}
+    </div>
+  );
+}
+// Existing vendors: record the declarations they made at registration (demo data predates the fields)
+function seedOwnership(s) {
+  let ch = false;
+  for (const v of s.vendors || []) if (v.relatedParty === undefined || v.relatedParty === "") {
+    if (["Draft", "Invited"].includes(v.status)) continue;
+    v.relatedParty = "No"; v.coi = v.coi || "None to declare"; if (!v.msmeType && !isForeign(v)) v.msmeType = "Not MSME"; ch = true;
+  }
+  return ch;
 }

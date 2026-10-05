@@ -420,6 +420,7 @@ function VendorOverviewPage() {
             </div>
           </DashCard>
         </div>
+        <VendorInsights st={st} f={f} nav={nav} />
         <div className="grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-3">
           <ActionCenter actions={d.actions} nav={nav} />
           <ExpiringCard rows={d.expiring} nav={nav} link={{ label: "Compliance", to: `${VM_BASE}/compliance` }} />

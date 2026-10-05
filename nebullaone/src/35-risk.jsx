@@ -43,7 +43,10 @@ function vendorRisk(st, v) {
   if (rts.length && sum(rts, (x) => x.safety) / rts.length < 3) add("HSE", 10, `Average safety rating ${(sum(rts, (x) => x.safety) / rts.length).toFixed(1)} / 5`);
   // financial and legal - from the qualification answers and contract history
   const ans = v.qualification?.answers || {};
-  if (ans.turnover != null && Number(ans.turnover) < 10) add("Financial", 10, `Annual turnover ₹${ans.turnover} Cr - thin for large work`);
+  const turnover = ans.turnover != null ? ans.turnover : !VX.blank(v.annualTurnover) ? v.annualTurnover : null;
+  if (turnover != null && Number(turnover) < 10) add("Financial", 10, `Annual turnover ₹${turnover} Cr - thin for large work`);
+  if (v.relatedParty === "Yes") add("Integrity", 15, `Related party - ${v.relatedPartyNote || "declared"}`);
+  if (v.coi === "Declared") add("Integrity", 15, `Conflict of interest declared - ${v.coiNote || ""}`.trim());
   if (/yes/i.test(String(ans.litigation || ""))) add("Legal", 10, "Pending litigation declared");
   const term = st.contracts.filter((k) => k.vendorId === v.id && k.status === "Terminated").length;
   add("Legal", Math.min(20, term * 15), `${term} contract(s) terminated`);

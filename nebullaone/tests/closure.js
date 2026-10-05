@@ -30,7 +30,7 @@ require('./lib')('closure', async ({ fill, p, go, dlg, S, mut, T, pick, toastTex
 
   await T('C-03', 'Final settlement for CTR-005: statement, send, contractor agrees', async () => {
     await go('contract-labor/final-settlement?open=CTR-005'); await p.waitForTimeout(300); const t = await dlg().textContent();
-    await dlg().locator('label:has-text("Back-charges / LD") input').fill('12000'); await dlg().locator('label:has-text("Back-charges - reason") input').fill('Scaffold damage to podium waterproofing');
+    await dlg().locator('label:has-text("Back-charges (₹)") input').fill('12000'); await dlg().locator('label:has-text("Back-charges - reason") input').fill('Scaffold damage to podium waterproofing');
     await dlg().locator('button:has-text("Send to contractor")').click(); await p.waitForTimeout(200); await dlg().locator('button:has-text("Record agreement")').click(); await p.waitForTimeout(200);
     const m = dlg(); if (!(await m.locator('label:has-text("Signed for the contractor by") input').inputValue())) await m.locator('label:has-text("Signed for the contractor by") input').fill('R. Kulkarni');
     await m.locator('button:has-text("Record agreement")').click(); await p.waitForTimeout(250);

@@ -266,8 +266,11 @@ function invoiceTotals(inv) {
   const paid = sum(inv.payments.filter((p) => !p.reversed), (p) => p.amount + (p.tds || 0));
   const notes = sum(inv.notes || [], (n) => (n.type === "Debit Note" ? -n.amount : n.amount));
   // A vendor invoice rejected by AP is not payable
-  const payable = inv.review === "Rejected" || inv.cancelled ? 0 : round2(gross + notes);
-  return { taxable, gst, gross, paid, notes, payable, balance: round2(payable - paid) };
+  // retention kept back on a PO / direct bill until released (RA bills carry their own retention)
+  const retention = inv.source !== "RA Bill" && Number(inv.retentionPct) > 0 ? round2((taxable * Number(inv.retentionPct)) / 100) : 0;
+  const released = retention ? Math.min(retention, Number(inv.retentionReleased?.amount) || 0) : 0;
+  const payable = inv.review === "Rejected" || inv.cancelled ? 0 : round2(gross + notes - retention + released);
+  return { taxable, gst, gross, paid, notes, retention, retentionHeld: round2(retention - released), payable, balance: round2(payable - paid) };
 }
 function invoiceStatus(inv) {
   if (inv.cancelled) return "Cancelled";
