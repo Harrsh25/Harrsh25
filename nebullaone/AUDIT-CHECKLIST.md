@@ -36,6 +36,10 @@ Status key: **Complete** = built, wired and covered by an automated test · **In
 | Disabled buttons without a reason | Fixed - empty-list Export now says why |
 | Forms open with nothing pre-selected | Complete - goods-receipt quality inspection now starts blank and is required |
 | Regression: 31 suites, 442 scenarios | All pass |
+| UI rules audit (33 pages) | 0 findings |
+| Phone / tablet layout (300 checks at 5 sizes) | All pass |
+| Create forms opened (52) | 4 open with the record they were started from (call-off PO from its blanket order, measurement from its work order) - intended |
+| Form text audit | Only section headings and document names; no hints or subtitles |
 
 ## Not done, by your earlier instruction
 | Item | Status | Why |
