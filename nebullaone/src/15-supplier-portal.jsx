@@ -168,8 +168,10 @@ function PortalBody({ vid, vendorMode }) {
     ...(isContractor && st.workers.some((w) => w.vendorId === vid) ? [{ id: "att", label: "Daily attendance", icon: Icon.users }] : []),
     ...(isContractor && (st.punchItems || []).some((pi) => byId(st.contracts, pi.contractId)?.vendorId === vid) ? [{ id: "punch", label: "Punch list", icon: Icon.listChecks }] : []),
     { id: "bills", label: "Bills & payments", icon: Icon.rupee },
+    ...(v.status === "Active" || v.status === "On Hold" ? [{ id: "stmt", label: "Statement", icon: Icon.sheet }] : []),
     { id: "price", label: "Pricelist", icon: Icon.sheet },
     { id: "docs", label: "Documents", icon: Icon.folderCheck },
+    ...(v.status === "Active" || v.status === "On Hold" ? [{ id: "perf", label: "My performance", icon: Icon.gauge }] : []),
     { id: "help", label: "Queries", icon: Icon.message },
     { id: "users", label: "Users", icon: Icon.users },
   ];
@@ -239,6 +241,8 @@ function PortalBody({ vid, vendorMode }) {
           { key: "amt", label: "Amount", align: "right", num: true, render: (r) => inr(r.amt) }, { key: "bal", label: "Balance", align: "right", num: true, render: (r) => inr(r.bal) },
           { key: "due", label: "Due", render: (r) => fmtDate(r.due) }, { key: "status", label: "Status", filter: true, render: (r) => <Status>{r.status}</Status> },
         ]} />}
+        {tab === "perf" && <MyPerformance vid={vid} />}
+        {tab === "stmt" && <div className="p-4"><VendorStatement v={v} /></div>}
         {tab === "price" && <PortalPriceList v={v} readOnly={txBlocked} />}
         {tab === "price" && <DataTable rows={pricelist} onRow={(r) => open("po", r.po)} rowKey={(r, i) => r.po + i} empty={<EmptyState icon={Icon.sheet} title="No agreed prices yet" />} columns={[
           { key: "desc", label: "Item" }, { key: "unit", label: "Unit" }, { key: "rate", label: "Agreed rate", align: "right", num: true, render: (r) => inr(r.rate) }, { key: "po", label: "Last PO", className: "mono text-[12px]" }, { key: "date", label: "Since", render: (r) => fmtDate(r.date) },

@@ -140,7 +140,10 @@ function seedGovernance(s) {
     { id: "L-002", dir: "Incoming", date: T(-9), ref: "SBIC/CTR-001/L-118", subject: "Request for revised drawings - Tower B raft", replyBy: T(-2), file: null, repliedOn: null, by: "Arjun Mehta" },
     { id: "L-001", dir: "Outgoing", date: T(-20), ref: "NBO/SKY/CTR-001/044", subject: "Notice - slow progress on Tower A slab L3", replyBy: null, file: null, repliedOn: null, by: "Arjun Mehta" },
   ];
-  const v = (s.vendors || []).find((x) => x.id === "VEN-007");
-  if (v && !v.waivers) { const miss = (v.docs || []).find((d) => d.status === "Missing"); if (miss) v.waivers = { [miss.name]: { until: T(20), reason: "Renewal applied - acknowledgment on file", by: "Compliance", at: new Date().toISOString() } }; }
+  const v = (s.vendors || []).find((x) => x.id === "VEN-008");
+  if (v && !v.waivers) { const today = new Date().toISOString().slice(0, 10);
+    let miss = (v.docs || []).find((d) => ["Missing", "Rejected"].includes(d.status) || (d.expiry && d.expiry < today));
+    if (!miss) { try { const n = requiredDocs(v).find((x) => !(v.docs || []).some((d) => d.name === x)); if (n) miss = { name: n }; } catch (e) {} }
+    if (miss) v.waivers = { [miss.name]: { until: T(20), reason: "Renewal applied - acknowledgment on file", by: "Compliance", at: new Date().toISOString() } }; }
   return true;
 }

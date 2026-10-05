@@ -443,7 +443,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
     { id: "bank", label: "Bank" },
     { id: "qual", label: "Qualification" },
     ...(v.isContractor || hasType(v, "Labor") ? [{ id: "equip", label: "Equipment" }] : []),
-    ...(lifeStatus(v) ? [{ id: "v360", label: "Vendor 360" }, { id: "risk", label: "Risk" }] : []),
+    ...(lifeStatus(v) ? [{ id: "v360", label: "Vendor 360" }, { id: "stmt", label: "Statement" }, { id: "risk", label: "Risk" }] : []),
     { id: "approval", label: "Approvals" },
   ];
   return (
@@ -453,7 +453,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
       actions={canEdit && <Btn icon={Icon.pencil} onClick={() => setEdit(true)}>Edit details</Btn>}
       tabs={{ tabs, active: tab, onChange: setTab }}>
       {/* tables show as label → value lists, except Documents, Bank and Equipment which keep their tables */}
-      <ListMode.Provider value={!["docs", "bank", "equip", "risk"].includes(tab)}>
+      <ListMode.Provider value={!["docs", "bank", "equip", "risk", "stmt"].includes(tab)}>
       <div className="space-y-4 px-6 py-4">
         {tab === "overview" && <VendorOverview v={v} comp={comp} />}
         {/* Classification is editable only while the registration is editable; flags stay editable in every status */}
@@ -467,6 +467,7 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
         {/* bank details of an approved vendor are not edited - a change is requested, verified, approved by Finance, then switches after the cooling period */}
         {tab === "bank" && <div className="space-y-4"><VendorBanks v={v} locked={locked} approving={approving} control={locked && mode === "registry" && !!lifeStatus(v)} /><BankHistory v={v} /></div>}
         {tab === "v360" && <Vendor360 v={v} />}
+        {tab === "stmt" && <VendorStatement v={v} />}
         {tab === "risk" && <VendorRiskTab v={v} canAct={mode === "registry"} />}
         {tab === "approval" && <><VendorApproval v={v} mode={mode} /><VendorActivity v={v} /></>}
       </div>

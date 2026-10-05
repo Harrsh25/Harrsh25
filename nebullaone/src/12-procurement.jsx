@@ -672,7 +672,8 @@ function NewBillModal({ open, onClose, presetPoId }) {
   const dup = v && f.number.trim() && st.invoices.find((i) => i.vendorId === v.id && i.review !== "Rejected" && normNo(i.number) === normNo(f.number));
   // Billable = what's left of the received (or ordered) quantity; the rate is checked against the PO
   const maxOf = (l) => (po ? Math.max(0, linesFor(po.id).lines.find((x) => x.line === l.line)?.qty ?? 0) : Infinity);
-  const days = v ? parseInt(v.paymentTerms.replace(/\D/g, ""), 10) || 0 : 0;
+  // the bill's terms (carried from the PO / supplier site) win over the vendor's
+  const days = v ? parseInt(String(f.details?.paymentTerms || v.paymentTerms || "").replace(/\D/g, ""), 10) || 0 : 0;
   const autoDue = shiftDays(days, f.date || todayISO());
   const due = f.due || autoDue;
   const lineErr = f.lines.map((l, i) => mode === "po" ? (Number(l.qty) < 0 ? `Line ${i + 1}: quantity can't be negative` : Number(l.qty) > maxOf(l) + 0.001 ? `Line ${i + 1}: ${num(l.qty)} is more than the ${num(maxOf(l))} received and not yet billed` : Number(l.qty) > 0 && !(Number(l.rate) > 0) ? `Line ${i + 1}: rate must be greater than 0` : "")
@@ -710,7 +711,7 @@ function NewBillModal({ open, onClose, presetPoId }) {
           <Field label="Invoice date"><DateInput value={f.date} onChange={(x) => setF({ ...f, date: x })} /></Field>
           <Field label="Received on"><DateInput value={f.receivedOn ?? todayISO()} onChange={(x) => setF({ ...f, receivedOn: x })} /></Field>
           <Field label="Retention (%)"><NumInput value={f.retentionPct ?? ""} onChange={(x) => setF({ ...f, retentionPct: x })} /></Field>
-          <Field label="Due date" info={v ? `${v.paymentTerms}${f.due ? `, terms give ${fmtDate(autoDue)}` : ""}` : ""}><DateInput value={due} onChange={(x) => setF({ ...f, due: x === autoDue ? "" : x })} /></Field>
+          <Field label="Due date" info={v ? `${f.details?.paymentTerms || v.paymentTerms}${f.due ? `, terms give ${fmtDate(autoDue)}` : ""}` : ""}><DateInput value={due} onChange={(x) => setF({ ...f, due: x === autoDue ? "" : x })} /></Field>
         </div>
         {dateErr && <Note tone="red">{dateErr}</Note>}
         {recvErr && <Note tone="red">{recvErr}</Note>}
@@ -741,7 +742,7 @@ function NewBillModal({ open, onClose, presetPoId }) {
             <Btn size="sm" icon={Icon.plus} onClick={() => setF({ ...f, lines: [...f.lines, { desc: "", qty: 1, rate: "" }] })}>Add line</Btn>
           </div>
         )}
-        <div className="w-40"><Field label="GST %" required><Select value={String(f.gstPct)} onChange={(x) => setF({ ...f, gstPct: Number(x) })} options={["0", "5", "12", "18", "28"]} /></Field></div>{v && f.gstPct !== "" && subtotal > 0 && <span className="self-end pb-2 text-[12.5px] text-ink-soft" data-gst-split>{gstSplitText(gstSplit(st, v, f.gstPct, subtotal))}</span>}
+        <div className="w-40"><Field label="GST %" required><Select value={String(f.gstPct)} onChange={(x) => setF({ ...f, gstPct: Number(x) })} options={["0", "5", "12", "18", "28"]} /></Field></div>{v && f.gstPct !== "" && subtotal > 0 && <span className="self-end pb-2 text-[12.5px] text-ink-soft" data-gst-split>{gstSplitText(gstSplit(st, v, f.gstPct, subtotal, f.details?.supplierAddress))}</span>}
         {v && <BillExtras f={f} setF={setF} v={v} />}
         {v && <DocDetails kind="bill" value={f.details} onChange={(d) => setF({ ...f, details: d })} vendor={v} subtotal={subtotal} />}
       </div>

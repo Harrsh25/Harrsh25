@@ -6,10 +6,13 @@
 const COMPANIES = (st) => { const s = settingsOf(st); return [s.ourCompany, ...(s.groupCompanies || [])]; };
 const SITE_ADDRESSES = (st) => [...PROJECTS.map((p) => `Site - ${p}`), ...(settingsOf(st).stores || [])];
 const vendorAddresses = (v) => (v ? [
-  ...(v.address ? [{ id: "REG", title: "Registered office", line1: v.address, city: v.city, state: v.state }] : []),
+  ...(v.address ? [{ id: "REG", title: "Registered office", line1: v.address, city: v.city, state: v.state, gstin: v.gstin, paymentTerms: v.paymentTerms }] : []),
   ...(v.addresses || []).filter((a) => !a.disabled),
 ] : []);
 const addrLabel = (a) => [a.title, a.line1, a.city].filter(Boolean).join(" · ");
+// Supplier site: its own GST state / GSTIN, payment terms and remit-to bank (Oracle supplier sites)
+const siteOf = (v, id) => (id ? vendorAddresses(v).find((a) => a.id === id) || null : null);
+const siteRemit = (v, site) => { const b = site?.remitBank && (v?.bankAccounts || []).find((a) => String(a.id) === String(site.remitBank)); return b ? `${b.bank} ••${String(b.account).slice(-4)}` : ""; };
 const vendorContacts = (v) => (v ? [
   ...(v.contact?.name ? [{ id: "MAIN", name: v.contact.name, email: v.contact.email, designation: v.contact.designation }] : []),
   ...(v.contacts || []).filter((c) => c.status !== "Unsubscribed"),
@@ -119,7 +122,7 @@ function DocDetails({ kind, value, onChange, vendor, subtotal, open: openInit = 
   const st = useStore();
   const [open, setOpen] = y.useState(openInit);
   const d = value || {};
-  const set = (k, x) => onChange({ ...d, [k]: x });
+  const set = (k, x) => { const site = k === "supplierAddress" && siteOf(vendor, x); onChange({ ...d, [k]: x, ...(site && site.paymentTerms ? { paymentTerms: site.paymentTerms } : {}) }); };
   const errs = docDetailErrors(kind, d);
   const fields = docFields(kind).filter((f) => !f.show || f.show(d));
   const custom = (settingsOf(st).customFields || {})[customKind || kind] || [];
@@ -182,7 +185,7 @@ function DocDetailsView({ kind, value, vendor }) {
     const x = d[f.key];
     if (x === undefined || x === "" || x === false) return null;
     if (f.type === "check") return "Yes";
-    if (f.key === "supplierAddress") { const a = vendorAddresses(vendor).find((q) => q.id === x); return a ? addrLabel(a) : x; }
+    if (f.key === "supplierAddress") { const a = vendorAddresses(vendor).find((q) => q.id === x); return a ? [addrLabel(a), a.state, a.gstin && `GSTIN ${a.gstin}`, siteRemit(vendor, a) && `remit to ${siteRemit(vendor, a)}`].filter(Boolean).join(" · ") : x; }
     if (f.key === "supplierContact") { const c = vendorContacts(vendor).find((q) => q.id === x); return c ? contactLabel(c) : x; }
     if (f.type === "date") return fmtDate(x);
     return String(x);
@@ -285,7 +288,7 @@ function VendorContactsAddresses({ v, locked }) {
   const [c, setC] = y.useState(null), [a, setA] = y.useState(null);
   const mut = (fn, action) => setState((s) => fn(byId(s.vendors, v.id)), { entity: "Vendor", id: v.id, action });
   const cErr = !c ? "" : !(c.firstName || "").trim() ? "Enter the first name" : !EMAIL_RE.test(c.email || "") ? "Enter a valid e-mail" : VX.phone(c.phone) || (c.mobile ? VX.mobile(c.mobile) : "") || "";
-  const aErr = !a ? "" : !(a.title || "").trim() ? "Enter an address title" : !a.type ? "Pick the address type" : !(a.line1 || "").trim() ? "Enter address line 1" : !(a.city || "").trim() ? "Enter the city" : VX.pin(a.pin, a.country || "India") || "";
+  const aErr = !a ? "" : !(a.title || "").trim() ? "Enter an address title" : !a.type ? "Pick the address type" : !(a.line1 || "").trim() ? "Enter address line 1" : !(a.city || "").trim() ? "Enter the city" : VX.pin(a.pin, a.country || "India") || (a.gstin && !GSTIN_RE.test(String(a.gstin).trim().toUpperCase()) ? "Enter a valid 15-character site GSTIN" : a.gstin && v.pan && String(a.gstin).toUpperCase().slice(2, 12) !== String(v.pan).toUpperCase() ? "Site GSTIN must carry the vendor's PAN" : "");
   const saveC = () => {
     if (cErr) return toast(cErr, "red");
     mut((x) => { x.contacts = x.contacts || []; if (c.primary) x.contacts.forEach((o) => (o.primary = false)); const i = x.contacts.findIndex((o) => o.id === c.id); if (i >= 0) x.contacts[i] = c; else x.contacts.push({ ...c, id: `CT-${Date.now().toString(36)}` });
@@ -322,6 +325,7 @@ function VendorContactsAddresses({ v, locked }) {
           { key: "ty", label: "Type", render: (r) => r.type },
           { key: "ad", label: "Address", render: (r) => <span className="block w-[200px] whitespace-normal text-[12.5px]">{[r.line1, r.line2, r.city, r.district, r.state, r.pin, r.country].filter(Boolean).join(", ")}</span> },
           { key: "pu", label: "Site purposes", render: (r) => (r.purposes || []).join(", ") || "-" }, { key: "bu", label: "Business unit", render: (r) => r.bu || "-" },
+          { key: "si", label: "GSTIN · terms · remit to", render: (r) => <span className="block w-[180px] whitespace-normal text-[12px]">{[r.reg ? v.gstin : r.gstin, r.reg ? v.paymentTerms : r.paymentTerms, siteRemit(v, r)].filter(Boolean).join(" · ") || "-"}</span> },
           { key: "a", label: "", align: "right", render: (r) => !locked && !r.reg && <Btn size="sm" icon={Icon.pencil} onClick={() => setA({ ...r })}>Edit</Btn> },
         ]} />
       </Section>
@@ -358,6 +362,9 @@ function VendorContactsAddresses({ v, locked }) {
             <Field label="Postal / PIN code"><TextInput value={a.pin} onChange={(x) => setA({ ...a, pin: x })} maxLength={10} /></Field>
             <Field label="Country"><Select value={a.country} onChange={(x) => setA({ ...a, country: x })} options={COUNTRIES} /></Field>
             <Field label="Site purposes"><TradePicker options={SITE_PURPOSES} value={a.purposes || []} onChange={(x) => setA({ ...a, purposes: x })} /></Field>
+            <Field label="Site GSTIN"><TextInput value={a.gstin || ""} onChange={(x) => setA({ ...a, gstin: x.toUpperCase() })} maxLength={15} /></Field>
+            <Field label="Site payment terms"><Select value={a.paymentTerms || ""} onChange={(x) => setA({ ...a, paymentTerms: x })} options={settingsOf(st).paymentTermTemplates.map((t) => t.name).concat(PAYMENT_TERMS.filter((t) => !settingsOf(st).paymentTermTemplates.some((x) => x.name === t)))} /></Field>
+            <Field label="Remit-to bank account"><Select value={a.remitBank ? String(a.remitBank) : ""} onChange={(x) => setA({ ...a, remitBank: x })} options={vendorBankOptions(v)} /></Field>
             <div className="col-span-3 flex flex-wrap gap-6">
               <Check checked={!!a.preferredBilling} onChange={(b) => setA({ ...a, preferredBilling: b })} label="Preferred billing address" />
               <Check checked={!!a.preferredShipping} onChange={(b) => setA({ ...a, preferredShipping: b })} label="Preferred shipping address" />

@@ -120,6 +120,9 @@ function ScorecardPage() {
           { key: "t", label: "Timeliness", opt: true, align: "right", render: (r) => partCell(r.parts.timeliness) },
           { key: "s", label: "Safety", opt: true, align: "right", render: (r) => partCell(r.parts.safety) },
           { key: "c", label: "Compliance", opt: true, align: "right", render: (r) => partCell(r.parts.compliance) },
+          { key: "ia", label: "Invoice accuracy", opt: true, align: "right", render: (r) => partCell(r.parts.invoiceAccuracy) },
+          { key: "rs", label: "Responsiveness", opt: true, align: "right", render: (r) => partCell(r.parts.responsiveness) },
+          { key: "cl", label: "Claims", opt: true, align: "right", render: (r) => { const c = vendorKpis(st, r.v.id).claims; return c.count ? <span className="num">{c.count}{c.open ? ` (${c.open} open)` : ""}</span> : <span className="text-ink-faint">-</span>; } },
           { key: "b", label: "vs category", align: "right", render: (r) => { const a = catAvg(r.v); if (a == null || r.score == null) return "-"; const d = r.score - a; return <span className={cls("num", d < 0 ? "text-red-600" : "text-green-600")}>{d >= 0 ? "+" : ""}{d.toFixed(1)}</span>; } },
           { key: "st", label: "Status", filterOptions: FO.vendorStatus, filter: (r) => r.v.status, render: (r) => <Status>{r.v.status}</Status> },
           { key: "a", label: "", align: "right", render: (r) => (
@@ -148,7 +151,7 @@ function ScorecardPage() {
             <div className="space-y-3 p-4">
               {Object.keys(cfg.weights).map((k) => (
                 <div key={k} className="grid grid-cols-[140px_1fr_60px] items-center gap-3 text-[13px]">
-                  <span className="capitalize">{k}</span>
+                  <span>{KPI_LABEL[k] || k}</span>
                   <input type="range" min="0" max="60" value={cfg.weights[k]} onChange={(e) => setCfg({ ...cfg, weights: { ...cfg.weights, [k]: Number(e.target.value) } })} className="accent-[#0b5ed7]" />
                   <span className="num text-right">{cfg.weights[k]}%</span>
                 </div>

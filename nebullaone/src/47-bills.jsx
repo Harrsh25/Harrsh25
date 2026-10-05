@@ -1,8 +1,8 @@
 // Bills: GST split (CGST + SGST inside the company's state, IGST across states / imports), retention on PO bills,
 // and bank confirmation of each payment (confirmed with the bank reference, or failed with the reason).
-function gstSplit(st, v, gstPct, taxable) {
+function gstSplit(st, v, gstPct, taxable, siteId) {
   const pct = Number(gstPct) || 0, amt = round2((taxable * pct) / 100);
-  const home = settingsOf(st).companyState, vs = v?.placeOfSupply || v?.state;
+  const site = siteOf(v, siteId), home = settingsOf(st).companyState, vs = (site && site.id !== "REG" && site.state) || v?.placeOfSupply || v?.state;
   const intra = v && !isForeign(v) && home && vs && vs === home;
   return intra ? [["CGST", pct / 2, round2(amt / 2)], ["SGST", pct / 2, round2(amt - round2(amt / 2))]] : [["IGST", pct, amt]];
 }
@@ -41,11 +41,12 @@ function BillTaxSection({ inv }) {
   const st = useStore();
   const [rel, setRel] = y.useState(null);
   const t = invoiceTotals(inv), v = byId(st.vendors, inv.vendorId);
-  const split = inv.source === "RA Bill" ? null : gstSplit(st, v, inv.gstPct, t.taxable);
+  const siteId = inv.details?.supplierAddress || byId(st.purchaseOrders, inv.poId)?.details?.supplierAddress, site = siteOf(v, siteId);
+  const split = inv.source === "RA Bill" ? null : gstSplit(st, v, inv.gstPct, t.taxable, siteId);
   return (
     <Section title="Tax & retention" icon={Icon.percent} actions={t.retentionHeld > 0.5 && !inv.cancelled && <Btn size="sm" onClick={() => setRel({ note: "" })}>Release retention</Btn>}>
       <div data-bill-tax>
-        <KV items={[["Bill received on", inv.receivedOn ? fmtDate(inv.receivedOn) : null], ["Taxable value", inv.source === "RA Bill" ? null : inr(t.taxable)],
+        <KV items={[["Bill received on", inv.receivedOn ? fmtDate(inv.receivedOn) : null], ["Supplier site", site && site.id !== "REG" ? `${site.title} (${site.state || "-"})${site.gstin ? ` · GSTIN ${site.gstin}` : ""}` : null], ["Remit to", siteRemit(v, site) || null], ["Taxable value", inv.source === "RA Bill" ? null : inr(t.taxable)],
           ...(split || []).map(([k, p, a]) => [`${k} (${p}%)`, inr(a)]),
           t.retention > 0 && ["Retention", `${inv.retentionPct}% - ${inr(t.retention)}${inv.retentionReleased ? `, released ${inr(inv.retentionReleased.amount)} on ${fmtDate(inv.retentionReleased.at.slice(0, 10))}` : ", held"}`]].filter((r) => r && r[1])} />
       </div>

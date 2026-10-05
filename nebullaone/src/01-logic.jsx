@@ -339,6 +339,10 @@ function vendorScore(st, vendorId) {
     const r = sum(rec, (x) => x.received);
     if (r) parts.quality = (sum(rec, (x) => x.accepted) / r) * 100;
   }
+  // Invoice accuracy and responsiveness (RFQ replies, PO acknowledgment)
+  const k = vendorKpis(st, vendorId);
+  if (k.invoiceAccuracy != null) parts.invoiceAccuracy = k.invoiceAccuracy;
+  if (k.responsiveness != null) parts.responsiveness = k.responsiveness;
   // No orders, work orders or ratings yet → no score (a new vendor is "New", not a failing 30)
   if (!Object.keys(parts).length) return { score: null, parts: {}, isNew: true };
   const comp = complianceOf(v).status;
@@ -370,6 +374,9 @@ const SCORE_VARIABLES = [
   { name: "rejection_pct", param: "rejected_qty / received_qty", path: "purchaseOrders.receipts.lines", desc: "Share of received quantity rejected, %", custom: true },
   { name: "ncr_count", param: "open_ncrs", path: "ncrs (status ≠ Closed)", desc: "Open non-conformance reports", custom: true },
   { name: "late_deliveries", param: "late_receipt_count", path: "receipts after delivery date", desc: "Number of late receipts", custom: true },
+  { name: "invoice_accuracy", param: "bills_matched_first_time", path: "invoices vs PO and receipt", desc: "Bills matched first time, 0–100", custom: false },
+  { name: "responsiveness", param: "on_time_replies", path: "RFQ replies by due date; PO acknowledgment", desc: "On-time RFQ replies and PO acknowledgments, 0–100", custom: false },
+  { name: "claims_count", param: "contract_claims", path: "contractClaims", desc: "Contract claims raised", custom: true },
 ];
 function scoreVariables(st, v, parts) {
   const rec = st.purchaseOrders.filter((p) => p.vendorId === v.id).flatMap(poReceived);
@@ -377,7 +384,8 @@ function scoreVariables(st, v, parts) {
   const late = st.purchaseOrders.filter((p) => p.vendorId === v.id).flatMap((p) => p.receipts.filter((g) => new Date(g.date) > new Date(p.deliveryDate))).length;
   const woIds = st.workOrders.filter((w) => w.vendorId === v.id).map((w) => w.id);
   return { quality: parts.quality, timeliness: parts.timeliness, safety: parts.safety, compliance: parts.compliance, rejection_pct: r ? ((r - a) / r) * 100 : 0,
-    ncr_count: (st.ncrs || []).filter((n) => woIds.includes(n.woId) && n.status !== "Closed").length, late_deliveries: late };
+    ncr_count: (st.ncrs || []).filter((n) => woIds.includes(n.woId) && n.status !== "Closed").length, late_deliveries: late,
+    invoice_accuracy: parts.invoiceAccuracy, responsiveness: parts.responsiveness, claims_count: (st.contractClaims || []).filter((c) => c.vendorId === v.id).length };
 }
 // "{quality} * 0.8 + {timeliness} * 0.2" → number; null when a variable has no data
 function evalScoreFormula(formula, vars) {
