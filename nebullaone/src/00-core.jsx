@@ -1181,7 +1181,7 @@ function DataTable({ columns: allColumns, extraColumns: extra0, columnsId: cid0,
             {nFilters > 0 && <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-brand px-1 text-[10px] font-semibold text-white">{nFilters}</span>}
           </button>
         )}
-        <button type="button" aria-label="Export" data-tip="Export this view to Excel (CSV)" onClick={exportCsv} disabled={!shown.length} className="grid h-8 w-8 place-items-center rounded-md text-ink-soft hover:bg-gray-100 hover:text-ink disabled:opacity-40">{h(Icon.download, { size: 16 })}</button>
+        <button type="button" aria-label="Export" data-tip={shown.length ? "Export this view to Excel (CSV)" : "Nothing to export - the list is empty"} onClick={exportCsv} disabled={!shown.length} className="grid h-8 w-8 place-items-center rounded-md text-ink-soft hover:bg-gray-100 hover:text-ink disabled:opacity-40">{h(Icon.download, { size: 16 })}</button>
       </div>
       {nFilters > 0 && (
         <div className="flex items-center gap-2 border-b border-line bg-gray-50/50 px-4 py-1.5 text-[12.5px] text-ink-soft">
