@@ -143,7 +143,7 @@ function GrnModal({ po, onClose }) {
   const tpl0 = set0.inspectionTemplates[0];
   const [qi, setQi] = y.useState(() => ({ reportDate: todayISO(), type: "Incoming", template: "", params: {}, sampleSize: "", batch: "", manual: false, inspectedBy: currentUser(), verifiedBy: "", remarks: "" }));
   const tpl = set0.inspectionTemplates.find((t) => t.name === qi.template);
-  const [f, setF] = y.useState({ date: todayISO(), qc: "Passed", acceptedLocation: `Main store - ${po.project.split(" ")[0]}`, rejectedLocation: `Return bay - ${po.project.split(" ")[0]}`, reason: "", lines: rec.map((l) => ({ qty: Math.max(0, l.qty - l.received), accepted: Math.max(0, l.qty - l.received) })) });
+  const [f, setF] = y.useState({ date: todayISO(), qc: "", acceptedLocation: `Main store - ${po.project.split(" ")[0]}`, rejectedLocation: `Return bay - ${po.project.split(" ")[0]}`, reason: "", lines: rec.map((l) => ({ qty: Math.max(0, l.qty - l.received), accepted: Math.max(0, l.qty - l.received) })) });
   // against the vendor's dispatch notice: its quantities and challan details are the starting point
   const opens = openDispatches(po);
   const [dsp, setDsp] = y.useState("");
@@ -168,7 +168,7 @@ function GrnModal({ po, onClose }) {
   const rejected = sum(f.lines, (l) => (Number(l.qty) || 0) - (Number(l.accepted) || 0));
   const accepted = sum(f.lines, (l) => Number(l.accepted) || 0);
   // The inspection result has to agree with the quantities, and rejected goods need a reason
-  const grnErr = VX.req(f.date, "Receipt date required") || VX.notFuture(f.date, "Receipt date can't be in the future") || (f.date < po.date ? `Before the PO date (${fmtDate(po.date)})` : "")
+  const grnErr = VX.req(f.date, "Receipt date required") || (!f.qc ? "Select the quality inspection result" : "") || VX.notFuture(f.date, "Receipt date can't be in the future") || (f.date < po.date ? `Before the PO date (${fmtDate(po.date)})` : "")
     || (f.qc === "Failed" && accepted > 0 ? "Inspection Failed - accepted quantity must be 0" : "")
     || (["Passed", "Passed with remarks"].includes(f.qc) && rejected > 0 ? `Inspection says Passed but ${num(rejected)} units are rejected - choose “Partially rejected”` : "")
     || (f.qc === "Partially rejected" && rejected <= 0 ? "Enter the rejected quantity (accepted < received)" : "")
@@ -211,7 +211,7 @@ function GrnModal({ po, onClose }) {
       <div className="space-y-3">
         <div className="grid grid-cols-3 gap-3">
           <Field label="Receipt date"><DateInput value={f.date} onChange={(x) => setF({ ...f, date: x })} /></Field>
-          <Field label="Quality inspection"><Select value={f.qc} onChange={(x) => setF({ ...f, qc: x })} options={["Passed", "Passed with remarks", "Partially rejected", "Failed"]} /></Field>
+          <Field label="Quality inspection" required><Select value={f.qc} onChange={(x) => setF({ ...f, qc: x })} options={["Passed", "Passed with remarks", "Partially rejected", "Failed"]} /></Field>
           <Field label="Accepted into"><TextInput value={f.acceptedLocation} onChange={(x) => setF({ ...f, acceptedLocation: x })} /></Field>
           {opens.length > 0 && <Field label="Dispatch notice"><Select value={dsp} onChange={fromNotice} options={opens.map((d) => ({ value: d.id, label: `${d.id} - challan ${d.challan}, sent ${fmtDate(d.date)}` }))} /></Field>}
           <Field label="Received by"><TextInput value={f.receivedBy || ""} onChange={(x) => setF({ ...f, receivedBy: x })} /></Field>
