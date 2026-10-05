@@ -1,7 +1,8 @@
 // Status mapping - for each document in each status, the record panel offers only the moves that status allows.
 // Invalid transitions must not be offered (or must be disabled with a reason). Runs in Chromium on the built HTML.
 require('./lib')('status', async ({ fill, p, go, S, mut, T }) => {
-  const acts = async () => p.locator('[data-drawer]').first().locator('button:visible').evaluateAll((bs) => bs.map((b) => ({ t: b.innerText.replace(/\s+/g, ' ').trim(), d: b.disabled })).filter((x) => x.t));
+  const acts = async () => { const m = p.locator('[data-drawer] button[title="More actions"]'); if ((await m.count()) && !(await p.locator('[data-actions-menu]').count())) { await m.first().click(); await p.waitForTimeout(80); } return actsNow(); };
+  const actsNow = async () => p.locator('[data-drawer]').first().locator('button:visible').evaluateAll((bs) => bs.map((b) => ({ t: b.innerText.replace(/\s+/g, ' ').trim(), d: b.disabled })).filter((x) => x.t));
   // open a record in a given state and check which actions are offered
   const check = async (id, scn, setup, url, allow = [], deny = []) => T(id, scn, async () => {
     if (setup) { const rid = (url.match(/open=([^&]+)/) || [])[1]; await p.evaluate(`(()=>{const s=JSON.parse(localStorage.getItem('nxv-store-v1'));(${setup})(s, ${JSON.stringify(rid)});localStorage.setItem('nxv-store-v1',JSON.stringify(s));})()`); } await go(url); await p.waitForTimeout(300);

@@ -362,6 +362,45 @@ function useContentBox() {
   y.useLayoutEffect(() => { const u = () => setB(get()); u(); window.addEventListener("resize", u); return () => window.removeEventListener("resize", u); }, []);
   return b;
 }
+// Drawer title: one line; when it is cut off, hovering shows the full title
+function DrawerTitle({ children }) {
+  const r = y.useRef(null);
+  y.useLayoutEffect(() => { const e = r.current; if (!e) return; if (e.scrollWidth > e.clientWidth + 1) e.setAttribute("data-tip", e.textContent); else e.removeAttribute("data-tip"); });
+  return <h2 ref={r} data-drawer-title className="min-w-0 truncate text-[17px] font-semibold leading-tight tracking-tight">{children}</h2>;
+}
+// Record actions: the most important button stays visible, the rest open from ⋯ (same buttons, same rules)
+const flatActions = (n) => y.Children.toArray(n).flatMap((e) => (e && e.type === y.Fragment ? flatActions(e.props.children) : e && typeof e === "object" ? [e] : []));
+function DrawerActions({ actions }) {
+  const [open, setOpen] = y.useState(false);
+  const box = y.useRef(null);
+  y.useEffect(() => { if (!open) return; const off = (e) => { if (box.current && !box.current.contains(e.target)) setOpen(false); }; const esc = (e) => e.key === "Escape" && (e.stopPropagation(), setOpen(false)); document.addEventListener("mousedown", off); document.addEventListener("keydown", esc, true); return () => { document.removeEventListener("mousedown", off); document.removeEventListener("keydown", esc, true); }; }, [open]);
+  const items = flatActions(actions);
+  const btns = items.filter((e) => e.type === Btn), other = items.filter((e) => e.type !== Btn);
+  if (btns.length <= 1) return <div data-drawer-actions className="flex items-center gap-1.5">{items}</div>;
+  // the main action: an enabled primary / success button, else the first enabled one that isn't destructive
+  const on = btns.filter((b) => !b.props.disabled), is = (v) => (b) => b.props.variant === v;
+  const main = on.find(is("primary")) || on.find(is("success")) || on.find((b) => b.props.variant !== "danger") || on[0] || btns.find(is("primary")) || btns[0];
+  const rest = btns.filter((b) => b !== main);
+  return (
+    <div data-drawer-actions className="flex items-center gap-1.5">
+      {other}{main}
+      <div ref={box} className="relative">
+        <IconBtn icon={Icon.more} title="More actions" onClick={() => setOpen(!open)} />
+        {open && (
+          <div role="menu" data-actions-menu className="absolute right-0 top-full z-[70] mt-1 w-max min-w-[180px] max-w-[300px] rounded-lg border border-line bg-white py-1 shadow-lg">
+            {rest.map((b, i) => (
+              <button key={b.key || i} type="button" role="menuitem" disabled={b.props.disabled} title={b.props.disabled ? b.props.title || undefined : undefined}
+                onClick={(e) => { setOpen(false); b.props.onClick && b.props.onClick(e); }}
+                className={cls("flex w-full items-center gap-2 px-3 py-1.5 text-left text-[13px] hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-45", b.props.variant === "danger" ? "text-red-600" : "text-ink")}>
+                {b.props.icon ? h(b.props.icon, { size: 14, className: "shrink-0" }) : <i className="inline-block w-[14px] shrink-0" />}{b.props.children}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 // Record panel. Header (same on every record): title, then the record ID and its status - nothing else.
 // Any other key facts passed as `details` ([label, value] rows) show in a "Details" card at the top of the first tab.
 function Drawer({ open, title, badge, subtitle, recordId, rowId, status, details, onClose, actions, topActions, width = 760, tabs, related, comments, children }) {
@@ -389,21 +428,21 @@ function Drawer({ open, title, badge, subtitle, recordId, rowId, status, details
         <div className={cls("shrink-0", !tabs && "border-b border-line")}>
           {/* Header: [‹ › previous / next] title, then ID + status; small icon actions and close on the right.
               Action buttons get their own row underneath, starting under the title, so they never wrap unevenly. */}
-          <div className={cls("nx-dhead relative flex items-start gap-3 pr-6 pt-5", nav.prev || nav.next ? "pl-3" : "pl-6", tabs ? "pb-4" : "pb-4")}>
+          <div className={cls("nx-dhead relative flex items-start gap-3 pr-5 pt-5 pb-4", nav.prev || nav.next ? "pl-3" : "pl-6")}>
             {(nav.prev || nav.next) && (
               <div className="flex shrink-0 flex-col pt-0.5">
                 <IconBtn icon={Icon.chevronDown} className="rotate-180" title="Previous record" disabled={!nav.prev} onClick={() => step(nav.prev)} />
                 <IconBtn icon={Icon.chevronDown} title="Next record" disabled={!nav.next} onClick={() => step(nav.next)} />
               </div>)}
             <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                <h2 className="min-w-0 text-[17px] font-semibold leading-tight tracking-tight" style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "anywhere" }}>{title}</h2>
+              <div className="flex min-w-0 items-center gap-2.5">
+                <DrawerTitle>{title}</DrawerTitle>
                 {badge}
               </div>
               {(recordId || status || subtitle) && <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-ink-soft">{recordId && <span className="mono text-ink-mute">{recordId}</span>}{status}{subtitle}</div>}
-              {actions && <div data-drawer-actions className="mt-3 flex flex-wrap items-center gap-2">{actions}</div>}
             </div>
-            <div className="-mt-1 flex shrink-0 items-center gap-1">{topActions}<IconBtn icon={Icon.x} title="Close" onClick={onClose} /></div>
+            {/* actions on the title row, right side: the main action as a button, every other action under ⋯ */}
+            <div className="-mt-0.5 flex shrink-0 items-center gap-1.5">{actions && <DrawerActions actions={actions} />}{topActions}<IconBtn icon={Icon.x} title="Close" onClick={onClose} /></div>
           </div>
           {tabs && <DetailTabs {...tabs} />}
         </div>

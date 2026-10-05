@@ -39,7 +39,18 @@ module.exports = async function run(name, body) {
   };
   // a save button that is disabled only because a required dropdown is still empty: pick it first, as a user would
   const LP = Object.getPrototypeOf(p.locator('body')), lclick = LP.click;
+  // record actions live under ⋯ on the record header: open it when the wanted button isn't on screen, as a user would
+  const viaMenu = async (loc) => {
+    try {
+      if ((await loc.count()) > 0) return;
+      const more = p.locator('[data-drawer] button[title="More actions"]');
+      if (!(await more.count()) || (await p.locator('[data-actions-menu]').count())) return;
+      await lclick.call(more.last()); await p.waitForTimeout(80);
+    } catch (e) {}
+  };
+  for (const m of ['isDisabled', 'getAttribute', 'isEnabled', 'textContent', 'innerText']) { const o = LP[m]; LP[m] = async function (...a) { await viaMenu(this); return o.apply(this, a); }; }
   LP.click = async function (opts) {
+    await viaMenu(this);
     try {
       if ((await this.count()) === 1 && (await this.evaluate((el) => el.tagName === 'BUTTON' && el.disabled))) {
         const inDlg = await this.evaluate((el) => !!el.closest('[role=dialog]'));

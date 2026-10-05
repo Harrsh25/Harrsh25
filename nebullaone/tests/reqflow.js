@@ -29,7 +29,7 @@ require('./lib')('reqflow', async ({ fill, p, go, dlg, S, mut, T }) => {
   await T('RQ-04', 'Small requisition needs one approval; then Create RFQ / Create PO appear', async () => {
     await go('vendor-management/requisitions?open=MR-803'); await p.waitForTimeout(350); const d = p.locator('[data-drawer]');
     await d.locator('button:has-text("Approve")').last().click(); await p.waitForTimeout(250);
-    const r = (await S()).requisitions.find((x) => x.id === 'MR-803'); const b = await d.locator('button:has-text("Create RFQ"), button:has-text("Create PO")').count();
+    const r = (await S()).requisitions.find((x) => x.id === 'MR-803'); if (await d.locator('button[title="More actions"]').count()) { await d.locator('button[title="More actions"]').click(); await p.waitForTimeout(100); } const b = await d.locator('button:has-text("Create RFQ"), button:has-text("Create PO")').count();
     return [`${r.status}; RFQ/PO buttons ${b}`, r.status === 'Approved' && b === 2];
   });
 });
