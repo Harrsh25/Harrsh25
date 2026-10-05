@@ -21,7 +21,7 @@ function matchRate(st, wo, item) {
 function RateModal({ base, onClose }) {
   const st = useStore();
   const [f, setF] = y.useState(base ? { ...base, rate: base.rate, minWage: base.minWage, effectiveFrom: shiftDays(1), reason: "" }
-    : { trade: "", skill: "", region: "", vendorId: "", minWage: "", rate: "", otMultiplier: 2, basis: "Per 8-hr man-day", effectiveFrom: todayISO(), reason: "" });
+    : { trade: "", skill: "", region: "", vendorId: "", minWage: "", rate: "", otMultiplier: 2, holidayMultiplier: 2, nightAllowancePct: 10, basis: "Per 8-hr man-day", effectiveFrom: todayISO(), reason: "" });
   const cur = base && st.laborRates.find((r) => r.status === "Active" && rateKey(r) === rateKey(base));
   const lrErr = {
     trade: VX.req(String(f.trade).trim()),
@@ -31,6 +31,8 @@ function RateModal({ base, onClose }) {
     minWage: VX.num(f.minWage, { gt: 0, label: "Minimum wage" }),
     rate: VX.num(f.rate, { gt: 0, label: "Rate" }) || (Number(f.rate) < Number(f.minWage) ? "Billing rate can't be below the statutory minimum wage" : ""),
     ot: VX.num(f.otMultiplier, { min: 1, max: 3, label: "Overtime multiplier" }),
+    hol: VX.num(f.holidayMultiplier ?? 2, { min: 1, max: 3, label: "Holiday multiplier" }),
+    night: VX.num(f.nightAllowancePct ?? 0, { min: 0, max: 50, label: "Night allowance" }),
     from: VX.req(f.effectiveFrom) || (cur && f.effectiveFrom <= cur.effectiveFrom ? `Must be after the current version's start (${fmtDate(cur.effectiveFrom)})` : ""),
     reason: base ? VX.reason(f.reason) : "",
   };
@@ -40,7 +42,7 @@ function RateModal({ base, onClose }) {
       footer={<><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!ok} onClick={() => {
         const id = nextId("LR", st.laborRates);
         const prev = st.laborRates.filter((r) => rateKey(r) === rateKey({ ...f, vendorId: f.vendorId || null }));
-        setState((s) => s.laborRates.unshift({ id, trade: f.trade, skill: f.skill, region: f.region, vendorId: f.vendorId || null, minWage: Number(f.minWage), rate: Number(f.rate), otMultiplier: Number(f.otMultiplier) || 2, basis: f.basis, effectiveFrom: f.effectiveFrom, effectiveTo: null, status: "Pending Approval", version: Math.max(0, ...prev.map((p) => p.version)) + 1, reason: f.reason, createdBy: currentUser() }),
+        setState((s) => s.laborRates.unshift({ id, trade: f.trade, skill: f.skill, region: f.region, vendorId: f.vendorId || null, minWage: Number(f.minWage), rate: Number(f.rate), otMultiplier: Number(f.otMultiplier) || 2, holidayMultiplier: Number(f.holidayMultiplier ?? 2) || 2, nightAllowancePct: Number(f.nightAllowancePct ?? 0) || 0, basis: f.basis, effectiveFrom: f.effectiveFrom, effectiveTo: null, status: "Pending Approval", version: Math.max(0, ...prev.map((p) => p.version)) + 1, reason: f.reason, createdBy: currentUser() }),
           { entity: "Labour Rate", id, action: `${base ? "Revision" : "New rate"} submitted - ${f.trade} @ ${inr(f.rate)}/day` });
         toast(`${id} sent for approval`); onClose();
       }}>Submit for approval</Btn></>}>
@@ -52,6 +54,8 @@ function RateModal({ base, onClose }) {
         <Field label="Statutory minimum wage / day (₹)" required><NumInput value={f.minWage} onChange={(x) => setF({ ...f, minWage: x })} /><FieldErr m={f.minWage !== "" && lrErr.minWage} /></Field>
         <Field label="Billing rate / day (₹)" required info={f.minWage && f.rate && !lrErr.rate ? `${margin(f).toFixed(1)}% over minimum wage` : ""}><NumInput value={f.rate} onChange={(x) => setF({ ...f, rate: x })} /><FieldErr m={f.rate !== "" && lrErr.rate} /></Field>
         <Field label="Overtime multiplier" hint="1 – 3"><NumInput value={f.otMultiplier} onChange={(x) => setF({ ...f, otMultiplier: x })} /><FieldErr m={lrErr.ot} /></Field>
+        <Field label="Sunday / holiday multiplier"><NumInput value={f.holidayMultiplier ?? 2} onChange={(x) => setF({ ...f, holidayMultiplier: x })} /><FieldErr m={lrErr.hol} /></Field>
+        <Field label="Night allowance (%)"><NumInput value={f.nightAllowancePct ?? 0} onChange={(x) => setF({ ...f, nightAllowancePct: x })} /><FieldErr m={lrErr.night} /></Field>
         <Field label="Effective from"><DateInput value={f.effectiveFrom} onChange={(x) => setF({ ...f, effectiveFrom: x })} /><FieldErr m={lrErr.from} /></Field>
         <Field label={base ? "Reason for revision" : "Note"} required={!!base} span={2}><TextInput value={f.reason} onChange={(x) => setF({ ...f, reason: x })} placeholder="e.g. VDA notification w.e.f. 1 Oct" /></Field>
       </div>

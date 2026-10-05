@@ -104,6 +104,12 @@ const DEFAULT_SETTINGS = {
   purchaseWarnings: true,         // show the vendor's purchase warning on RFQ / PO
   companyState: "Maharashtra",    // where the company is GST-registered: same state → CGST + SGST, other states → IGST
   subApprovalLimit: 5000000,      // sublets above this value need Project Manager and Finance Controller
+  claimNoticeDays: 28,            // a claim notified later than this after the event is flagged (time-bar)
+  claimDecisionDays: 30,
+  awardApprovalLimit: 10000000,   // a PO award above this value waits for approval before the POs are created
+  poAckDays: 3,                   // supplier should acknowledge an issued PO within this many days
+  budgetCheck: "Warn",            // project budget check when requisitions and POs are approved: Stop / Warn / Off
+  projectBudgets: {},
   dispatchGraceDays: 2,           // a dispatch notice not received this many days after the expected arrival is flagged
   receiptReminderDays: 2,         // remind the vendor this many days before the delivery date
   allowZeroQty: false,            // RFQ / quote / PO lines with zero quantity

@@ -317,7 +317,7 @@ function RetentionPage() {
   return (
     <Page title="Retention, Deductions & Advances" subtitle="Retention held and released, advance recovery and every statutory / contractual deduction" icon={Icon.scale}
       actions={<><Btn icon={Icon.plus} onClick={() => setAdv({ contractId: "", amount: "", type: "", date: todayISO(), ref: "" })}>Record advance</Btn>
-        <Btn variant="primary" icon={Icon.lock} onClick={() => setRel({ contractId: contracts.find((c) => contractLedger(st, c).retentionBalance > 0)?.id || "", type: "After DLP", amount: "", note: "" })}>Request retention release</Btn></>}>
+        <Btn variant="primary" icon={Icon.lock} onClick={() => setRel({ contractId: "", type: "", amount: "", note: "" })}>Request retention release</Btn></>}>
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "ledger", label: "Contract ledger", icon: Icon.book }, { id: "rel", label: "Retention releases", icon: Icon.lock }, { id: "ded", label: "Deduction register", icon: Icon.listChecks }]} />
       {tab === "ledger" && (
         <DataTable noun="contracts" rows={ledgers} rowKey={(l) => l.c.id} onRow={(l) => nav(`${CL_BASE}/contracts?open=${l.c.id}`)} columns={[
@@ -378,18 +378,21 @@ function RetentionPage() {
         const bgCover = c ? sum(liveGuarantees(c, "Retention"), (g) => g.amount) : 0;
         const needBg = c && rel.type === "Against bank guarantee" && bgCover < (Number(rel.amount) || 0) - 0.5;
         const needRef = rel.type === "Against bank guarantee" && !String(rel.bgRef || "").trim();
-        const max = led ? led.retentionBalance - sum(st.retentionReleases.filter((r) => r.contractId === c.id && r.status !== "Released"), (r) => r.amount) : 0;
+        const max0 = led ? led.retentionBalance - sum(st.retentionReleases.filter((r) => r.contractId === c.id && r.status !== "Released"), (r) => r.amount) : 0;
+        // staged release: on completion at most half of the retention held may go (the rest waits for the end of DLP)
+        const half = led ? Math.max(0, round2(led.retentionHeld / 2 - sum(st.retentionReleases.filter((r) => r.contractId === c.id && r.type === "50% on completion" && r.status !== "Rejected"), (r) => r.amount))) : 0;
+        const max = rel.type === "50% on completion" ? Math.min(max0, half) : max0;
         return (
           <Modal open onClose={() => setRel(null)} width={560} title="Request retention release"
-            footer={<><Btn onClick={() => setRel(null)}>Cancel</Btn><Btn variant="primary" disabled={!c || !(rel.amount > 0) || rel.amount > max + 0.5 || early || needHo || needBg || needRef} onClick={() => {
+            footer={<><Btn onClick={() => setRel(null)}>Cancel</Btn><Btn variant="primary" disabled={!c || !rel.type || !(rel.amount > 0) || rel.amount > max + 0.5 || early || needHo || needBg || needRef} onClick={() => {
               const id = nextId("RR", st.retentionReleases);
               setState((s) => s.retentionReleases.unshift({ id, contractId: c.id, amount: Number(rel.amount), type: rel.type, bgRef: rel.bgRef || null, status: "Pending Approval", requestedOn: todayISO(), requestedBy: currentUser(), note: rel.note }), { entity: "Retention", id, action: `Release requested for ${c.id} - waiting for Finance approval` });
               toast(`${id} raised`); setRel(null); setTab("rel");
             }}>Raise request</Btn></>}>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Contract" span={2}><Select value={rel.contractId} placeholder="Select…" onChange={(x) => setRel({ ...rel, contractId: x })} options={contracts.map((x) => ({ value: x.id, label: `${x.id} - ${vendorName(st, x.vendorId)} (${inrShort(contractLedger(st, x).retentionBalance)} held)` }))} /></Field>
-              <Field label="Basis"><Select value={rel.type} onChange={(x) => setRel({ ...rel, type: x })} options={["After DLP", "Against bank guarantee", "50% on completion"]} /></Field>
-              <Field label="Amount (₹)" info={c ? `Available ${inr(max)}` : ""}><NumInput value={rel.amount} onChange={(x) => setRel({ ...rel, amount: x })} /><FieldErr m={c && Number(rel.amount) > max + 0.5 ? `Exceeds available retention (${inr(max)})` : ""} /></Field>
+              <Field label="Contract" required span={2}><Select value={rel.contractId} placeholder="Select…" onChange={(x) => setRel({ ...rel, contractId: x })} options={contracts.map((x) => ({ value: x.id, label: `${x.id} - ${vendorName(st, x.vendorId)} (${inrShort(contractLedger(st, x).retentionBalance)} held)` }))} /></Field>
+              <Field label="Basis" required><Select value={rel.type} onChange={(x) => setRel({ ...rel, type: x })} options={["After DLP", "Against bank guarantee", "50% on completion"]} /></Field>
+              <Field label="Amount (₹)" info={c ? `Available ${inr(max)}` : ""}><NumInput value={rel.amount} onChange={(x) => setRel({ ...rel, amount: x })} /><FieldErr m={c && Number(rel.amount) > max + 0.5 ? (rel.type === "50% on completion" ? `On completion only half the retention can be released (${inr(max)} left)` : `Exceeds available retention (${inr(max)})`) : ""} /></Field>
               {rel.type === "Against bank guarantee" && <Field label="Retention BG reference" required span={2}><Select value={rel.bgRef || ""} placeholder="Select the guarantee…" onChange={(x) => setRel({ ...rel, bgRef: x })} options={c ? liveGuarantees(c, "Retention").map((g) => ({ value: g.number, label: `${g.number} · ${g.bank} · ${inrShort(g.amount)} till ${fmtDate(g.expiry)}` })) : []} /></Field>}
               <Field label="Note" span={2}><TextInput value={rel.note} onChange={(x) => setRel({ ...rel, note: x })} placeholder="e.g. BG/ICICI/2026/551 received" /></Field>
             </div>

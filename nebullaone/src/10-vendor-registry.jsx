@@ -574,7 +574,7 @@ function VendorFlagsView({ v, canEdit, canEditFlags }) {
 }
 
 function VendorDocs({ v, mode = "registry", locked }) {
-  const [up, setUp] = y.useState(null), [rej, setRej] = y.useState(null), [hist, setHist] = y.useState(null), [del, setDel] = y.useState(null);
+  const [up, setUp] = y.useState(null), [rej, setRej] = y.useState(null), [hist, setHist] = y.useState(null), [del, setDel] = y.useState(null), [waive, setWaive] = y.useState(null);
   const other = up && up.other;
   const docs = requiredDocs(v).map((name) => v.docs.find((d) => d.name === name) || { name, status: "Missing" });
   const extra = v.docs.filter((d) => !requiredDocs(v).includes(d.name));
@@ -590,7 +590,7 @@ function VendorDocs({ v, mode = "registry", locked }) {
       <DataTable dense rows={extra.length ? [...docs, ...extra] : docs} rowKey={(d) => d.name} columns={[
         { key: "name", label: "Document", className: "font-medium" },
         { key: "file", label: "File", render: (d) => (d.file ? <FileLink name={d.file} dataUrl={d.dataUrl} /> : <span className="text-ink-mute">-</span>) },
-        { key: "status", label: "Status", render: (d) => <span title={d.status === "Rejected" && d.remark ? `Rejected: ${d.remark}` : undefined}><Status>{docState(d)}</Status></span> },
+        { key: "status", label: "Status", render: (d) => <span className="flex flex-col items-start gap-0.5" title={d.status === "Rejected" && d.remark ? `Rejected: ${d.remark}` : undefined}><Status>{docState(d)}</Status>{waiverOf(v, d.name) && <span className="text-[11px] text-amber-700">Waived till {fmtDate(waiverOf(v, d.name).until)}</span>}{d.issuer && <span className="text-[11px] text-ink-mute">{d.issuer}</span>}</span> },
         { key: "verified", label: "Verified on", render: (d) => (d.verifiedAt && d.status === "Verified" ? fmtDate(d.verifiedAt) : d.verifiedAt && d.status === "Rejected" ? <span className="text-red-600" title={d.remark || undefined}>Rejected {fmtDate(d.verifiedAt)}</span> : <span className="text-ink-mute">-</span>) },
         { key: "expiry", label: "Valid till", render: (d) => <ExpiryCell iso={d.expiry} /> },
         { key: "ver", label: "Versions", render: (d) => ((d.versions || []).length ? <button className="text-[12px] font-medium text-brand hover:underline" onClick={() => setHist(d)}>v{(d.versions || []).length + 1} · history</button> : d.file ? <span className="text-[12px] text-ink-mute">v1</span> : "-") },
@@ -600,6 +600,7 @@ function VendorDocs({ v, mode = "registry", locked }) {
             {!locked && mode !== "approval" && <Btn size="sm" icon={Icon.upload} onClick={() => setUp({ name: d.name, expiry: d.expiry || "", file: "" })}>{d.status === "Missing" ? "Upload" : "Replace"}</Btn>}
             {!locked && mode !== "approval" && d.status === "Pending" && d.file && <Btn size="sm" onClick={() => setDel({ d, withdraw: true })}>Withdraw</Btn>}
             {!locked && mode !== "approval" && !requiredDocs(v).includes(d.name) && <Btn size="sm" onClick={() => setDel({ d })}>Delete</Btn>}
+            {!locked && mode !== "approval" && requiredDocs(v).includes(d.name) && ["Missing", "Expired", "Rejected"].includes(docState(d)) && !waiverOf(v, d.name) && <Btn size="sm" onClick={() => setWaive(d.name)}>Waive</Btn>}
             {mode === "approval" && d.status === "Pending" && <>
               <Btn size="sm" variant="success" onClick={() => mut(d.name, (x) => { Object.assign(x, { status: "Verified", remark: "", verifiedBy: currentUser(), verifiedAt: new Date().toISOString() }); }, `${d.name} verified`)}>Verify</Btn>
               <Btn size="sm" variant="danger" onClick={() => setRej(d.name)}>Reject</Btn>
@@ -607,6 +608,7 @@ function VendorDocs({ v, mode = "registry", locked }) {
           </span>
         ) },
       ]} />
+      {waive && <WaiverModal v={v} name={waive} onClose={() => setWaive(null)} />}
       {rej && <RejectReasonModal title={`Reject - ${rej}`} onClose={() => setRej(null)} onReject={(reason) => mut(rej, (x) => { Object.assign(x, { status: "Rejected", remark: reason, verifiedBy: currentUser(), verifiedAt: new Date().toISOString() }); }, `${rej} rejected - ${reason}`)} />}
       {hist && (
         <Modal open onClose={() => setHist(null)} width={640} title={`${hist.name} - version history`} footer={<Btn onClick={() => setHist(null)}>Close</Btn>}>
@@ -638,7 +640,7 @@ function VendorDocs({ v, mode = "registry", locked }) {
       <Modal open={!!up} onClose={() => setUp(null)} title={`Upload - ${up?.name}`} width={480}
         footer={<><Btn onClick={() => setUp(null)}>Cancel</Btn><Btn variant="primary" disabled={!up?.file || !up?.name?.trim()} onClick={() => {
           if (up.expiry && up.expiry < todayISO()) return toast("Valid-till date is in the past - upload a current document", "red");
-          mut(up.name, (x) => withVersion(x, { status: "Pending", file: up.file, dataUrl: up.dataUrl || null, expiry: up.expiry || null, uploadedAt: todayISO() }, currentUser()), `${up.name} ${up.replace ? "replaced" : "uploaded"}`);
+          mut(up.name, (x) => withVersion(x, { status: "Pending", file: up.file, dataUrl: up.dataUrl || null, expiry: up.expiry || null, issuer: (up.issuer || "").trim(), uploadedAt: todayISO() }, currentUser()), `${up.name} ${up.replace ? "replaced" : "uploaded"}`);
           toast("Document uploaded - awaiting verification"); setUp(null);
         }}>Upload</Btn></>}>
         {up && <div className="space-y-3">
@@ -646,6 +648,7 @@ function VendorDocs({ v, mode = "registry", locked }) {
           {other && <Field label="Document name" required><TextInput value={up.name} onChange={(x) => setUp({ ...up, name: x })} placeholder="e.g. ISO 9001 certificate" /></Field>}
           <Field label="File" required><input type="file" accept=".pdf,.jpg,.jpeg,.png" className="block w-full text-[13px]" onChange={async (e) => { const f0 = e.target.files[0]; if (f0) { const att = await readAttachment(f0); if (att) setUp((u) => ({ ...u, file: att.name, dataUrl: att.dataUrl })); else e.target.value = ""; } }} /></Field>
           <Field label="Valid till" hint="Leave empty for documents that don't expire"><DateInput value={up.expiry} onChange={(x) => setUp({ ...up, expiry: x })} /></Field>
+          <Field label="Issuing authority"><TextInput value={up.issuer || ""} onChange={(x) => setUp({ ...up, issuer: x })} placeholder="e.g. Labour Commissioner, Pune" /></Field>
         </div>}
       </Modal>
     </Section>

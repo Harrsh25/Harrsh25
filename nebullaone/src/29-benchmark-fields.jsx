@@ -440,8 +440,10 @@ function benchSettingsErr(f) {
     if (c.type === "Dropdown" && !String(c.options || "").trim()) return `Custom field "${c.label}": list the dropdown options`;
   }
   for (const q of f.questionLibrary || []) if (!String(q.question || "").trim()) return "Question library: every question needs text";
-  for (const k of ["poApprovalMin", "invoiceQtyTolPct", "invoiceAmtTolPct", "earlyReceiptDays", "lateReceiptDays", "receiptReminderDays", "dispatchGraceDays", "daysToPurchase"]) if (Number(f[k]) < 0) return "Purchasing controls: values can't be negative";
+  for (const k of ["poApprovalMin", "invoiceQtyTolPct", "invoiceAmtTolPct", "earlyReceiptDays", "lateReceiptDays", "receiptReminderDays", "dispatchGraceDays", "poAckDays", "subApprovalLimit", "daysToPurchase"]) if (Number(f[k]) < 0) return "Purchasing controls: values can't be negative";
   if (f.rfqSenderEmail && !EMAIL_RE.test(f.rfqSenderEmail)) return "RFQ sender e-mail is not valid";
+  if (budgetErr(f)) return budgetErr(f);
+  if (delegationErr(f)) return delegationErr(f);
   return "";
 }
 function BenchmarkSettings({ f, setF, mode, yesNo, part }) {
@@ -465,6 +467,9 @@ function BenchmarkSettings({ f, setF, mode, yesNo, part }) {
           {num("receiptReminderDays", "Receipt reminder (days before delivery)")}
           {num("dispatchGraceDays", "Dispatch not received - flag after (days)")}
           {num("subApprovalLimit", "Subcontract value needing Finance approval (₹)")}
+          {num("poAckDays", "Supplier must acknowledge a PO within (days)")}
+          {num("awardApprovalLimit", "RFQ award needing approval above (₹)")}
+          {num("claimNoticeDays", "Claim notice period after the event (days)")}
           <Field label="Company state (GST)"><Select value={f.companyState || ""} onChange={set("companyState")} options={STATES} /></Field>
           {num("daysToPurchase", "Days to purchase", "Added to the vendor lead time")}
           {num("invoiceQtyTolPct", "Invoice quantity tolerance (%)")}
@@ -475,6 +480,8 @@ function BenchmarkSettings({ f, setF, mode, yesNo, part }) {
           <Field label="Our company (default buying entity)"><TextInput value={f.ourCompany || ""} onChange={set("ourCompany")} /></Field>
         </div>
       </Section>
+        <ProjectBudgetsEditor f={f} setF={setF} />
+        <DelegationsEditor f={f} setF={setF} />
       <Section title="Receiving tolerances" icon={Icon.truck}>
         {mode("overReceiptAction", "Over-receipt action", "Receiving more than ordered (plus the allowance)")}
         {mode("receiptDateAction", "Receipt date exception", "Receipt outside the early / late window")}
@@ -547,7 +554,7 @@ function reqApproval(st, r) {
 }
 function reqStatus(st, r) {
   if (r.stockEntry) return REQ_STOCK[r.purpose]?.done || "Completed";
-  if (["Draft", "Submitted", "Cancelled", "Stopped"].includes(r.status)) return r.status;
+  if (["Draft", "Submitted", "Cancelled", "Stopped", "Rejected"].includes(r.status)) return r.status;
   const o = reqOrdered(st, r);
   if (o.pctReceived >= 100) return "Received";
   if (o.pctReceived > 0) return "Partially received";
@@ -596,7 +603,7 @@ function RequisitionModal({ onClose, base }) {
   const save = (submit) => {
     if (errs.length) return toast(errs[0], "red");
     const id = base?.id || nextId("MR", st.requisitions || []);
-    const rec = { ...f, id, status: submit ? "Submitted" : "Draft", requestedBy: base?.requestedBy || currentUser(), createdAt: base?.createdAt || new Date().toISOString(), rfqIds: base?.rfqIds || [],
+    const rec = { ...f, id, approvals: [], rejection: base?.rejection || null, status: submit ? "Submitted" : "Draft", requestedBy: base?.requestedBy || currentUser(), createdAt: base?.createdAt || new Date().toISOString(), rfqIds: base?.rfqIds || [],
       items: manpower ? [{ desc: `${L.category} (${L.labourType}) - ${L.headcount} workers`, unit: "man-day", qty: Number(L.headcount) * Math.max(1, Math.round((new Date(L.end) - new Date(L.start)) / DAY)), rate: "" }] : f.items.filter((i) => i.desc).map((i) => ({ ...i, qty: Number(i.qty) })) };
     setState((s) => { s.requisitions = s.requisitions || []; const i = s.requisitions.findIndex((x) => x.id === id); if (i >= 0) s.requisitions[i] = rec; else s.requisitions.unshift(rec); },
       { entity: "Requisition", id, action: `${base ? "Updated" : "Created"} (${f.purpose})${submit ? " and submitted" : ""}` });
@@ -659,8 +666,10 @@ function RequisitionsPage() {
   const [edit, setEdit] = y.useState(null), [open, setOpen] = useQueryOpen();
   const rows = st.requisitions || [];
   const r = open && rows.find((x) => x.id === open);
+  const [rej, setRej] = y.useState(null);
   const approve = (x) => {
     const a = reqApproval(getState(), x), lvl = a.next?.level || "Procurement Head", last = a.i + 1 >= a.levels.length;
+    if (last && !reqInternal(x)) { const b = budgetCheck(getState(), x.project, a.value); if (b.over && b.mode === "Stop") return toast(`Can't approve - ${b.text}`, "red"); }
     setState((s) => { const q = s.requisitions.find((y2) => y2.id === x.id); q.approvals = [...(q.approvals || []), { level: lvl, by: currentUser(), at: new Date().toISOString() }]; if (last) Object.assign(q, { status: "Approved", decidedBy: currentUser(), decidedAt: new Date().toISOString() }); },
       { entity: "Requisition", id: x.id, action: last ? `Approved by ${lvl}${a.levels.length > 1 ? ` (${a.levels.length} levels for ${inrShort(a.value)})` : ""}` : `Approved by ${lvl} (limit ${inrShort(Number(a.next.upTo))}) - ${a.levels[a.i + 1].level} approves next (estimated ${inrShort(a.value)})` });
     toast(last ? `${x.id} approved` : `${lvl} approved - ${a.levels[a.i + 1].level} approves next`);
@@ -683,13 +692,14 @@ function RequisitionsPage() {
         { key: "date", label: "Requested", render: (x) => `${fmtDate(x.date)} · ${x.requestedBy}` },
         { key: "rb", label: "Required by", render: (x) => fmtDate(x.requiredBy) },
         { key: "po", label: "% ordered / received", render: (x) => { if (reqInternal(x)) return <span className="text-[12px] text-ink-mute">{x.stockEntry ? x.stockEntry.id : "Stock move"}</span>; const o = reqOrdered(st, x); return <span className="num text-[12px]">{o.pctOrdered}% / {o.pctReceived}%</span>; } },
-        { key: "s", label: "Status", filterOptions: ["Draft", "Submitted", "Approved", "RFQ raised", "Partially ordered", "Ordered", "Partially received", "Received", "Transferred", "Issued", "Stopped", "Cancelled"], filter: (x) => reqStatus(st, x), render: (x) => <Status>{reqStatus(st, x)}</Status> },
+        { key: "s", label: "Status", filterOptions: ["Draft", "Submitted", "Approved", "RFQ raised", "Partially ordered", "Ordered", "Partially received", "Received", "Transferred", "Issued", "Stopped", "Rejected", "Cancelled"], filter: (x) => reqStatus(st, x), render: (x) => <Status>{reqStatus(st, x)}</Status> },
       ]} />
       {r && (
         <Drawer open related={relatedFor(st, "req", r)} comments={r.id} onClose={() => setOpen(null)} width={760} title={r.purpose} recordId={r.id} status={<Status>{reqStatus(st, r)}</Status>}
           actions={<>
-            {["Draft", "Submitted"].includes(r.status) && <Btn icon={Icon.pencil} onClick={() => setEdit(r)}>Edit</Btn>}
-            {r.status === "Submitted" && (() => { const a = reqApproval(st, r); return <><Btn variant="danger" onClick={() => act(r, "Cancelled", "Rejected")}>Reject</Btn><Btn variant="success" onClick={() => approve(r)}>{a.levels.length > 1 ? `Approve as ${a.next?.level}` : "Approve"}</Btn></>; })()}
+            {["Draft", "Submitted", "Rejected"].includes(r.status) && <Btn icon={Icon.pencil} onClick={() => setEdit(r)}>{r.status === "Rejected" ? "Correct & resubmit" : "Edit"}</Btn>}
+            {["Draft", "Submitted", "Rejected"].includes(r.status) && <Btn variant="danger" onClick={() => act(r, "Cancelled", "Cancelled")}>Cancel requisition</Btn>}
+            {r.status === "Submitted" && (() => { const a = reqApproval(st, r); return <><Btn variant="danger" onClick={() => setRej(r)}>Reject</Btn><Btn variant="success" onClick={() => approve(r)}>{a.levels.length > 1 ? `Approve as ${a.next?.level}` : "Approve"}</Btn></>; })()}
             {r.status === "Approved" && !r.stockEntry && <Btn onClick={() => act(r, "Stopped", "Stopped")}>Stop</Btn>}
             {r.status === "Stopped" && <Btn onClick={() => act(r, "Approved", "Re-opened")}>Re-open</Btn>}
             {reqInternal(r) ? (r.status === "Approved" && !r.stockEntry && <Btn variant="primary" icon={Icon.package} onClick={() => stockEntry(r)}>{REQ_STOCK[r.purpose].btn}</Btn>) : <>
@@ -698,6 +708,8 @@ function RequisitionsPage() {
             </>}
           </>}>
           <div className="space-y-4 px-6 py-5">
+            {r.status === "Rejected" && r.rejection && <Note tone="red">Rejected by {r.rejection.by} - {r.rejection.reason}. Correct it and resubmit.</Note>}
+            {!reqInternal(r) && ["Submitted", "Approved"].includes(r.status) && <BudgetLine project={r.project} amount={reqValue(st, r)} />}
             {r.status === "Submitted" && (() => { const a = reqApproval(st, r); return <Note icon={Icon.clipboardCheck}>Approval by value ({a.value ? inrShort(a.value) : "no estimate"}): {a.levels.map((l, i) => `${l.level}${a.done[i] ? ` ✓ ${a.done[i].by}` : i === a.i ? " - pending" : ""}`).join(" → ")}{!a.value && !reqInternal(r) ? ". Add estimated rates so the request is routed by its real value." : ""}</Note>; })()}
             {reqInternal(r) && !r.stockEntry && <Note>Internal stock move - completed with a stock entry, never sent to vendors as an RFQ or PO.</Note>}
             {r.stockEntry && <Note tone="green" icon={Icon.check}>{r.stockEntry.type} {r.stockEntry.id} posted {fmtDate(r.stockEntry.at)} by {r.stockEntry.by}{r.stockEntry.from ? ` · from ${r.stockEntry.from}` : ""}{r.stockEntry.to ? ` → ${r.stockEntry.to}` : ""}</Note>}
@@ -720,6 +732,8 @@ function RequisitionsPage() {
           </div>
         </Drawer>
       )}
+      {rej && <ReasonModal title={`Reject ${rej.id}`} text="The requester sees the reason, corrects the requisition and resubmits it." action="Reject" onClose={() => setRej(null)}
+        onDone={(reason) => { setState((s) => { const q = s.requisitions.find((y2) => y2.id === rej.id); Object.assign(q, { status: "Rejected", rejection: { reason, by: currentUser(), at: new Date().toISOString() }, decidedBy: currentUser(), decidedAt: new Date().toISOString() }); }, { entity: "Requisition", id: rej.id, action: `Rejected - ${reason}` }); toast(`${rej.id} rejected`, "red"); }} />}
       {edit && <RequisitionModal base={edit.id ? edit : null} onClose={() => setEdit(null)} />}
     </Page>
   );

@@ -10,7 +10,19 @@ const settlementReady = (st, c) => c.status === "Terminated" || (c.status === "C
 const SETTLE_PRE = ["No measurements waiting for JMS sign-off", "No signed measurements left unbilled", "No contractor claims waiting", "No change orders pending"];
 const settlementBlockers = (st, c) => closureChecklist(st, c).filter((i) => SETTLE_PRE.includes(i.label) && !i.ok).map((i) => i.label);
 // Everything except the last step (release certificate / blacklist decision) - the release needs the rest done
-const releaseBlockers = (st, c) => closureChecklist(st, c).filter((i) => !/release certificate|Blacklist decision/.test(i.label));
+// Demobilisation before release: people, equipment and free-issue material all accounted for
+function demobChecks(st, c) {
+  const wos = st.workOrders.filter((w) => w.contractId === c.id), ids = new Set(wos.map((w) => w.id));
+  const people = st.workers.filter((w) => ids.has(w.woId) && w.active !== false && !w.exitOn);
+  const eq = wos.flatMap((w) => (w.equipment || []).filter((d) => !d.to));
+  const mat = (st.materialIssues || []).filter((m) => ids.has(m.woId) && !m.recoveredIn);
+  return [
+    { label: `Workers demobilised - exit recorded and gate passes returned${people.length ? ` (${people.length} still on the rolls)` : ""}`, ok: !people.length, to: `${CL_BASE}/workers` },
+    { label: `Contractor equipment off site${eq.length ? ` (${eq.length} still deployed)` : ""}`, ok: !eq.length },
+    { label: `Free-issue material reconciled${mat.length ? ` (${mat.length} issue(s) not yet recovered)` : ""}`, ok: !mat.length },
+  ];
+}
+const releaseBlockers = (st, c) => [...closureChecklist(st, c).filter((i) => !/release certificate|Blacklist decision/.test(i.label)), ...demobChecks(st, c)];
 function settlementStatement(st, c, adj = {}) {
   const led = contractLedger(st, c);
   const bills = led.bills;
@@ -364,7 +376,7 @@ function TerminationsPage() {
       <DataTable noun="terminations" rows={rows} onRow={(r) => setOpen(r.id)} empty={<EmptyState icon={Icon.ban} title="No terminated contracts" text="Terminating a contract short-closes its open work orders and starts the final-account path." />} columns={[
         { key: "id", label: "Contract", className: "mono text-[12px]" }, { key: "t", label: "Title", className: "font-medium", render: (r) => r.c.title },
         { key: "v", label: "Contractor", render: (r) => vendorName(st, r.c.vendorId) },
-        { key: "on", label: "Terminated", render: (r) => fmtDate(r.c.terminated?.at) }, { key: "why", label: "Reason", className: "max-w-[240px] truncate text-[12px]", render: (r) => r.c.terminated?.reason },
+        { key: "on", label: "Terminated", render: (r) => fmtDate(r.c.terminated?.at) }, { key: "why", label: "Reason", className: "max-w-[240px] text-[12px]", filterOptions: TERM_REASONS, filter: (r) => r.c.terminated?.category || "", render: (r) => <span className="flex flex-col"><span className="font-medium">{r.c.terminated?.category || "-"}</span><span className="truncate text-ink-mute">{r.c.terminated?.reason}</span></span> },
         { key: "s", label: "Step", filterOptions: TERM_STEPS, filter: (r) => TERM_STEPS[r.step], render: (r) => <Status tone={r.step === 4 ? "gray" : "amber"}>{TERM_STEPS[r.step]}</Status> },
       ]} />
       {c && (
@@ -394,10 +406,11 @@ function TerminationsPage() {
       )}
       {term && (
         <Modal open onClose={() => setTerm(null)} width={520} title="Terminate a contract" subtitle="Open work orders are short-closed; billed work, retention and guarantees stay for the final account"
-          footer={<><Btn onClick={() => setTerm(null)}>Cancel</Btn><Btn variant="danger" disabled={!term.contractId || term.reason.trim().length < 5} onClick={() => { const x = byId(st.contracts, term.contractId); if (terminateContract(x, term.reason.trim())) { setTerm(null); setOpen(x.id); } }}>Terminate contract</Btn></>}>
+          footer={<><Btn onClick={() => setTerm(null)}>Cancel</Btn><Btn variant="danger" disabled={!term.contractId || !term.category || term.reason.trim().length < 5} onClick={() => { const x = byId(st.contracts, term.contractId); if (terminateContract(x, term.reason.trim(), term.category)) { setTerm(null); setOpen(x.id); } }}>Terminate contract</Btn></>}>
           <div className="space-y-3">
             <Field label="Contract" required><Select value={term.contractId} placeholder="Select…" onChange={(x) => setTerm({ ...term, contractId: x })} options={live.map((x) => ({ value: x.id, label: `${x.id} - ${x.title} (${vendorName(st, x.vendorId)})` }))} /></Field>
-            <Field label="Reason" required><TextInput value={term.reason} onChange={(x) => setTerm({ ...term, reason: x })} placeholder="e.g. Abandoned site for 30 days after two notices" /></Field>
+            <Field label="Termination reason" required><Select value={term.category || ""} onChange={(x) => setTerm({ ...term, category: x })} options={TERM_REASONS} /></Field>
+            <Field label="Details" required><TextInput value={term.reason} onChange={(x) => setTerm({ ...term, reason: x })} placeholder="e.g. Abandoned site for 30 days after two notices" /></Field>
           </div>
         </Modal>
       )}

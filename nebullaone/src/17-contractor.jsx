@@ -193,6 +193,7 @@ function ClaimsTab({ onBill }) {
 // ---------------------------------------------------------------- labour attendance
 const ATT_STATUS = [{ v: "P", l: "Present", d: 1 }, { v: "H", l: "Half day", d: 0.5 }, { v: "A", l: "Absent", d: 0 }];
 const manDays = (a) => (ATT_STATUS.find((x) => x.v === a.status) || { d: 0 }).d;
+const DAY_TYPES = ["Normal", "Sunday / holiday", "Night shift"], ABSENT_REASONS = ["Sick", "Leave", "Unauthorised", "Weather", "Site closed"];
 
 function AttendanceSheet({ vendorId, portal }) {
   const st = useStore();
@@ -205,17 +206,22 @@ function AttendanceSheet({ vendorId, portal }) {
   const elig = (w) => workerIssues(w, date);
   const existing = st.attendance.filter((a) => a.date === date && a.woId === woId);
   const [rows, setRows] = y.useState({});
+  const [dayType, setDayType] = y.useState(""), [reopen, setReopen] = y.useState(false);
   y.useEffect(() => {
     const m = {};
-    for (const w of workers) { const e = existing.find((a) => a.workerId === w.id); m[w.id] = e ? { status: e.status, ot: e.ot, verified: e.verified } : { status: elig(w).eligible ? "P" : "A", ot: 0 }; }
-    setRows(m);
+    for (const w of workers) { const e = existing.find((a) => a.workerId === w.id); m[w.id] = e ? { status: e.status, ot: e.ot, verified: e.verified, reason: e.absentReason || "" } : { status: elig(w).eligible ? "P" : "A", ot: 0, reason: "" }; }
+    setRows(m); setDayType(existing[0]?.dayType || "");
   }, [vid, woId, date, st.attendance.length]);
   const [nw, setNw] = y.useState(null);
-  const locked = existing.some((a) => a.rolledInto);
+  const rolled = existing.some((a) => a.rolledInto);
+  // a verified day is locked; the site can reopen it with a reason (audited) until it is rolled into the measurement book
+  const verifiedDay = existing.length > 0 && existing.every((a) => a.verified);
+  const locked = rolled || verifiedDay;
+  const noReason = Object.entries(rows).filter(([wid, r0]) => r0.status === "A" && elig(byId(st.workers, wid) || {}).eligible !== false && !r0.reason).length;
   const save = (verify) => {
     setState((s) => {
       s.attendance = s.attendance.filter((a) => !(a.date === date && a.woId === woId));
-      for (const w of workers) { const r0 = rows[w.id]; if (!r0) continue; const r = elig(w).eligible ? r0 : { ...r0, status: "A", ot: 0 }; s.attendance.push({ date, woId, workerId: w.id, status: r.status, hours: r.status === "P" ? 8 : r.status === "H" ? 4 : 0, ot: Number(r.ot) || 0, rolledInto: null, source: portal ? "Contractor" : "Site", verified: verify || r.verified || false }); }
+      for (const w of workers) { const r0 = rows[w.id]; if (!r0) continue; const r = elig(w).eligible ? r0 : { ...r0, status: "A", ot: 0 }; s.attendance.push({ date, woId, workerId: w.id, status: r.status, dayType, absentReason: r.status === "A" ? r.reason || (elig(w).eligible ? "" : "Not eligible") : "", hours: r.status === "P" ? 8 : r.status === "H" ? 4 : 0, ot: Number(r.ot) || 0, rolledInto: null, source: portal ? "Contractor" : "Site", verified: verify || r.verified || false }); }
     }, { entity: "Attendance", id: `${woId} ${date}`, action: `${portal ? "Submitted by contractor" : verify ? "Verified by site" : "Saved"} - ${Object.values(rows).filter((r) => r.status !== "A").length}/${workers.length} present` });
     toast(verify ? "Muster verified" : "Attendance saved");
   };
@@ -225,14 +231,16 @@ function AttendanceSheet({ vendorId, portal }) {
         {!vendorId && <Field label="Contractor"><Select value={vid} onChange={(x) => { setVid(x); setWoId(st.workOrders.find((w) => w.vendorId === x && woAccepted(w))?.id || ""); }} options={vendors.map((v) => ({ value: v.id, label: v.name }))} /></Field>}
         <Field label="Work order"><Select value={woId} placeholder="Select…" onChange={setWoId} options={wos.map((w) => ({ value: w.id, label: `${w.id} - ${w.title}` }))} /></Field>
         <Field label="Date"><DateInput value={date} max={todayISO()} onChange={setDate} /></Field>
+        <Field label="Day type" required><Select value={dayType} onChange={setDayType} options={DAY_TYPES} /></Field>
         <span className="flex-1" />
         <Btn icon={Icon.userPlus} onClick={() => setNw({ name: "", trade: "", skill: "", gatePass: "" })}>Add worker</Btn>
       </div>
       {!woId ? <Note>No accepted work order to record attendance against.</Note> : (
         <>
-          {locked && <Note tone="amber">This day is already rolled into the measurement book and can't be edited.</Note>}
+          {rolled && <Note tone="amber">This day is already rolled into the measurement book and can't be edited.</Note>}
+          {!rolled && verifiedDay && <Note tone="amber">This day is verified and locked.{!portal && " Reopen it to correct it - the reason is kept in the audit log."}</Note>}
           <table className="w-full">
-            <thead><tr><Th>Worker</Th><Th>Trade</Th><Th>Gate pass</Th><Th>Attendance</Th><Th align="right">OT hours</Th><Th>Status</Th></tr></thead>
+            <thead><tr><Th>Worker</Th><Th>Trade</Th><Th>Gate pass</Th><Th>Attendance</Th><Th>Absent reason</Th><Th align="right">OT hours</Th><Th>Status</Th></tr></thead>
             <tbody>
               {workers.map((w) => (
                 <tr key={w.id}>
@@ -246,6 +254,7 @@ function AttendanceSheet({ vendorId, portal }) {
                       ))}
                     </span>
                   </Td>
+                  <Td><div className="w-[140px]">{rows[w.id]?.status === "A" && elig(w).eligible ? <Select label={`Absent reason - ${w.name}`} value={rows[w.id]?.reason || ""} disabled={locked} onChange={(x) => setRows({ ...rows, [w.id]: { ...rows[w.id], reason: x } })} options={ABSENT_REASONS} /> : <span className="text-[12px] text-ink-mute">{rows[w.id]?.status === "A" ? "Not eligible" : "-"}</span>}</div></Td>
                   <Td align="right"><div className="ml-auto w-20"><NumInput value={rows[w.id]?.ot ?? 0} disabled={locked || rows[w.id]?.status === "A"} onChange={(x) => setRows({ ...rows, [w.id]: { ...rows[w.id], ot: x } })} /></div></Td>
                   <Td>{(() => { const e = existing.find((a) => a.workerId === w.id); return e ? <Status tone={e.rolledInto ? "purple" : e.verified ? "green" : "blue"}>{e.rolledInto ? `In ${e.rolledInto}` : e.verified ? "Verified" : `Submitted (${e.source || "Site"})`}</Status> : <span className="text-ink-faint">Not recorded</span>; })()}</Td>
                 </tr>
@@ -255,12 +264,15 @@ function AttendanceSheet({ vendorId, portal }) {
           <div className="flex items-center justify-between">
             <span className="text-[12.5px] text-ink-soft">Present {Object.values(rows).filter((r) => r.status === "P").length} · Half {Object.values(rows).filter((r) => r.status === "H").length} · Absent {Object.values(rows).filter((r) => r.status === "A").length} · OT {sum(Object.values(rows), (r) => r.ot)} h</span>
             <span className="flex gap-2">
-              <Btn disabled={locked} onClick={() => save(false)}>{portal ? "Submit muster" : "Save"}</Btn>
-              {!portal && <Btn variant="success" disabled={locked} onClick={() => save(true)}>Save & verify</Btn>}
+              {!portal && !rolled && verifiedDay && <Btn onClick={() => setReopen(true)}>Reopen day</Btn>}
+              <Btn disabled={locked || !dayType || noReason > 0} title={!dayType ? "Select the day type" : noReason ? "Give a reason for each absence" : ""} onClick={() => save(false)}>{portal ? "Submit muster" : "Save"}</Btn>
+              {!portal && <Btn variant="success" disabled={locked || !dayType || noReason > 0} title={!dayType ? "Select the day type" : noReason ? "Give a reason for each absence" : ""} onClick={() => save(true)}>Save & verify</Btn>}
             </span>
           </div>
         </>
       )}
+      {reopen && <ReasonModal title={`Reopen ${fmtDate(date)} - ${woId}`} text="The day is unlocked for correction and must be verified again." action="Reopen" tone="primary" onClose={() => setReopen(false)}
+        onDone={(reason) => { setState((s) => { for (const a of s.attendance) if (a.date === date && a.woId === woId && !a.rolledInto) { a.verified = false; a.reopened = { reason, by: currentUser(), at: new Date().toISOString() }; } }, { entity: "Attendance", id: `${woId} ${date}`, action: `Verified muster reopened - ${reason}` }); toast("Day reopened for correction"); }} />}
       {nw && (() => {
         const age = nw.dob ? Math.floor((Date.now() - new Date(nw.dob).getTime()) / (365.25 * DAY)) : null;
         const e = {
@@ -324,14 +336,16 @@ function LabourAttendancePage() {
   const byTrade = {};
   for (const a of pending) {
     const w = byId(st.workers, a.workerId); if (!w) continue;
-    const t = (byTrade[w.trade] = byTrade[w.trade] || { trade: w.trade, days: 0, ot: 0, workers: new Set(), unverified: 0 });
-    t.days += manDays(a); t.ot += a.ot || 0; t.workers.add(w.id); if (!a.verified) t.unverified++;
+    const t = (byTrade[w.trade] = byTrade[w.trade] || { trade: w.trade, days: 0, ot: 0, hol: 0, night: 0, workers: new Set(), unverified: 0 });
+    t.days += manDays(a); t.ot += a.ot || 0; if (a.dayType === "Sunday / holiday") t.hol += manDays(a); if (a.dayType === "Night shift") t.night += manDays(a); t.workers.add(w.id); if (!a.verified) t.unverified++;
   }
   const rows = Object.values(byTrade).map((t) => {
     const item = wo && tradeItem(wo, t.trade);
     const card = item && matchRate(st, wo, item);
     const otDays = (t.ot / 8) * (card?.otMultiplier || 2);
-    return { ...t, workers: t.workers.size, item, card, otDays, total: round2(t.days + otDays) };
+    // holiday days are paid at the holiday multiplier, night shifts carry the night allowance - added as extra man-day equivalents
+    const extra = t.hol * ((Number(card?.holidayMultiplier) || 2) - 1) + t.night * ((Number(card?.nightAllowancePct) || 0) / 100);
+    return { ...t, workers: t.workers.size, item, card, otDays, extra: round2(extra), total: round2(t.days + otDays + extra) };
   });
   const today = st.attendance.filter((a) => a.date === shiftDays(-1));
   const rollUp = () => {
@@ -362,6 +376,7 @@ function LabourAttendancePage() {
             { key: "trade", label: "Trade", className: "font-medium" }, { key: "w", label: "Workers", align: "center", render: (r) => r.workers },
             { key: "d", label: "Man-days", align: "right", num: true, render: (r) => num(r.days) },
             { key: "ot", label: "OT hours", align: "right", num: true, render: (r) => `${num(r.ot)} → ${num(r.otDays)} md` },
+            { key: "ex", label: "Holiday / night", align: "right", num: true, render: (r) => (r.hol || r.night ? `${num(r.hol)} hol · ${num(r.night)} night → +${num(r.extra)} md` : "-") },
             { key: "t", label: "Billable man-days", align: "right", render: (r) => <b className="num">{num(r.total)}</b> },
             { key: "i", label: "WO item", render: (r) => (r.item ? `${r.item.code} · ${r.item.desc}` : <Status tone="red">No matching man-day item</Status>) },
             { key: "rate", label: "WO rate vs card", align: "right", render: (r) => (r.item ? <span className="num">{inr(r.item.rate)}{r.card && <span className={cls("block text-[11px]", r.item.rate > r.card.rate ? "text-amber-700" : "text-ink-mute")}>card {inr(r.card.rate)}</span>}</span> : "-") },

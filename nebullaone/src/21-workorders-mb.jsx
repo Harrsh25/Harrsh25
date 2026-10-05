@@ -225,7 +225,9 @@ function MeasurementModal({ preset = {}, onClose }) {
   const pending = wo ? sum(st.measurements.filter((m) => m.woId === wo.id && m.lineId === f.lineId && m.jms.status === "Pending"), (m) => m.qty) : 0;
   const overQty = item && posLine && posLine.measured + pending + qty > item.qty;
   const lsBad = wo && wo.type === "Lump Sum" && posLine && (Number(f.pct) <= posLine.measured || Number(f.pct) > 100);
-  const mDateErr = !f.date ? "Date required" : f.date > todayISO() ? "Measurement date can't be in the future" : wo && f.date < wo.start ? `Before the work order start (${fmtDate(wo.start)})` : "";
+  const ctr = wo && byId(st.contracts, wo.contractId);
+  const frozen = ctr && ctr.status === "Terminated" ? `Contract ${ctr.id} is terminated - measurements are frozen` : "";
+  const mDateErr = frozen || (!f.date ? "Date required" : f.date > todayISO() ? "Measurement date can't be in the future" : wo && f.date < wo.start ? `Before the work order start (${fmtDate(wo.start)})` : "");
   const ok = wo && f.lineId && f.location && !mDateErr && (wo.type === "Lump Sum" ? f.pct !== "" && !lsBad : qty > 0);
   return (
     <Modal open onClose={onClose} width={720} title="Record measurement" subtitle="Entry goes to the Measurement Book and waits for joint (JMS) sign-off"

@@ -74,7 +74,7 @@ require('./lib')('closure', async ({ fill, p, go, dlg, S, mut, T, pick, toastTex
     await mut((s) => { s.claims.forEach((c) => { if (c.status === 'Submitted') c.status = 'Verified'; }); const wos = s.workOrders.filter((w) => w.contractId === 'CTR-004').map((w) => w.id);
       s.measurements.filter((m) => wos.includes(m.woId)).forEach((m) => { m.jms.status = 'Signed'; m.billedIn = m.billedIn || 'RA-006'; }); });
     await go('contract-labor/terminations'); await btn('Terminate a contract').click(); await p.waitForTimeout(200);
-    await pick(dlg().locator('label:has-text("Contract") [role=combobox]'), 'CTR-004'); await dlg().locator('label:has-text("Reason") input').fill('Abandoned site for 30 days after two notices');
+    await pick(dlg().locator('label:has-text("Contract") [role=combobox]'), 'CTR-004'); await pick(dlg().locator('label:has-text("Termination reason") [role=combobox]'), 'Abandonment'); await dlg().locator('label:has-text("Details") input').fill('Abandoned site for 30 days after two notices');
     await dlg().locator('button:has-text("Terminate contract")').click(); await p.waitForTimeout(400);
     const decDis = await dlg().locator('button:has-text("Record decision")').isDisabled(); await esc(); await p.waitForTimeout(150);
     const step1 = ((await p.locator('tr:has-text("CTR-004")').textContent()).match(/Final account|Encashment|Blacklist decision/) || ['?'])[0];

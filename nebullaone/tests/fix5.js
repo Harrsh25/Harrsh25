@@ -40,7 +40,7 @@ require('./lib')('fix5', async ({ fill, p, go, dlg, S, mut, as, T, pick, toastTe
   });
   await T('G-10a', 'Retention after DLP needs a handover certificate', async () => {
     await as(null); await go('contract-labor/retention'); await btn('Request retention release').click(); await p.waitForTimeout(200); const d = dlg();
-    await pick(d.locator('label:has-text("Contract") [role=combobox]'), 'CTR-004'); await d.locator('label:has-text("Amount") input').fill('1000'); await p.waitForTimeout(100);
+    await pick(d.locator('label:has-text("Contract") [role=combobox]'), 'CTR-004'); await pick(d.locator('label:has-text("Basis") [role=combobox]'), 'After DLP'); await d.locator('label:has-text("Amount") input').fill('1000'); await p.waitForTimeout(100);
     const t = await d.textContent(); const dis = await d.locator('button:has-text("Raise request")').isDisabled(); await p.keyboard.press('Escape');
     return [`raise disabled=${dis}; "${(t.match(/No handover certificate yet[^.]*/) || [''])[0]}"`, dis && /No handover certificate yet/.test(t)];
   });

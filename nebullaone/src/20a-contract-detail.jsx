@@ -19,6 +19,7 @@ function ContractModal({ open, onClose, onCreated, edit }) {
     !f.type && "pick the contract type",
     f.gstPct === "" && "pick the GST rate",
     ["retentionPct", "advancePct", "advanceRecoveryPct", "cessPct", "pbgPct"].some((k) => VX.pct(f[k])) && "percentages must be 0–100",
+    f.retentionCapPct !== undefined && f.retentionCapPct !== "" && VX.pct(f.retentionCapPct) && "retention cap must be 0–100%",
     Number(f.advancePct) > 0 && !(Number(f.advanceRecoveryPct) > 0) && "set a recovery % when an advance is given",
     VX.num(f.dlpMonths, { min: 0, max: 60, int: true }) && "DLP must be 0–60 whole months",
     Number(f.ldCapPct) < Number(f.ldPctPerWeek) && "LD cap can't be lower than the weekly LD",
@@ -84,6 +85,7 @@ function ContractModal({ open, onClose, onCreated, edit }) {
         <p className="text-[12px] font-semibold uppercase tracking-wide text-ink-mute">Payment & security terms</p>
         <div className="grid grid-cols-4 gap-3">
           <Field label="Retention (%)"><NumInput value={f.retentionPct} onChange={set("retentionPct")} /></Field>
+          <Field label="Retention cap (% of contract)"><NumInput value={f.retentionCapPct ?? ""} onChange={set("retentionCapPct")} placeholder="No cap" /></Field>
           <Field label="Mobilisation advance (%)" hint={value ? inrShort((value * (f.advancePct || 0)) / 100) : ""}><NumInput value={f.advancePct} onChange={set("advancePct")} /></Field>
           <Field label="Advance recovery per bill (%)"><NumInput value={f.advanceRecoveryPct} onChange={set("advanceRecoveryPct")} /></Field>
           <Field label="Labour welfare cess (%)"><NumInput value={f.cessPct} onChange={set("cessPct")} /></Field>
@@ -242,13 +244,14 @@ function ContractDrawer({ id, onClose }) {
         <Section title="Terms" icon={Icon.scale}>
           <KV cols={4} items={[
             ["Start", fmtDate(c.start)], ["Completion", fmtDate(c.end)], ["Signed on", fmtDate(c.signedOn)], ["Owner", c.owner], ["Payment due", c.paymentDays !== undefined && c.paymentDays !== "" ? `${c.paymentDays} days after certification` : "-"], ["Termination notice", c.noticeDays !== undefined && c.noticeDays !== "" ? `${c.noticeDays} days` : "-"],
-            ["Retention", `${c.retentionPct}%`], ["Mobilisation advance", `${c.advancePct || 0}% · ${inrShort(c.advanceAmount)}`], ["Advance recovery", `${c.advanceRecoveryPct || 0}% per bill`], ["Labour cess", `${c.cessPct}%`],
+            ["Retention", `${c.retentionPct}%${Number(c.retentionCapPct) > 0 ? `, capped at ${c.retentionCapPct}% of contract value` : ""}`], ["Mobilisation advance", `${c.advancePct || 0}% · ${inrShort(c.advanceAmount)}`], ["Advance recovery", `${c.advanceRecoveryPct || 0}% per bill`], ["Labour cess", `${c.cessPct}%`],
             ["GST", `${c.gstPct}%`], ["DLP", `${c.dlpMonths} months${c.handover ? ` from handover ${fmtDate(c.handover.date)}` : ""}`], ["LD", c.ldPctPerWeek ? `${c.ldPctPerWeek}%/week, cap ${c.ldCapPct}%` : "-"], ["Performance BG", c.pbgPct ? `${c.pbgPct}% required` : "Not required"],
           ]} />
         </Section>
         <QtyChainSection c={c} />
         <ContractClaimsSection c={c} />
         <DefaultCaseSection c={c} onTerminate={() => setTerm({ reason: "" })} />
+        <ContractCorrespondence c={c} />
         <Section title="Work orders" icon={Icon.clipboardList} actions={live ? <RefLink to={`${CL_BASE}/work-orders?contract=${id}`}>+ New work order</RefLink> : <span className="text-[12px] text-ink-mute">{c.status === "Closed" ? "Closed" : "Available once the contract is signed"}</span>}>
           <DataTable dense rows={wos} empty={<p className="p-4 text-[13px] text-ink-mute">No work orders yet.</p>} columns={[
             { key: "id", label: "WO", render: (w) => <RefLink to={`${CL_BASE}/work-orders?open=${w.id}`}>{w.id}</RefLink> },
@@ -292,8 +295,11 @@ function ContractDrawer({ id, onClose }) {
       {bg && <GuaranteeModal c={c} g={bg.g} mode={bg.mode} onClose={() => setBg(null)} />}
       {term && (
         <Modal open onClose={() => setTerm(null)} width={500} title={`Terminate ${c.id}?`} subtitle="Open work orders are short-closed; billed work, retention and guarantees stay for the final account."
-          footer={<><Btn onClick={() => setTerm(null)}>Cancel</Btn><Btn variant="danger" disabled={!term.reason.trim()} onClick={() => { if (terminateContract(c, term.reason.trim())) setTerm(null); }}>Terminate contract</Btn></>}>
-          <Field label="Reason (audit logged)" required><TextArea value={term.reason} onChange={(x) => setTerm({ reason: x })} placeholder="e.g. Repeated delay notices; LD cap reached" /></Field>
+          footer={<><Btn onClick={() => setTerm(null)}>Cancel</Btn><Btn variant="danger" disabled={!term.category || term.reason.trim().length < 5} onClick={() => { if (terminateContract(c, term.reason.trim(), term.category)) setTerm(null); }}>Terminate contract</Btn></>}>
+          <div className="space-y-3">
+            <Field label="Termination reason" required><Select value={term.category || ""} onChange={(x) => setTerm({ ...term, category: x })} options={TERM_REASONS} /></Field>
+            <Field label="Details (audit logged)" required><TextArea value={term.reason} onChange={(x) => setTerm({ ...term, reason: x })} placeholder="e.g. Repeated delay notices; LD cap reached" /></Field>
+          </div>
         </Modal>
       )}
     </Drawer>

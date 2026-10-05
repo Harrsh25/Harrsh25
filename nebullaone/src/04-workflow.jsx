@@ -185,6 +185,7 @@ function decidePo(p, approve, remark) {
     if (!v || !eligibleForPo(v)) { toast(`${v ? v.name : p.vendorId} can't receive a PO (${v ? `${v.status}, ${v.regTier}` : "missing"})`, "red"); return false; }
   }
   const last = a.i + 1 >= a.levels.length, val = poValue(p);
+  if (approve && last) { const b = budgetCheck(getState(), p.project, val, { poId: p.id }); if (b.over && b.mode === "Stop") { toast(`Can't issue - ${b.text}`, "red"); return false; } }
   setState((s) => {
     const x = byId(s.purchaseOrders, p.id);
     if (approve) x.approvals = [...(x.approvals || []), { level: lvl, by: currentUser(), at: new Date().toISOString(), remark: remark || "" }];
@@ -314,6 +315,7 @@ function ApprovalDeadline({ rec, kind }) {
     <div className="flex items-center justify-between gap-3 border-t border-line px-4 py-2.5 text-[13px]" data-sla>
       <span className="flex flex-wrap items-center gap-2">
         <span className="text-ink-soft">{c.name} decision due <b className="font-medium text-ink">{fmtDate(c.due)}</b> ({c.days}-day deadline)</span>
+        <DelegateNote role={c.name} />
         <Status tone={slaTone(c)}>{slaText(c)}</Status>
         {c.escalated && <span className="text-ink-soft">· Escalated to <b className="font-medium text-ink">{c.escalated.to}</b> by {c.escalated.by} on {fmtDate(c.escalated.at)}{c.escalated.note ? ` - ${c.escalated.note}` : ""}</span>}
       </span>
@@ -349,14 +351,15 @@ function activateContract(c) {
   toast(`${c.id} signed - work orders can now be issued`);
   return true;
 }
-function terminateContract(c, reason) {
+function terminateContract(c, reason, category) {
+  if (!category) { toast("Select the termination reason", "red"); return false; }
   if (!tryAct("Procurement Head", [], "terminating a contract")) return false;
   setState((s) => {
     const x = byId(s.contracts, c.id);
-    x.status = "Terminated"; x.terminated = { by: currentUser(), at: new Date().toISOString(), reason };
+    x.status = "Terminated"; x.terminated = { by: currentUser(), at: new Date().toISOString(), reason, category, frozenAt: todayISO() };
     if (x.defaultCase && x.defaultCase.status === "Open") { x.defaultCase.status = "Terminated"; x.defaultCase.history.push({ at: x.terminated.at, by: x.terminated.by, what: `Decision: terminate - ${reason}` }); }
     s.workOrders.filter((w) => w.contractId === c.id && ["Draft", "Issued", "In Progress", "Suspended"].includes(w.status)).forEach((w) => { w.status = w.status === "Draft" ? "Cancelled" : "Short-closed"; w.closedReason = `Contract terminated - ${reason}`; });
-  }, { entity: "Contract", id: c.id, action: `Terminated - ${reason}` });
+  }, { entity: "Contract", id: c.id, action: `Terminated (${category}) - ${reason}; measurements frozen` });
   toast(`${c.id} terminated; open work orders short-closed`, "red");
   return true;
 }

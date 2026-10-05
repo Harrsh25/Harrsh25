@@ -58,7 +58,9 @@ function complianceItems(v) {
     else if (d.status === "Pending") { level = 1; note = "Awaiting verification"; }
     else if (r.expires && !d.expiry) { level = 1; note = "No expiry date recorded"; }
     else if (left !== null && left <= warn) { level = 1; note = `Expires in ${left} day${left === 1 ? "" : "s"}`; }
-    items.push({ kind: "Document", key: "doc:" + r.name, name: r.name, level, note, blocks: r.blocks, expiry: d?.expiry || null, doc: d, rule: r });
+    const wv = level === 2 && (v.waivers || {})[r.name], wvOk = wv && wv.until >= todayISO();
+    if (wvOk) { level = 1; note = `Waived until ${fmtDate(wv.until)} - ${wv.reason}`; }
+    items.push({ kind: "Document", key: "doc:" + r.name, name: r.name, level, note, blocks: wvOk ? false : r.blocks, expiry: d?.expiry || null, doc: d, rule: r, waiver: wvOk ? wv : null });
   }
   // insurance is no longer collected, so it is not a compliance or approval requirement
   for (const r of INSURANCE_CHECKS ? set.complianceIns.filter((x) => appliesTo(x, v)) : []) {
@@ -186,7 +188,8 @@ function computeRABill(st, woId, mbIds, manual = {}, billId) {
   }
   const gross = round2(sum(lines, (l) => l.amount));
   const ded = {
-    retention: round2((gross * (c.retentionPct || 0)) / 100),
+    // retention stops once the cap (% of the contract value) has been held
+    retention: round2(Math.min((gross * (c.retentionPct || 0)) / 100, Number(c.retentionCapPct) > 0 ? Math.max(0, (contractValue(c) * Number(c.retentionCapPct)) / 100 - sum(earlier, (b) => b.ded?.retention || 0)) : Infinity)),
     advance: round2(Math.min((gross * (c.advanceRecoveryPct || 0)) / 100, advanceOutstanding(st, c, billId))),
     tds: round2((gross * tdsRate(v.tds)) / 100),
     cess: round2((gross * (c.cessPct || 0)) / 100),

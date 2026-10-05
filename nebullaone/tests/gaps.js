@@ -13,11 +13,15 @@ require('./lib')('gaps', async ({ fill, p, go, dlg, S, mut, T, pick }) => {
     await go('contract-labor/claims'); await p.locator('main button:has-text("Record claim")').click(); await p.waitForTimeout(200); const d = dlg();
     await pick(d.locator('label:has-text("Contract") [role=combobox]'), 'CTR-001 - Civil & structural works - Towers A & B'); await pick(d.locator('label:has-text("Claim type") [role=combobox]'), 'Extra work');
     await d.locator('input[placeholder="e.g. Steel price rise Jul-Sep"]').fill('Additional plinth protection works'); await d.locator('label:has-text("Amount claimed") input').fill('150000');
-    await d.locator('label:has-text("Basis of claim") textarea').fill('Site instruction SI-14 from the architect'); await d.locator('button:has-text("Save claim")').click(); await p.waitForTimeout(300);
+    await d.locator('label:has-text("Basis of claim") textarea').fill('Site instruction SI-14 from the architect'); await d.locator('label:has-text("Event date") input').fill(new Date(Date.now() - 5 * 864e5).toISOString().slice(0, 10)); await d.locator('button:has-text("Save claim")').click(); await p.waitForTimeout(300);
     const s1 = await S(); const nc = s1.contractClaims.find((x) => x.title === 'Additional plinth protection works');
-    await go('contract-labor/claims?open=CLM-001'); await p.waitForTimeout(300); await drawer().locator('button:has-text("Settle")').click(); await p.waitForTimeout(200);
+    await go('contract-labor/claims?open=CLM-001'); await p.waitForTimeout(300); await drawer().locator('button:has-text("Start engineer review")').click(); await p.waitForTimeout(200);
+    await drawer().locator('button:has-text("Record assessment")').click(); await p.waitForTimeout(200); await dlg().locator('label:has-text("Amount assessed") input').fill('520000'); await dlg().locator('label:has-text("Assessment note") textarea').fill('Index rise verified against WPI'); await dlg().locator('button:has-text("Save assessment")').click(); await p.waitForTimeout(250);
+    await drawer().locator('button:has-text("Settle")').click(); await p.waitForTimeout(200);
     await dlg().locator('label:has-text("Amount agreed") input').fill('500000'); await dlg().locator('label:has-text("Settlement note") textarea').fill('Agreed at 80% of the index rise'); await dlg().locator('button:has-text("Settle claim")').click(); await p.waitForTimeout(250);
-    await go('contract-labor/claims?open=CLM-002'); await p.waitForTimeout(300); await drawer().locator('button:has-text("Settle")').click(); await p.waitForTimeout(200);
+    await go('contract-labor/claims?open=CLM-002'); await p.waitForTimeout(300);
+    await drawer().locator('button:has-text("Record assessment")').click(); await p.waitForTimeout(200); await dlg().locator('label:has-text("Days assessed") input').fill('15'); await dlg().locator('label:has-text("Assessment note") textarea').fill('Rain records checked'); await dlg().locator('button:has-text("Save assessment")').click(); await p.waitForTimeout(250);
+    await drawer().locator('button:has-text("Settle")').click(); await p.waitForTimeout(200);
     await dlg().locator('label:has-text("Days agreed") input').fill('15'); await dlg().locator('label:has-text("Settlement note") textarea').fill('15 rain days accepted'); await dlg().locator('button:has-text("Settle claim")').click(); await p.waitForTimeout(250);
     const s2 = await S(); const c = s2.contracts.find((x) => x.id === 'CTR-001');
     await go('contract-labor/final-settlement?open=CTR-001'); await p.waitForTimeout(300); const t = await dlg().innerText();

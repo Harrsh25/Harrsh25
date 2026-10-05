@@ -12,6 +12,7 @@ function PortalPoDrawer({ id, onClose, open }) {
   const [tab, setTab] = y.useState("lines"), [send, setSend] = y.useState(false);
   if (!po) return null;
   const rec = poReceived(po), v = byId(st.vendors, po.vendorId);
+  const [ack, setAck] = y.useState(false);
   const canSend = !["Draft", "Closed", "Cancelled"].includes(po.status) && !isBlockedFor(v, "All") && rec.some((_, i) => dispatchRoom(po, i) > 0);
   const invs = st.invoices.filter((i) => i.poId === po.id);
   const billedQty = (i) => sum(invs.flatMap((x) => x.lines.filter((z) => z.line === i)), (z) => z.qty);
@@ -26,8 +27,8 @@ function PortalPoDrawer({ id, onClose, open }) {
     { id: "rev", label: "Revisions", count: po.revisions.length },
   ];
   return (
-    <Drawer open onClose={onClose} width={920} title={po.project} recordId={po.id} status={<Status>{poStatus(po)}</Status>} details={[poDispatchState(st, po) && ["Delivery", <PoDispatchChip st={st} po={po} />], ["Billing", <Status tone="blue">{poBillingStatus(st, po)}</Status>], ["Deliver to", po.project], ["Delivery by", fmtDate(po.deliveryDate)], ["Issued", fmtDate(po.date)]]} tabs={{ tabs, active: tab, onChange: setTab }}
-      actions={canSend && <Btn variant="primary" icon={Icon.truck} onClick={() => setSend(true)}>Send dispatch notice</Btn>}>
+    <Drawer open onClose={onClose} width={920} title={po.project} recordId={po.id} status={<Status>{poStatus(po)}</Status>} details={[poAckState(po) && ["Your acknowledgment", <PoAckChip po={po} />], poDispatchState(st, po) && ["Delivery", <PoDispatchChip st={st} po={po} />], ["Billing", <Status tone="blue">{poBillingStatus(st, po)}</Status>], ["Deliver to", po.project], ["Delivery by", fmtDate(po.deliveryDate)], ["Issued", fmtDate(po.date)]]} tabs={{ tabs, active: tab, onChange: setTab }}
+      actions={<>{poAckState(po) === "Awaiting acknowledgment" && !isBlockedFor(v, "All") && <Btn variant="primary" icon={Icon.check} onClick={() => setAck(true)}>Acknowledge PO</Btn>}{canSend && <Btn variant={poAckState(po) === "Awaiting acknowledgment" ? "secondary" : "primary"} icon={Icon.truck} onClick={() => setSend(true)}>Send dispatch notice</Btn>}</>}>
       <div className="space-y-4 px-6 py-5">
         <div className="grid grid-cols-4 gap-3">
           <StatTile tone="blue" label="Order value" value={inrShort(poValue(po))} sub="excl. GST" icon={Icon.package} />
@@ -97,6 +98,7 @@ function PortalPoDrawer({ id, onClose, open }) {
           </Section>
         )}
       </div>
+      {ack && <PoAckModal po={po} by={`${v.name} (portal)`} onClose={() => setAck(false)} />}
       {send && <DispatchModal po={po} by={`${v.name} (portal)`} onClose={() => { setSend(false); setTab("dsp"); }} />}
     </Drawer>
   );

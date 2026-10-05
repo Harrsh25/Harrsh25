@@ -220,7 +220,7 @@ require('./lib')('final', async ({ fill, p, go, dlg, S, mut, as, T, pick, toastT
     // time-travel only: move the handover back past the defect liability period
     await p.evaluate((cid) => { const s = JSON.parse(localStorage.getItem('nxv-store-v1')); const x = s.contracts.find((y) => y.id === cid); x.handover.date = new Date(Date.now() - (x.dlpMonths * 30 + 2) * 864e5).toISOString().slice(0, 10); localStorage.setItem('nxv-store-v1', JSON.stringify(s)); }, id);
     await as('Arjun Mehta'); await go('contract-labor/retention'); await btn('Request retention release').click(); await p.waitForTimeout(200); const d = dlg();
-    await pick(d.locator('label:has-text("Contract") [role=combobox]'), id); await p.waitForTimeout(100); const hint = await d.locator('label:has-text("Amount")').textContent(); const amt = (hint.match(/Available ₹([\d,.]+)/) || [0, '0'])[1].replace(/,/g, '');
+    await pick(d.locator('label:has-text("Contract") [role=combobox]'), id); await pick(d.locator('label:has-text("Basis") [role=combobox]'), 'After DLP'); await p.waitForTimeout(100); const hint = await d.locator('label:has-text("Amount")').textContent(); const amt = (hint.match(/Available ₹([\d,.]+)/) || [0, '0'])[1].replace(/,/g, '');
     await d.locator('label:has-text("Amount") input').fill(amt); await d.locator('button:has-text("Raise request")').click(); await p.waitForTimeout(200);
     const rr = (await S()).retentionReleases.find((r) => r.contractId === id);
     await as('Rohit Shah'); await go('contract-labor/retention'); await p.getByText('Retention releases', { exact: true }).click(); await p.locator(`tr:has-text("${rr.id}") button:has-text("Approve")`).click(); await p.waitForTimeout(150);

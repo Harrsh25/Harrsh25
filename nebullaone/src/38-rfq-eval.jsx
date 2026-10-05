@@ -1,7 +1,7 @@
 // Bid evaluation for an RFQ: technical evaluation against criteria with a pass mark (failed bidders can't be awarded),
 // compliance evaluation, clarifications, a best-and-final-offer (BAFO) round with price history, a combined
 // technical + commercial score and an award recommendation that must be justified when it isn't the top-ranked bidder.
-const DEFAULT_TECH = [{ name: "Compliance with specifications", weight: 40 }, { name: "Experience on similar work", weight: 30 }, { name: "Delivery / method plan", weight: 30 }];
+const DEFAULT_TECH = [{ name: "Compliance with specifications", weight: 30 }, { name: "Experience on similar work", weight: 20 }, { name: "Delivery / method plan", weight: 20 }, { name: "HSE record", weight: 15 }, { name: "Past performance (scorecard)", weight: 15 }];
 const techCriteria = (rfq) => (rfq.techCriteria && rfq.techCriteria.length ? rfq.techCriteria : DEFAULT_TECH);
 const techPass = (rfq) => (rfq.techPass != null ? Number(rfq.techPass) : 60);
 const techWeight = (rfq) => (rfq.techWeight != null ? Number(rfq.techWeight) : 40);

@@ -409,6 +409,39 @@ function VendorRfqView({ rfq, vendorId, onDone }) {
 }
 
 // ---------------------------------------------------------------- split award
+// Award → one draft PO per vendor (lines carry the quoted rates); used directly and when an award request is approved
+function createAwardPOs(rfqId, groups, note, keepOpen) {
+  const st = getState(), rfq = byId(st.rfqs, rfqId);
+    const created = [];
+    setState((s) => {
+      const r = byId(s.rfqs, rfq.id);
+      r.awards = r.awards || [];
+      r.awardNotes = [...(r.awardNotes || []), { at: new Date().toISOString(), by: currentUser(), note, target: "PO" }];
+      for (const [vid, lines] of Object.entries(groups)) {
+        const q = r.quotes.find((x) => x.vendorId === vid);
+        const poId = nextId("PO", s.purchaseOrders);
+        s.purchaseOrders.unshift({
+          id: poId, vendorId: vid, project: rfq.project, date: todayISO(), deliveryDate: shiftDays(Math.max(...lines.map((i) => Number(q.leadDays?.[i] ?? q.deliveryDays) || 7))), status: "Draft",
+          billingPolicy: "On received quantity", tolerance: 2, rfqId: rfq.id, blanketId: null, returns: [], quoteNo: q.quoteNo, gstPct: q.gstPct,
+          lines: lines.map((i) => ({ desc: rfq.items[i].desc, unit: rfq.items[i].unit, qty: rfq.items[i].qty, rate: round2(lineRate(q, i)) })),
+          receipts: [], revisions: [{ rev: 0, at: new Date().toISOString(), by: currentUser(), note: `Created from ${rfq.id} award (lines ${lines.map((i) => i + 1).join(", ")})` }],
+          awardNote: note, awardBy: currentUser(),
+        });
+        lines.forEach((i) => r.awards.push({ line: i, vendorId: vid, poId }));
+        created.push(poId);
+      }
+      const allDone = rfq.items.every((_, i) => r.awards.some((a) => a.line === i));
+      r.status = allDone || !keepOpen ? "Awarded" : "Partially Awarded";
+      r.awardedTo = Object.keys(groups).length === 1 ? Object.keys(groups)[0] : "Split";
+      r.poId = created[0];
+    }, { entity: "RFQ", id: rfq.id, action: `Awarded - ${Object.entries(groups).map(([v, l]) => `${vendorName(st, v)}: lines ${l.map((i) => i + 1).join(",")}`).join("; ")}` });
+    toast(`${Object.keys(groups).length} draft PO(s) created - approve them in Approval Management`);
+}
+function decideAward(rfq, approve, reason) {
+  const req = rfq.awardRequest;
+  setState((s) => { const r = byId(s.rfqs, rfq.id); Object.assign(r.awardRequest, { status: approve ? "Approved" : "Rejected", decidedBy: currentUser(), decidedAt: new Date().toISOString(), reason: reason || "" }); }, { entity: "RFQ", id: rfq.id, action: approve ? `Award of ${inrShort(req.value)} approved` : `Award rejected - ${reason}` });
+  if (approve) createAwardPOs(rfq.id, req.groups, req.note, req.keepOpen); else toast("Award rejected - choose again", "red");
+}
 function SplitAwardModal({ rfq, onClose, preset }) {
   const st = useStore();
   const eligible = rfq.quotes.filter((q) => q.review !== "Returned" && q.review !== "Under review" && daysUntil(q.validUntil) >= 0);
@@ -429,30 +462,14 @@ function SplitAwardModal({ rfq, onClose, preset }) {
   const confirm = () => {
     if (!note.trim()) return toast("Write the award recommendation first", "red");
     if (target === "contract") return confirmContract();
-    const created = [];
-    setState((s) => {
-      const r = byId(s.rfqs, rfq.id);
-      r.awards = r.awards || [];
-      r.awardNotes = [...(r.awardNotes || []), { at: new Date().toISOString(), by: currentUser(), note: note.trim(), target: "PO" }];
-      for (const [vid, lines] of Object.entries(groups)) {
-        const q = r.quotes.find((x) => x.vendorId === vid);
-        const poId = nextId("PO", s.purchaseOrders);
-        s.purchaseOrders.unshift({
-          id: poId, vendorId: vid, project: rfq.project, date: todayISO(), deliveryDate: shiftDays(Math.max(...lines.map((i) => Number(q.leadDays?.[i] ?? q.deliveryDays) || 7))), status: "Draft",
-          billingPolicy: "On received quantity", tolerance: 2, rfqId: rfq.id, blanketId: null, returns: [], quoteNo: q.quoteNo, gstPct: q.gstPct,
-          lines: lines.map((i) => ({ desc: rfq.items[i].desc, unit: rfq.items[i].unit, qty: rfq.items[i].qty, rate: round2(lineRate(q, i)) })),
-          receipts: [], revisions: [{ rev: 0, at: new Date().toISOString(), by: currentUser(), note: `Created from ${rfq.id} award (lines ${lines.map((i) => i + 1).join(", ")})` }],
-          awardNote: note.trim(), awardBy: currentUser(),
-        });
-        lines.forEach((i) => r.awards.push({ line: i, vendorId: vid, poId }));
-        created.push(poId);
-      }
-      const allDone = rfq.items.every((_, i) => r.awards.some((a) => a.line === i));
-      r.status = allDone || !keepOpen ? "Awarded" : "Partially Awarded";
-      r.awardedTo = Object.keys(groups).length === 1 ? Object.keys(groups)[0] : "Split";
-      r.poId = created[0];
-    }, { entity: "RFQ", id: rfq.id, action: `Awarded - ${Object.entries(groups).map(([v, l]) => `${vendorName(st, v)}: lines ${l.map((i) => i + 1).join(",")}`).join("; ")}` });
-    toast(`${Object.keys(groups).length} draft PO(s) created - approve them in Approval Management`);
+    const value = round2(sum(Object.entries(groups), ([vid, lines]) => { const q = rfq.quotes.find((x) => x.vendorId === vid); return sum(lines, (i) => (Number(rfq.items[i].qty) || 0) * (lineRate(q, i) || 0)); }));
+    const limit = Number(settingsOf(st).awardApprovalLimit) || 0;
+    // a large award waits for approval before any PO is created
+    if (limit && value > limit) {
+      setState((s) => { byId(s.rfqs, rfq.id).awardRequest = { groups, note: note.trim(), keepOpen, value, status: "Pending", by: currentUser(), at: new Date().toISOString() }; }, { entity: "RFQ", id: rfq.id, action: `Award of ${inrShort(value)} sent for approval (above ${inrShort(limit)}) - ${note.trim()}` });
+      toast(`Award of ${inrShort(value)} sent for approval`); onClose(); return;
+    }
+    createAwardPOs(rfq.id, groups, note.trim(), keepOpen);
     onClose();
   };
   // Contractor awards become draft contracts carrying the awarded lines as the contract BOQ;
@@ -536,7 +553,7 @@ function RfqDrawer({ id, onClose, compose }) {
   const rfq = byId(st.rfqs, id);
   const [send, setSend] = y.useState(compose ? { all: true } : null);
   const [record, setRecord] = y.useState(null), [cancelAsk, setCancelAsk] = y.useState(false);
-  const [award, setAward] = y.useState(null);
+  const [award, setAward] = y.useState(null), [awRej, setAwRej] = y.useState(false);
   const [share, setShare] = y.useState(null);
   const [ret, setRet] = y.useState(null);
   const [msg, setMsg] = y.useState({ vendorId: "", text: "" });
@@ -635,7 +652,7 @@ function RfqDrawer({ id, onClose, compose }) {
         </>}
         {tab === "compare" && <>
         <Section title="Comparison sheet (net of discount, in INR)" icon={Icon.scale}
-          actions={open && reviewed.length > 0 && <Btn size="sm" variant="primary" icon={Icon.sparkles} onClick={() => setAward({})}>Award by line…</Btn>}>
+          actions={open && reviewed.length > 0 && rfq.awardRequest?.status !== "Pending" && <Btn size="sm" variant="primary" icon={Icon.sparkles} onClick={() => setAward({})}>Award by line…</Btn>}>
           {rfq.quotes.length === 0 ? <p className="p-4 text-[13px] text-ink-mute">No quotations yet.</p> : (
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -677,8 +694,15 @@ function RfqDrawer({ id, onClose, compose }) {
         )}
           {!ranked.length && <p className="text-[13px] text-ink-mute">Scores appear once quotations are received.</p>}
         </>}
-        {tab === "approval" && (
-          <Section title="Award & approval" icon={Icon.clipboardCheck} actions={open && reviewed.length > 0 && <Btn size="sm" variant="primary" icon={Icon.sparkles} onClick={() => setAward({})}>Award by line…</Btn>}>
+        {tab === "approval" && (<>
+          {rfq.awardRequest?.status === "Pending" && (
+            <div data-award-request className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50/60 px-4 py-3 text-[13px]">
+              <span>Award of <b className="num">{inrShort(rfq.awardRequest.value)}</b> waits for approval (above {inrShort(Number(settingsOf(st).awardApprovalLimit) || 0)}) - {rfq.awardRequest.note} · {Object.keys(rfq.awardRequest.groups).map((v) => vendorName(st, v)).join(", ")}</span>
+              <span className="flex gap-2"><Btn size="sm" variant="danger" onClick={() => setAwRej(true)}>Reject award</Btn><Btn size="sm" variant="success" onClick={() => decideAward(rfq, true)}>Approve award</Btn></span>
+            </div>
+          )}
+          {rfq.awardRequest?.status === "Rejected" && <Note tone="red">Award rejected by {rfq.awardRequest.decidedBy} - {rfq.awardRequest.reason}</Note>}
+          <Section title="Award & approval" icon={Icon.clipboardCheck} actions={open && reviewed.length > 0 && rfq.awardRequest?.status !== "Pending" && <Btn size="sm" variant="primary" icon={Icon.sparkles} onClick={() => setAward({})}>Award by line…</Btn>}>
             <DataTable dense rows={rfq.awards || []} rowKey={(a, i) => a.poId + i} empty={<p className="p-4 text-[13px] text-ink-mute">{rfq.status === "Cancelled" ? `Cancelled - ${rfq.cancelled?.reason || ""}` : "Not awarded yet. Compare the quotations, then use Award by line - each awarded vendor gets a draft PO that goes for approval."}</p>} columns={[
               { key: "l", label: "Item", className: "whitespace-normal", render: (a) => rfq.items[a.line]?.desc },
               { key: "v", label: "Awarded to", render: (a) => vendorName(st, a.vendorId) },
@@ -688,7 +712,7 @@ function RfqDrawer({ id, onClose, compose }) {
             ]} />
             {rfq.recommendation && <p className="border-t border-line px-4 py-3 text-[13px] text-ink-soft">Recommendation: {rfq.recommendation}</p>}
           </Section>
-        )}
+        </>)}
         {tab === "emails" && <Section title={`E-mails (${(rfq.emails || []).length})`} icon={Icon.mail}>
             <ul className="max-h-[220px] divide-y divide-line overflow-y-auto">
               {(rfq.emails || []).length === 0 && <li className="p-3 text-[13px] text-ink-mute">Nothing sent yet.</li>}
@@ -719,6 +743,7 @@ function RfqDrawer({ id, onClose, compose }) {
         </Modal>
       )}
       {award && <SplitAwardModal rfq={rfq} onClose={() => setAward(null)} />}
+      {awRej && <ReasonModal title={`Reject the award on ${rfq.id}`} text="No PO is created; the buyer can award again." action="Reject award" onClose={() => setAwRej(false)} onDone={(r) => decideAward(rfq, false, r)} />}
       {share && <ShareLinkModal title={`Quotation link - ${vendorName(st, share)}`} url={appUrl(`/vendor-quote/${rfq.id}/${share}`)} onClose={() => setShare(null)}
         text="Personal link for this vendor. Opening it asks them to sign in with a one-time code sent to their registered e-mail, then accept the invitation and quote." />}
       {ret && (

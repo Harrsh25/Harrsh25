@@ -11,10 +11,10 @@ require('./lib')('rfqeval', async ({ fill, p, go, dlg, S, mut, T }) => {
   await T('EV-01', 'Technical scoring: weighted score vs pass mark; a failing score needs a reason', async () => {
     const d = await evalTab();
     await d.locator('tr:has-text("Deccan Steel") button:has-text("Score")').click(); await p.waitForTimeout(150);
-    const m = dlg(); const ins = m.locator('input[placeholder="0–10"]'); await ins.nth(0).fill('3'); await ins.nth(1).fill('4'); await ins.nth(2).fill('5'); await p.waitForTimeout(100);
+    const m = dlg(); const ins = m.locator('input[placeholder="0–10"]'); await ins.nth(0).fill('3'); await ins.nth(1).fill('4'); await ins.nth(2).fill('5'); await ins.nth(3).fill('4'); await ins.nth(4).fill('4'); await p.waitForTimeout(100);
     const dis = await m.locator('button:has-text("Save")').isDisabled(); const t = await m.innerText();
     await m.locator('label:has-text("fails") input').fill('Mill certificates missing for 16 mm'); await m.locator('button:has-text("Save")').click(); await p.waitForTimeout(200);
-    await score(d, 'Konkan Steel', [8, 7, 9]);
+    await score(d, 'Konkan Steel', [8, 7, 9, 8, 8]);
     const r = (await S()).rfqs.find((x) => x.id === RID);
     return [`fail needs reason ${dis}; ${(t.match(/Technical score: \d+/) || [''])[0]}; saved ${Object.keys(r.techEval || {}).join(', ')}`, dis && /Fail/.test(t) && Object.keys(r.techEval || {}).length === 2];
   });

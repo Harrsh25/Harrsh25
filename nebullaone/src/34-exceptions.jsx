@@ -47,6 +47,8 @@ function exceptionRows(st) {
   blanketExceptions(st, add);
   billExceptions(st, add);
   subExceptions(st, add);
+  ackExceptions(st, add);
+  letterExceptions(st, add);
   for (const inv of st.invoices) {
     if (inv.cancelled) continue;
     const s = invoiceStatus(inv), m = threeWay(st, inv).status;
