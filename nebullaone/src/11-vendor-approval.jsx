@@ -184,7 +184,8 @@ function QualLimitForm({ v }) {
 function approvalAction(v, decision, remark, opts = {}) {
   const i = v.approval.stages.findIndex((st) => st.status === "Pending");
   if (i < 0 || v.status !== "Pending Approval") return false;
-  const stg = v.approval.stages[i], last = i === v.approval.stages.length - 1;
+  const stg = v.approval.stages[i], last = approvalFinishes(v.approval.stages, i);
+  if (decision === "Approved" && alreadyVoted(stg)) { toast(`You already approved ${stg.dept} - ${stg.need} different approvers are needed`, "red"); return false; }
   if (!tryAct(DEPT_ROLE[stg.dept], vendorApprovers(v), `the ${stg.dept} decision`)) return false;
   if (decision === "Rejected" && !(remark || "").trim()) { toast("A reason is required to reject", "red"); return false; }
   if (decision === "Approved" && last) {
@@ -196,11 +197,10 @@ function approvalAction(v, decision, remark, opts = {}) {
   setState((s) => {
     const x = byId(s.vendors, v.id);
     const st0 = x.approval.stages[i];
-    Object.assign(st0, { status: decision, by: currentUser(), at: new Date().toISOString(), remark, ...(ov && ov.length ? { override: ov } : {}) });
-    if (decision === "Rejected") x.status = "Rejected";
-    else if (i + 1 < x.approval.stages.length) Object.assign(x.approval.stages[i + 1], { status: "Pending", since: st0.at });
-    else { x.status = "Active"; x.approvedOn = todayISO(); }
-  }, { entity: "Vendor", id: v.id, action: `${decision} at ${stg.dept}${ov && ov.length ? ` with override (${ov.join("; ")})` : ""}${remark ? ` - ${remark}` : ""}` });
+    if (decision !== "Approved") { Object.assign(st0, { status: decision, by: currentUser(), at: new Date().toISOString(), remark }); if (decision === "Rejected") x.status = "Rejected"; return; }
+    if (ov && ov.length) st0.override = ov;
+    if (recordApproval(x.approval.stages, i, remark) === "done") { x.status = "Active"; x.approvedOn = todayISO(); }
+  }, { entity: "Vendor", id: v.id, action: `${decision} at ${stg.dept}${decision === "Approved" && (stg.need || 1) > 1 ? ` (${(stg.votes || []).length + 1} of ${stg.need})` : ""}${ov && ov.length ? ` with override (${ov.join("; ")})` : ""}${remark ? ` - ${remark}` : ""}` });
   return true;
 }
 function resubmit(v) {
@@ -209,10 +209,11 @@ function resubmit(v) {
   setState((s) => {
     const x = byId(s.vendors, v.id);
     // a first submission picks up the current approval stages from Procurement Settings
-    if (x.status === "Draft" && !x.approval.stages.some((st) => st.status === "Approved")) x.approval = { stages: vendorFlowFor(x, s).map((dept) => ({ dept, status: "Waiting", by: null, at: null, remark: "" })) };
+    if (x.status === "Draft" && !x.approval.stages.some((st) => st.status === "Approved")) x.approval = { stages: vendorFlowRows(x, s).map(stageFrom("dept")) };
     // approvals already given are kept; routing resumes at the first stage not yet approved
     const i = Math.max(0, x.approval.stages.findIndex((st) => st.status !== "Approved"));
-    x.approval.stages.forEach((st, j) => { if (j >= i) Object.assign(st, { status: j === i ? "Pending" : "Waiting", by: null, at: null, remark: "", since: j === i ? new Date().toISOString() : null, escalated: null }); });
+    x.approval.stages.forEach((st, j) => { if (j >= i) Object.assign(st, { status: "Waiting", by: null, at: null, remark: "", since: null, escalated: null, votes: [] }); });
+    openStageGroup(x.approval.stages, i, new Date().toISOString());
     if (x.changeRequest && !x.changeRequest.resolvedAt) x.changeRequest = { ...x.changeRequest, resolvedAt: new Date().toISOString() };
     x.status = "Pending Approval";
     x.submittedBy = currentUser(); x.submittedAt = new Date().toISOString();
@@ -237,7 +238,7 @@ function VendorApproval({ v, mode = "approval" }) {
           <Stepper steps={stages.map((s) => ({
             label: s.dept,
             status: s.status === "Approved" ? "done" : s.status === "Rejected" ? "rejected" : s.status === "Pending" || s.status === "Changes Requested" ? "current" : "todo",
-            meta: s.by ? `${s.by} · ${fmtDateTime(s.at)}${s.remark && s.remark !== "OK" ? ` - ${s.remark}` : ""}` : s.status === "Pending" ? "Awaiting decision" : "",
+            meta: s.by ? `${s.by} · ${fmtDateTime(s.at)}${s.remark && s.remark !== "OK" ? ` - ${s.remark}` : ""}` : s.status === "Pending" ? `Awaiting decision${stageNeedText(s)}${s.parallel ? " · runs with the previous stage" : ""}` : "",
           }))} />
         </div>
         <ApprovalDeadline rec={v} kind="vendor" />
@@ -248,7 +249,7 @@ function VendorApproval({ v, mode = "approval" }) {
           </div>
         )}
         {pending && decide && v.status === "Pending Approval" && (() => {
-          const blockers = approvalBlockers(v), last = pending === stages[stages.length - 1];
+          const blockers = approvalBlockers(v), last = approvalFinishes(stages, stages.indexOf(pending));
           const canOverride = last && blockers.length > 0 && hasRole("Finance Controller");
           return (
           <div className="space-y-3 border-t border-line p-4">

@@ -250,11 +250,12 @@ function submitContract(c) {
   if (!(c.end > c.start)) errs.push("completion after start");
   errs.push(...contractorBlockers(st, v, { project: c.project }));
   if (errs.length) { toast(`Can't submit - ${errs.join("; ")}`, "red"); return false; }
-  const flow = contractFlowFor(contractValue(c), st);
+  const rows = contractFlowRows(contractValue(c), st), flow = rows.map((r) => r.name);
   setState((s) => {
     const x = byId(s.contracts, c.id);
     x.status = "Pending Approval"; x.submittedBy = currentUser(); x.submittedAt = new Date().toISOString();
-    x.approval = { stages: flow.map((role, i) => ({ role, status: i === 0 ? "Pending" : "Waiting", by: null, at: null, remark: "", since: i === 0 ? x.submittedAt : null })) };
+    x.approval = { stages: rows.map(stageFrom("role")) };
+    openStageGroup(x.approval.stages, 0, x.submittedAt);
   }, { entity: "Contract", id: c.id, action: `Submitted for approval (${flow.join(" → ")})` });
   toast(`${c.id} submitted - ${flow[0]} approves next`);
   return true;
@@ -264,18 +265,19 @@ function decideContract(c, approve, remark) {
   const i = c.approval.stages.findIndex((x) => x.status === "Pending"), stg = c.approval.stages[i];
   if (!tryAct(stg.role, contractInvolved(c), `the ${stg.role} contract approval`)) return false;
   if (!approve && !(remark || "").trim()) { toast("A reason is required to reject", "red"); return false; }
-  if (approve && i === c.approval.stages.length - 1) {
+  if (approve && alreadyVoted(stg)) { toast(`You already approved ${stg.role} - ${stg.need} different approvers are needed`, "red"); return false; }
+  const finishes = approve && approvalFinishes(c.approval.stages, i);
+  if (finishes) {
     const b = contractorBlockers(getState(), byId(getState().vendors, c.vendorId), { project: c.project });
     if (b.length) { toast(`Can't approve - ${b.join("; ")}`, "red"); return false; }
   }
   setState((s) => {
     const x = byId(s.contracts, c.id), sg = x.approval.stages[i];
-    Object.assign(sg, { status: approve ? "Approved" : "Rejected", by: currentUser(), at: new Date().toISOString(), remark: remark || "" });
-    if (!approve) x.status = "Rejected";
-    else if (i + 1 < x.approval.stages.length) Object.assign(x.approval.stages[i + 1], { status: "Pending", since: sg.at });
-    else { x.status = "Approved"; x.approvedOn = todayISO(); }
+    if (!approve) { Object.assign(sg, { status: "Rejected", by: currentUser(), at: new Date().toISOString(), remark: remark || "" }); x.status = "Rejected"; return; }
+    if (recordApproval(x.approval.stages, i, remark) === "done") { x.status = "Approved"; x.approvedOn = todayISO(); }
   }, { entity: "Contract", id: c.id, action: `${approve ? "Approved" : "Rejected"} by ${stg.role}${remark ? ` - ${remark}` : ""}` });
-  toast(approve ? (i + 1 < c.approval.stages.length ? `${stg.role} approved - ${c.approval.stages[i + 1].role} next` : `${c.id} approved - ready to sign`) : `${c.id} rejected - back to the owner`, approve ? "green" : "red");
+  const after = byId(getState().contracts, c.id), nxt = after.approval.stages.filter((x) => x.status === "Pending").map((x) => x.role + stageNeedText(x)).join(" and ");
+  toast(!approve ? `${c.id} rejected - back to the owner` : finishes ? `${c.id} approved - ready to sign` : `${stg.role} approval recorded - ${nxt} next`, approve ? "green" : "red");
   return true;
 }
 // ---------------------------------------------------------------- approval deadlines (SLA) and escalation

@@ -38,6 +38,10 @@ const SUB_STATUS_TONE = { Proposed: "blue", Approved: "green", Rejected: "red", 
 const contractSubs = (c) => c?.subcontracts || [];
 const allSubs = (st) => st.contracts.flatMap((c) => contractSubs(c).map((x) => ({ ...x, contract: c })));
 const subLimitPct = (st) => Number(settingsOf(st || getState()).maxSubcontractPct) || 0;
+// Sub-subcontracting: a subcontractor may sublet part of its own scope, down to level 3
+const MAX_SUB_LEVEL = 3;
+const subLevel = (c, sub) => { let n = 1, p = sub; while (p && p.parentId) { p = contractSubs(c).find((x) => x.id === p.parentId); n++; } return n; };
+const subParent = (c, sub) => (sub.parentId ? contractSubs(c).find((x) => x.id === sub.parentId) : null);
 // Reasons a subcontractor can't be approved (or keep working)
 function subBlockers(st, c, sub) {
   const v = byId(st.vendors, sub.vendorId), out = [];
@@ -47,9 +51,15 @@ function subBlockers(st, c, sub) {
   if (isBlockedFor(v, "Orders")) out.push(`${v.name} is on hold for orders`);
   const comp = complianceOf(v); if (comp.blocking.length) out.push(`Compliance: ${comp.blocking.slice(0, 2).join("; ")}`);
   const q = qualStatus(v); if (["Not qualified", "Expired", "Requalification required"].includes(q.status)) out.push(`Qualification: ${q.status}`);
-  const lim = subLimitPct(st), cv = contractValue(c);
-  const total = sum(contractSubs(c).filter((x) => x.id !== sub.id && ["Proposed", "Approved"].includes(x.status)), (x) => Number(x.value) || 0) + (Number(sub.value) || 0);
-  if (lim && total > cv * lim / 100) out.push(`Sublet value ${inrShort(total)} is over ${lim}% of the contract (${inrShort(cv * lim / 100)})`);
+  const lim = subLimitPct(st), parent = subParent(c, sub);
+  if (sub.parentId && !parent) out.push("The subcontract it is sublet from no longer exists");
+  if (parent && parent.status !== "Approved") out.push(`${parent.id} must be approved before it can sublet`);
+  if (parent && parent.vendorId === v.id) out.push("A subcontractor can't sublet to itself");
+  if (subLevel(c, sub) > MAX_SUB_LEVEL) out.push(`Subletting stops at level ${MAX_SUB_LEVEL}`);
+  // the limit applies at each level: level 1 against the contract, deeper levels against their parent subcontract
+  const base = parent ? Number(parent.value) || 0 : contractValue(c), siblings = contractSubs(c).filter((x) => x.id !== sub.id && (x.parentId || null) === (sub.parentId || null) && ["Proposed", "Approved"].includes(x.status));
+  const total = sum(siblings, (x) => Number(x.value) || 0) + (Number(sub.value) || 0);
+  if (lim && total > base * lim / 100) out.push(`Sublet value ${inrShort(total)} is over ${lim}% of ${parent ? parent.id : "the contract"} (${inrShort(base * lim / 100)})`);
   return out;
 }
 const subWorkers = (st, sub) => st.workers.filter((w) => w.subcontractId === sub.id);
@@ -79,6 +89,7 @@ function SubcontractSection({ c }) {
   const candidates = st.vendors.filter((v) => v.id !== c.vendorId && (v.isContractor || hasType(v, "Labor") || hasType(v, "Services")));
   const er = f ? {
     vendorId: f.vendorId ? "" : "Pick the subcontractor",
+    parentId: f.parentId ? "" : "Select who sublets this scope",
     scope: f.scope.trim().length < 5 ? "Describe the sublet scope" : "",
     value: (f.boq || []).length ? "" : !(Number(f.value) > 0) ? "Enter the sublet value" : "",
     terms: f.terms ? "" : "Select the terms",
@@ -88,18 +99,18 @@ function SubcontractSection({ c }) {
     dates: !f.start || !f.end ? "Enter start and end" : f.end <= f.start ? "End must be after start" : f.start < c.start || f.end > c.end ? `Must sit within the contract (${fmtDate(c.start)} – ${fmtDate(c.end)})` : "",
   } : {};
   const fValue = f ? ((f.boq || []).length ? round2(sum(f.boq, (l) => (Number(l.qty) || 0) * (Number(l.rate) || 0))) : Number(f.value) || 0) : 0;
-  const warn = f && f.vendorId ? subBlockers(st, c, { ...f, value: fValue, id: "new" }) : [];
+  const warn = f && f.vendorId ? subBlockers(st, c, { ...f, parentId: f.parentId === "main" ? null : f.parentId, value: fValue, id: "new" }) : [];
   const save = () => {
     setTried(true); if (VX.any(er)) return;
     const n = allSubs(getState()).length + 1, id = `SUB-${String(n).padStart(3, "0")}`;
-    setState((s) => { const x = byId(s.contracts, c.id); x.subcontracts = [...(x.subcontracts || []), { id, vendorId: f.vendorId, scope: f.scope.trim(), value: fValue, start: f.start, end: f.end, ...subTermsOf(c, f), boq: (f.boq || []).map((l) => ({ desc: l.desc.trim(), unit: l.unit || "nos", qty: Number(l.qty), rate: Number(l.rate) })), payments: [], ...(f.bgNo ? { bg: { number: f.bgNo.trim(), bank: f.bgBank.trim(), amount: Number(f.bgAmount), expiry: f.bgExpiry } } : {}), status: "Proposed", requestedBy: currentUser(), requestedAt: new Date().toISOString() }]; },
+    setState((s) => { const x = byId(s.contracts, c.id); x.subcontracts = [...(x.subcontracts || []), { id, parentId: f.parentId === "main" ? null : f.parentId || null, vendorId: f.vendorId, scope: f.scope.trim(), value: fValue, start: f.start, end: f.end, ...subTermsOf(c, f), boq: (f.boq || []).map((l) => ({ desc: l.desc.trim(), unit: l.unit || "nos", qty: Number(l.qty), rate: Number(l.rate) })), payments: [], ...(f.bgNo ? { bg: { number: f.bgNo.trim(), bank: f.bgBank.trim(), amount: Number(f.bgAmount), expiry: f.bgExpiry } } : {}), status: "Proposed", requestedBy: currentUser(), requestedAt: new Date().toISOString() }]; },
       { entity: "Contract", id: c.id, action: `Subcontract ${id} proposed - ${vendorName(st, f.vendorId)} for ${f.scope.trim()} (${inrShort(Number(f.value))})` });
     toast("Subcontract proposed - waiting for approval"); setF(null); setTried(false);
   };
   return (
-    <Section title="Subcontractors" icon={Icon.users} actions={live && !f && <Btn size="sm" icon={Icon.plus} onClick={() => setF({ vendorId: "", scope: "", value: "", start: c.start, end: c.end, terms: "", retentionPct: "", paymentDays: "", dlpMonths: "", boq: [], bgNo: "", bgBank: "", bgAmount: "", bgExpiry: "" })}>Propose subcontractor</Btn>}>
+    <Section title="Subcontractors" icon={Icon.users} actions={live && !f && <Btn size="sm" icon={Icon.plus} onClick={() => setF({ parentId: "", vendorId: "", scope: "", value: "", start: c.start, end: c.end, terms: "", retentionPct: "", paymentDays: "", dlpMonths: "", boq: [], bgNo: "", bgBank: "", bgAmount: "", bgExpiry: "" })}>Propose subcontractor</Btn>}>
       <DataTable dense plain rows={subs} empty={<p className="p-4 text-[13px] text-ink-mute">No part of this contract is sublet. The main contractor must get approval before any subcontractor works on site.</p>} columns={[
-        { key: "vendorId", label: "Subcontractor", className: "font-medium", render: (x) => vendorName(st, x.vendorId) },
+        { key: "vendorId", label: "Subcontractor", className: "font-medium", render: (x) => <span className="flex flex-col">{vendorName(st, x.vendorId)}{x.parentId && <span className="text-[11px] font-normal text-ink-mute">Level {subLevel(c, x)} · sublet by {vendorName(st, subParent(c, x)?.vendorId)}</span>}</span> },
         { key: "scope", label: "Scope" },
         { key: "value", label: "Value", align: "right", render: (x) => <span className="num">{inrShort(x.value)}</span> },
         { key: "dates", label: "Period", render: (x) => `${fmtDate(x.start)} – ${fmtDate(x.end)}` },
@@ -115,7 +126,8 @@ function SubcontractSection({ c }) {
       {subLimitPct(st) > 0 && <p className="border-t border-line px-4 py-2 text-[12px] text-ink-mute">Sublet so far {inrShort(sum(subs.filter((x) => ["Proposed", "Approved"].includes(x.status)), (x) => Number(x.value) || 0))} of the {subLimitPct(st)}% allowed ({inrShort(contractValue(c) * subLimitPct(st) / 100)}). Subcontractor workers are added in Worker Master under the main contractor; their work is measured and billed through the main contractor.</p>}
       {f && (
         <div className="space-y-3 border-t border-line p-4">
-          <div className="grid grid-cols-[1.2fr_1.6fr_130px_150px_150px] items-start gap-3">
+          <div className="grid grid-cols-[1.2fr_1.2fr_1.6fr_130px_150px_150px] items-start gap-3">
+            <Field label="Sublet by" required><Select value={f.parentId || ""} onChange={(x) => setF({ ...f, parentId: x })} options={[{ value: "main", label: `${vendorName(st, c.vendorId)} (main contractor)` }, ...subs.filter((x) => x.status === "Approved" && subLevel(c, x) < MAX_SUB_LEVEL).map((x) => ({ value: x.id, label: `${vendorName(st, x.vendorId)} - ${x.id}, level ${subLevel(c, x)}` }))]} />{tried && <FieldErr m={er.parentId} />}</Field>
             <Field label="Subcontractor" required><Select value={f.vendorId} placeholder="Select" onChange={(x) => setF({ ...f, vendorId: x })} options={candidates.map((v) => ({ value: v.id, label: v.name }))} />{tried && <FieldErr m={er.vendorId} />}</Field>
             <Field label="Scope sublet" required><TextInput value={f.scope} onChange={(x) => setF({ ...f, scope: x })} placeholder="e.g. Excavation for footings F1–F40" />{tried && <FieldErr m={er.scope} />}</Field>
             <Field label="Value (₹)" required><NumInput value={f.value} onChange={(x) => setF({ ...f, value: x })} />{tried && <FieldErr m={er.value} />}</Field>

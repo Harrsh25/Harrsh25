@@ -38,7 +38,9 @@ function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket, requis
     const r = (st.requisitions || []).find((x) => x.id === rid);
     if (!r) return {};
     return { requisitionId: rid, project: r.project || PROJECTS[0], deliveryDate: r.requiredBy && r.requiredBy >= todayISO() ? r.requiredBy : shiftDays(14),
-      lines: (r.items || []).filter((i) => i.desc).map((i) => ({ desc: i.desc, unit: i.unit || "nos", qty: i.qty, rate: i.rate || "", ...(i.requiredBy ? { needBy: i.requiredBy } : {}) })) };
+      lines: (r.items || []).filter((i) => i.desc).map((i) => ({ desc: i.desc, unit: i.unit || "nos", qty: i.qty, rate: i.rate || "", ...(i.requiredBy ? { needBy: i.requiredBy } : {}) })),
+      // the requisition's route: a call-off draws from its blanket order, a single-source purchase goes to the named vendor
+      ...(r.route === "Call-off from blanket order" && r.blanketId ? fromBlanket(r.blanketId) : {}), ...(r.route === "Direct purchase (single source)" && r.vendorId ? { vendorId: r.vendorId } : {}) };
   }
   function fromBlanket(boId) {
     const bo = byId(st.blanketOrders, boId);
@@ -1102,6 +1104,7 @@ function flowErr(rows, what) {
   if (new Set(n).size !== n.length) return `${what} approval: stage names must be unique`;
   if (rows.some((r) => r.slaDays != null && r.slaDays !== "" && !(Number(r.slaDays) >= 1))) return `${what} approval: a decision deadline must be at least 1 day`;
   if (rows.some((r) => r.minValue != null && r.minValue !== "" && !(Number(r.minValue) >= 0))) return `${what} approval: minimum value can't be negative`;
+  if (rows.some((r) => r.need != null && r.need !== "" && !(Number.isInteger(Number(r.need)) && Number(r.need) >= 1 && Number(r.need) <= 5))) return `${what} approval: approvals needed must be a whole number from 1 to 5`;
   if (what === "Vendor" && !rows.some((r) => (r.scope || "All") === "All") && !(rows.some((r) => r.scope === "Contractors") && rows.some((r) => r.scope === "Non-contractors"))) return "Vendor approval: every vendor must get at least one stage";
   if (what === "Contract" && !rows.some((r) => !(Number(r.minValue) > 0))) return "Contract approval: at least one stage must apply to every contract (minimum value 0)";
   return "";
@@ -1113,18 +1116,20 @@ function FlowEditor({ title, hint, rows, onChange, extra }) {
   return (
     <Section title={title} icon={Icon.clipboardCheck} actions={<Btn size="sm" icon={Icon.plus} onClick={() => onChange([...rows, { name: "", [extra.key]: extra.blank, slaDays: SLA_DEFAULT[kind] }])}>Add stage</Btn>}>
       <p className="border-b border-line px-4 py-2 text-[12px] text-ink-mute">{hint} Each stage has a decision deadline in days; past it the record shows as overdue and can be escalated.</p>
-      <div className="grid grid-cols-[28px_1fr_150px_100px_170px_auto] gap-2 border-b border-line bg-gray-50 px-4 py-1.5 text-[11.5px] font-medium text-ink-mute">
-        <span /><span>Stage</span><span>{extra.label}</span><span>Deadline (days)</span><span>Escalate to</span><span />
+      <div className="grid grid-cols-[28px_1fr_150px_90px_150px_100px_90px_auto] gap-2 border-b border-line bg-gray-50 px-4 py-1.5 text-[11.5px] font-medium text-ink-mute">
+        <span /><span>Stage</span><span>{extra.label}</span><span>Deadline (days)</span><span>Escalate to</span><span>With previous</span><span>Approvals needed</span><span />
       </div>
       <div className="divide-y divide-line">
         {rows.map((r, i) => (
-          <div key={i} className="grid grid-cols-[28px_1fr_150px_100px_170px_auto] items-center gap-2 px-4 py-2">
+          <div key={i} className="grid grid-cols-[28px_1fr_150px_90px_150px_100px_90px_auto] items-center gap-2 px-4 py-2">
             <span className="num text-[12px] text-ink-mute">L{i + 1}</span>
             <TextInput value={r.name} onChange={(x) => upd(i, { name: x })} placeholder="Stage name (e.g. Legal)" />
             {extra.num ? <NumInput value={r[extra.key]} onChange={(x) => upd(i, { [extra.key]: x })} placeholder={extra.label} />
               : <Select value={r[extra.key] || extra.blank} onChange={(x) => upd(i, { [extra.key]: x })} options={extra.options} />}
             <NumInput value={r.slaDays ?? SLA_DEFAULT[kind]} onChange={(x) => upd(i, { slaDays: x })} placeholder="Days" aria-label="Deadline (days)" />
             <Select value={r.escalateTo || ESCALATE_DEFAULT[kind]} onChange={(x) => upd(i, { escalateTo: x })} options={ROLES} />
+            <Select aria-label={`Stage ${i + 1} with previous`} value={i === 0 ? "No" : r.parallel ? "Yes" : "No"} disabled={i === 0} onChange={(x) => upd(i, { parallel: x === "Yes" })} options={["No", "Yes"]} />
+            <NumInput value={r.need ?? 1} onChange={(x) => upd(i, { need: x })} aria-label={`Stage ${i + 1} approvals needed`} />
             <span className="flex gap-1">
               <Btn size="sm" disabled={i === 0} onClick={() => move(i, -1)} title="Move up">↑</Btn>
               <Btn size="sm" disabled={i === rows.length - 1} onClick={() => move(i, 1)} title="Move down">↓</Btn>
@@ -1133,7 +1138,7 @@ function FlowEditor({ title, hint, rows, onChange, extra }) {
           </div>
         ))}
       </div>
-      <p className="border-t border-line px-4 py-2 text-[12px]">{err ? <span className="text-red-600">{err}</span> : <span className="text-ink-soft">Route: {rows.map((r) => r.name).join(" → ")}</span>}</p>
+      <p className="border-t border-line px-4 py-2 text-[12px]">{err ? <span className="text-red-600">{err}</span> : <span className="text-ink-soft">Route: {rows.reduce((a, r, i) => (i > 0 && r.parallel ? `${a} + ${r.name}` : `${a}${i ? " → " : ""}${r.name}`), "")}{rows.some((r) => Number(r.need) > 1) ? " · stages needing more than one approval need different people" : ""}</span>}</p>
     </Section>
   );
 }

@@ -223,7 +223,8 @@ function CompliancePage() {
     <Page title="Compliance Center" subtitle="Vendor documents, expiry reminders and the payment compliance gate" icon={Icon.shieldCheck}
       actions={<Btn variant="primary" icon={Icon.mail} disabled={!dueAll.length} onClick={() => sendReminders(dueAll.map((x) => ({ v: x.v, item: x.item })), true)}>Send due reminders</Btn>}>
       <TabBar active={tab} onChange={setTab} tabs={[{ id: "vendors", label: "Vendors", icon: Icon.building }, { id: "exp", label: "Expiring & expired", icon: Icon.fileClock },
-        { id: "verify", label: "Verification queue", icon: Icon.clipboardCheck }, { id: "req", label: "Requirements", icon: Icon.sliders }]} />
+        { id: "verify", label: "Verification queue", icon: Icon.clipboardCheck }, { id: "req", label: "Requirements", icon: Icon.sliders }, { id: "docs", label: "All documents", icon: Icon.folderCheck }]} />
+      {tab === "docs" && <DocumentRegister />}
       {tab === "vendors" && <>
         <DataTable noun="vendors" filters={<FilterSelect label="Status" value={flt} onChange={setFlt} options={[{ value: "All", label: "All statuses" }, "Compliant", { value: "Expiring", label: "Attention needed" }, "Non-Compliant", { value: "Blocked", label: "Payments blocked" }]} />} rows={vendorRows} rowKey={(r) => r.v.id} onRow={(r) => setOpen(r.v.id)} columns={[
           { key: "n", label: "Vendor", className: "font-medium", render: (r) => r.v.name },

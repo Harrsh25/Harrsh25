@@ -537,6 +537,10 @@ function BenchmarkSettings({ f, setF, mode, yesNo, part }) {
 
 // ---------------------------------------------------------------- purchase requisitions (ERPNext Material Request + Fieldglass job posting)
 const REQ_PURPOSES = ["Purchase", "Material transfer", "Material issue", "Subcontracting", "Manpower (labour)", "Customer provided"];
+// How a purchase is sourced: the route decides the next step after approval
+const REQ_ROUTES = ["Competitive (RFQ)", "Emergency purchase", "Direct purchase (single source)", "Call-off from blanket order", "Rate contract / price list"];
+const routed = (f) => ["Purchase", "Subcontracting"].includes(f.purpose);
+const reqRoute = (r) => (routed(r) ? r.route || "Competitive (RFQ)" : null);
 const CONTINGENT_TYPES = ["Daily-rated gang", "Item-rate labour", "Staff augmentation"];
 const DIST_RULES = ["All invited at once", "Preferred contractors first, others after 2 days", "One contractor at a time"];
 const reqOrdered = (st, r) => {
@@ -577,6 +581,10 @@ function reqErrors(f) {
   if (!f.date) e.push("Request date required"); else if (f.date > todayISO()) e.push("Request date can't be in the future");
   if (!f.requiredBy) e.push("Required-by date needed"); else if (f.requiredBy < (f.date || todayISO())) e.push("Required-by can't be before the request date");
   if (f.purpose === "Customer provided" && !String(f.client || "").trim()) e.push("Enter the client providing the material");
+  if (routed(f) && !f.route) e.push("Pick the procurement route");
+  if (routed(f) && ["Emergency purchase", "Direct purchase (single source)"].includes(f.route) && String(f.justification || "").trim().length < 10) e.push("Give the justification for skipping the RFQ (at least 10 characters)");
+  if (routed(f) && f.route === "Direct purchase (single source)" && !f.vendorId) e.push("Pick the single-source vendor");
+  if (routed(f) && f.route === "Call-off from blanket order" && !f.blanketId) e.push("Pick the blanket order to call off");
   if (f.purpose === "Material transfer" && (!f.sourceStore || !f.targetStore)) e.push("Pick the source and target store");
   if (f.purpose === "Material transfer" && f.sourceStore && f.sourceStore === f.targetStore) e.push("Source and target store must differ");
   if (f.purpose === "Manpower (labour)") {
@@ -596,7 +604,7 @@ function reqErrors(f) {
 function RequisitionModal({ onClose, base }) {
   const st = useStore();
   // opens with nothing pre-selected (the person picks the purpose, project and the rest)
-  const blank = () => ({ purpose: "", date: todayISO(), requiredBy: shiftDays(14), project: "", costCentre: "", company: "",
+  const blank = () => ({ purpose: "", route: "", justification: "", vendorId: "", blanketId: "", date: todayISO(), requiredBy: shiftDays(14), project: "", costCentre: "", company: "",
     client: "", sourceStore: "", targetStore: "", items: [{ desc: "", unit: "", qty: "", rate: "" }], terms: "",
     labour: { category: "", labourType: "", headcount: "", start: shiftDays(7), end: shiftDays(97), rateCard: "", distribution: [] } });
   const [f, setF] = y.useState(() => (base ? JSON.parse(JSON.stringify(base)) : blank()));
@@ -622,6 +630,10 @@ function RequisitionModal({ onClose, base }) {
       <div className="space-y-4">
         <div className="grid grid-cols-4 gap-3">
           <Field label="Request purpose / type" required><Select value={f.purpose} placeholder="Select" onChange={(x) => setF({ ...f, purpose: x })} options={REQ_PURPOSES} /></Field>
+          {routed(f) && <Field label="Procurement route" required><Select value={f.route || ""} onChange={(x) => setF({ ...f, route: x })} options={REQ_ROUTES} /></Field>}
+          {routed(f) && f.route === "Direct purchase (single source)" && <Field label="Single-source vendor" required><Select value={f.vendorId || ""} onChange={(x) => setF({ ...f, vendorId: x })} options={st.vendors.filter((v) => eligibleForPo(v) && canTakePo(v)).map((v) => ({ value: v.id, label: v.name }))} /></Field>}
+          {routed(f) && f.route === "Call-off from blanket order" && <Field label="Blanket order" required><Select value={f.blanketId || ""} onChange={(x) => setF({ ...f, blanketId: x })} options={(st.blanketOrders || []).filter((b) => b.status === "Active").map((b) => ({ value: b.id, label: `${b.id} - ${b.title || vendorName(st, b.vendorId)}` }))} /></Field>}
+          {routed(f) && ["Emergency purchase", "Direct purchase (single source)"].includes(f.route) && <Field label="Justification" required span={2}><TextInput value={f.justification || ""} onChange={(x) => setF({ ...f, justification: x })} /></Field>}
           <Field label="Request date" required><DateInput value={f.date} onChange={(x) => setF({ ...f, date: x })} /></Field>
           <Field label="Required by" required><DateInput value={f.requiredBy} onChange={(x) => setF({ ...f, requiredBy: x })} /></Field>
           <Field label="Company" required><Select value={f.company} placeholder="Select" onChange={(x) => setF({ ...f, company: x })} options={COMPANIES(st)} /></Field>
@@ -710,11 +722,12 @@ function RequisitionsPage() {
             {r.status === "Approved" && !r.stockEntry && <Btn onClick={() => act(r, "Stopped", "Stopped")}>Stop</Btn>}
             {r.status === "Stopped" && <Btn onClick={() => act(r, "Approved", "Re-opened")}>Re-open</Btn>}
             {reqInternal(r) ? (r.status === "Approved" && !r.stockEntry && <Btn variant="primary" icon={Icon.package} onClick={() => stockEntry(r)}>{REQ_STOCK[r.purpose].btn}</Btn>) : <>
-              {["Approved", "RFQ raised", "Partially ordered"].includes(reqStatus(st, r)) && <Btn onClick={() => nav(`${VM_BASE}/purchase-orders?fromReq=${r.id}`)} icon={Icon.package}>Create PO</Btn>}
-              {r.status === "Approved" && <Btn variant="primary" icon={Icon.send} onClick={() => nav(`${VM_BASE}/rfq?fromReq=${r.id}`)}>Create RFQ</Btn>}
+              {["Approved", "RFQ raised", "Partially ordered"].includes(reqStatus(st, r)) && (reqRoute(r) !== "Competitive (RFQ)" || reqStatus(st, r) !== "Approved") && <Btn variant={reqRoute(r) && reqRoute(r) !== "Competitive (RFQ)" ? "primary" : undefined} onClick={() => nav(`${VM_BASE}/purchase-orders?fromReq=${r.id}`)} icon={Icon.package}>{reqRoute(r) === "Call-off from blanket order" ? "Create call-off PO" : "Create PO"}</Btn>}
+              {r.status === "Approved" && (!reqRoute(r) || reqRoute(r) === "Competitive (RFQ)") && <Btn variant="primary" icon={Icon.send} onClick={() => nav(`${VM_BASE}/rfq?fromReq=${r.id}`)}>Create RFQ</Btn>}
             </>}
           </>}>
           <div className="space-y-4 px-6 py-5">
+            {reqRoute(r) && <Note icon={Icon.info}><b>{reqRoute(r)}</b>{r.justification ? ` - ${r.justification}` : ""}{r.vendorId ? ` · vendor ${vendorName(st, r.vendorId)}` : ""}{r.blanketId ? ` · blanket ${r.blanketId}` : ""}</Note>}
             {r.status === "Rejected" && r.rejection && <Note tone="red">Rejected by {r.rejection.by} - {r.rejection.reason}. Correct it and resubmit.</Note>}
             {!reqInternal(r) && ["Submitted", "Approved"].includes(r.status) && <BudgetLine project={r.project} amount={reqValue(st, r)} />}
             {r.status === "Submitted" && (() => { const a = reqApproval(st, r); return <Note icon={Icon.clipboardCheck}>Approval by value ({a.value ? inrShort(a.value) : "no estimate"}): {a.levels.map((l, i) => `${l.level}${a.done[i] ? ` ✓ ${a.done[i].by}` : i === a.i ? " - pending" : ""}`).join(" → ")}{!a.value && !reqInternal(r) ? ". Add estimated rates so the request is routed by its real value." : ""}</Note>; })()}

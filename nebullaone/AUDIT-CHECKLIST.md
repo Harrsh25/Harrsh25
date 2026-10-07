@@ -45,3 +45,20 @@ Status key: **Complete** = built, wired and covered by an automated test · **In
 | Item | Status | Why |
 |---|---|---|
 | Roles and permissions (who may do what) | Missing on purpose | You asked for the "Acting as" switcher and role checks to be removed and never re-added. Approvals still go through stages, value limits and delegation, but no screen is hidden per user. |
+
+## Review round 2 - gaps fixed (built, not tested at your request)
+| # | Gap | What was built |
+|---|---|---|
+| 1 | Vendor type decides the lifecycle | Goods / services → PO; labour-only vendors can't get a PO; goods-only vendors can't get a contract; "Can be used for" on the vendor record shows each route and whether it is allowed |
+| 2 | One set of eligibility rules | Shared rules for RFQ invite, PO, contract, work order, worker on a work order, measurement, RA bill, payment, close and release - every screen calls the same rule |
+| 3 | One payment flow | Payment proposals (Draft → Approved → Sent to bank → Paid / Failed / Cancelled) for every bill type; a bill in an open proposal can't be paid twice |
+| 1 | Labour supplier billing | Labour bill from verified, unbilled attendance × rate card (OT, holiday, night, PF / ESI, escalation) on Labour Attendance |
+| 4 | Approval stages | A stage can run with the previous one (parallel) and can need 1–5 approvals from different people; vendor and contract approvals use one engine |
+| 5 | Requisition types | Procurement route: Competitive (RFQ), Emergency, Direct (single source), Call-off from blanket order, Rate contract - the route decides the next button; emergency and direct need a justification |
+| 6 | Qualification scope | Qualified trades, qualified projects and next review date; RFQ invites, POs, contracts and work orders check the project and the review date |
+| 7 | Subcontract levels | A subcontractor can sublet down to level 3; the sublet % limit applies at each level against its parent |
+| 8 | Worker eligibility | Gate pass required; a worker can only be on a work order of their own contractor (or an approved subcontract); same rule in attendance and worker assignment |
+| 9 | Labour rates | Employer PF %, ESI % and yearly escalation % on rate cards; loaded rate shown and used in labour bills |
+| 10 | Claim cause | "Delay caused by" (Employer / Contractor / Neutral) on delay claims; contractor-caused gets nothing, neutral gets time only |
+| 11 | One document register | Compliance Center → All documents: vendor documents, worker certificates, contract letters, claim evidence, challans, supplier bills, RA claim and quotation files |
+| 12 | Status rules in one place | One transition table per document (vendor, requisition, PO, contract, work order, RA bill, claim, payment proposal); RA bills and payment proposals refuse moves not in the table |

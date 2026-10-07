@@ -146,7 +146,7 @@ function createVendor(f, submit, source = "Internal") {
     ...f, id, name: f.name.trim(), legalName: f.legalName.trim() || f.name.trim(), gstin: isForeign(f) ? "" : f.gstin.toUpperCase(), pan: isForeign(f) ? "" : f.pan.toUpperCase(),
     tier: f.tier || "Approved", regTier: f.regTier || "Spend Authorized", country: f.country || "India", status: submit ? "Pending Approval" : "Draft", preferred: false, hold: null, notes: f.notesText && f.notesText.trim() ? [{ at: todayISO(), by: currentUser(), text: f.notesText.trim() }] : [], insurance: [],
     bankAccounts: f.bank.account ? [{ id: 1, ...f.bank, accountConfirm: undefined, iban: (f.bank.iban || "").replace(/\s/g, "").toUpperCase(), currency: f.bank.currency || f.currency, account: String(f.bank.account).replace(/\s/g, ""), ifsc: (f.bank.ifsc || "").toUpperCase(), status: "Unverified", addedAt: todayISO(), isDefault: true }] : [],
-    approval: { stages: vendorFlowFor(f).map((dept, i) => ({ dept, status: submit && i === 0 ? "Pending" : "Waiting", by: null, at: null, remark: "", ...(submit && i === 0 ? { since: new Date().toISOString() } : {}) })) },
+    approval: { stages: (() => { const sg = vendorFlowRows(f).map(stageFrom("dept")); if (submit) openStageGroup(sg, 0, new Date().toISOString()); return sg; })() },
     submittedAt: submit ? new Date().toISOString() : null,
     qualification: null, background: null, createdAt: todayISO(),
     contractor: f.isContractor || hasType(f, "Labor") ? { ...f.contractor } : null,

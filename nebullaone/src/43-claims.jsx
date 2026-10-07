@@ -16,16 +16,28 @@ function claimsSettled(st, c) {
   return { escalation: round2(sum(s.filter((x) => x.type === "Price escalation"), (x) => x.settled.amount || 0)), other: round2(sum(s.filter((x) => !isEot(x) && x.type !== "Price escalation"), (x) => x.settled.amount || 0)), days: sum(s.filter(isEot), (x) => x.settled.days || 0) };
 }
 
+// Who caused the delay decides what can be granted: employer → time and cost, neutral event → time only, contractor → nothing
+const CAUSES = ["Employer", "Contractor", "Neutral event (weather, force majeure)"];
+const DELAY_TYPES = ["Extension of time", "Delay / disruption", "Idle resources", "Acceleration", "Weather", "Force majeure"];
+const needsCause = (k) => DELAY_TYPES.includes(k.type);
+function causeErr(k, days, amount) {
+  if (!k.cause) return "";
+  if (k.cause === "Contractor" && (Number(days) > 0 || Number(amount) > 0)) return "Contractor-caused delay - no time or money is due (settle at nil or reject)";
+  if (k.cause.startsWith("Neutral") && Number(amount) > 0) return "Neutral event - only time can be granted, not cost";
+  return "";
+}
+const causeText = (k) => (!k.cause ? null : k.cause === "Employer" ? "Employer - time and cost" : k.cause === "Contractor" ? "Contractor - no time or cost" : "Neutral event - time only");
 function ContractClaimModal({ contractId, onClose }) {
   const st = useStore();
   const live = st.contracts.filter((c) => !["Draft", "Pending Approval", "Rejected", "Closed"].includes(c.status));
-  const [f, setF] = y.useState({ contractId: contractId || "", type: "", title: "", amount: "", days: "", basis: "", reference: "", submittedOn: todayISO(), eventDate: "", evidence: [] });
+  const [f, setF] = y.useState({ contractId: contractId || "", type: "", title: "", amount: "", days: "", basis: "", reference: "", submittedOn: todayISO(), eventDate: "", evidence: [], cause: "" });
   const eot = f.type === "Extension of time";
   const err = {
     contractId: f.contractId ? "" : "Select the contract", type: f.type ? "" : "Select the claim type", title: f.title.trim().length >= 5 ? "" : "Describe the claim (at least 5 characters)",
     amount: eot ? (f.amount !== "" && !(Number(f.amount) >= 0) ? "Enter a valid amount" : "") : Number(f.amount) > 0 ? "" : "Enter the amount claimed",
     days: eot ? (Number.isInteger(Number(f.days)) && Number(f.days) > 0 && Number(f.days) <= 730 ? "" : "Enter the days claimed (1-730)") : "",
     basis: f.basis.trim().length >= 5 ? "" : "Give the basis of the claim",
+    cause: needsCause(f) && !f.cause ? "Select who caused the delay" : "",
     submittedOn: VX.req(f.submittedOn) || VX.notFuture(f.submittedOn, "Date can't be in the future"),
     eventDate: !f.eventDate ? "Enter when the event happened" : f.eventDate > f.submittedOn ? "The event can't be after the notice date" : "",
     dup: f.contractId && f.reference.trim() && contractClaims(st).some((q) => q.contractId === f.contractId && normNo(q.reference) === normNo(f.reference)) ? "A claim with this letter reference is already recorded" : "",
@@ -38,7 +50,7 @@ function ContractClaimModal({ contractId, onClose }) {
     setState((s) => {
       s.contractClaims = s.contractClaims || []; id = nextId("CLM", s.contractClaims);
       const c = byId(s.contracts, f.contractId);
-      s.contractClaims.unshift({ id, contractId: c.id, vendorId: c.vendorId, type: f.type, title: f.title.trim(), amount: Number(f.amount) || 0, days: eot ? Number(f.days) : 0, basis: f.basis.trim(), reference: f.reference.trim(), submittedOn: f.submittedOn, eventDate: f.eventDate, evidence: f.evidence, status: "Submitted", recordedBy: currentUser(), history: [{ at: new Date().toISOString(), by: currentUser(), what: "Claim recorded" }] });
+      s.contractClaims.unshift({ id, contractId: c.id, vendorId: c.vendorId, type: f.type, title: f.title.trim(), amount: Number(f.amount) || 0, days: eot ? Number(f.days) : 0, basis: f.basis.trim(), cause: needsCause(f) ? f.cause : "", reference: f.reference.trim(), submittedOn: f.submittedOn, eventDate: f.eventDate, evidence: f.evidence, status: "Submitted", recordedBy: currentUser(), history: [{ at: new Date().toISOString(), by: currentUser(), what: "Claim recorded" }] });
     }, { entity: "Contract", id: f.contractId, action: `Claim recorded - ${f.type}: ${f.title.trim()}${eot ? ` (${f.days} days)` : ` (${inr(Number(f.amount))})`}` });
     toast(`${id} recorded`); onClose(id);
   };
@@ -48,6 +60,7 @@ function ContractClaimModal({ contractId, onClose }) {
       <div className="grid grid-cols-2 gap-3">
         <Field label="Contract" required span={2}><Select value={f.contractId} disabled={!!contractId} onChange={(x) => setF({ ...f, contractId: x })} options={live.map((c) => ({ value: c.id, label: `${c.id} - ${c.title}` }))} />{E("contractId")}</Field>
         <Field label="Claim type" required><Select value={f.type} onChange={(x) => setF({ ...f, type: x })} options={CLAIM_TYPES} />{E("type")}</Field>
+        {needsCause(f) && <Field label="Delay caused by" required><Select value={f.cause} onChange={(x) => setF({ ...f, cause: x })} options={CAUSES} />{E("cause")}</Field>}
         <Field label="Event date" required><DateInput value={f.eventDate} onChange={(x) => setF({ ...f, eventDate: x })} />{E("eventDate")}</Field>
         <Field label="Notice received on" required><DateInput value={f.submittedOn} onChange={(x) => setF({ ...f, submittedOn: x })} />{E("submittedOn")}</Field>
         <Field label="Claim" required span={2}><TextInput value={f.title} onChange={(x) => setF({ ...f, title: x })} placeholder="e.g. Steel price rise Jul-Sep" />{E("title")}</Field>
@@ -84,9 +97,11 @@ function SettleClaimModal({ x, onClose, mode = "settle" }) {
   const [f, setF] = y.useState({ amount: "", days: "", note: "" });
   const err = (eot ? (!(Number.isInteger(Number(f.days)) && Number(f.days) >= 0 && f.days !== "") ? "Enter the days agreed" : Number(f.days) > x.days ? `Can't exceed the ${x.days} days claimed` : "") : "")
     || (f.amount === "" && !eot ? "Enter the amount agreed" : f.amount !== "" && !(Number(f.amount) >= 0) ? "Enter a valid amount" : Number(f.amount) > x.amount + 0.5 ? `Can't exceed the ${inr(x.amount)} claimed` : "")
+    || causeErr(x, f.days, f.amount)
     || (f.note.trim().length < 5 ? "Record the basis (at least 5 characters)" : "");
   return (
     <Modal open onClose={onClose} width={520} title={mode === "assess" ? `Engineer assessment - ${x.id}` : `Settle ${x.id}`} footer={<><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!!err} onClick={() => { decideClaim(x, mode, f); onClose(); }}>{mode === "assess" ? "Save assessment" : "Settle claim"}</Btn></>}>
+      {x.cause && <div className="mb-3"><Note icon={Icon.info}>Delay caused by {causeText(x)}</Note></div>}
       {mode === "settle" && x.assessment && <div className="mb-3"><Note>Engineer assessed {isEot(x) ? `${x.assessment.days} days` : inr(x.assessment.amount)} - {x.assessment.note}</Note></div>}
       <div className="grid grid-cols-2 gap-3">
         {eot && <Field label={mode === "assess" ? "Days assessed" : "Days agreed"} required info={`Claimed ${x.days} days`}><NumInput value={f.days} onChange={(v) => setF({ ...f, days: v })} /></Field>}
@@ -121,7 +136,7 @@ function ContractClaimDrawer({ id, onClose }) {
           <StatTile tone="amber" label="Age" value={`${claimAgeDays(x)} days`} sub={open ? "waiting for decision" : x.status.toLowerCase()} icon={Icon.clock} />
         </div>
         <Section title="Claim" icon={Icon.file}>
-          <KV items={[["Contract", <RefLink to={`${CL_BASE}/contracts?open=${x.contractId}`}>{x.contractId} - {c?.title}</RefLink>], ["Contractor", vendorName(st, x.vendorId)], ["Type", x.type], ["Event date", x.eventDate ? fmtDate(x.eventDate) : "-"], ["Notice received", fmtDate(x.submittedOn)], ["Letter ref.", x.reference || "-"], ["Basis", x.basis], x.reviewer && ["Reviewer", x.reviewer], x.assessment && ["Engineer assessment", `${isEot(x) ? `${x.assessment.days} days` : inr(x.assessment.amount)} - ${x.assessment.note} (${x.assessment.by})`],
+          <KV items={[["Contract", <RefLink to={`${CL_BASE}/contracts?open=${x.contractId}`}>{x.contractId} - {c?.title}</RefLink>], ["Contractor", vendorName(st, x.vendorId)], ["Type", x.type], ["Delay caused by", causeText(x)], ["Event date", x.eventDate ? fmtDate(x.eventDate) : "-"], ["Notice received", fmtDate(x.submittedOn)], ["Letter ref.", x.reference || "-"], ["Basis", x.basis], x.reviewer && ["Reviewer", x.reviewer], x.assessment && ["Engineer assessment", `${isEot(x) ? `${x.assessment.days} days` : inr(x.assessment.amount)} - ${x.assessment.note} (${x.assessment.by})`],
             (x.evidence || []).length > 0 && ["Evidence", <span className="flex flex-col">{x.evidence.map((e, i) => <FileLink key={i} name={e.name} dataUrl={e.dataUrl} />)}</span>],
             x.settled && ["Settlement", `${x.settled.note} - ${x.settled.by}, ${fmtDate(x.settled.at.slice(0, 10))}`], x.settled?.endBefore && ["Completion date", `${fmtDate(x.settled.endBefore)} → ${fmtDate(shiftDays(x.settled.days, x.settled.endBefore))}`], x.rejected && ["Rejected", `${x.rejected.reason} - ${x.rejected.by}`]].filter(Boolean)} />
         </Section>
@@ -192,7 +207,7 @@ function seedClaims(s) {
   const has = (id) => (s.contracts || []).some((c) => c.id === id);
   s.contractClaims = [
     has("CTR-001") && { id: "CLM-001", contractId: "CTR-001", vendorId: "VEN-001", type: "Price escalation", title: "Reinforcement steel price rise Jul-Sep", amount: 620000, days: 0, basis: "Clause 47 price variation - WPI steel index up 8.4% over base", reference: "SBIC/CTR-001/PV/03", submittedOn: D(-12), eventDate: D(-30), status: "Submitted", recordedBy: "Arjun Mehta", history: [{ at: T(-12), by: "Arjun Mehta", what: "Claim recorded" }] },
-    has("CTR-001") && { id: "CLM-002", contractId: "CTR-001", vendorId: "VEN-001", type: "Extension of time", title: "Monsoon stoppage and late drawings for Tower B", amount: 0, days: 30, basis: "Clause 44 - 19 rain days and GFC drawings issued 3 weeks late", reference: "SBIC/CTR-001/EOT/01", submittedOn: D(-41), eventDate: D(-50), status: "Under review", reviewer: "Project Manager", recordedBy: "Arjun Mehta", history: [{ at: T(-41), by: "Arjun Mehta", what: "Claim recorded" }, { at: T(-35), by: "Arjun Mehta", what: "Review started" }] },
+    has("CTR-001") && { id: "CLM-002", contractId: "CTR-001", vendorId: "VEN-001", type: "Extension of time", cause: "Employer", title: "Monsoon stoppage and late drawings for Tower B", amount: 0, days: 30, basis: "Clause 44 - 19 rain days and GFC drawings issued 3 weeks late", reference: "SBIC/CTR-001/EOT/01", submittedOn: D(-41), eventDate: D(-50), status: "Under review", reviewer: "Project Manager", recordedBy: "Arjun Mehta", history: [{ at: T(-41), by: "Arjun Mehta", what: "Claim recorded" }, { at: T(-35), by: "Arjun Mehta", what: "Review started" }] },
     has("CTR-004") && { id: "CLM-003", contractId: "CTR-004", vendorId: "VEN-010", type: "Extra work", title: "Rock excavation beyond BOQ in Block C", amount: 350000, days: 0, basis: "Hard rock met at 1.8 m - not in BOQ; instructed by site engineer", reference: "SEM/RX/02", submittedOn: D(-50), eventDate: D(-55), status: "Settled", recordedBy: "Arjun Mehta",
       settled: { amount: 280000, days: 0, note: "Agreed at BOQ rock rate after joint survey", by: "Vikram Rao", at: T(-20) }, history: [{ at: T(-50), by: "Arjun Mehta", what: "Claim recorded" }, { at: T(-20), by: "Vikram Rao", what: "Settled - ₹2,80,000 · Agreed at BOQ rock rate after joint survey" }] },
   ].filter(Boolean);
