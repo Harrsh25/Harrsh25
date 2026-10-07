@@ -127,7 +127,7 @@ const TONE = {
   "on hold": "amber", "docs pending": "amber", prospective: "purple", "under review": "blue", open: "amber",
   unpaid: "amber", overdue: "red", rejected: "red", blacklisted: "red", "non-compliant": "red", disputed: "red",
   missing: "red", "action required": "red", held: "purple", "in dlp": "purple",
-  "changes requested": "amber", invited: "amber", registered: "green", declined: "red", quoted: "green", "not sent": "gray", "under review": "blue",
+  "changes requested": "amber", invited: "amber", registered: "green", declined: "red", quoted: "green", "not sent": "gray",
   returned: "red", ordered: "green", "partially ordered": "purple", "partially awarded": "purple", "to send": "blue", waiting: "amber", late: "red",
   "fully billed": "green", "partially billed": "purple", "waiting bills": "amber", "nothing to bill": "gray", "fully consumed": "gray", cancelled: "gray",
   exception: "amber", "claim submitted": "blue", "awaiting review": "blue", "rework done": "blue", rectified: "blue", "handed over": "purple",
