@@ -40,7 +40,9 @@ const NXV_PAGES = [
 ];
 
 // Routes are children of the "/productivity" route, so paths are relative to it
-const NXV_ROUTES = NXV_PAGES.map((p) => ({ path: `${p.base.replace("/productivity/", "")}/${p.path}`, el: p.el }));
+const NXV_ROUTES = [...NXV_PAGES.map((p) => ({ path: `${p.base.replace("/productivity/", "")}/${p.path}`, el: p.el })),
+  // full-page records opened with "Open"
+  { path: "vendor-management/registry/:id", el: VendorRecordPage }];
 const NXV_NAV = ["Vendor Management", "Contract & Labor", "Administration"].map((label) => ({
   label,
   items: NXV_PAGES.filter((p) => p.group === label).map((p) => ({ label: p.label, to: `${p.base}/${p.path}`, icon: p.icon })),

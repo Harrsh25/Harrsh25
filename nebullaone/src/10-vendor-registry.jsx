@@ -945,7 +945,7 @@ function VendorRegistryPage() {
         <FilterSelect label="Tier" value={tier} onChange={setTier} options={[{ value: "All", label: "All tiers" }, ...TIERS]} />
       </>}
         rows={rows} onRow={(v) => setOpen(v.id)} columns={[
-        { key: "name", label: "Vendor", filterOptions: FO.preferred, filterLabel: "Preferred", filterAll: "All vendors", filter: (v) => (v.preferred ? "Preferred" : "Not preferred"), render: (v) => <span className="flex items-center justify-between gap-2 font-medium"><span className="truncate">{v.name}</span><PreferredStar v={v} size={14} /></span> },
+        { key: "name", label: "Vendor", filterOptions: FO.preferred, filterLabel: "Preferred", filterAll: "All vendors", filter: (v) => (v.preferred ? "Preferred" : "Not preferred"), render: (v) => <span className="flex items-center justify-between gap-2 font-medium"><span className="truncate">{v.name}</span><span className="flex shrink-0 items-center gap-2"><PreferredStar v={v} size={14} /><OpenLink to={vendorPath(v.id)} /></span></span> },
         { key: "type", label: "Supplies", filterOptions: ["Goods", "Services", "Labour"], filter: (v) => vTypes(v).map((t) => (t === "Labor" ? "Labour" : t)), render: (v) => <span className="flex flex-wrap items-center gap-1.5 text-ink-soft">{typeLabel(v)}<GroupCoTag v={v} /></span> },
         { key: "cat", label: "Trades", filterOptions: TRADES, filter: (v) => v.categories, filterLabel: "Trade", sort: (v) => v.categories[0] || "", render: (v) => <CategoryChips list={v.categories} /> },
         { key: "status", label: "Status", sort: (v) => lifeStatus(v) || "", render: (v) => <VendorStatusMenu v={v} /> },
@@ -963,5 +963,66 @@ function VendorRegistryPage() {
         text="Send this link to prospective vendors. They fill in their company, tax and bank details and upload documents themselves - no login needed. Submissions arrive in Approval Management under “Vendor Registration”." />}
       {open && <VendorDrawer vendorId={open} initialTab={new URLSearchParams(window.location.hash.split("?")[1] || "").get("tab") || "overview"} onClose={() => setOpen(null)} />}
     </Page>
+  );
+}
+
+// ---------------------------------------------------------------- full-page vendor record ("Open" in the registry)
+// Same tabs and content as the side panel; the right sidebar carries the summary, documents, tags and who changed it last.
+const vendorPath = (id) => `${VM_BASE}/registry/${id}`;
+const initialsOf = (name) => String(name || "").split(/\s+/).filter((w) => /[A-Za-z]/.test(w[0] || "")).slice(0, 2).map((w) => w[0].toUpperCase()).join("") || "?";
+const sinceText = (iso) => { if (!iso) return ""; const d = Math.round((Date.now() - new Date(iso).getTime()) / DAY); return d <= 0 ? "today" : d === 1 ? "1 day ago" : d < 60 ? `${d} days ago` : fmtDate(String(iso).slice(0, 10)); };
+function VendorSide({ v }) {
+  const st = useStore();
+  const comp = complianceOf(v), sc = lifeStatus(v) ? vendorScore(st, v.id).score : null;
+  const req = requiredDocs(v), have = req.filter((n) => (v.docs || []).some((d) => d.name === n && d.file && docState(d) !== "Missing")).length;
+  const trail = st.audit.filter((a) => a.entity === "Vendor" && String(a.id).split(", ").includes(v.id));
+  const last = trail[0], first = trail[trail.length - 1];
+  const row = (k, val) => val != null && val !== "" && <div key={k} className="flex items-start justify-between gap-3 py-1.5 text-[13px]"><span className="text-ink-soft">{k}</span><span className="text-right font-medium">{val}</span></div>;
+  return (
+    <div className="space-y-5">
+      <div className="grid h-24 w-24 place-items-center rounded-xl bg-gray-100 text-[34px] font-semibold text-ink-soft">{initialsOf(v.name)}</div>
+      <div>
+        <p className="text-[15px] font-semibold leading-snug">{v.name}</p>
+        <p className="mt-0.5 text-[12.5px] text-ink-mute">{v.id} · {typeLabel(v)}</p>
+      </div>
+      <div className="divide-y divide-line border-y border-line">
+        {row("Status", lifeStatus(v) ? <Status>{v.status}</Status> : <Status>{approvalStatus(v)}</Status>)}
+        {row("Compliance", <Status>{comp.status}</Status>)}
+        {row("Tier", v.tier)}
+        {row("Registration", v.regTier)}
+        {row("Score", sc == null ? "-" : Math.round(sc))}
+        {row("Documents", `${have} of ${req.length} uploaded`)}
+        {row("Payment terms", v.paymentTerms)}
+      </div>
+      {(v.tags || []).length > 0 && <div><p className="mb-1.5 text-[12px] font-medium text-ink-soft">Tags</p><div className="flex flex-wrap gap-1.5">{v.tags.map((t) => <span key={t} className="rounded-md bg-gray-100 px-2 py-0.5 text-[12px]">{t}</span>)}</div></div>}
+      <div className="space-y-3 text-[13px]">
+        {last && <p><span className="text-ink-soft">Last edited by</span> <b>{last.by}</b><span className="block text-ink-mute">{sinceText(last.at)} - {last.action}</span></p>}
+        {first?.by || v.submittedBy ? <p><span className="text-ink-soft">Created by</span> <b>{first?.by || v.submittedBy}</b><span className="block text-ink-mute">{sinceText(first?.at || v.createdAt)}</span></p>
+          : <p><span className="text-ink-soft">Registered</span> <b>{fmtDate(v.createdAt)}</b></p>}
+      </div>
+    </div>
+  );
+}
+function VendorRecordPage() {
+  const st = useStore(), loc = Ht(), nav = useNavigate();
+  const id = decodeURIComponent(loc.pathname.split("/").filter(Boolean).pop() || "");
+  const v = byId(st.vendors, id);
+  if (!v) return (
+    <Page title="Vendor Registry" icon={Icon.building}>
+      <EmptyState icon={Icon.building} title="Vendor not found" text={`There is no vendor ${id}.`} />
+      <div className="flex justify-center pb-8"><Btn onClick={() => nav(`${VM_BASE}/registry`)}>Back to Vendor Registry</Btn></div>
+    </Page>
+  );
+  // previous / next run through the registry in a cycle
+  const ids = st.vendors.map((x) => x.id), i = ids.indexOf(v.id);
+  const go = (d) => nav(vendorPath(ids[(i + d + ids.length) % ids.length]));
+  const tab = new URLSearchParams(loc.search).get("tab") || "overview";
+  return (
+    <Card>
+      <RecordPageCtx.Provider value={{ back: `${VM_BASE}/registry`, backLabel: "Vendor Registry", prev: ids.length > 1 ? () => go(-1) : null, next: ids.length > 1 ? () => go(1) : null, side: <VendorSide v={v} /> }}>
+        <VendorDrawer key={v.id} vendorId={v.id} initialTab={tab} onClose={() => nav(`${VM_BASE}/registry`)} />
+      </RecordPageCtx.Provider>
+      <Toaster />
+    </Card>
   );
 }
