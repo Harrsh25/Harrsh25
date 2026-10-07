@@ -80,7 +80,9 @@ function PrepareBillModal({ woId: presetWo, onClose, onCreated, finalFor }) {
   const seq = wo ? st.raBills.filter((b) => b.woId === woId && b.status !== "Rejected").length + 1 : 1;
   // Quantity control: cumulative billed may not exceed the WO quantity (which approved change orders raise)
   const over = calc ? calc.lines.filter((l) => l.woQty !== undefined && l.cumQty > l.woQty + 0.001) : [];
+  const raRule = wo ? RULES.raBill(st, wo) : null;
   const raErr = [
+    ...(raRule ? raRule.reasons.filter((r) => !/^No signed/.test(r)) : []),
     VX.req(period.from, "Period from required") || VX.req(period.to, "Period to required") || VX.dateOrder(period.from, period.to, "Period to must be after period from") || VX.notFuture(period.to, "Period can't end in the future"),
     ["penalty", "other"].some((k) => manual[k] !== "" && Number(manual[k]) < 0) || (!issues.length && Number(manual.materials) < 0) ? "Deductions can't be negative" : "",
     (Number(manual.penalty) > 0 || Number(manual.other) > 0) && !String(manual.otherNote || "").trim() ? "Add a note explaining the penalty / other deduction" : "",
@@ -165,6 +167,7 @@ function advanceBill(bill, remark, st) {
   if (!next || next.status === "Paid") return false;
   const why = raStepBlock(bill, st || getState());
   if (why) { toast(why, "red"); return false; }
+  if (!guardMove("RA Bill", bill.status, next.status)) return false;
   setState((s) => {
     const b = byId(s.raBills, bill.id);
     b.status = next.status;
@@ -187,6 +190,7 @@ function rejectBill(id, remark) {
   const next = RA_FLOW[RA_FLOW.findIndex((f) => f.status === b0.status) + 1];
   if (!tryAct(RA_ROLE[next.status], billActors(b0), "rejecting this bill")) return false;
   if (!(remark || "").trim()) { toast("A reason is required to reject", "red"); return false; }
+  if (!guardMove("RA Bill", b0.status, "Rejected")) return false;
   setState((s) => {
     const b = byId(s.raBills, id);
     b.status = "Rejected";

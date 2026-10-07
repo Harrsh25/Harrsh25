@@ -31,6 +31,7 @@ function migrateState(s) {
   if (seedGovernance(s)) changed = true;
   if (seedScoreKpis(s)) changed = true;
   if (seedSites(s)) changed = true;
+  if (seedRules(s)) changed = true;
   return changed;
 }
 const SUB_STATUS_TONE = { Proposed: "blue", Approved: "green", Rejected: "red", Closed: "gray" };

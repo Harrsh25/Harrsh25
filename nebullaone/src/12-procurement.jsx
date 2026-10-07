@@ -45,11 +45,12 @@ function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket, requis
     if (!bo) return { blanketId: "" };
     return { blanketId: boId, vendorId: bo.vendorId, lines: blanketUsage(st, bo).map((l, i) => ({ desc: l.desc, unit: l.unit, qty: "", rate: l.rate, blanketLine: i, remaining: l.remaining })) };
   }
-  const vendors = st.vendors.filter(eligibleForPo);
+  const vendors = st.vendors.filter((x) => eligibleForPo(x) && canTakePo(x));
   const v = byId(st.vendors, f.vendorId);
+  const scope = v ? qualScopeIssues(v, { project: f.project }) : [];
   const gate0 = f.vendorId ? scorecardGate(st, f.vendorId, "po") : {};
   const sg = v ? sourcingGate(st, v, "po") : { issues: [] };
-  const gate = { ...gate0, block: gate0.block || sg.block };
+  const gate = { ...gate0, block: gate0.block || sg.block || scope.length > 0 };
   const bo = f.blanketId && byId(st.blanketOrders, f.blanketId);
   const setLine = (i, k, val) => setF({ ...f, lines: f.lines.map((x, j) => (j === i ? { ...x, [k]: val } : x)) });
   const lines = bo ? f.lines.filter((l) => Number(l.qty) > 0) : f.lines;
@@ -90,6 +91,7 @@ function NewPoModal({ open, onClose, onCreated, blanketId: presetBlanket, requis
           <Field label="Bill control" required><Select value={f.billingPolicy} placeholder="Select" onChange={(x) => setF({ ...f, billingPolicy: x })} options={["On received quantity", "On ordered quantity"]} /></Field>
           <Field label="Receipt tolerance (%)" hint="0–20%"><NumInput value={f.tolerance} onChange={(x) => setF({ ...f, tolerance: x })} /><FieldErr m={poErr.tol} /></Field>
         </div>
+        {scope.length > 0 && <Note tone="red">{scope.join(" · ")}</Note>}
         {sg.issues.length > 0 && <Note tone={sg.block ? "red" : "amber"}>{v.name}: {sg.issues.join(" · ")}.{sg.block ? " New POs are stopped until this is fixed (Procurement Settings → PO compliance gate)." : ""}</Note>}
         {gate0.block && <Note tone="red">{v.name} is in the <b>{gate0.standing.name}</b> scorecard standing - new POs are prevented.</Note>}
         {!gate.block && gate.warn && <Note tone="amber">{v.name} is in the <b>{gate.standing.name}</b> scorecard standing - check performance before ordering.</Note>}

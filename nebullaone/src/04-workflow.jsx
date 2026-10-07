@@ -231,9 +231,10 @@ const PROJECT_WBS = {
 const wbsFor = (project) => PROJECT_WBS[project] || [];
 
 // Why a contractor can't be contracted / given work right now
-function contractorBlockers(st, v) {
+function contractorBlockers(st, v, o = {}) {
   if (!v) return ["Contractor not found"];
-  const out = [];
+  // the shared contract rule (vendor type, qualification status and scope) plus the sourcing checks below
+  const out = [...RULES.contract(st, v, o).reasons];
   if (v.status !== "Active" && !(v.status === "On Hold" && v.hold?.scope !== "All")) out.push(`Contractor is ${v.status}`);
   if (isBlockedFor(v, "All")) out.push(`Contractor is blocked (${v.hold ? `hold: ${v.hold.reason}` : v.status})`);
   if (v.regTier !== "Spend Authorized") out.push("Contractor is not spend-authorized");
@@ -247,7 +248,7 @@ function submitContract(c) {
   const errs = [];
   if (!(Number(c.value) > 0)) errs.push("contract value");
   if (!(c.end > c.start)) errs.push("completion after start");
-  errs.push(...contractorBlockers(st, v));
+  errs.push(...contractorBlockers(st, v, { project: c.project }));
   if (errs.length) { toast(`Can't submit - ${errs.join("; ")}`, "red"); return false; }
   const flow = contractFlowFor(contractValue(c), st);
   setState((s) => {
@@ -264,7 +265,7 @@ function decideContract(c, approve, remark) {
   if (!tryAct(stg.role, contractInvolved(c), `the ${stg.role} contract approval`)) return false;
   if (!approve && !(remark || "").trim()) { toast("A reason is required to reject", "red"); return false; }
   if (approve && i === c.approval.stages.length - 1) {
-    const b = contractorBlockers(getState(), byId(getState().vendors, c.vendorId));
+    const b = contractorBlockers(getState(), byId(getState().vendors, c.vendorId), { project: c.project });
     if (b.length) { toast(`Can't approve - ${b.join("; ")}`, "red"); return false; }
   }
   setState((s) => {
@@ -337,7 +338,7 @@ function bgStatus(g) {
 }
 const liveGuarantees = (c, type) => (c.guarantees || []).filter((g) => (!type || g.type === type) && ["Active", "Expiring"].includes(bgStatus(g)));
 function signBlockers(st, c) {
-  const out = [...contractorBlockers(st, byId(st.vendors, c.vendorId))];
+  const out = [...contractorBlockers(st, byId(st.vendors, c.vendorId), { project: c.project })];
   const need = round2(((Number(c.pbgPct) || 0) * (Number(c.value) || 0)) / 100);
   if (need > 0 && sum(liveGuarantees(c, "Performance"), (g) => g.amount) < need - 1) out.push(`Performance bank guarantee of ${inrShort(need)} (${c.pbgPct}%) not on file`);
   return out;
@@ -414,7 +415,7 @@ function woIssueBlockers(st, contractId) {
   const cs = contractStatus(c);
   if (!["Active", "Expiring"].includes(cs)) out.push(`Contract is ${cs}${cs === "Approved" ? " but not signed yet" : ""}`);
   const v = byId(st.vendors, c.vendorId);
-  out.push(...contractorBlockers(st, v));
+  out.push(...contractorBlockers(st, v, { project: c.project }));
   if (v) {
     const bg = backgroundIssue(v); if (bg) out.push(`${bg} - mobilisation blocked until it is clear`);
     const q = qualStatus(v); if (v.isContractor && ["Not qualified", "Not assessed"].includes(q.status)) out.push(`Contractor qualification: ${q.status}`);

@@ -203,7 +203,8 @@ function AttendanceSheet({ vendorId, portal }) {
   const [woId, setWoId] = y.useState(wos[0]?.id || "");
   const [date, setDate] = y.useState(todayISO());
   const workers = st.workers.filter((w) => w.vendorId === vid && w.active && !(w.exitOn && w.exitOn <= date));
-  const elig = (w) => workerIssues(w, date);
+  // the shared worker rule: induction, medical, certificates, gate pass and the right contractor for this work order
+  const elig = (w) => { const r = RULES.worker(st, w, byId(st.workOrders, woId), date); return { eligible: r.ok, block: r.reasons }; };
   const existing = st.attendance.filter((a) => a.date === date && a.woId === woId);
   const [rows, setRows] = y.useState({});
   const [dayType, setDayType] = y.useState(""), [reopen, setReopen] = y.useState(false);

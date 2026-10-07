@@ -226,7 +226,7 @@ function MeasurementModal({ preset = {}, onClose }) {
   const overQty = item && posLine && posLine.measured + pending + qty > item.qty;
   const lsBad = wo && wo.type === "Lump Sum" && posLine && (Number(f.pct) <= posLine.measured || Number(f.pct) > 100);
   const ctr = wo && byId(st.contracts, wo.contractId);
-  const frozen = ctr && ctr.status === "Terminated" ? `Contract ${ctr.id} is terminated - measurements are frozen` : "";
+  const mRule = wo ? RULES.measure(st, wo) : null, frozen = mRule && !mRule.ok ? mRule.reasons[0] : "";
   const mDateErr = frozen || (!f.date ? "Date required" : f.date > todayISO() ? "Measurement date can't be in the future" : wo && f.date < wo.start ? `Before the work order start (${fmtDate(wo.start)})` : "");
   const ok = wo && f.lineId && f.location && !mDateErr && (wo.type === "Lump Sum" ? f.pct !== "" && !lsBad : qty > 0);
   return (

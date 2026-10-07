@@ -139,19 +139,20 @@ function BackgroundModal({ v, onClose }) {
 function QualLimitForm({ v }) {
   const q = v.qualification;
   const init = () => ({ lim: q.valueLimit != null && q.valueLimit !== "" ? q.valueLimit : qualStatus(v).limit, single: q.singleLimit ?? "", exc: q.exceptions || "", expiry: q.expiryDate || shiftDays(365, q.at || todayISO()),
-    notes: q.notes || "", risk: q.riskRating || "Low", comments: { ...(q.reviewComments || {}) } });
+    notes: q.notes || "", risk: q.riskRating || "Low", comments: { ...(q.reviewComments || {}) }, trades: [...(q.trades || [])], projects: [...(q.projects || [])], nextReview: q.nextReview || "" });
   const [f, setF] = y.useState(init);
   const lim = f.lim, exc = f.exc;
   const err = !(Number(lim) > 0) ? "Enter an aggregate project limit above zero"
     : f.single !== "" && !(Number(f.single) > 0) ? "Single-project limit must be above zero"
     : f.single !== "" && Number(f.single) > Number(lim) ? "Single-project limit can't be above the aggregate limit"
     : !f.expiry ? "Enter the qualification expiry date" : f.expiry <= todayISO() ? "Expiry date must be in the future"
+    : f.nextReview && f.nextReview <= todayISO() ? "Next review date must be in the future" : f.nextReview && f.nextReview > f.expiry ? "Next review must fall before the expiry date"
     : exc.trim() && exc.trim().length < 5 ? "Describe the exception (at least 5 characters)"
     : exc.trim() && f.notes.trim().length < 5 ? "Add qualification notes when there are exceptions" : "";
   const dirty = JSON.stringify(f) !== JSON.stringify(init());
   const save = () => {
     if (err) return toast(err, "red");
-    setState((s) => { const x = byId(s.vendors, v.id).qualification; Object.assign(x, { valueLimit: Number(lim), singleLimit: f.single === "" ? null : Number(f.single), exceptions: exc.trim(), expiryDate: f.expiry, notes: f.notes.trim(), riskRating: f.risk, reviewComments: f.comments }); },
+    setState((s) => { const x = byId(s.vendors, v.id).qualification; Object.assign(x, { trades: f.trades, projects: f.projects, nextReview: f.nextReview || null, valueLimit: Number(lim), singleLimit: f.single === "" ? null : Number(f.single), exceptions: exc.trim(), expiryDate: f.expiry, notes: f.notes.trim(), riskRating: f.risk, reviewComments: f.comments }); },
       { entity: "Vendor", id: v.id, action: `Qualification outcome set - ${exc.trim() ? "qualified with exceptions" : "qualified"}, aggregate ${inrShort(Number(lim))}${f.single !== "" ? `, single ${inrShort(Number(f.single))}` : ""}, expires ${fmtDate(f.expiry)}, risk ${f.risk}` });
     toast("Qualification outcome saved");
   };
@@ -163,6 +164,9 @@ function QualLimitForm({ v }) {
         <Field label="Single project limit (₹)" hint="One work order; blank = no separate cap"><NumInput value={f.single} onChange={(x) => setF({ ...f, single: x })} /></Field>
         <Field label="Qualification expiry date"><DateInput value={f.expiry} onChange={(x) => setF({ ...f, expiry: x })} /></Field>
         <Field label="Risk rating"><Select value={f.risk} onChange={(x) => setF({ ...f, risk: x })} options={["Low", "Medium", "High", "Critical"]} /></Field>
+        <Field label="Qualified trades" span={2}><TradePicker options={TRADES} value={f.trades} placeholder="Select trades" onChange={(x) => setF({ ...f, trades: x })} /></Field>
+        <Field label="Qualified projects"><TradePicker options={PROJECTS} value={f.projects} placeholder="Select projects" onChange={(x) => setF({ ...f, projects: x })} /></Field>
+        <Field label="Next review date"><DateInput value={f.nextReview} onChange={(x) => setF({ ...f, nextReview: x })} /></Field>
         <Field label="Exceptions (leave blank if none)" span={2} hint="Anything that makes this 'Qualified with exceptions'"><TextArea rows={2} value={exc} onChange={(x) => setF({ ...f, exc: x })} placeholder="e.g. ISO 45001 certificate pending" /></Field>
         <Field label="Qualification notes" span={2}><TextArea rows={2} value={f.notes} onChange={(x) => setF({ ...f, notes: x })} placeholder="Basis of the decision, conditions" /></Field>
         {cats.map((c) => <Field key={c} label={`Review comments - ${c}`} span={2}><TextInput value={f.comments[c] || ""} onChange={(x) => setF({ ...f, comments: { ...f.comments, [c]: x } })} /></Field>)}

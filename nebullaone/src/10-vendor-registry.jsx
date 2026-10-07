@@ -495,6 +495,7 @@ function VendorOverview({ v, comp }) {
         ["Outstanding", inrShort(sum(getState().invoices.filter((i) => i.vendorId === v.id), (i) => invoiceTotals(i).balance))], ["Registered", fmtDate(v.createdAt)], ["Categories", <CategoryChips list={v.categories} max={99} wrap />],
       ]} />
       <VendorMoreView v={v} />
+      <VendorEligibility v={v} />
       {v.contractor && hasType(v, "Labor") && (
         <Section title="Contractor profile" icon={Icon.hardHat}>
           <KV items={[

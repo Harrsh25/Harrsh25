@@ -8,9 +8,9 @@ function ContractModal({ open, onClose, onCreated, edit }) {
   const [f, setF] = y.useState(blank);
   y.useEffect(() => { if (open) setF(blank()); }, [open]);
   const set = (k) => (x) => setF({ ...f, [k]: x });
-  const vendors = contractorVendors(st).filter((v) => (v.status === "Active" && v.regTier === "Spend Authorized") || v.id === f.vendorId);
+  const vendors = contractorVendors(st).filter((x) => canTakeContract(x)).filter((v) => (v.status === "Active" && v.regTier === "Spend Authorized") || v.id === f.vendorId);
   const v = byId(st.vendors, f.vendorId);
-  const blockers = v ? contractorBlockers(st, v) : [];
+  const blockers = v ? contractorBlockers(st, v, { project: f.project }) : [];
   const setLine = (i, k, x) => setF({ ...f, scope: f.scope.map((l, j) => (j === i ? { ...l, [k]: x } : l)) });
   const value = f.scope.length ? round2(sum(f.scope, (l) => (Number(l.qty) || 0) * (Number(l.rate) || 0))) : Number(f.value) || 0;
   const scopeOk = f.scope.every((l) => l.desc && Number(l.qty) > 0 && Number(l.rate) > 0);

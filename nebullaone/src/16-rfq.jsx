@@ -69,10 +69,10 @@ function NewRfqModal({ open, onClose, onCreated, preset }) {
     onClose(); onCreated && onCreated(id, true);
   };
   const toggleVendor = (v) => {
-    const g = scorecardGate(st, v.id, "rfq");
-    if (g.block) return toast(`${v.name} is in "${g.standing.name}" standing - RFQs are prevented`, "red");
+    // the shared RFQ rule (status, compliance gate, scorecard standing) plus the project the vendor is qualified for
+    const r = RULES.rfq(st, v), scope = qualScopeIssues(v, { project: f.project }).filter((x) => !/review was due/.test(x));
+    if (!f.vendorIds.includes(v.id) && (!r.ok || scope.length)) return toast(`${v.name} can't be invited - ${[...r.reasons, ...scope].join("; ")}`, "red");
     const sg = sourcingGate(st, v, "rfq");
-    if (sg.block && !f.vendorIds.includes(v.id)) return toast(`${v.name} can't be invited - ${sg.issues.join("; ")}`, "red");
     if (sg.warn && !f.vendorIds.includes(v.id)) toast(`Check before inviting ${v.name}: ${sg.issues.join("; ")}`, "amber");
     let ids = f.vendorIds.includes(v.id) ? f.vendorIds.filter((x) => x !== v.id) : [...f.vendorIds, v.id];
     if (f.mode === "Single Vendor") ids = ids.slice(-1);
