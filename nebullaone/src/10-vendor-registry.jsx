@@ -967,61 +967,47 @@ function VendorRegistryPage() {
 }
 
 // ---------------------------------------------------------------- full-page vendor record ("Open" in the registry)
-// Same tabs and content as the side panel; the right sidebar carries the summary, documents, tags and who changed it last.
+// Laid out like the registration form: the same numbered sections, filled with the vendor's details.
+// Editable while Draft / Changes Requested / Rejected (Save on the title row); read only once submitted or approved.
 const vendorPath = (id) => `${VM_BASE}/registry/${id}`;
-const initialsOf = (name) => String(name || "").split(/\s+/).filter((w) => /[A-Za-z]/.test(w[0] || "")).slice(0, 2).map((w) => w[0].toUpperCase()).join("") || "?";
-const sinceText = (iso) => { if (!iso) return ""; const d = Math.round((Date.now() - new Date(iso).getTime()) / DAY); return d <= 0 ? "today" : d === 1 ? "1 day ago" : d < 60 ? `${d} days ago` : fmtDate(String(iso).slice(0, 10)); };
-function VendorSide({ v }) {
-  const st = useStore();
-  const comp = complianceOf(v), sc = lifeStatus(v) ? vendorScore(st, v.id).score : null;
-  const req = requiredDocs(v), have = req.filter((n) => (v.docs || []).some((d) => d.name === n && d.file && docState(d) !== "Missing")).length;
-  const trail = st.audit.filter((a) => a.entity === "Vendor" && String(a.id).split(", ").includes(v.id));
-  const last = trail[0], first = trail[trail.length - 1];
-  const row = (k, val) => val != null && val !== "" && <div key={k} className="flex items-start justify-between gap-3 py-1.5 text-[13px]"><span className="text-ink-soft">{k}</span><span className="text-right font-medium">{val}</span></div>;
-  return (
-    <div className="space-y-5">
-      <div className="grid h-24 w-24 place-items-center rounded-xl bg-gray-100 text-[34px] font-semibold text-ink-soft">{initialsOf(v.name)}</div>
-      <div>
-        <p className="text-[15px] font-semibold leading-snug">{v.name}</p>
-        <p className="mt-0.5 text-[12.5px] text-ink-mute">{v.id} · {typeLabel(v)}</p>
-      </div>
-      <div className="divide-y divide-line border-y border-line">
-        {row("Status", lifeStatus(v) ? <Status>{v.status}</Status> : <Status>{approvalStatus(v)}</Status>)}
-        {row("Compliance", <Status>{comp.status}</Status>)}
-        {row("Tier", v.tier)}
-        {row("Registration", v.regTier)}
-        {row("Score", sc == null ? "-" : Math.round(sc))}
-        {row("Documents", `${have} of ${req.length} uploaded`)}
-        {row("Payment terms", v.paymentTerms)}
-      </div>
-      {(v.tags || []).length > 0 && <div><p className="mb-1.5 text-[12px] font-medium text-ink-soft">Tags</p><div className="flex flex-wrap gap-1.5">{v.tags.map((t) => <span key={t} className="rounded-md bg-gray-100 px-2 py-0.5 text-[12px]">{t}</span>)}</div></div>}
-      <div className="space-y-3 text-[13px]">
-        {last && <p><span className="text-ink-soft">Last edited by</span> <b>{last.by}</b><span className="block text-ink-mute">{sinceText(last.at)} - {last.action}</span></p>}
-        {first?.by || v.submittedBy ? <p><span className="text-ink-soft">Created by</span> <b>{first?.by || v.submittedBy}</b><span className="block text-ink-mute">{sinceText(first?.at || v.createdAt)}</span></p>
-          : <p><span className="text-ink-soft">Registered</span> <b>{fmtDate(v.createdAt)}</b></p>}
-      </div>
-    </div>
-  );
-}
 function VendorRecordPage() {
   const st = useStore(), loc = Ht(), nav = useNavigate();
   const id = decodeURIComponent(loc.pathname.split("/").filter(Boolean).pop() || "");
   const v = byId(st.vendors, id);
-  if (!v) return (
+  const [f, setF] = y.useState(() => (v ? vendorToForm(v) : null));
+  y.useEffect(() => { if (v) setF(vendorToForm(v)); }, [id]);
+  if (!v || !f) return (
     <Page title="Vendor Registry" icon={Icon.building}>
       <EmptyState icon={Icon.building} title="Vendor not found" text={`There is no vendor ${id}.`} />
       <div className="flex justify-center pb-8"><Btn onClick={() => nav(`${VM_BASE}/registry`)}>Back to Vendor Registry</Btn></div>
     </Page>
   );
+  const canEdit = EDITABLE_STATUSES.includes(v.status);
+  const dirty = JSON.stringify(f) !== JSON.stringify(vendorToForm(v));
+  const save = () => { setState((s) => applyForm(byId(s.vendors, v.id), f, {}), { entity: "Vendor", id: v.id, action: "Registration details edited" }); toast("Vendor saved"); };
   // previous / next run through the registry in a cycle
   const ids = st.vendors.map((x) => x.id), i = ids.indexOf(v.id);
   const go = (d) => nav(vendorPath(ids[(i + d + ids.length) % ids.length]));
-  const tab = new URLSearchParams(loc.search).get("tab") || "overview";
   return (
     <Card>
-      <RecordPageCtx.Provider value={{ back: `${VM_BASE}/registry`, backLabel: "Vendor Registry", prev: ids.length > 1 ? () => go(-1) : null, next: ids.length > 1 ? () => go(1) : null, side: <VendorSide v={v} /> }}>
-        <VendorDrawer key={v.id} vendorId={v.id} initialTab={tab} onClose={() => nav(`${VM_BASE}/registry`)} />
-      </RecordPageCtx.Provider>
+      <div data-record-page className="sticky top-0 z-10 flex items-center gap-3 rounded-t-xl border-b border-line bg-white px-6 py-3.5">
+        <div className="flex min-w-0 flex-1 items-center gap-2.5">
+          <RouterLink to={`${VM_BASE}/registry`} className="shrink-0 text-[17px] font-medium text-ink-mute hover:text-brand">Vendor Registry</RouterLink>
+          <span className="shrink-0 text-[17px] text-ink-faint">/</span>
+          <DrawerTitle>{v.name}</DrawerTitle>
+          <span className="shrink-0"><Status>{APPROVAL_STATES.includes(v.status) ? approvalStatus(v) : v.status}</Status></span>
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <span className="inline-flex h-7 items-center px-0.5"><PreferredStar v={v} size={17} always /></span>
+          {ids.length > 1 && <><IconBtn icon={Icon.chevronRight} className="rotate-180" title="Previous vendor" onClick={() => go(-1)} /><IconBtn icon={Icon.chevronRight} title="Next vendor" onClick={() => go(1)} /></>}
+          {canEdit && <Btn variant="primary" disabled={!dirty} onClick={save}>Save</Btn>}
+        </div>
+      </div>
+      <div className="px-6 py-5">
+        <fieldset disabled={!canEdit} className="m-0 min-w-0 border-0 p-0 [&_input:disabled]:bg-gray-50 [&_textarea:disabled]:bg-gray-50">
+          <VendorForm f={f} set={setF} errors={{}} />
+        </fieldset>
+      </div>
       <Toaster />
     </Card>
   );

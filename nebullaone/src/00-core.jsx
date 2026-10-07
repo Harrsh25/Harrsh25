@@ -78,7 +78,7 @@ Object.assign(Icon, {
   upload: mkIcon("Upload", [["path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" }], ["polyline", { points: "17 8 12 3 7 8" }], ["line", { x1: "12", x2: "12", y1: "3", y2: "15" }]]),
   ban: mkIcon("Ban", [["circle", { cx: "12", cy: "12", r: "10" }], ["path", { d: "m4.9 4.9 14.2 14.2" }]]),
   truck: mkIcon("Truck", [["path", { d: "M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" }], ["path", { d: "M15 18H9" }], ["path", { d: "M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14" }], ["circle", { cx: "17", cy: "18", r: "2" }], ["circle", { cx: "7", cy: "18", r: "2" }]]),
-  external: mkIcon("SquareArrowOutUpRight", [["path", { d: "M21 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6" }], ["path", { d: "m21 3-9 9" }], ["path", { d: "M15 3h6v6" }]]),
+  external: mkIcon("ExternalLink", [["path", { d: "M15 3h6v6" }], ["path", { d: "M10 14 21 3" }], ["path", { d: "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" }]]),
   wallet: mkIcon("Wallet", [["path", { d: "M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" }], ["path", { d: "M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" }]]),
   message: mkIcon("MessageSquare", [["path", { d: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" }]]),
 });
@@ -404,12 +404,8 @@ function DrawerActions({ actions }) {
 }
 // Record panel. Header (same on every record): title, then the record ID and its status - nothing else.
 // Any other key facts passed as `details` ([label, value] rows) show in a "Details" card at the top of the first tab.
-// Full-page record view: a record opened with "Open" renders the same content as its side panel, laid out as a page
-// (breadcrumb + status on the title row, actions and previous / next on the right, tabs, content and a summary sidebar)
-const RecordPageCtx = y.createContext(null);
 function Drawer({ open, title, badge, subtitle, recordId, rowId, status, details, onClose, actions, topActions, width = 760, tabs, related, comments, children }) {
-  const page = y.useContext(RecordPageCtx);
-  useEscape(open && !page, onClose);
+  useEscape(open, onClose);
   const box = useContentBox();
   // Previous / next record: steps through the rows of the list the panel was opened from (same order, filters and sort)
   const key = rowId ?? recordId;
@@ -424,35 +420,6 @@ function Drawer({ open, title, badge, subtitle, recordId, rowId, status, details
   });
   const step = (tr) => { if (tr) { tr.click(); tr.scrollIntoView({ block: "nearest" }); } };
   if (!open) return null;
-  if (page) return (
-    <div data-drawer data-record-page className="flex min-h-[calc(100vh-140px)] flex-col">
-      <div className="sticky top-0 z-10 rounded-t-xl border-b border-line bg-white">
-        <div className="flex items-center gap-3 px-6 pt-4 pb-3">
-          <div className="flex min-w-0 flex-1 items-center gap-2.5">
-            <RouterLink to={page.back} className="shrink-0 text-[17px] font-medium text-ink-mute hover:text-brand">{page.backLabel}</RouterLink>
-            <span className="shrink-0 text-[17px] text-ink-faint">/</span>
-            <DrawerTitle>{title}</DrawerTitle>
-            {badge}
-            {status && <span className="shrink-0">{status}</span>}
-          </div>
-          <div className="flex shrink-0 items-center gap-1.5">
-            {actions && <DrawerActions actions={actions} />}{topActions}
-            {page.prev && <IconBtn icon={Icon.chevronRight} className="rotate-180" title="Previous record" onClick={page.prev} />}
-            {page.next && <IconBtn icon={Icon.chevronRight} title="Next record" onClick={page.next} />}
-          </div>
-        </div>
-        {tabs && <DetailTabs {...tabs} />}
-      </div>
-      <div className="grid flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="min-w-0 lg:border-r lg:border-line">
-          {related && related.length > 0 && <div className="pt-4"><DocBar related={related} /></div>}
-          {details && details.filter(Boolean).length > 0 && (!tabs || tabs.active === tabs.tabs[0]?.id) && <div className="px-6 pt-4"><InfoCard title="Details" icon={Icon.info} rows={details} /></div>}
-          <InDrawerCtx.Provider value>{children}</InDrawerCtx.Provider>{comments && <RecordComments id={comments} />}
-        </div>
-        {page.side && <aside data-record-side className="border-t border-line p-5 lg:border-t-0">{page.side}</aside>}
-      </div>
-    </div>
-  );
   return (
     // Side panel (Project Center style): the list stays visible and clickable beside it - pick another row to switch records
     <div className="pointer-events-none fixed inset-0 z-[55] flex justify-end">
@@ -1481,7 +1448,7 @@ function Page({ title, subtitle, icon, actions, children }) {
 // "Open" in a list row: opens the record as a full page (the row click still opens the side panel)
 function OpenLink({ to }) {
   const nav = useNavigate();
-  return <button type="button" data-open-link data-tip="Open full page" onClick={(e) => { e.stopPropagation(); nav(to); }} className="inline-flex items-center gap-1 rounded px-1 text-[12.5px] font-normal text-ink-soft hover:text-brand"><Icon.external size={13} />Open</button>;
+  return <button type="button" data-open-link data-tip="Open full page" onClick={(e) => { e.stopPropagation(); nav(to); }} className="inline-flex items-center gap-1 rounded px-1 text-[12.5px] font-normal text-brand hover:underline"><Icon.external size={13} />Open</button>;
 }
 // Link-styled button to jump between related records
 function RefLink({ to, children }) {
