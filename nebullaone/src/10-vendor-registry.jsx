@@ -437,14 +437,14 @@ function VendorDrawer({ vendorId, onClose, initialTab = "overview", mode = "regi
   // The approval page is view only: the approver verifies documents, bank accounts and equipment, then decides on the Approvals tab
   const approving = mode === "approval";
   const tabs = [
-    { id: "overview", label: "Overview" },
-    { id: "flags", label: "Status & flags" },
-    { id: "docs", label: "Documents" },
-    { id: "bank", label: "Bank" },
-    { id: "qual", label: "Qualification" },
-    ...(v.isContractor || hasType(v, "Labor") ? [{ id: "equip", label: "Equipment" }] : []),
-    ...(lifeStatus(v) ? [{ id: "v360", label: "Vendor 360" }, { id: "stmt", label: "Statement" }, { id: "risk", label: "Risk" }] : []),
-    { id: "approval", label: "Approvals" },
+    { id: "overview", label: "Overview", icon: Icon.grid },
+    { id: "flags", label: "Status & flags", icon: Icon.shieldCheck },
+    { id: "docs", label: "Documents", icon: Icon.folderCheck },
+    { id: "bank", label: "Bank", icon: Icon.building },
+    { id: "qual", label: "Qualification", icon: Icon.check },
+    ...(v.isContractor || hasType(v, "Labor") ? [{ id: "equip", label: "Equipment", icon: Icon.factory }] : []),
+    ...(lifeStatus(v) ? [{ id: "v360", label: "Vendor 360", icon: Icon.chart }, { id: "stmt", label: "Statement", icon: Icon.receipt }, { id: "risk", label: "Risk", icon: Icon.alert }] : []),
+    { id: "approval", label: "Approvals", icon: Icon.clipboardCheck },
   ];
   return (
     <Drawer open related={relatedFor(st, "vendor", v)} onClose={onClose} width={880} title={v.name}
@@ -967,47 +967,26 @@ function VendorRegistryPage() {
 }
 
 // ---------------------------------------------------------------- full-page vendor record ("Open" in the registry)
-// Laid out like the registration form: the same numbered sections, filled with the vendor's details.
-// Editable while Draft / Changes Requested / Rejected (Save on the title row); read only once submitted or approved.
+// Every tab, action and check of the vendor panel, laid out as a page; label / value details show as form fields.
 const vendorPath = (id) => `${VM_BASE}/registry/${id}`;
 function VendorRecordPage() {
   const st = useStore(), loc = Ht(), nav = useNavigate();
   const id = decodeURIComponent(loc.pathname.split("/").filter(Boolean).pop() || "");
   const v = byId(st.vendors, id);
-  const [f, setF] = y.useState(() => (v ? vendorToForm(v) : null));
-  y.useEffect(() => { if (v) setF(vendorToForm(v)); }, [id]);
-  if (!v || !f) return (
+  if (!v) return (
     <Page title="Vendor Registry" icon={Icon.building}>
       <EmptyState icon={Icon.building} title="Vendor not found" text={`There is no vendor ${id}.`} />
       <div className="flex justify-center pb-8"><Btn onClick={() => nav(`${VM_BASE}/registry`)}>Back to Vendor Registry</Btn></div>
     </Page>
   );
-  const canEdit = EDITABLE_STATUSES.includes(v.status);
-  const dirty = JSON.stringify(f) !== JSON.stringify(vendorToForm(v));
-  const save = () => { setState((s) => applyForm(byId(s.vendors, v.id), f, {}), { entity: "Vendor", id: v.id, action: "Registration details edited" }); toast("Vendor saved"); };
-  // previous / next run through the registry in a cycle
-  const ids = st.vendors.map((x) => x.id), i = ids.indexOf(v.id);
-  const go = (d) => nav(vendorPath(ids[(i + d + ids.length) % ids.length]));
+  const tab = new URLSearchParams(loc.search).get("tab") || "overview";
+  const page = { backLabel: "Vendor Registry", onBack: () => nav(`${VM_BASE}/registry`), noun: "vendors", subtitle: [v.supplierType || "Company", v.regTier].filter(Boolean).join(" | "),
+    options: st.vendors.map((x) => ({ id: x.id, label: x.name, current: x.id === v.id })), onSwitch: (x) => nav(vendorPath(x)) };
   return (
     <Card>
-      <div data-record-page className="sticky top-0 z-10 flex items-center gap-3 rounded-t-xl border-b border-line bg-white px-6 py-3.5">
-        <div className="flex min-w-0 flex-1 items-center gap-2.5">
-          <RouterLink to={`${VM_BASE}/registry`} className="shrink-0 text-[17px] font-medium text-ink-mute hover:text-brand">Vendor Registry</RouterLink>
-          <span className="shrink-0 text-[17px] text-ink-faint">/</span>
-          <DrawerTitle>{v.name}</DrawerTitle>
-          <span className="shrink-0"><Status>{APPROVAL_STATES.includes(v.status) ? approvalStatus(v) : v.status}</Status></span>
-        </div>
-        <div className="flex shrink-0 items-center gap-1.5">
-          <span className="inline-flex h-7 items-center px-0.5"><PreferredStar v={v} size={17} always /></span>
-          {ids.length > 1 && <><IconBtn icon={Icon.chevronRight} className="rotate-180" title="Previous vendor" onClick={() => go(-1)} /><IconBtn icon={Icon.chevronRight} title="Next vendor" onClick={() => go(1)} /></>}
-          {canEdit && <Btn variant="primary" disabled={!dirty} onClick={save}>Save</Btn>}
-        </div>
-      </div>
-      <div className="px-6 py-5">
-        <fieldset disabled={!canEdit} className="m-0 min-w-0 border-0 p-0 [&_input:disabled]:bg-gray-50 [&_textarea:disabled]:bg-gray-50">
-          <VendorForm f={f} set={setF} errors={{}} />
-        </fieldset>
-      </div>
+      <RecordPageCtx.Provider value={page}>
+        <VendorDrawer key={v.id} vendorId={v.id} initialTab={tab} onClose={page.onBack} />
+      </RecordPageCtx.Provider>
       <Toaster />
     </Card>
   );

@@ -318,7 +318,7 @@ function Modal({ open, title, subtitle, onClose, footer, width = 640, children }
 
 // Detail-panel tabs (Project Center style): plain text, single line, blue when active.
 // Every tab is always shown - when they don't fit the panel the row scrolls sideways (no "More" menu).
-function DetailTabs({ tabs, active, onChange }) {
+function DetailTabs({ tabs, active, onChange, icons }) {
   return (
     <div className="border-b border-line px-6">
       <ScrollTabs gap="gap-5" active={active} arrowClass="mb-2">
@@ -328,7 +328,7 @@ function DetailTabs({ tabs, active, onChange }) {
             <button key={t.id} type="button" role="tab" aria-selected={on} onClick={() => onChange(t.id)}
               className={cls("-mb-px flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 pb-3 pt-1 text-[13.5px]",
                 on ? "border-brand font-medium text-brand" : "border-transparent text-ink-soft hover:text-brand")}>
-              {t.label}
+              {icons && t.icon && h(t.icon, { size: 14, className: "shrink-0" })}{t.label}
               {/* no counts on tabs (anywhere) */}
             </button>
           );
@@ -371,20 +371,22 @@ function DrawerTitle({ children }) {
 }
 // Record actions: the most important button stays visible, the rest open from ⋯ (same buttons, same rules)
 const flatActions = (n) => y.Children.toArray(n).flatMap((e) => (e && e.type === y.Fragment ? flatActions(e.props.children) : e && typeof e === "object" ? [e] : []));
-function DrawerActions({ actions }) {
+function DrawerActions({ actions, inline = 1 }) {
   const [open, setOpen] = y.useState(false);
   const box = y.useRef(null);
   y.useEffect(() => { if (!open) return; const off = (e) => { if (box.current && !box.current.contains(e.target)) setOpen(false); }; const esc = (e) => e.key === "Escape" && (e.stopPropagation(), setOpen(false)); document.addEventListener("mousedown", off); document.addEventListener("keydown", esc, true); return () => { document.removeEventListener("mousedown", off); document.removeEventListener("keydown", esc, true); }; }, [open]);
   const items = flatActions(actions);
   const btns = items.filter((e) => e.type === Btn), other = items.filter((e) => e.type !== Btn);
-  if (btns.length <= 1) return <div data-drawer-actions className="flex items-center gap-1.5">{items}</div>;
+  if (btns.length <= inline) return <div data-drawer-actions className="flex items-center gap-1.5">{items}</div>;
   // the main action: an enabled primary / success button, else the first enabled one that isn't destructive
   const on = btns.filter((b) => !b.props.disabled), is = (v) => (b) => b.props.variant === v;
   const main = on.find(is("primary")) || on.find(is("success")) || on.find((b) => b.props.variant !== "danger") || on[0] || btns.find(is("primary")) || btns[0];
-  const rest = btns.filter((b) => b !== main);
+  const extra = inline > 1 ? btns.filter((b) => b !== main && !b.props.disabled && b.props.variant !== "danger").slice(0, inline - 1) : [];
+  const rest = btns.filter((b) => b !== main && !extra.includes(b));
+  if (!rest.length) return <div data-drawer-actions className="flex items-center gap-1.5">{other}{extra}{main}</div>;
   return (
     <div data-drawer-actions className="flex items-center gap-1.5">
-      {other}{main}
+      {other}{extra}{main}
       <div ref={box} className="relative">
         <IconBtn icon={Icon.more} title="More actions" onClick={() => setOpen(!open)} />
         {open && (
@@ -404,8 +406,31 @@ function DrawerActions({ actions }) {
 }
 // Record panel. Header (same on every record): title, then the record ID and its status - nothing else.
 // Any other key facts passed as `details` ([label, value] rows) show in a "Details" card at the top of the first tab.
+// Full-page record ("Open" in a list): the same panel content and actions, laid out as a page with
+// back, title (switch record), status and a short subtitle on the left; star and actions on the right; tabs with icons
+const RecordPageCtx = y.createContext(null);
+function RecordSwitch({ page }) {
+  const [open, setOpen] = y.useState(false), [q, setQ] = y.useState(""), box = y.useRef(null);
+  y.useEffect(() => { if (!open) return; const off = (e) => box.current && !box.current.contains(e.target) && setOpen(false); document.addEventListener("mousedown", off); return () => document.removeEventListener("mousedown", off); }, [open]);
+  const list = (page.options || []).filter((o) => !q || o.label.toLowerCase().includes(q.toLowerCase()));
+  return (
+    <div ref={box} className="relative shrink-0">
+      <IconBtn icon={Icon.chevronDown} title={`Switch ${page.noun || "record"}`} onClick={() => setOpen(!open)} />
+      {open && (
+        <div role="menu" className="absolute left-0 top-full z-[70] mt-1 w-[300px] rounded-lg border border-line bg-white py-1 shadow-lg">
+          <div className="px-2 pb-1"><input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${page.noun || "records"}`} className={inputCls} /></div>
+          <div className="max-h-[300px] overflow-y-auto">
+            {list.map((o) => <button key={o.id} type="button" role="menuitem" onClick={() => { setOpen(false); page.onSwitch(o.id); }} className={cls("block w-full truncate px-3 py-1.5 text-left text-[13px] hover:bg-gray-50", o.current && "font-medium text-brand")}>{o.label}</button>)}
+            {!list.length && <p className="px-3 py-2 text-[12.5px] text-ink-mute">No match</p>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 function Drawer({ open, title, badge, subtitle, recordId, rowId, status, details, onClose, actions, topActions, width = 760, tabs, related, comments, children }) {
-  useEscape(open, onClose);
+  const page = y.useContext(RecordPageCtx);
+  useEscape(open && !page, onClose);
   const box = useContentBox();
   // Previous / next record: steps through the rows of the list the panel was opened from (same order, filters and sort)
   const key = rowId ?? recordId;
@@ -420,6 +445,29 @@ function Drawer({ open, title, badge, subtitle, recordId, rowId, status, details
   });
   const step = (tr) => { if (tr) { tr.click(); tr.scrollIntoView({ block: "nearest" }); } };
   if (!open) return null;
+  if (page) return (
+    <div data-drawer data-record-page className="flex min-h-[calc(100vh-140px)] flex-col">
+      <div className="sticky top-0 z-10 rounded-t-xl bg-white">
+        <div className="flex items-center gap-3 border-b border-line px-5 py-3">
+          <IconBtn icon={Icon.chevronRight} className="rotate-180" title={`Back to ${page.backLabel}`} onClick={page.onBack} />
+          <span className="h-6 w-px shrink-0 bg-line" />
+          <div className="flex min-w-0 flex-1 items-center gap-2.5">
+            <DrawerTitle>{title}</DrawerTitle>
+            {page.options && <RecordSwitch page={page} />}
+            {status && <span className="shrink-0">{status}</span>}
+            {page.subtitle && <span className="truncate text-[13px] text-ink-soft">{page.subtitle}</span>}
+          </div>
+          <div className="flex shrink-0 items-center gap-2">{topActions}{actions && <DrawerActions actions={actions} inline={2} />}</div>
+        </div>
+        {tabs && <DetailTabs {...tabs} icons />}
+      </div>
+      <div className="min-w-0 flex-1">
+        {related && related.length > 0 && <div className="pt-4"><DocBar related={related} /></div>}
+        {details && details.filter(Boolean).length > 0 && (!tabs || tabs.active === tabs.tabs[0]?.id) && <div className="px-6 pt-4"><InfoCard title="Details" icon={Icon.info} rows={details} /></div>}
+        <InDrawerCtx.Provider value><FormLookCtx.Provider value>{children}</FormLookCtx.Provider></InDrawerCtx.Provider>{comments && <RecordComments id={comments} />}
+      </div>
+    </div>
+  );
   return (
     // Side panel (Project Center style): the list stays visible and clickable beside it - pick another row to switch records
     <div className="pointer-events-none fixed inset-0 z-[55] flex justify-end">
@@ -1283,7 +1331,19 @@ function Section({ title, icon, actions, children, className }) {
 }
 
 // Details as a one-column list: label on the left, value on the right, one row per field
+const FormLookCtx = y.createContext(false);
 function KV({ items }) {
+  // on a full-page record the label / value rows look like the registration form: labelled field boxes in a grid
+  if (y.useContext(FormLookCtx)) return (
+    <dl className="nx-kv grid grid-cols-1 gap-x-4 gap-y-3 p-4 sm:grid-cols-2 xl:grid-cols-3">
+      {items.filter(Boolean).map(([k, v]) => (
+        <div key={k} className="min-w-0">
+          <dt className="mb-1 text-[12px] font-medium text-ink-soft">{k}</dt>
+          <dd className="flex min-h-[32px] min-w-0 items-center break-words rounded-md border border-line bg-gray-50 px-2.5 py-1 text-[13px] leading-snug text-ink">{v === undefined || v === null || v === "" ? <span className="text-ink-faint">-</span> : v}</dd>
+        </div>
+      ))}
+    </dl>
+  );
   return (
     <dl className="nx-kv divide-y divide-line px-4 py-1">
       {items.filter(Boolean).map(([k, v]) => (
