@@ -158,6 +158,7 @@ function poSourceText(st, p) {
 function billAgainst(st, i) {
   if (i.source === "RA Bill") { const b = byId(st.raBills, i.raBillId), w = b && byId(st.workOrders, b.woId); return [w ? w.title : "RA bill", b ? `RA bill no. ${b.seq} · work order` : "RA bill"]; }
   if (i.source === "Direct") return ["Direct bill", "No purchase order"];
+  if (i.source === "Labour bill") return ["Labour bill", i.period ? `Attendance ${fmtDate(i.period.from)} – ${fmtDate(i.period.to)}` : "Attendance"];
   const p = byId(st.purchaseOrders, i.poId); return [p ? itemsSummary(p.lines) : "Purchase order", p ? `Purchase order · ${p.project}` : "Purchase order"];
 }
 // List cells stay single-line (Project Center style); the secondary detail is shown on hover
@@ -371,7 +372,7 @@ const FO = {
   poBilling: ["Nothing to Bill", "Waiting Bills", "Partially Billed", "Fully Billed", "On ordered quantity", "Draft", "Cancelled"],
   poSource: ["From RFQ", "Blanket call-off", "Direct"],
   blanket: ["Draft", "Active", "Accepted", "Fully Consumed", "Expired", "Closed"],
-  billType: ["Purchase order", "RA bill", "Direct bill"],
+  billType: ["Purchase order", "RA bill", "Direct bill", "Labour bill"],
   match: ["Matched", "Matched (debit note)", "Variance - note raised", "Mismatch", "Awaiting certification", "Direct bill", "No PO"],
   shouldPay: ["Yes", "No", "Exception"],
   rfqStatus: ["Draft", "Sent", "Quotes Received", "Partially Awarded", "Awarded", "Closed"],

@@ -583,7 +583,7 @@ function PayModal({ invIds, onClose }) {
     const payNow = next ? Math.min(t.balance, next.amount - next.paid) : t.balance;
     const tds = billTds(st, inv, v, t.taxable, payNow / (t.payable || 1));
     const hard = gate.stops.some(hardStop);
-    const who = payBlock(inv);
+    const pp = openProposalOf(st, inv.id), who = payBlock(inv) || (pp ? `in payment proposal ${pp.id} (${pp.status}) - pay it there` : null);
     const blocked = !!who || (gate.stops.length > 0 && !(override[inv.id] && !hard));
     return { inv, v, t, gate, tds, payNow, net: round2(payNow - tds), blocked, hard, next, who };
   });
@@ -943,15 +943,17 @@ function InvoicesPage() {
         <Btn icon={Icon.wallet} onClick={() => setAdv({ vendorId: "", amount: "", ref: "", note: "", date: todayISO() })}>Record advance</Btn>
         <Btn icon={Icon.plus} onClick={() => setBill(true)}>Enter vendor bill</Btn>
         <Btn icon={Icon.check} onClick={() => { if (sel.length) return setSel([]); const ids = payable.map((i) => i.id); setSel(ids); setTab("bills"); toast(ids.length ? `${ids.length} bill(s) due within 7 days and clear of payment checks selected` : "No bills are due and clear to pay", ids.length ? "green" : "amber"); }}>{sel.length ? "Clear selection" : "Select payable"}</Btn>
+        <Btn icon={Icon.send} disabled={!sel.length} title={sel.length ? "" : "Tick the bills to propose first"} onClick={() => { if (createProposal(st, sel)) { setSel([]); setTab("proposals"); } }}>Propose payment</Btn>
         <Btn variant="primary" icon={Icon.rupee} disabled={!sel.length} title={sel.length ? "" : "Tick the bills to pay first (or use Select payable)"} onClick={() => setRun(true)}>Payment run{sel.length ? ` (${sel.length})` : ""}</Btn>
       </>}>
-      <TabBar active={tab} onChange={setTab} tabs={[{ id: "bills", label: "Bills", icon: Icon.receipt }, { id: "accruals", label: "Accruals", icon: Icon.book }]} />
+      <TabBar active={tab} onChange={setTab} tabs={[{ id: "bills", label: "Bills", icon: Icon.receipt }, { id: "proposals", label: "Payment proposals", icon: Icon.send }, { id: "accruals", label: "Accruals", icon: Icon.book }]} />
       {tab === "accruals" && <AccrualsTab />}
+      {tab === "proposals" && <ProposalsTab />}
       {tab === "bills" && <DataTable noun="bills" defaultCols={["v", "number", "bal", "due", "s"]} extraColumns={LIST_EXTRA.bills(st)} calendar={{ label: "Due dates", date: (i) => i.due, title: (i) => vendorName(st, i.vendorId) }} summary={(r) => [{ value: inrShort(sum(r, (i) => invoiceTotals(i).balance)), label: "outstanding" }, { value: inrShort(sum(st.vendorAdvances, (a) => a.amount - sum(a.allocated, (x) => x.amount))), label: "unadjusted advances" }]} filters={<><FilterSelect label="Status" value={status} onChange={setStatus} options={[{ value: "All", label: "All status" }, "Awaiting Review", "Unpaid", "Partially Paid", "Overdue", "On Hold", "Paid", "Rejected"]} /></>} rows={rows} onRow={(i) => setOpen(i.id)} columns={[
         { key: "sel", label: "", render: (i) => invoiceStatus(i) !== "Paid" && <input type="checkbox" className="h-4 w-4 accent-[#0b5ed7]" checked={sel.includes(i.id)} onClick={(e) => e.stopPropagation()} onChange={(e) => setSel(e.target.checked ? [...sel, i.id] : sel.filter((x) => x !== i.id))} /> },
         { key: "id", label: "Bill no.", className: "mono text-[12px]" },
         { key: "v", label: "Vendor", filterOptions: FO.vendors, filter: (x) => vendorName(st, x.vendorId), render: (i) => <span className="font-medium">{vendorName(st, i.vendorId)}</span> },
-        { key: "src", label: "Against", opt: true, filterOptions: FO.billType, filterLabel: "Bill type", filter: (i) => (i.source === "RA Bill" ? "RA bill" : i.source === "Direct" ? "Direct bill" : "Purchase order"), render: (i) => { const [a, b] = billAgainst(st, i); return <TwoLine a={a} b={b} />; } },
+        { key: "src", label: "Against", opt: true, filterOptions: FO.billType, filterLabel: "Bill type", filter: (i) => (i.source === "RA Bill" ? "RA bill" : i.source === "Direct" ? "Direct bill" : i.source === "Labour bill" ? "Labour bill" : "Purchase order"), render: (i) => { const [a, b] = billAgainst(st, i); return <TwoLine a={a} b={b} />; } },
         { key: "number", label: "Vendor bill no.", className: "text-[12px]", render: (i) => (i.source === "RA Bill" ? <span className="text-ink-mute">Auto (from RA bill)</span> : i.number || <span className="text-ink-faint">-</span>) },
         { key: "amt", label: "Amount", align: "right", num: true, render: (i) => inr(invoiceTotals(i).payable) },
         { key: "bal", label: "Balance", align: "right", num: true, render: (i) => inr(invoiceTotals(i).balance) },

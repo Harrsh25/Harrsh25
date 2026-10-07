@@ -293,6 +293,7 @@ function threeWay(st, inv) {
     return { status: b && ["Approved", "Paid"].includes(b.status) ? "Matched" : "Awaiting certification", rows: [] };
   }
   if (inv.source === "Direct") return { status: "Direct bill", rows: [] };
+  if (inv.source === "Labour bill") return { status: "Matched", rows: [] }; // built from verified attendance
   const po = byId(st.purchaseOrders, inv.poId);
   if (!po) return { status: "No PO", rows: [] };
   const tol = ((st.settings && st.settings.rateTolerancePct) || 0) / 100;

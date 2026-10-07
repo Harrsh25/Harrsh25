@@ -333,7 +333,7 @@ function LabourAttendancePage() {
   const [tab, setTab] = y.useState("muster");
   const [roll, setRoll] = y.useState({ woId: st.workOrders.find((w) => st.attendance.some((a) => a.woId === w.id))?.id || "", from: shiftDays(-14), to: shiftDays(-1) });
   const wo = byId(st.workOrders, roll.woId);
-  const pending = st.attendance.filter((a) => a.woId === roll.woId && !a.rolledInto && a.date >= roll.from && a.date <= roll.to);
+  const pending = st.attendance.filter((a) => a.woId === roll.woId && !a.rolledInto && !a.billedIn && a.date >= roll.from && a.date <= roll.to);
   const byTrade = {};
   for (const a of pending) {
     const w = byId(st.workers, a.workerId); if (!w) continue;
@@ -364,8 +364,9 @@ function LabourAttendancePage() {
   };
   return (
     <Page title="Labour Attendance" subtitle="Worker-wise daily muster → man-days in the measurement book → RA bill" icon={Icon.users}>
-      <TabBar active={tab} onChange={setTab} tabs={[{ id: "muster", label: "Daily muster", icon: Icon.listChecks }, { id: "roll", label: "Roll up to measurement book", icon: Icon.ruler }, { id: "workers", label: "Workers", icon: Icon.hardHat }]} />
+      <TabBar active={tab} onChange={setTab} tabs={[{ id: "muster", label: "Daily muster", icon: Icon.listChecks }, { id: "roll", label: "Roll up to measurement book", icon: Icon.ruler }, { id: "lbill", label: "Labour bill", icon: Icon.receipt }, { id: "workers", label: "Workers", icon: Icon.hardHat }]} />
       {tab === "muster" && <AttendanceSheet />}
+      {tab === "lbill" && <LabourBillTab />}
       {tab === "roll" && (
         <div className="space-y-3 p-4">
           <div className="flex flex-wrap items-end gap-3">

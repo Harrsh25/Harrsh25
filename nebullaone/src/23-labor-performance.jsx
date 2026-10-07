@@ -21,7 +21,7 @@ function matchRate(st, wo, item) {
 function RateModal({ base, onClose }) {
   const st = useStore();
   const [f, setF] = y.useState(base ? { ...base, rate: base.rate, minWage: base.minWage, effectiveFrom: shiftDays(1), reason: "" }
-    : { trade: "", skill: "", region: "", vendorId: "", minWage: "", rate: "", otMultiplier: 2, holidayMultiplier: 2, nightAllowancePct: 10, basis: "Per 8-hr man-day", effectiveFrom: todayISO(), reason: "" });
+    : { trade: "", skill: "", region: "", vendorId: "", minWage: "", rate: "", otMultiplier: 2, holidayMultiplier: 2, nightAllowancePct: 10, pfPct: "", esiPct: "", escalationPct: "", basis: "Per 8-hr man-day", effectiveFrom: todayISO(), reason: "" });
   const cur = base && st.laborRates.find((r) => r.status === "Active" && rateKey(r) === rateKey(base));
   const lrErr = {
     trade: VX.req(String(f.trade).trim()),
@@ -33,6 +33,9 @@ function RateModal({ base, onClose }) {
     ot: VX.num(f.otMultiplier, { min: 1, max: 3, label: "Overtime multiplier" }),
     hol: VX.num(f.holidayMultiplier ?? 2, { min: 1, max: 3, label: "Holiday multiplier" }),
     night: VX.num(f.nightAllowancePct ?? 0, { min: 0, max: 50, label: "Night allowance" }),
+    pf: VX.blank(f.pfPct) ? "" : VX.num(f.pfPct, { min: 0, max: 15, label: "PF" }),
+    esi: VX.blank(f.esiPct) ? "" : VX.num(f.esiPct, { min: 0, max: 5, label: "ESI" }),
+    esc: VX.blank(f.escalationPct) ? "" : VX.num(f.escalationPct, { min: 0, max: 20, label: "Escalation" }),
     from: VX.req(f.effectiveFrom) || (cur && f.effectiveFrom <= cur.effectiveFrom ? `Must be after the current version's start (${fmtDate(cur.effectiveFrom)})` : ""),
     reason: base ? VX.reason(f.reason) : "",
   };
@@ -42,7 +45,7 @@ function RateModal({ base, onClose }) {
       footer={<><Btn onClick={onClose}>Cancel</Btn><Btn variant="primary" disabled={!ok} onClick={() => {
         const id = nextId("LR", st.laborRates);
         const prev = st.laborRates.filter((r) => rateKey(r) === rateKey({ ...f, vendorId: f.vendorId || null }));
-        setState((s) => s.laborRates.unshift({ id, trade: f.trade, skill: f.skill, region: f.region, vendorId: f.vendorId || null, minWage: Number(f.minWage), rate: Number(f.rate), otMultiplier: Number(f.otMultiplier) || 2, holidayMultiplier: Number(f.holidayMultiplier ?? 2) || 2, nightAllowancePct: Number(f.nightAllowancePct ?? 0) || 0, basis: f.basis, effectiveFrom: f.effectiveFrom, effectiveTo: null, status: "Pending Approval", version: Math.max(0, ...prev.map((p) => p.version)) + 1, reason: f.reason, createdBy: currentUser() }),
+        setState((s) => s.laborRates.unshift({ id, pfPct: Number(f.pfPct) || 0, esiPct: Number(f.esiPct) || 0, escalationPct: Number(f.escalationPct) || 0, trade: f.trade, skill: f.skill, region: f.region, vendorId: f.vendorId || null, minWage: Number(f.minWage), rate: Number(f.rate), otMultiplier: Number(f.otMultiplier) || 2, holidayMultiplier: Number(f.holidayMultiplier ?? 2) || 2, nightAllowancePct: Number(f.nightAllowancePct ?? 0) || 0, basis: f.basis, effectiveFrom: f.effectiveFrom, effectiveTo: null, status: "Pending Approval", version: Math.max(0, ...prev.map((p) => p.version)) + 1, reason: f.reason, createdBy: currentUser() }),
           { entity: "Labour Rate", id, action: `${base ? "Revision" : "New rate"} submitted - ${f.trade} @ ${inr(f.rate)}/day` });
         toast(`${id} sent for approval`); onClose();
       }}>Submit for approval</Btn></>}>
@@ -56,6 +59,9 @@ function RateModal({ base, onClose }) {
         <Field label="Overtime multiplier" hint="1 – 3"><NumInput value={f.otMultiplier} onChange={(x) => setF({ ...f, otMultiplier: x })} /><FieldErr m={lrErr.ot} /></Field>
         <Field label="Sunday / holiday multiplier"><NumInput value={f.holidayMultiplier ?? 2} onChange={(x) => setF({ ...f, holidayMultiplier: x })} /><FieldErr m={lrErr.hol} /></Field>
         <Field label="Night allowance (%)"><NumInput value={f.nightAllowancePct ?? 0} onChange={(x) => setF({ ...f, nightAllowancePct: x })} /><FieldErr m={lrErr.night} /></Field>
+        <Field label="Employer PF (%)"><NumInput value={f.pfPct ?? ""} onChange={(x) => setF({ ...f, pfPct: x })} /><FieldErr m={lrErr.pf} /></Field>
+        <Field label="Employer ESI (%)"><NumInput value={f.esiPct ?? ""} onChange={(x) => setF({ ...f, esiPct: x })} /><FieldErr m={lrErr.esi} /></Field>
+        <Field label="Escalation per year (%)"><NumInput value={f.escalationPct ?? ""} onChange={(x) => setF({ ...f, escalationPct: x })} /><FieldErr m={lrErr.esc} /></Field>
         <Field label="Effective from"><DateInput value={f.effectiveFrom} onChange={(x) => setF({ ...f, effectiveFrom: x })} /><FieldErr m={lrErr.from} /></Field>
         <Field label={base ? "Reason for revision" : "Note"} required={!!base} span={2}><TextInput value={f.reason} onChange={(x) => setF({ ...f, reason: x })} placeholder="e.g. VDA notification w.e.f. 1 Oct" /></Field>
       </div>
@@ -100,6 +106,8 @@ function LaborRatesPage() {
     { key: "rate", label: "Rate / day", align: "right", num: true, render: (r) => <b>{inr(r.rate)}</b> },
     { key: "m", label: "Margin", align: "right", render: (r) => (r.rate < r.minWage ? <Status tone="red">Below min. wage</Status> : <span className="num">{margin(r).toFixed(1)}%</span>) },
     { key: "ot", label: "OT", opt: true, align: "right", render: (r) => `${r.otMultiplier}×` },
+    { key: "stat", label: "PF · ESI · escalation", opt: true, align: "right", render: (r) => (r.pfPct || r.esiPct || r.escalationPct ? `${r.pfPct || 0}% · ${r.esiPct || 0}% · ${r.escalationPct || 0}%/yr` : "-") },
+    { key: "loaded", label: "Loaded rate today", opt: true, align: "right", render: (r) => inr(loadedRate(r)) },
     { key: "ef", label: "Effective", render: (r) => `${fmtDate(r.effectiveFrom)}${r.effectiveTo ? ` → ${fmtDate(r.effectiveTo)}` : ""}` },
     { key: "ver", label: "Ver.", opt: true, align: "center", render: (r) => `v${r.version}` },
   ];
